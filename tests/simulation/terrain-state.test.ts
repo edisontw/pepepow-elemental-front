@@ -93,6 +93,25 @@ describe('M01 authoritative water and ice terrain', () => {
     expect(simulation.navigation.navVersion).toBe(3);
   });
 
+  it('routes FIRE through the existing heat and ice-melt pathway', () => {
+    const simulation = new Simulation('fire-melt');
+    cast(simulation, 1, 'FREEZE'); cast(simulation, 2, 'FREEZE');
+    simulation.step(); simulation.step();
+    simulation.enqueueCommand({
+      targetTick: 3, playerId: 0, type: 'CAST', effectId: 'FIRE',
+      targetX: CROSSING_X, targetZ: CROSSING_Z, radius: EFFECT_RADIUS,
+    });
+    simulation.step();
+    expect(simulation.terrain.iceDurabilityAt(CROSSING_CELL)).toBe(ICE_DURABILITY_MAX - HEAT_ICE_DAMAGE);
+    simulation.enqueueCommand({
+      targetTick: 4, playerId: 0, type: 'CAST', effectId: 'FIRE',
+      targetX: CROSSING_X, targetZ: CROSSING_Z, radius: EFFECT_RADIUS,
+    });
+    simulation.step();
+    expect(simulation.terrain.surfaceAt(CROSSING_CELL)).toBe(SurfaceType.WATER);
+    expect(simulation.navigation.navVersion).toBe(3);
+  });
+
   it('includes canonical row-major terrain state in replay hashes', () => {
     const first = new Simulation('terrain-hash');
     const second = new Simulation('terrain-hash');

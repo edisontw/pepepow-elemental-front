@@ -7,6 +7,7 @@ interface UnitPresentation {
   body: pc.Entity;
   selection: pc.Entity;
   healthBar: pc.Entity;
+  wetMarker: pc.Entity;
 }
 
 function snapshotMap(snapshot: SimulationSnapshot): Map<EntityID, EntitySnapshot> {
@@ -17,6 +18,7 @@ export class UnitRenderBridge {
   private readonly units = new Map<EntityID, UnitPresentation>();
   private latest = new Map<EntityID, EntitySnapshot>();
   private readonly screenPosition = new pc.Vec3();
+  private readonly wetMaterial = new pc.StandardMaterial();
 
   constructor(
     app: pc.Application,
@@ -25,6 +27,9 @@ export class UnitRenderBridge {
     selectionMaterial: pc.Material,
     healthMaterial: pc.Material,
   ) {
+    this.wetMaterial.diffuse = new pc.Color(0.08, 0.78, 1);
+    this.wetMaterial.emissive = new pc.Color(0.02, 0.25, 0.4);
+    this.wetMaterial.update();
     for (const unit of initialSnapshot.entities) {
       const body = new pc.Entity(`Unit ${unit.id}`);
       const material = unit.playerId === 0
@@ -42,7 +47,12 @@ export class UnitRenderBridge {
       const healthBar = new pc.Entity(`Health ${unit.id}`);
       healthBar.addComponent('render', { type: 'box', material: healthMaterial });
       app.root.addChild(healthBar);
-      this.units.set(unit.id, { body, selection, healthBar });
+      const wetMarker = new pc.Entity(`Wet ${unit.id}`);
+      wetMarker.addComponent('render', { type: 'cylinder', material: this.wetMaterial });
+      wetMarker.setLocalScale(0.92, 0.025, 0.92);
+      wetMarker.enabled = false;
+      app.root.addChild(wetMarker);
+      this.units.set(unit.id, { body, selection, healthBar, wetMarker });
     }
     this.sync(initialSnapshot, initialSnapshot, 1);
   }
@@ -56,12 +66,14 @@ export class UnitRenderBridge {
       presentation.body.enabled = unit.alive;
       presentation.selection.enabled = unit.alive && presentation.selection.enabled;
       presentation.healthBar.enabled = unit.alive;
+      presentation.wetMarker.enabled = unit.alive && unit.wet;
       if (!unit.alive) continue;
       const prior = previousById.get(unit.id) ?? unit;
       const x = pc.math.lerp(prior.x, unit.x, alpha) / WORLD_UNITS_PER_METER;
       const z = pc.math.lerp(prior.z, unit.z, alpha) / WORLD_UNITS_PER_METER;
       presentation.body.setPosition(x, 0.78, z);
       presentation.selection.setPosition(x, 0.07, z);
+      presentation.wetMarker.setPosition(x, 0.115, z);
       const healthRatio = unit.currentHealth / unit.maxHealth;
       presentation.healthBar.setPosition(x - (1 - healthRatio) * 0.55, 2.05, z);
       presentation.healthBar.setLocalScale(1.1 * healthRatio, 0.11, 0.12);
@@ -126,7 +138,9 @@ export class UnitRenderBridge {
       presentation.body.destroy();
       presentation.selection.destroy();
       presentation.healthBar.destroy();
+      presentation.wetMarker.destroy();
     }
     this.units.clear();
+    this.wetMaterial.destroy();
   }
 }

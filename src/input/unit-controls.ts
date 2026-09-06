@@ -86,17 +86,29 @@ export class UnitControls {
   };
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
-    if ((event.code === 'KeyF' || event.code === 'KeyH') && !event.repeat) {
+    if ((event.code === 'KeyF' || event.code === 'KeyH' || event.code === 'KeyR') && !event.repeat) {
       const crossing = this.simulation.arena.zones.find((zone) => zone.kind === 'FREEZABLE_CROSSING');
       if (!crossing) return;
       this.simulation.enqueueCommand({
         targetTick: this.simulation.snapshot().tick + 1,
         playerId: 0,
         type: 'CAST',
-        effectId: event.code === 'KeyF' ? 'FREEZE' : 'HEAT',
+        effectId: event.code === 'KeyF' ? 'FREEZE' : event.code === 'KeyR' ? 'FIRE' : 'HEAT',
         targetX: crossing.centerX,
         targetZ: crossing.centerZ,
         radius: 5 * WORLD_UNITS_PER_METER,
+      });
+      return;
+    }
+    if (event.code === 'KeyL' && !event.repeat) {
+      const target = this.simulation.snapshot().entities.find((entity) => entity.alive && entity.playerId !== 0);
+      if (!target) return;
+      this.simulation.enqueueCommand({
+        targetTick: this.simulation.snapshot().tick + 1,
+        playerId: 0,
+        type: 'CAST',
+        effectId: 'CHAIN_LIGHTNING',
+        targetEntityId: target.id,
       });
       return;
     }

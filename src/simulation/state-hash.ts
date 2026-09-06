@@ -43,7 +43,8 @@ function hashEntity(hash: number, entityId: EntityID, entities: EntityStore): nu
   const selectable = entities.selectables.get(entityId);
   const health = entities.health.get(entityId);
   const combat = entities.combat.get(entityId);
-  if (!position || !movement || !faction || !selectable || !health || !combat) {
+  const status = entities.statuses.get(entityId);
+  if (!position || !movement || !faction || !selectable || !health || !combat || !status) {
     throw new Error(`Entity ${entityId} is missing a required M01 component.`);
   }
 
@@ -65,6 +66,7 @@ function hashEntity(hash: number, entityId: EntityID, entities: EntityStore): nu
   result = hashInteger(result, health.current);
   result = hashInteger(result, health.max);
   result = hashInteger(result, health.alive ? 1 : 0);
+  result = hashInteger(result, status.wet ? 1 : 0);
   result = hashInteger(result, combat.attackDamage);
   result = hashInteger(result, combat.attackIntervalTicks);
   result = hashInteger(result, combat.attackRange);

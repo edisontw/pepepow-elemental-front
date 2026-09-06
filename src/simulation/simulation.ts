@@ -1,12 +1,13 @@
 import { M01_ARENA, type ArenaDefinition } from './arena';
-import type { GameCommand } from './commands';
+import type { ChainLightningCommand, GameCommand } from './commands';
 import { CommandQueue } from './commands';
 import type { EntityID } from './components';
 import { EntityStore } from './entity-store';
 import { NavigationGrid } from './navigation';
 import { DeterministicRng } from './random';
 import { computeStateHash } from './state-hash';
-import { TerrainState, type TerrainCounts, type TerrainEffect, type TerrainEffectId } from './terrain-state';
+import { buildLightningChain, lightningDamage } from './lightning';
+import { SurfaceType, TerrainState, type TerrainCounts, type TerrainEffect, type TerrainEffectId } from './terrain-state';
 
 export const SIMULATION_HZ = 10;
 export const TICK_MS = 1000 / SIMULATION_HZ;
@@ -20,8 +21,10 @@ export interface SimulationSnapshot {
   queuedCommandCount: number;
   navVersion: number;
   activeAttackOrders: number;
+  wetUnitCount: number;
   terrain: TerrainCounts;
   lastTerrainEffect: TerrainEffectId | null;
+  lastLightningChain: readonly EntityID[];
   entities: readonly EntitySnapshot[];
 }
 
@@ -45,6 +48,7 @@ export interface EntitySnapshot {
   attackRange: number;
   nextAttackTick: number;
   attackTargetEntityId: EntityID | null;
+  wet: boolean;
 }
 
 export class Simulation {
@@ -56,7 +60,9 @@ export class Simulation {
   private tick = 0;
   private smokeValue = 0;
   private pendingTerrainEffects: TerrainEffect[] = [];
+  private pendingLightningCasts: ChainLightningCommand[] = [];
   private lastTerrainEffect: TerrainEffectId | null = null;
+  private lastLightningChain: EntityID[] = [];
 
   constructor(readonly seed: string, readonly arena: ArenaDefinition = M01_ARENA) {
     this.rng = new DeterministicRng(seed);
@@ -73,6 +79,8 @@ export class Simulation {
     this.updateMovementAndNavigation();
     this.updateCombat();
     this.updateTerrainEffects();
+    this.synchronizeEnvironmentalStatuses();
+    this.resolveLightningCasts();
     this.cleanupDeaths();
     this.smokeValue = this.rng.nextUint32();
     return this.snapshot();
@@ -90,8 +98,10 @@ export class Simulation {
       queuedCommandCount: this.commandQueue.size,
       navVersion: this.navigation.navVersion,
       activeAttackOrders: entities.filter((entity) => entity.alive && entity.attackTargetEntityId !== null).length,
+      wetUnitCount: entities.filter((entity) => entity.alive && entity.wet).length,
       terrain: this.terrain.counts(),
       lastTerrainEffect: this.lastTerrainEffect,
+      lastLightningChain: [...this.lastLightningChain],
       entities,
     };
   }
@@ -103,8 +113,9 @@ export class Simulation {
     const selectable = this.entities.selectables.get(entityId);
     const health = this.entities.health.get(entityId);
     const combat = this.entities.combat.get(entityId);
+    const status = this.entities.statuses.get(entityId);
     const archetype = this.entities.archetypes.get(entityId);
-    if (!position || !movement || !faction || !selectable || !health || !combat || !archetype) {
+    if (!position || !movement || !faction || !selectable || !health || !combat || !status || !archetype) {
       throw new Error(`Entity ${entityId} is missing a required M01 component.`);
     }
     return {
@@ -115,12 +126,17 @@ export class Simulation {
       alive: health.alive, attackDamage: combat.attackDamage,
       attackIntervalTicks: combat.attackIntervalTicks, attackRange: combat.attackRange,
       nextAttackTick: combat.nextAttackTick, attackTargetEntityId: combat.targetEntityId,
+      wet: status.wet,
     };
   }
 
   private processCommands(): void {
     for (const command of this.commandQueue.drainForTick(this.tick)) {
       if (command.type === 'CAST') {
+        if (command.effectId === 'CHAIN_LIGHTNING') {
+          this.pendingLightningCasts.push(command);
+          continue;
+        }
         this.pendingTerrainEffects.push({
           effectId: command.effectId,
           targetX: command.targetX,
@@ -255,6 +271,34 @@ export class Simulation {
     const changes = this.terrain.applyEffects(this.pendingTerrainEffects);
     this.pendingTerrainEffects = [];
     this.navigation.applyWalkabilityChanges(changes);
+  }
+
+  private synchronizeEnvironmentalStatuses(): void {
+    for (const entityId of this.entities.entityIds()) {
+      const position = this.entities.positions.get(entityId);
+      const status = this.entities.statuses.get(entityId);
+      if (!position || !status) continue;
+      const cell = this.navigation.worldToCell(position.x, position.z);
+      status.wet = this.terrain.surfaceAt(cell) === SurfaceType.WATER;
+    }
+  }
+
+  private resolveLightningCasts(): void {
+    for (const cast of this.pendingLightningCasts) {
+      const chain = buildLightningChain(
+        cast.targetEntityId,
+        cast.playerId,
+        this.entities,
+        this.terrain,
+        this.navigation,
+      );
+      this.lastLightningChain = chain;
+      for (const entityId of chain) {
+        const health = this.entities.health.get(entityId);
+        if (health) health.current = Math.max(0, health.current - lightningDamage(entityId, this.entities));
+      }
+    }
+    this.pendingLightningCasts = [];
   }
 
   private cleanupDeaths(): void {

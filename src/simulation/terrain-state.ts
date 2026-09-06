@@ -16,7 +16,7 @@ export const enum SurfaceType {
   NATURAL_CROSSING = 4,
 }
 
-export type TerrainEffectId = 'FREEZE' | 'HEAT';
+export type TerrainEffectId = 'FREEZE' | 'HEAT' | 'FIRE';
 
 export interface TerrainEffect {
   effectId: TerrainEffectId;

@@ -26,6 +26,10 @@ export interface HealthComponent {
   alive: boolean;
 }
 
+export interface StatusComponent {
+  wet: boolean;
+}
+
 export interface CombatComponent {
   attackDamage: number;
   attackIntervalTicks: number;

@@ -56,4 +56,15 @@ describe('CommandQueue', () => {
       targetX: 0, targetZ: 0, radius: -1,
     })).toThrow('CAST radius');
   });
+
+  it('validates entity-targeted CHAIN_LIGHTNING without terrain fields', () => {
+    const queue = new CommandQueue();
+    queue.enqueue({ targetTick: 2, playerId: 0, type: 'CAST', effectId: 'CHAIN_LIGHTNING', targetEntityId: 17 });
+    expect(queue.drainForTick(2)[0]).toEqual({
+      targetTick: 2, playerId: 0, type: 'CAST', effectId: 'CHAIN_LIGHTNING', targetEntityId: 17,
+    });
+    expect(() => queue.enqueue({
+      targetTick: 3, playerId: 0, type: 'CAST', effectId: 'CHAIN_LIGHTNING', targetEntityId: 0,
+    })).toThrow('CHAIN_LIGHTNING targetEntityId');
+  });
 });

@@ -25,7 +25,7 @@ export class DebugOverlay {
     if (!this.latestTick) return;
     const { snapshot, interpolationAlpha } = this.latestTick;
     this.element.innerHTML = `
-      <div class="debug-title">M01 WATER / ICE NAV</div>
+      <div class="debug-title">M01 ELEMENTAL COMBAT</div>
       <div class="debug-row"><span>renderer</span><b class="debug-ok">ONLINE · ${this.fps} FPS</b></div>
       <div class="debug-row"><span>simulation</span><b class="debug-ok">ONLINE · 10 Hz</b></div>
       <div class="debug-row"><span>sim tick</span><b>${snapshot.tick}</b></div>
@@ -34,7 +34,9 @@ export class DebugOverlay {
       <div class="debug-row"><span>nav version</span><b>${snapshot.navVersion}</b></div>
       <div class="debug-row"><span>water / ice</span><b>${snapshot.terrain.water} / ${snapshot.terrain.ice}</b></div>
       <div class="debug-row"><span>freezable water</span><b>${snapshot.terrain.freezableWater}</b></div>
+      <div class="debug-row"><span>wet units</span><b>${snapshot.wetUnitCount}</b></div>
       <div class="debug-row"><span>last terrain cast</span><b>${snapshot.lastTerrainEffect ?? 'NONE'}</b></div>
+      <div class="debug-row"><span>last lightning</span><b>${snapshot.lastLightningChain.join(' → ') || 'NONE'}</b></div>
       <div class="debug-row"><span>attack orders</span><b>${snapshot.activeAttackOrders}</b></div>
       <div class="debug-row"><span>selected</span><b>${this.selectedCount}</b></div>
       <div class="debug-row"><span>state hash</span><b>${snapshot.stateHash}</b></div>

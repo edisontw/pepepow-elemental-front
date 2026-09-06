@@ -6,6 +6,7 @@ import type {
   MovementComponent,
   PositionComponent,
   SelectableComponent,
+  StatusComponent,
   UnitSpawn,
 } from './components';
 
@@ -15,6 +16,7 @@ export class EntityStore {
   readonly factions = new Map<EntityID, FactionComponent>();
   readonly selectables = new Map<EntityID, SelectableComponent>();
   readonly health = new Map<EntityID, HealthComponent>();
+  readonly statuses = new Map<EntityID, StatusComponent>();
   readonly combat = new Map<EntityID, CombatComponent>();
   readonly archetypes = new Map<EntityID, UnitSpawn['archetype']>();
 
@@ -35,6 +37,7 @@ export class EntityStore {
     this.factions.set(entityId, { playerId: spawn.playerId });
     this.selectables.set(entityId, { radius: Math.round(spawn.selectionRadius) });
     this.health.set(entityId, { current: spawn.maxHealth, max: spawn.maxHealth, alive: true });
+    this.statuses.set(entityId, { wet: false });
     this.combat.set(entityId, {
       attackDamage: spawn.attackDamage,
       attackIntervalTicks: spawn.attackIntervalTicks,
@@ -53,6 +56,7 @@ export class EntityStore {
       && this.factions.has(entityId)
       && this.selectables.has(entityId)
       && this.health.get(entityId)?.alive === true
+      && this.statuses.has(entityId)
       && this.combat.has(entityId);
   }
 

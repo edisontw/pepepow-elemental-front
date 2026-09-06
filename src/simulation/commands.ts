@@ -24,15 +24,23 @@ export interface AttackCommand extends EntityCommandBase {
   targetEntityId: EntityID;
 }
 
-export interface CastCommand extends CommandBase {
+export interface TerrainCastCommand extends CommandBase {
   type: 'CAST';
-  entityIds?: readonly EntityID[];
-  effectId: 'FREEZE' | 'HEAT';
+  entityIds?: never;
+  effectId: 'FREEZE' | 'HEAT' | 'FIRE';
   targetX: number;
   targetZ: number;
   radius: number;
 }
 
+export interface ChainLightningCommand extends CommandBase {
+  type: 'CAST';
+  entityIds?: never;
+  effectId: 'CHAIN_LIGHTNING';
+  targetEntityId: EntityID;
+}
+
+export type CastCommand = TerrainCastCommand | ChainLightningCommand;
 export type GameCommand = MoveCommand | StopCommand | AttackCommand | CastCommand;
 
 interface QueuedCommand {
@@ -52,6 +60,9 @@ function normalizeCommand(command: GameCommand): GameCommand {
     playerId: command.playerId,
   };
   if (command.type === 'CAST') {
+    if (command.effectId === 'CHAIN_LIGHTNING') {
+      return { ...base, type: 'CAST', effectId: 'CHAIN_LIGHTNING', targetEntityId: command.targetEntityId };
+    }
     return {
       ...base,
       type: 'CAST',
@@ -83,13 +94,17 @@ export class CommandQueue {
       throw new Error('Command playerId must be a non-negative integer.');
     }
     if (
-      (command.type === 'MOVE' || command.type === 'CAST')
+      (command.type === 'MOVE' || (command.type === 'CAST' && command.effectId !== 'CHAIN_LIGHTNING'))
       && (!Number.isSafeInteger(command.targetX) || !Number.isSafeInteger(command.targetZ))
     ) {
       throw new Error(`${command.type} target coordinates must be safe integers.`);
     }
-    if (command.type === 'CAST' && (!Number.isSafeInteger(command.radius) || command.radius < 0)) {
+    if (command.type === 'CAST' && command.effectId !== 'CHAIN_LIGHTNING' && (!Number.isSafeInteger(command.radius) || command.radius < 0)) {
       throw new Error('CAST radius must be a non-negative safe integer.');
+    }
+    if (command.type === 'CAST' && command.effectId === 'CHAIN_LIGHTNING'
+      && (!Number.isSafeInteger(command.targetEntityId) || command.targetEntityId <= 0)) {
+      throw new Error('CHAIN_LIGHTNING targetEntityId must be a positive safe integer.');
     }
     if (command.type === 'ATTACK' && (!Number.isSafeInteger(command.targetEntityId) || command.targetEntityId <= 0)) {
       throw new Error('ATTACK targetEntityId must be a positive safe integer.');
