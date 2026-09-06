@@ -1,6 +1,7 @@
 import type { TickFrame } from '../simulation/fixed-tick-runner';
 import type { EntitySnapshot } from '../simulation/simulation';
 import type { StrategicSnapshot } from '../simulation/strategic-state';
+import type { EnemyWarSnapshot } from '../simulation/enemy-war-state';
 
 export function formatSelectedUnitState(units: readonly EntitySnapshot[]): string {
   if (units.length === 0) return 'NONE';
@@ -31,6 +32,7 @@ export class DebugOverlay {
   constructor(
     private readonly element: HTMLElement,
     private readonly strategicSnapshot?: () => StrategicSnapshot,
+    private readonly enemySnapshot?: () => EnemyWarSnapshot,
   ) {}
 
   update(deltaSeconds: number, tickFrame: TickFrame, selectedUnits: readonly EntitySnapshot[]): void {
@@ -49,6 +51,7 @@ export class DebugOverlay {
     if (!this.latestTick) return;
     const { snapshot, interpolationAlpha } = this.latestTick;
     const strategy = this.strategicSnapshot?.();
+    const enemy = this.enemySnapshot?.();
     const stock = strategy?.resources[0];
     const strategyRows = strategy && stock ? `
       <div class="debug-row"><span>Material / Mana</span><b>${resourceValue(stock.materialMilli)} / ${resourceValue(stock.manaMilli)}</b></div>
@@ -59,12 +62,22 @@ export class DebugOverlay {
       <div class="debug-row"><span>buildings / production</span><b>${strategy.buildings.length} / ${strategy.productionQueue.length}</b></div>
       <div class="debug-row"><span>strategic hash</span><b>${strategy.stateHash}</b></div>
     ` : '';
+    const enemyRows = enemy ? `
+      <div class="debug-row"><span>enemy faction</span><b>${enemy.faction}</b></div>
+      <div class="debug-row"><span>enemy difficulty</span><b>${enemy.difficulty}</b></div>
+      <div class="debug-row"><span>enemy intent</span><b>${enemy.currentDecision?.action ?? 'OBSERVING'}${enemy.currentDecision?.targetRegionId !== null && enemy.currentDecision?.targetRegionId !== undefined ? ` R${enemy.currentDecision.targetRegionId}` : ''}</b></div>
+      <div class="debug-row"><span>AI pressure</span><b>${enemy.director.pressure}${enemy.director.recoveryActive ? ' RECOVERY' : ''}${enemy.director.antiTurtleActive ? ' ANTI-TURTLE' : ''}</b></div>
+      <div class="debug-row"><span>AI visible / remembered</span><b>${enemy.visiblePlayerEntityIds.length} / ${enemy.lastKnownPlayerUnits.length}</b></div>
+      <div class="debug-row"><span>AI known supply</span><b>${enemy.knownPlayerSuppliedRegions.length}</b></div>
+      <div class="debug-row"><span>AI decisions / hash</span><b>${enemy.decisionCount} / ${enemy.stateHash}</b></div>
+    ` : '';
     this.element.innerHTML = `
-      <div class="debug-title">${strategy ? 'M03 DETERMINISTIC RTS' : 'M01 ELEMENTAL COMBAT'}</div>
+      <div class="debug-title">${enemy ? 'M05 ENEMY WAR' : strategy ? 'M03 DETERMINISTIC RTS' : 'M01 ELEMENTAL COMBAT'}</div>
       <div class="debug-row"><span>renderer</span><b class="debug-ok">ONLINE · ${this.fps} FPS</b></div>
       <div class="debug-row"><span>simulation</span><b class="debug-ok">ONLINE · 10 Hz</b></div>
       <div class="debug-row"><span>sim tick</span><b>${snapshot.tick}</b></div>
       ${strategyRows}
+      ${enemyRows}
       <div class="debug-row"><span>entities</span><b>${snapshot.entities.length}</b></div>
       <div class="debug-row"><span>player alive</span><b>${snapshot.entities.filter((entity) => entity.alive && entity.playerId === 0).length}</b></div>
       <div class="debug-row"><span>enemy alive</span><b>${snapshot.entities.filter((entity) => entity.alive && entity.playerId !== 0).length}</b></div>
