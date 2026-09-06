@@ -1,6 +1,6 @@
 export const DEFAULT_MANUAL_BLOCK_HEIGHT = 1_000_000;
 
-export type BlockSourceKind = 'MANUAL' | 'PEPEPOW_RPC';
+export type BlockSourceKind = 'MANUAL' | 'PEPEPOW_RPC' | 'OFFICIAL';
 
 export interface BlockResolution {
   blockHeight: number;
@@ -9,6 +9,7 @@ export interface BlockResolution {
   networkTipHeight?: number;
   endpoint?: string;
   fallbackReason?: string;
+  officialChallengeId?: string;
 }
 
 export interface BlockSource {
