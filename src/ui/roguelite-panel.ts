@@ -83,6 +83,12 @@ export class RoguelitePanel {
     const captured = shrines.filter((shrine) => strategic.poiOwners[shrine.id] === PLAYER_ID);
     const resolved = new Set(player.resolvedShrineIds);
     const available = captured.find((shrine) => !resolved.has(shrine.id) && player.openShrine?.shrineId !== shrine.id);
+    const shrineRegions = shrines.map((shrine) => {
+      const region = `R${shrine.regionId + 1}`;
+      if (resolved.has(shrine.id)) return `${region} resolved`;
+      if (strategic.poiOwners[shrine.id] === PLAYER_ID) return `${region} captured`;
+      return region;
+    }).join(' · ');
 
     const choices = player.openShrine?.choiceIds.map((upgradeId, index) => {
       const upgrade = UPGRADES_BY_ID[upgradeId];
@@ -114,6 +120,7 @@ export class RoguelitePanel {
         <b>${player.acquiredUpgradeIds.length} <span>Upgrades</span></b>
         <b>${player.resolvedShrineIds.length}/${shrines.length} <span>Shrines</span></b>
       </div>
+      <div class="roguelite-line">Shrine regions: ${shrineRegions || 'None'} · use numbered territory map</div>
       <div class="roguelite-line">Build: ${player.synergies.length > 0 ? player.synergies.map(label).join(' · ') : 'No detected synergy yet'}</div>
       <div class="roguelite-line">World event: ${activeEvent}</div>
       <div class="roguelite-line">Next event: ${nextEvent}</div>
