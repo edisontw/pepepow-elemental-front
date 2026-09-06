@@ -1,7 +1,7 @@
 # PEPEPOW Elemental Front — ROADMAP
 
 **Canonical milestone roadmap**  
-**Current status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 CLOSED → M04 OPEN
+**Current status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 CLOSED → M04 IN_PROGRESS
 
 ---
 
@@ -280,7 +280,7 @@ Closure: `docs/milestones/M03_CLOSURE_REPORT.md`.
 
 # 6. M04 — Roguelite Layer
 
-**Status:** OPEN  
+**Status:** IN_PROGRESS  
 **Goal:** Make different generated runs produce different builds and meaningful adaptation.
 
 ## Scope
@@ -311,6 +311,19 @@ Do not implement all content before the generic system works.
 - different seeds encourage different choices
 - no dominant mandatory upgrade path
 - upgrades do not break determinism/replays
+
+## Current implementation evidence
+
+- M04 implementation PR: `#5`
+- authoritative pure-TypeScript roguelite state extends the M03 runtime without replacing CLOSED systems
+- existing M02 Shrine POIs drive the interaction flow
+- deterministic three-choice Shrine offers use an isolated Shrine RNG identity
+- representative Fire / Water / Ice / Lightning / mixed upgrade catalog is data-authored through generic modifier/trigger descriptors
+- run-level maximum Mana progression, synergy detection, deterministic world events, M04 command ordering, and M04 state hashing are implemented
+- upgrade effects are connected to current elemental test mechanics through Fire / Heat / Freeze radius modifiers and Lightning trigger behavior
+- desktop Shrine/upgrade/event UI exists
+- initial PR CI run `34033184883`: tests PASS, production build PASS
+- final deployment and human WebGL three-choice smoke remain required before closure
 
 ---
 
@@ -558,6 +571,6 @@ No milestone can close with:
 
 # 14. Current next action
 
-M00, M01, M02, and M03 are CLOSED. Begin **M04 — Roguelite Layer** on top of the existing M01 combat, M02 generated-world, and M03 economy/territory foundations.
+M00, M01, M02, and M03 are CLOSED. M04 is IN_PROGRESS on implementation PR `#5`.
 
-Start with a generic deterministic upgrade data model and Shrine interaction/three-choice flow using the existing M02 Shrine POIs. Prove authoring, deterministic choice generation, effect application, and replay/hash compatibility before expanding content. Do not begin M05 autonomous enemy strategy except for minimal fixtures genuinely required to exercise M04 effects.
+Finish final PR CI, merge the M04 implementation to `main`, verify GitHub Pages deployment, then perform a minimal human WebGL smoke of the Shrine three-choice flow. Do not begin M05 until M04 acceptance and closure are complete.

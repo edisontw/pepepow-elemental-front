@@ -1,8 +1,9 @@
 import './styles.css';
 import { createSceneShell } from './rendering/scene';
 import { FixedTickRunner } from './simulation/fixed-tick-runner';
-import { M03Simulation } from './simulation/m03-simulation';
+import { M04Simulation } from './simulation/m04-simulation';
 import { DebugOverlay } from './ui/debug-overlay';
+import { RoguelitePanel } from './ui/roguelite-panel';
 import { StrategicPanel } from './ui/strategic-panel';
 import { renderWorldDebug, worldDebugSummary } from './world/debug-view';
 import { generateWorld } from './world/generator';
@@ -28,8 +29,9 @@ try {
   const worldCanvas = requiredElement<HTMLCanvasElement>('world-debug-canvas');
   const worldSummary = requiredElement<HTMLElement>('world-debug-summary');
   const strategyElement = requiredElement<HTMLElement>('strategy-panel');
+  const rogueliteElement = requiredElement<HTMLElement>('roguelite-panel');
   const generatedWorld = generateWorld(requestedBlockHeight());
-  const simulation = new M03Simulation(generatedWorld);
+  const simulation = new M04Simulation(generatedWorld);
   renderWorldDebug(worldCanvas, generatedWorld, simulation.strategy.snapshot());
   worldSummary.textContent = worldDebugSummary(generatedWorld);
 
@@ -37,6 +39,7 @@ try {
   const tickRunner = new FixedTickRunner(simulation);
   const overlay = new DebugOverlay(overlayElement, () => simulation.strategy.snapshot());
   const strategyPanel = new StrategicPanel(strategyElement, simulation, () => scene.selectedUnits);
+  const roguelitePanel = new RoguelitePanel(rogueliteElement, simulation);
   let territoryDebugElapsed = 0;
 
   scene.app.on('update', (deltaSeconds: number) => {
@@ -45,6 +48,7 @@ try {
     scene.sync(frame);
     overlay.update(deltaSeconds, frame, scene.selectedUnits);
     strategyPanel.update(deltaSeconds);
+    roguelitePanel.update(deltaSeconds);
     territoryDebugElapsed += deltaSeconds;
     if (territoryDebugElapsed >= 0.25) {
       territoryDebugElapsed = 0;
@@ -54,6 +58,7 @@ try {
 
   requestAnimationFrame(() => bootScreen.classList.add('ready'));
   window.addEventListener('pagehide', () => {
+    roguelitePanel.destroy();
     strategyPanel.destroy();
     scene.destroy();
   }, { once: true });
