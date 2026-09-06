@@ -1,7 +1,8 @@
 import './styles.css';
 import { createSceneShell } from './rendering/scene';
 import { FixedTickRunner } from './simulation/fixed-tick-runner';
-import { M04Simulation } from './simulation/m04-simulation';
+import { M05Simulation } from './simulation/m05-simulation';
+import type { EnemyDifficulty, EnemyFaction } from './simulation/m05-content';
 import { DebugOverlay } from './ui/debug-overlay';
 import { RoguelitePanel } from './ui/roguelite-panel';
 import { StrategicPanel } from './ui/strategic-panel';
@@ -21,6 +22,21 @@ function requestedBlockHeight(): number {
   return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : 1_000_000;
 }
 
+function requestedFaction(): EnemyFaction | undefined {
+  const raw = new URLSearchParams(window.location.search).get('faction')?.trim().toLowerCase();
+  if (raw === 'iron' || raw === 'iron_legion') return 'IRON_LEGION';
+  if (raw === 'flame' || raw === 'flame_cult') return 'FLAME_CULT';
+  if (raw === 'wild' || raw === 'wild_horde') return 'WILD_HORDE';
+  return undefined;
+}
+
+function requestedDifficulty(): EnemyDifficulty {
+  const raw = new URLSearchParams(window.location.search).get('difficulty')?.trim().toLowerCase();
+  if (raw === 'casual') return 'CASUAL';
+  if (raw === 'hard') return 'HARD';
+  return 'STANDARD';
+}
+
 try {
   const canvas = requiredElement<HTMLCanvasElement>('game-canvas');
   const bootScreen = requiredElement<HTMLElement>('boot-screen');
@@ -31,13 +47,20 @@ try {
   const strategyElement = requiredElement<HTMLElement>('strategy-panel');
   const rogueliteElement = requiredElement<HTMLElement>('roguelite-panel');
   const generatedWorld = generateWorld(requestedBlockHeight());
-  const simulation = new M04Simulation(generatedWorld);
+  const simulation = new M05Simulation(generatedWorld, {
+    faction: requestedFaction(),
+    difficulty: requestedDifficulty(),
+  });
   renderWorldDebug(worldCanvas, generatedWorld, simulation.strategy.snapshot());
   worldSummary.textContent = worldDebugSummary(generatedWorld);
 
   const scene = createSceneShell(canvas, simulation, selectionBox);
   const tickRunner = new FixedTickRunner(simulation);
-  const overlay = new DebugOverlay(overlayElement, () => simulation.strategy.snapshot());
+  const overlay = new DebugOverlay(
+    overlayElement,
+    () => simulation.strategy.snapshot(),
+    () => simulation.enemyWar.snapshot(),
+  );
   const strategyPanel = new StrategicPanel(strategyElement, simulation, () => scene.selectedUnits);
   const roguelitePanel = new RoguelitePanel(rogueliteElement, simulation);
   let territoryDebugElapsed = 0;
