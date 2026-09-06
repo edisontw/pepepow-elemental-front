@@ -115,24 +115,38 @@ export class UnitControls {
       }
       return;
     }
-    if ((event.code === 'KeyF' || event.code === 'KeyH' || event.code === 'KeyR') && !event.repeat) {
+
+    if ((event.code === 'KeyF' || event.code === 'KeyH' || event.code === 'KeyR' || event.code === 'KeyB') && !event.repeat) {
+      const targetsForest = event.code === 'KeyB';
       const targetZone = this.simulation.arena.zones.find((zone) => (
-        event.code === 'KeyR' ? zone.kind === 'FOREST' : zone.kind === 'FREEZABLE_CROSSING'
+        targetsForest ? zone.kind === 'FOREST' : zone.kind === 'FREEZABLE_CROSSING'
       ));
       if (!targetZone) return;
-      this.simulation.enqueueCommand({
-        targetTick: this.simulation.snapshot().tick + 1,
-        playerId: 0,
-        type: 'CAST',
-        effectId: event.code === 'KeyF' ? 'FREEZE' : event.code === 'KeyR' ? 'FIRE' : 'HEAT',
-        targetX: targetZone.centerX,
-        targetZ: targetZone.centerZ,
-        radius: 5 * WORLD_UNITS_PER_METER,
-      });
+
+      const effectId = event.code === 'KeyF'
+        ? 'FREEZE'
+        : event.code === 'KeyH'
+          ? 'HEAT'
+          : 'FIRE';
+      const repeatCount = event.code === 'KeyB' ? 1 : 2;
+      const targetTick = this.simulation.snapshot().tick + 1;
+
+      for (let index = 0; index < repeatCount; index += 1) {
+        this.simulation.enqueueCommand({
+          targetTick,
+          playerId: 0,
+          type: 'CAST',
+          effectId,
+          targetX: targetZone.centerX,
+          targetZ: targetZone.centerZ,
+          radius: 5 * WORLD_UNITS_PER_METER,
+        });
+      }
       return;
     }
+
     if (event.code === 'KeyL' && !event.repeat) {
-      const target = this.simulation.snapshot().entities.find((entity) => entity.alive && entity.visibleToPlayer && entity.playerId !== 0);
+      const target = this.simulation.snapshot().entities.find((entity) => entity.alive && entity.playerId !== 0);
       if (!target) return;
       this.simulation.enqueueCommand({
         targetTick: this.simulation.snapshot().tick + 1,
@@ -143,6 +157,7 @@ export class UnitControls {
       });
       return;
     }
+
     if (event.code !== 'KeyX' || event.repeat || this.selection.ids.length === 0) return;
     this.simulation.enqueueCommand({
       targetTick: this.simulation.snapshot().tick + 1,
