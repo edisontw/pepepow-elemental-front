@@ -71,7 +71,15 @@ export function isM06ReplayPacket(value: unknown): value is M06ReplayPacket {
   if (!['IRON_LEGION', 'FLAME_CULT', 'WILD_HORDE'].includes(header.faction ?? '')) return false;
   if (!['CASUAL', 'STANDARD', 'HARD'].includes(header.difficulty ?? '')) return false;
   if (!Array.isArray(packet.commands)) return false;
-  if (!Number.isSafeInteger(packet.finalTick) || typeof packet.finalStateHash !== 'string') return false;
+  for (const entry of packet.commands) {
+    if (typeof entry !== 'object' || entry === null) return false;
+    const replayEntry = entry as Partial<M06ReplayEntry>;
+    if (replayEntry.channel !== 'GAME' && replayEntry.channel !== 'STRATEGIC' && replayEntry.channel !== 'ROGUELITE') return false;
+    if (typeof replayEntry.command !== 'object' || replayEntry.command === null) return false;
+    const command = replayEntry.command as { targetTick?: unknown };
+    if (!Number.isSafeInteger(command.targetTick) || (command.targetTick as number) < 1) return false;
+  }
+  if (!Number.isSafeInteger(packet.finalTick) || (packet.finalTick ?? -1) < 0 || typeof packet.finalStateHash !== 'string') return false;
   if (!['IN_PROGRESS', 'VICTORY', 'DEFEAT'].includes(packet.outcome ?? '')) return false;
   return Number.isSafeInteger(packet.totalScore);
 }
@@ -79,8 +87,9 @@ export function isM06ReplayPacket(value: unknown): value is M06ReplayPacket {
 export class M06Simulation extends M05Simulation {
   readonly run: RunState;
   private readonly recordedCommands: M06ReplayEntry[] = [];
+  private pendingReplayEntries: M06ReplayEntry[] = [];
+  private replayEntryIndex = 0;
   private internalCommand = false;
-  private loadingReplay = false;
   private playback = false;
   private replayExpectedTick: number | null = null;
   private replayExpectedHash: string | null = null;
@@ -92,31 +101,33 @@ export class M06Simulation extends M05Simulation {
   }
 
   override enqueueCommand(command: GameCommand): void {
-    if (this.playback && !this.loadingReplay && !this.internalCommand) return;
+    if (this.playback && !this.internalCommand) return;
     super.enqueueCommand(command);
-    if (!this.internalCommand && !this.loadingReplay) {
+    if (!this.internalCommand) {
       this.recordedCommands.push({ channel: 'GAME', command: cloneGameCommand(command) });
     }
   }
 
   override enqueueStrategicCommand(command: M03Command): void {
-    if (this.playback && !this.loadingReplay && !this.internalCommand) return;
+    if (this.playback && !this.internalCommand) return;
     super.enqueueStrategicCommand(command);
-    if (!this.internalCommand && !this.loadingReplay) {
+    if (!this.internalCommand) {
       this.recordedCommands.push({ channel: 'STRATEGIC', command: cloneStrategicCommand(command) });
     }
   }
 
   override enqueueRogueliteCommand(command: M04Command): void {
-    if (this.playback && !this.loadingReplay && !this.internalCommand) return;
+    if (this.playback && !this.internalCommand) return;
     super.enqueueRogueliteCommand(command);
-    if (!this.internalCommand && !this.loadingReplay) {
+    if (!this.internalCommand) {
       this.recordedCommands.push({ channel: 'ROGUELITE', command: cloneRogueliteCommand(command) });
     }
   }
 
   override step(): M06SimulationSnapshot {
     if (this.run.snapshot().outcome !== 'IN_PROGRESS') return this.snapshot();
+    const nextTick = this.snapshot().tick + 1;
+    this.injectReplayEntries(nextTick);
     this.internalCommand = true;
     try {
       const frame = super.step();
@@ -163,16 +174,14 @@ export class M06Simulation extends M05Simulation {
     }
     this.assertReplayIdentity(packet);
     this.playback = true;
-    this.loadingReplay = true;
-    try {
-      for (const entry of packet.commands) {
-        if (entry.channel === 'GAME') super.enqueueCommand(cloneGameCommand(entry.command));
-        else if (entry.channel === 'STRATEGIC') super.enqueueStrategicCommand(cloneStrategicCommand(entry.command));
-        else super.enqueueRogueliteCommand(cloneRogueliteCommand(entry.command));
-      }
-    } finally {
-      this.loadingReplay = false;
-    }
+    this.pendingReplayEntries = packet.commands
+      .map((entry, order) => ({ entry: this.cloneReplayEntry(entry), order }))
+      .sort((left, right) => (
+        left.entry.command.targetTick - right.entry.command.targetTick
+        || left.order - right.order
+      ))
+      .map(({ entry }) => entry);
+    this.replayEntryIndex = 0;
     this.replayExpectedTick = packet.finalTick;
     this.replayExpectedHash = packet.finalStateHash;
     this.replayVerification = 'PENDING';
@@ -201,6 +210,18 @@ export class M06Simulation extends M05Simulation {
       outcome: snapshot.run.outcome,
       totalScore: snapshot.run.result?.score.total ?? 0,
     };
+  }
+
+  private injectReplayEntries(nextTick: number): void {
+    if (!this.playback) return;
+    while (this.replayEntryIndex < this.pendingReplayEntries.length) {
+      const entry = this.pendingReplayEntries[this.replayEntryIndex];
+      if (!entry || entry.command.targetTick > nextTick) break;
+      if (entry.channel === 'GAME') super.enqueueCommand(cloneGameCommand(entry.command));
+      else if (entry.channel === 'STRATEGIC') super.enqueueStrategicCommand(cloneStrategicCommand(entry.command));
+      else super.enqueueRogueliteCommand(cloneRogueliteCommand(entry.command));
+      this.replayEntryIndex += 1;
+    }
   }
 
   private enqueueBossAbility(targetTick: number, intent: BossAbilityIntent): void {
