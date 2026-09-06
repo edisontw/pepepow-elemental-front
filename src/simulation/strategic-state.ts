@@ -145,7 +145,6 @@ export class StrategicState {
   private readonly productionOrders: ProductionOrder[] = [];
   private readonly captureOrders = new Map<string, CaptureOrder>();
   private readonly regionOwners: Uint8Array;
-  private readonly contested = new Uint8Array(0);
   private contestedRegions = new Uint8Array(0);
   private readonly suppliedByPlayer = new Map<PlayerID, Set<number>>();
   private readonly poiOwners = new Map<string, PlayerID>();
@@ -289,7 +288,12 @@ export class StrategicState {
       if (this.sortedBuildings().some((building) => building.type === 'EXTRACTOR' && building.resourceNodeId === resourceNode?.id)) return false;
     }
     const cellIndex = cell.z * this.world.width + cell.x;
-    if (((this.world.flags[cellIndex] ?? 0) & WorldCellFlag.BUILDABLE) === 0) return false;
+    const cellFlags = this.world.flags[cellIndex] ?? 0;
+    if (command.buildingType === 'EXTRACTOR') {
+      if ((cellFlags & WorldCellFlag.WALKABLE) === 0) return false;
+    } else if ((cellFlags & WorldCellFlag.BUILDABLE) === 0) {
+      return false;
+    }
     const regionId = this.world.regionByCell[cellIndex];
     if (regionId === undefined || this.ownerOfRegion(regionId) !== command.playerId || this.contestedRegions[regionId] === 1) return false;
     if (command.buildingType === 'OUTPOST') {
