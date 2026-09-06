@@ -1,7 +1,7 @@
 # PEPEPOW Elemental Front｜ROADMAP
 
 **Canonical milestone roadmap**  
-**Current status:** M00 CLOSED → M01 IN_PROGRESS
+**Current status:** M00 CLOSED → M01 CLOSED → M02 OPEN
 
 ---
 
@@ -108,7 +108,7 @@ Create concise M00 closure report in repository and mark M00 CLOSED.
 
 # 3. M01 — Systemic Combat Foundation
 
-**Status:** IN_PROGRESS  
+**Status:** CLOSED  
 **Goal:** Prove that controlling units plus changing elemental terrain is enjoyable and technically reliable.
 
 ## Scope
@@ -215,7 +215,7 @@ No repeated expensive regeneration loops.
 
 > Is the elemental battlefield mechanic already fun enough to justify the rest of the game?
 
-If no, do not advance by adding content.
+Human WebGL playtest on 2026-09-06: **PASS**. See `docs/milestones/M01_CLOSURE_REPORT.md`.
 
 ---
 
@@ -661,4 +661,6 @@ No milestone can close with:
 
 # 17. Current next action
 
-M00 is CLOSED. Begin M01 with the fixed handcrafted arena, pure-TypeScript entity/command foundation, placeholder-unit selection and movement, state hashing, and replay smoke coverage. Do not start procedural world generation.
+M00 and M01 are CLOSED. Begin **M02 — Procedural Battlefield** from the existing deterministic simulation/navigation/terrain baseline.
+
+Start with a deterministic world-generation foundation that cleanly separates master seed and independent RNG streams, then add elevation/hydrology/biome/region/route generation plus hard-invariant validation and deterministic retry. Do not reimplement M01 combat or elemental systems.
