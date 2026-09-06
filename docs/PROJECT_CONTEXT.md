@@ -451,7 +451,7 @@ Known issues / intentional limits:
 
 - Burning is a terrain/vegetation state only. Unit Burning DoT, smoke, steam, wind, weather, diffusion, persistent terrain wetness, polished VFX, and audio remain intentionally out of scope.
 - Visual browser interaction smoke remains pending because the controlled environment cannot provide reliable WebGL; no workaround was attempted.
-- Frozen/Chilled unit statuses, fog-of-war baseline, Elementalist/Golem archetypes, collision/steering, autonomous AI, and the 40-unit acceptance stress case remain unresolved M01 scope to assess in the closure gap audit.
+- At the Slice 5 boundary, Frozen/Chilled, fog-of-war, Elementalist/Golem, and the 40-unit stress case were still unresolved; the automated closure implementation below subsequently completes them. Collision/steering and autonomous AI remain deferred.
 - Production bundle is approximately 518.87 KB gzip; the existing size warning remains non-blocking.
 
 ### M01 Automated Closure Implementation
