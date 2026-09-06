@@ -1,11 +1,12 @@
 # PEPEPOW Elemental Front — PROJECT_CONTEXT
 
-**Project status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 CLOSED → M04 OPEN  
+**Project status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 CLOSED → M04 IN_PROGRESS  
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **M03 implementation acceptance head:** `95b107e2fce0dd609a58eaf4b594a35c33f04f7e`  
 **M03 post-closure runtime baseline:** `455cbcb015b48e36b2bf570721d90cb6b5512280`  
-**M03 closure report:** `docs/milestones/M03_CLOSURE_REPORT.md`
+**M03 closure report:** `docs/milestones/M03_CLOSURE_REPORT.md`  
+**M04 implementation PR:** `#5` — `m04-roguelite-layer`
 
 ---
 
@@ -114,13 +115,34 @@ Closure: `docs/milestones/M03_CLOSURE_REPORT.md`.
 
 ## 4. Current milestone — M04 Roguelite Layer
 
-**Status: OPEN**
+**Status: IN_PROGRESS — IMPLEMENTATION PR #5**
 
 Goal:
 
 > Make different generated runs produce different builds and meaningful adaptation while keeping upgrades deterministic, data-driven, and replay-safe.
 
-M04 scope from `ROADMAP.md`:
+Implemented on `m04-roguelite-layer`:
+
+- authoritative pure-TypeScript `RogueliteState` layered on the existing M03 simulation
+- existing M02 `SHRINE` POIs used as the interaction locations
+- deterministic `ACTIVATE_SHRINE` / `CHOOSE_SHRINE_UPGRADE` command queue
+- deterministic three-choice Shrine offers using a Shrine-specific RNG identity isolated from visual RNG
+- generic data-authored `MODIFIER` / `TRIGGER` effect descriptors
+- representative Fire / Water / Ice / Lightning / mixed-element upgrade catalog
+- run-level maximum Mana progression state: base 250 +20 per resolved Shrine plus upgrade/event modifiers
+- early mixed-element synergy detection
+- deterministic world-event schedule and event modifiers
+- acquired upgrades, open Shrine choices, resolved Shrines, synergies, Mana progression, and event schedule included in M04 state hashing
+- M04 combined state hash appended to the existing tactical + strategic hash chain
+- upgrade modifiers wired to Fire / Heat / Freeze effect radius and Lightning trigger behavior
+- desktop Shrine/upgrade/event HUD that only enqueues authoritative commands
+- M04 tests covering content validation, deterministic choices, visual-RNG isolation, Shrine ownership gating, generic modifier/trigger evaluation, synergy detection, world-event determinism, command ordering, and combined state-hash divergence/reproduction
+
+Initial PR CI run `34033184883` on implementation head `ab157f35ee76d5196290de4cc164dc170670e233`: **PASS** for `npm test` and production `npm run build`.
+
+M04 remains IN_PROGRESS until the final branch/main CI state is green, deployment succeeds, and human WebGL smoke confirms the three-choice Shrine flow is usable and materially understandable in-browser.
+
+M04 scope from `ROADMAP.md` remains:
 
 - Shrines
 - deterministic three-choice upgrade UI
@@ -179,14 +201,10 @@ M04 acceptance must demonstrate:
 
 ## 7. Next exact action
 
-Begin M04 at milestone level, not as repeated micro-handoffs.
+Finish M04 as one milestone-level cycle:
 
-First implement the generic deterministic upgrade/Shrine data model and authoritative command/state flow. Then wire M02 Shrine POIs to a deterministic three-choice interaction, apply a small representative set of Fire/Water/Ice/Lightning/mixed effects through generic tags/modifiers/triggers, include upgrade state in replay/hash verification, and only then expand content enough to prove several distinct build paths.
-
-At M04 closure:
-
-1. run final automated acceptance and full M01–M03 regressions
-2. create `docs/milestones/M04_CLOSURE_REPORT.md`
-3. mark M04 CLOSED and M05 OPEN in `docs/ROADMAP.md`
-4. compact this file to the M05 handoff
-5. commit/push final state and verify CI/deployment
+1. confirm PR #5 final CI after canonical-doc updates
+2. merge the tested implementation to `main`
+3. confirm GitHub Pages deployment of the M04 runtime
+4. run a minimal human WebGL smoke: capture a Shrine POI, open it, verify exactly three choices, choose one, and confirm the acquired upgrade / Max Mana / synergy feedback is readable
+5. if the human smoke passes and no authoritative regression appears, create `docs/milestones/M04_CLOSURE_REPORT.md`, mark M04 CLOSED / M05 OPEN, compact this file to the M05 handoff, and verify final CI/deployment
