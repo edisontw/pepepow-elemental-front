@@ -4,7 +4,7 @@
 **Current canonical spec level:** Game Design V0.3 + Technical Architecture V0.4  
 **Primary development environment:** ChatGPT Work with `@site`  
 **Primary repository:** `edisontw/pepepow-elemental-front`  
-**Latest verified M00 implementation commit:** `88934d4fd8c0e03c95e6d30e04f420b6c0d1bf8c`  
+**M00 source snapshot on GitHub:** `05557b249774064603b8eeb7960472fe2f1a4f42`  
 **Working title:** PEPEPOW Elemental Front｜元素戰線
 
 ---
