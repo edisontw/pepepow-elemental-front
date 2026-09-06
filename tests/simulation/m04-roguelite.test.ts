@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { M04CommandQueue } from '../../src/simulation/m04-commands';
 import {
+  UPGRADES,
   UPGRADES_BY_ID,
   validateM04Content,
 } from '../../src/simulation/m04-content';
 import { M03Simulation } from '../../src/simulation/m03-simulation';
+import { M04Simulation } from '../../src/simulation/m04-simulation';
 import {
   RogueliteState,
   detectSynergies,
@@ -25,7 +27,11 @@ function claimedShrineStrategic(world: ReturnType<typeof generateWorld>, shrineI
 describe('M04 roguelite layer', () => {
   it('validates the data-authored upgrade and event catalog', () => {
     expect(validateM04Content()).toEqual([]);
-    expect(Object.keys(UPGRADES_BY_ID).length).toBeGreaterThanOrEqual(12);
+    expect(UPGRADES.length).toBeGreaterThanOrEqual(12);
+    for (const tag of ['FIRE', 'WATER', 'ICE', 'LIGHTNING'] as const) {
+      expect(UPGRADES.filter((upgrade) => upgrade.tags.includes(tag)).length).toBeGreaterThanOrEqual(3);
+    }
+    expect(UPGRADES.filter((upgrade) => upgrade.tags.includes('MIXED')).length).toBeGreaterThanOrEqual(3);
   });
 
   it('offers exactly three deterministic Shrine choices and resolves one authoritative upgrade', () => {
@@ -42,7 +48,7 @@ describe('M04 roguelite layer', () => {
     const firstOpen = first.snapshot().players[0]?.openShrine;
     const secondOpen = second.snapshot().players[0]?.openShrine;
     expect(firstOpen?.choiceIds).toHaveLength(3);
-    expect(new Set(firstOpen?.choiceIds).size).toBe(3);
+    expect(new Set(firstOpen?.choiceIds ?? []).size).toBe(3);
     expect(firstOpen).toEqual(secondOpen);
 
     expect(first.processCommand({ targetTick: 2, playerId: 0, type: 'CHOOSE_SHRINE_UPGRADE', shrineId: shrine.id, choiceIndex: 1 }, strategic, 2)).toBe(true);
@@ -119,6 +125,41 @@ describe('M04 roguelite layer', () => {
     second.advance(900);
     expect(first.snapshot().activeWorldEvent).toEqual(second.snapshot().activeWorldEvent);
     expect(first.snapshot().stateHash).toBe(second.snapshot().stateHash);
+  });
+
+  it('includes upgrade ownership in the combined M04 simulation hash', () => {
+    const world = generateWorld(1_000_888);
+    const shrine = world.pois.find((poi) => poi.type === 'SHRINE');
+    expect(shrine).toBeDefined();
+    if (!shrine) return;
+    const first = new M04Simulation(world);
+    const second = new M04Simulation(world);
+    const claimed = claimedShrineStrategic(world, shrine.id);
+    const command = { targetTick: 1, playerId: 0, type: 'ACTIVATE_SHRINE' as const, shrineId: shrine.id };
+    expect(first.roguelite.processCommand(command, claimed, 1)).toBe(true);
+    expect(second.roguelite.processCommand(command, claimed, 1)).toBe(true);
+    expect(first.snapshot().stateHash).toBe(second.snapshot().stateHash);
+
+    expect(first.roguelite.processCommand(
+      { targetTick: 2, playerId: 0, type: 'CHOOSE_SHRINE_UPGRADE', shrineId: shrine.id, choiceIndex: 0 },
+      claimed,
+      2,
+    )).toBe(true);
+    expect(second.roguelite.processCommand(
+      { targetTick: 2, playerId: 0, type: 'CHOOSE_SHRINE_UPGRADE', shrineId: shrine.id, choiceIndex: 0 },
+      claimed,
+      2,
+    )).toBe(true);
+    expect(first.snapshot().stateHash).toBe(second.snapshot().stateHash);
+
+    const third = new M04Simulation(world);
+    expect(third.roguelite.processCommand(command, claimed, 1)).toBe(true);
+    expect(third.roguelite.processCommand(
+      { targetTick: 2, playerId: 0, type: 'CHOOSE_SHRINE_UPGRADE', shrineId: shrine.id, choiceIndex: 1 },
+      claimed,
+      2,
+    )).toBe(true);
+    expect(third.snapshot().stateHash).not.toBe(first.snapshot().stateHash);
   });
 
   it('orders M04 commands deterministically by tick, player, then enqueue order', () => {
