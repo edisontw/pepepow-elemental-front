@@ -7,7 +7,7 @@ import {
 } from '../simulation/arena';
 import type { UnitSpawn } from '../simulation/components';
 import { STARTING_ENEMY_ARCHETYPES, STARTING_PLAYER_ARCHETYPES, UNITS } from '../simulation/m03-content';
-import { BiomeType, TerrainType, type GeneratedWorld, type GridPoint } from './world-definition';
+import { BiomeType, TerrainType, WorldCellFlag, type GeneratedWorld, type GridPoint } from './world-definition';
 
 const CELL_SIZE = WORLD_UNITS_PER_METER;
 
@@ -71,23 +71,54 @@ function patchArea(patch: TraversalPatch): number {
   return (patch.maxColumn - patch.minColumn + 1) * (patch.maxRow - patch.minRow + 1);
 }
 
+function nearbyWalkableSpawnCells(world: GeneratedWorld, center: GridPoint, regionId: number, count: number): GridPoint[] {
+  const candidates: GridPoint[] = [];
+  const fallback: GridPoint[] = [];
+  const radius = 4;
+  for (let z = Math.max(0, center.z - radius); z <= Math.min(world.height - 1, center.z + radius); z += 1) {
+    for (let x = Math.max(0, center.x - radius); x <= Math.min(world.width - 1, center.x + radius); x += 1) {
+      const index = z * world.width + x;
+      if (((world.flags[index] ?? 0) & WorldCellFlag.WALKABLE) === 0) continue;
+      const point = { x, z };
+      fallback.push(point);
+      if (world.regionByCell[index] === regionId) candidates.push(point);
+    }
+  }
+  const order = (left: GridPoint, right: GridPoint): number => {
+    const leftDx = left.x - center.x;
+    const leftDz = left.z - center.z;
+    const rightDx = right.x - center.x;
+    const rightDz = right.z - center.z;
+    return (leftDx * leftDx + leftDz * leftDz) - (rightDx * rightDx + rightDz * rightDz)
+      || left.z - right.z
+      || left.x - right.x;
+  };
+  candidates.sort(order);
+  fallback.sort(order);
+  const selected = [...candidates];
+  for (const point of fallback) {
+    if (selected.length >= count) break;
+    if (selected.some((candidate) => candidate.x === point.x && candidate.z === point.z)) continue;
+    selected.push(point);
+  }
+  if (selected.length < count) throw new Error(`Generated ${regionId} spawn region lacks ${count} nearby walkable cells.`);
+  return selected.slice(0, count);
+}
+
 function spawnArmy(world: GeneratedWorld, playerId: number, spawnId: 'PLAYER' | 'ENEMY'): UnitSpawn[] {
   const spawn = world.spawns.find((candidate) => candidate.id === spawnId);
   if (!spawn) throw new Error(`Generated world is missing ${spawnId} spawn.`);
-  const center = worldCellToSimulationPosition(world, spawn.cell);
   const archetypes = spawnId === 'PLAYER' ? STARTING_PLAYER_ARCHETYPES : STARTING_ENEMY_ARCHETYPES;
-  const offsets = [
-    { x: -240, z: -180 }, { x: 0, z: -180 }, { x: 240, z: -180 },
-    { x: -240, z: 180 }, { x: 0, z: 180 }, { x: 240, z: 180 },
-  ];
+  const cells = nearbyWalkableSpawnCells(world, spawn.cell, spawn.regionId, archetypes.length);
   return archetypes.map((archetype, index) => {
     const definition = UNITS[archetype];
-    const offset = offsets[index] ?? { x: 0, z: 0 };
+    const cell = cells[index] ?? spawn.cell;
+    const position = worldCellToSimulationPosition(world, cell);
     return {
       archetype,
       playerId,
-      x: center.x + offset.x,
-      z: center.z + offset.z,
+      x: position.x,
+      z: position.z,
       ...definition.spawn,
     };
   });
