@@ -87,7 +87,16 @@ try {
     pace: replay?.header.pace ?? requestedPace(),
   });
   if (replay) simulation.loadReplay(replay);
-  renderWorldDebug(worldCanvas, generatedWorld, simulation.strategy.snapshot());
+
+  const initialMinimapSnapshot = simulation.snapshot();
+  renderWorldDebug(worldCanvas, generatedWorld, simulation.strategy.snapshot(), {
+    entities: initialMinimapSnapshot.entities,
+    playerCore: initialMinimapSnapshot.run.playerCore,
+    enemyCore: initialMinimapSnapshot.run.enemyCore,
+    boss: initialMinimapSnapshot.run.boss,
+    surface: simulation.terrain.surface,
+    burningCells: initialMinimapSnapshot.burningCells,
+  });
   worldSummary.textContent = worldDebugSummary(generatedWorld);
 
   const scene = createSceneShell(canvas, simulation, selectionBox);
@@ -113,7 +122,15 @@ try {
     territoryDebugElapsed += deltaSeconds;
     if (territoryDebugElapsed >= 0.25) {
       territoryDebugElapsed = 0;
-      renderWorldDebug(worldCanvas, generatedWorld, simulation.strategy.snapshot());
+      const minimapSnapshot = simulation.snapshot();
+      renderWorldDebug(worldCanvas, generatedWorld, simulation.strategy.snapshot(), {
+        entities: minimapSnapshot.entities,
+        playerCore: minimapSnapshot.run.playerCore,
+        enemyCore: minimapSnapshot.run.enemyCore,
+        boss: minimapSnapshot.run.boss,
+        surface: simulation.terrain.surface,
+        burningCells: minimapSnapshot.burningCells,
+      });
     }
   });
 
