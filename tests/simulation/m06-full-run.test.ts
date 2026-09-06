@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { UNITS } from '../../src/simulation/m03-content';
+import { finaleUnlockTick, phaseForTick } from '../../src/simulation/m06-content';
 import { M06Simulation, isM06ReplayPacket } from '../../src/simulation/m06-simulation';
 import { generateWorld } from '../../src/world/generator';
 
@@ -229,4 +230,21 @@ describe('M06 full run', () => {
     expect(divergentReplay.snapshot().replayVerification).toBe('DIVERGED');
     expect(divergentReplay.snapshot().stateHash).not.toBe(tampered.finalStateHash);
   }, 15_000);
+
+  it('aligns standard five-act and world-event pacing with the intended run envelope', () => {
+    expect(phaseForTick(0, 'STANDARD')).toBe('DISCOVERY');
+    expect(phaseForTick(3_000, 'STANDARD')).toBe('COMMITMENT');
+    expect(phaseForTick(7_200, 'STANDARD')).toBe('EXPANSION');
+    expect(phaseForTick(12_000, 'STANDARD')).toBe('ESCALATION');
+    expect(finaleUnlockTick('STANDARD')).toBe(14_400);
+    expect(phaseForTick(14_400, 'STANDARD')).toBe('FINALE');
+
+    const simulation = new M06Simulation(generateWorld(1_000_007), {
+      pace: 'STANDARD',
+      difficulty: 'CASUAL',
+    });
+    const schedule = simulation.roguelite.snapshot().eventSchedule;
+    expect(schedule.map((event) => event.startTick)).toEqual([8_400, 11_400]);
+    expect(schedule.every((event) => event.endTick < finaleUnlockTick('STANDARD'))).toBe(true);
+  });
 });
