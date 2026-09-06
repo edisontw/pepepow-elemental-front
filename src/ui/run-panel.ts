@@ -5,6 +5,11 @@ import {
   type BlockChallengeIdentity,
 } from '../challenge/block-challenge';
 import type { BlockResolution } from '../challenge/block-source';
+import {
+  LocalVerifiedLeaderboard,
+  type LeaderboardEntry,
+} from '../challenge/leaderboard';
+import { createChallengeScoreSubmission } from '../challenge/score-proof';
 import type { M06Simulation } from '../simulation/m06-simulation';
 import type { RunSnapshot, ScoreBreakdown } from '../simulation/run-state';
 
@@ -38,6 +43,10 @@ export class RunPanel {
   private lastSignature = '';
   private savedReplay = false;
   private shareStatus: 'IDLE' | 'COPIED' | 'FAILED' = 'IDLE';
+  private proofStatus: 'IDLE' | 'VERIFYING' | 'VERIFIED' | 'REJECTED' = 'IDLE';
+  private proofMessage = '';
+  private leaderboardEntries: readonly LeaderboardEntry[] = [];
+  private readonly leaderboard: LocalVerifiedLeaderboard;
   private readonly onClick = (event: Event): void => {
     const target = event.target instanceof HTMLElement ? event.target.closest<HTMLButtonElement>('button[data-run-action]') : null;
     if (!target) return;
@@ -47,6 +56,7 @@ export class RunPanel {
     else if (action === 'replay') this.replayLast();
     else if (action === 'mode') this.navigate({ blockDelta: 0, toggleMode: true });
     else if (action === 'share') void this.copyChallengeLink();
+    else if (action === 'verify-score') void this.verifyAndStoreScore();
     else if (action === 'pepepow-now') this.navigatePepepow(0);
     else if (action === 'pepepow-10') this.navigatePepepow(10);
     else if (action === 'pepepow-100') this.navigatePepepow(100);
@@ -57,8 +67,10 @@ export class RunPanel {
     private readonly simulation: M06Simulation,
     private readonly blockResolution: BlockResolution,
   ) {
+    this.leaderboard = new LocalVerifiedLeaderboard(localStorage);
     this.element.addEventListener('click', this.onClick);
     this.render(this.simulation.run.snapshot());
+    void this.refreshLeaderboard();
   }
 
   update(deltaSeconds: number): void {
@@ -80,6 +92,9 @@ export class RunPanel {
       simulation.replayVerification,
       this.savedReplay ? 1 : 0,
       this.shareStatus,
+      this.proofStatus,
+      this.proofMessage,
+      this.leaderboardEntries.map((entry) => `${entry.score}:${entry.finalTick}:${entry.finalStateHash}`).join(','),
     ].join(':');
     if (signature === this.lastSignature) return;
     this.lastSignature = signature;
@@ -107,6 +122,11 @@ export class RunPanel {
       : this.shareStatus === 'FAILED'
         ? 'Copy Failed'
         : 'Share Challenge';
+    const verifyLabel = this.proofStatus === 'VERIFYING'
+      ? 'Verifying Replay…'
+      : this.proofStatus === 'VERIFIED'
+        ? 'Score Verified'
+        : 'Verify Score';
     const elapsedSeconds = Math.floor(simulation.tick / 10);
     const playerCore = run.playerCore;
     const target = run.mode === 'DESTROY' ? run.enemyCore : run.boss;
@@ -128,10 +148,13 @@ export class RunPanel {
         <div class="run-result-meta">${run.result.reason.replaceAll('_', ' ')} · ${formatTime(run.result.durationSeconds)}</div>
         <div class="run-score-total"><span>SCORE · ${challengeCode}</span><b>${run.result.score.total.toLocaleString()}</b></div>
         <div class="run-score-grid">${scoreRows(run.result.score)}</div>
+        ${this.proofMessage ? `<div class="run-proof ${this.proofStatus.toLowerCase()}">${this.proofMessage}</div>` : ''}
+        ${this.leaderboardMarkup()}
         <div class="run-actions">
           <button data-run-action="retry">Retry Block</button>
           <button data-run-action="next">Next Block</button>
           <button data-run-action="share">${shareLabel}</button>
+          <button data-run-action="verify-score" ${this.simulation.isReplayPlayback || this.proofStatus === 'VERIFYING' ? 'disabled' : ''}>${verifyLabel}</button>
           <button data-run-action="replay" ${this.hasStoredReplay() ? '' : 'disabled'}>Replay Last</button>
           <button data-run-action="mode">${run.mode === 'DESTROY' ? 'Boss Hunt' : 'Destroy'} Mode</button>
         </div>
@@ -173,6 +196,18 @@ export class RunPanel {
         <button class="run-mode-button" data-run-action="pepepow-now">PEPEPOW Current</button>
         <button class="run-mode-button" data-run-action="pepepow-10">Recent -10</button>
         <button class="run-mode-button" data-run-action="mode">Switch to ${run.mode === 'DESTROY' ? 'Boss Hunt' : 'Destroy'}</button>
+      </div>`;
+  }
+
+  private leaderboardMarkup(): string {
+    const rows = this.leaderboardEntries.slice(0, 5).map((entry, index) => `
+      <div class="run-leaderboard-row">
+        <span>#${index + 1}</span><b>${entry.score.toLocaleString()}</b><em>${formatTime(Math.floor(entry.finalTick / 10))}</em>
+      </div>`).join('');
+    return `
+      <div class="run-leaderboard">
+        <div class="run-leaderboard-title"><span>LOCAL VERIFIED LEADERBOARD</span><small>Replay MATCH only · remote gateway ready</small></div>
+        ${rows || '<div class="run-leaderboard-empty">No verified local scores for this challenge yet.</div>'}
       </div>`;
   }
 
@@ -258,5 +293,39 @@ export class RunPanel {
     }
     this.lastSignature = '';
     this.render(this.simulation.run.snapshot());
+  }
+
+  private async verifyAndStoreScore(): Promise<void> {
+    if (this.simulation.isReplayPlayback) return;
+    const packet = this.simulation.replayPacket();
+    if (!packet) {
+      this.proofStatus = 'REJECTED';
+      this.proofMessage = 'Score proof unavailable: run replay packet is incomplete.';
+      return;
+    }
+
+    this.proofStatus = 'VERIFYING';
+    this.proofMessage = 'Rebuilding this world and replaying the command stream…';
+    this.lastSignature = '';
+    this.render(this.simulation.run.snapshot());
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+    const result = await this.leaderboard.submit(createChallengeScoreSubmission(packet));
+    if (result.status === 'ACCEPTED') {
+      this.proofStatus = 'VERIFIED';
+      this.proofMessage = `Replay MATCH · verified local rank #${result.rank}.`;
+      await this.refreshLeaderboard();
+    } else {
+      this.proofStatus = 'REJECTED';
+      this.proofMessage = `Score rejected: ${result.proof.reason.replaceAll('_', ' ')}.`;
+    }
+    this.lastSignature = '';
+    this.render(this.simulation.run.snapshot());
+  }
+
+  private async refreshLeaderboard(): Promise<void> {
+    const challengeCode = blockChallengeCode(this.challengeIdentity(this.simulation.run.snapshot()));
+    this.leaderboardEntries = await this.leaderboard.list(challengeCode);
+    this.lastSignature = '';
   }
 }
