@@ -5,7 +5,7 @@
 **Primary development environment:** ChatGPT Work with `@site`  
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **M00 source snapshot on GitHub:** `05557b249774064603b8eeb7960472fe2f1a4f42`  
-**Latest completed source snapshot:** `ec7fb15a8047f55731301ba632ebfd9a0691505d` (M01 Slice 2 implementation; the documentation-only follow-up commit containing this reference is newer)
+**Latest completed source snapshot:** `0b97eb610bca5f79dfa6c7a0cbd459357f711dfc` (M01 Slice 3 implementation; the documentation-only follow-up commit containing this reference is newer)
 **Working title:** PEPEPOW Elemental Front｜元素戰線
 
 ---
@@ -377,17 +377,43 @@ Known issues / intentional limits:
 - Traversal is static. The future freezable crossing remains blocked river truth; Water/Ice state and nav invalidation belong to Slice 3.
 - Production bundle is approximately 515.85 KB gzip; the existing size warning remains non-blocking.
 
+### M01 Slice 3 — Water / Ice Dynamic Navigation
+
+**Implementation status:** COMPLETE
+**Implementation commit:** `0b97eb610bca5f79dfa6c7a0cbd459357f711dfc`
+**Milestone status:** M01 remains `IN_PROGRESS`
+
+Completed systems:
+
+- Compact authoritative terrain arrays for surface, temperature, ice durability, and freezable eligibility across the 48×38 arena grid.
+- Canonical freezable river patch initialized as neutral-temperature, non-walkable Water; the natural crossing remains permanently walkable.
+- Terrain-only `CAST` commands for `FREEZE` and `HEAT`, validated and applied only through the deterministic command queue.
+- Provisional M01 constants: freeze threshold −60, cold −40 per cast, ice durability 100, heat +60 and 50 durability damage per cast.
+- Batched Water → Ice and Ice → Water transitions after movement/combat, with one `navVersion` increment per tick only when walkability actually changes.
+- Stale MOVE/pursuit paths detect navigation-version changes and deterministically recompute; melted routes reroute through the natural crossing or stop if no route exists.
+- Melting ice beneath a unit preserves its authoritative position, prevents hidden teleport recovery, and suspends movement on non-walkable Water.
+- State hash coverage for row-major surface, temperature, ice durability, freezable state, and navigation version.
+- Minimal Water/Ice material swap, `F`/`H` developer CAST controls, and debug counts for Water, Ice, freezable Water, nav version, and last terrain effect.
+- Eight test files / 37 tests covering thresholds, transition eligibility, batched version changes, frozen crossing traversal, stale-path reroute/stop, melt-under-unit, replay/hash divergence, FPS independence, and all prior behavior.
+
+Known issues / intentional limits:
+
+- Visual browser interaction smoke remains pending because the controlled environment cannot provide reliable WebGL and previously returned `ERR_BLOCKED_BY_CLIENT`; this does not block Slice 3 implementation acceptance.
+- `Wet`, conductivity, Lightning chaining, Fire integration, statuses, elemental damage, VFX/audio, and complete spell UX remain intentionally deferred to Slice 4.
+- Unit collision/steering, autonomous AI, procedural generation, M02, and code splitting remain out of scope.
+- Production bundle is approximately 517.08 KB gzip; the existing size warning remains non-blocking.
+
 ---
 
 ## 15. Next exact action
 
-Continue M01 with **Slice 3 — Water / Ice Dynamic Navigation**:
+Continue M01 with **Slice 4 — Wet + Lightning Conductivity + Fire Integration**:
 
-1. Add authoritative terrain state and temperature/cold baseline for Water → Ice.
-2. Add ice durability plus deterministic heat/melt back to non-walkable Water.
-3. Introduce minimal local nav invalidation/version updates and deterministic path reaction to terrain transitions.
-4. Prove river blocked → freeze → cross → melt → river blocked with replay/hash coverage.
-5. Keep Wet + Lightning conductivity for Slice 4.
+1. Add authoritative Wet unit status when units occupy Water.
+2. Add Water/Wet conductivity and deterministic Lightning chain target preference.
+3. Integrate Fire/heat with the existing Ice durability and melt transition without replacing the Slice 3 terrain architecture.
+4. Complete the automated signature scenario: freeze → cross → melt → Wet → conductive Lightning chain.
+5. Keep M01 `IN_PROGRESS`; do not start M02.
 
 Do not start M02 procedural world generation.
 
