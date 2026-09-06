@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { simulationPositionToMinimapFraction } from '../../src/world/debug-view';
 import { generateWorld } from '../../src/world/generator';
 import { generatedWorldToArena, worldCellToSimulationPosition } from '../../src/world/world-arena';
 import { WorldCellFlag } from '../../src/world/world-definition';
@@ -34,6 +35,23 @@ describe('generated world arena presentation adapter', () => {
         const clearance = 3 * arena.traversal.cellSize;
         expect(deltaX * deltaX + deltaZ * deltaZ).toBeGreaterThanOrEqual(clearance * clearance);
       }
+    }
+  });
+
+  it.each([0, 42, 1_000_000])('maps authoritative generated cells to the same minimap coordinates for block %i', (blockHeight) => {
+    const world = generateWorld(blockHeight);
+    const points = [
+      ...world.spawns.map((spawn) => spawn.cell),
+      world.objective.cell,
+      world.boss.cell,
+      ...world.regions.slice(0, 3).map((region) => region.center),
+    ];
+
+    for (const point of points) {
+      const position = worldCellToSimulationPosition(world, point);
+      const [fractionX, fractionY] = simulationPositionToMinimapFraction(world, position.x, position.z);
+      expect(fractionX).toBeCloseTo((point.x + 0.5) / world.width, 12);
+      expect(fractionY).toBeCloseTo((point.z + 0.5) / world.height, 12);
     }
   });
 });
