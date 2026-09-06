@@ -19,7 +19,16 @@
         <p>正在初始化戰場系統…</p>
       </section>
       <aside id="debug-overlay" aria-label="Debug information"></aside>
-      <div id="camera-help">WASD／方向鍵移動 · 滾輪縮放 · 中鍵拖曳</div>
+      <aside id="arena-legend" aria-label="Arena terrain legend">
+        <b>M01 固定測試場</b>
+        <span><i class="swatch ground"></i>一般地面</span>
+        <span><i class="swatch forest"></i>森林區</span>
+        <span><i class="swatch river"></i>河流</span>
+        <span><i class="swatch choke"></i>隘口</span>
+        <span><i class="swatch crossing"></i>未來冰凍渡口</span>
+      </aside>
+      <div id="selection-box" hidden></div>
+      <div id="camera-help">左鍵選取／拖曳框選 · 右鍵移動 · X 停止 · WASD／方向鍵移動鏡頭 · 滾輪縮放 · 中鍵拖曳</div>
       <div id="fatal-error" role="alert" hidden></div>
     </main>
     <script type="module" src="/src/main.ts"></script>

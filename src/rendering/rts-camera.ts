@@ -63,7 +63,7 @@ export class RtsCamera {
   };
 
   private readonly onPointerDown = (event: PointerEvent): void => {
-    if (event.button !== 1 && event.button !== 2) return;
+    if (event.button !== 1) return;
     this.dragging = true;
     this.pointerX = event.clientX;
     this.pointerY = event.clientY;

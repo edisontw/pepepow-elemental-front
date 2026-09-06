@@ -61,6 +61,40 @@ body { min-width: 320px; }
   pointer-events: none;
 }
 
+#arena-legend {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  display: grid;
+  gap: .35rem;
+  min-width: 10.5rem;
+  padding: .75rem .9rem;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: .35rem;
+  background: rgba(4, 13, 12, .76);
+  color: #a9bfba;
+  font-size: .78rem;
+  pointer-events: none;
+}
+
+#arena-legend b { margin-bottom: .2rem; color: #dceee8; }
+#arena-legend span { display: flex; align-items: center; gap: .5rem; }
+.swatch { width: .72rem; height: .72rem; border-radius: .14rem; }
+.swatch.ground { background: #345d41; }
+.swatch.forest { background: #145722; }
+.swatch.river { background: #0f406b; }
+.swatch.choke { background: #666d68; }
+.swatch.crossing { background: #55bacd; }
+
+#selection-box {
+  position: fixed;
+  z-index: 4;
+  border: 1px solid rgba(116, 237, 208, .95);
+  background: rgba(68, 186, 157, .16);
+  box-shadow: 0 0 .8rem rgba(68, 186, 157, .18) inset;
+  pointer-events: none;
+}
+
 #fatal-error {
   position: fixed;
   inset: 1rem;
@@ -76,5 +110,6 @@ body { min-width: 320px; }
 
 @media (max-width: 640px) {
   #debug-overlay { top: .5rem; left: .5rem; min-width: 12.5rem; }
+  #arena-legend { display: none; }
   #camera-help { right: .5rem; bottom: .5rem; left: .5rem; text-align: center; }
 }

@@ -12,7 +12,9 @@ function runSchedule(schedule: number[]): ReturnType<Simulation['snapshot']> {
 describe('FixedTickRunner', () => {
   it('produces the same authoritative state across render schedules', () => {
     const fastFrames = Array.from({ length: 60 }, () => 1000 / 60);
+    const lowFrames = Array.from({ length: 10 }, () => 100);
     const unevenFrames = [40, 125, 10, 225, 50, 175, 75, 100, 200];
     expect(runSchedule(fastFrames)).toEqual(runSchedule(unevenFrames));
+    expect(runSchedule(fastFrames)).toEqual(runSchedule(lowFrames));
   });
 });

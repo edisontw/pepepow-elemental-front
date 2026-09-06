@@ -14,15 +14,17 @@ try {
   const canvas = requiredElement<HTMLCanvasElement>('game-canvas');
   const bootScreen = requiredElement<HTMLElement>('boot-screen');
   const overlayElement = requiredElement<HTMLElement>('debug-overlay');
-  const scene = createSceneShell(canvas);
-  const simulation = new Simulation('pepepow:rules-v0:m00-smoke');
+  const selectionBox = requiredElement<HTMLElement>('selection-box');
+  const simulation = new Simulation('pepepow:rules-v0:m01-arena');
+  const scene = createSceneShell(canvas, simulation, selectionBox);
   const tickRunner = new FixedTickRunner(simulation);
   const overlay = new DebugOverlay(overlayElement);
 
   scene.app.on('update', (deltaSeconds: number) => {
     const frame = tickRunner.advance(deltaSeconds * 1000);
     scene.camera.update(deltaSeconds);
-    overlay.update(deltaSeconds, frame);
+    scene.sync(frame);
+    overlay.update(deltaSeconds, frame, scene.selectedCount);
   });
 
   requestAnimationFrame(() => bootScreen.classList.add('ready'));
