@@ -4,7 +4,8 @@
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Final M05 runtime baseline:** `7e0e5082d1e0c1ed44d8546f0031d45f4a3899a6`  
-**M06 implementation PR:** #14  
+**M06 deployed runtime baseline:** `c7ec126efce64e8411c1398c0a789f1963b85546`  
+**M06 implementation PR:** #14 — MERGED  
 **M06 closure gap audit:** `docs/milestones/M06_CLOSURE_GAP_AUDIT.md`
 
 ---
@@ -118,7 +119,7 @@ Goal:
 
 > Complete the first deterministic start-to-finish game loop using the systems already proven in M01–M05.
 
-### Implemented in PR #14
+### Implemented and merged in PR #14
 
 - authoritative `M06Simulation` extending M05 rather than a parallel runtime
 - deterministic run phases: Discovery / Commitment / Expansion / Escalation / Finale / Complete
@@ -142,20 +143,18 @@ Goal:
 - browser Full Run HUD, Core/target health, Critical countdown, results/score screen, replay status, and boss marker
 - deterministic M04 world events paced at approximately 14 and 19 minutes before the standard Finale
 
-### Automated acceptance covered
+### Automated and deployment verification
 
-- deterministic smoke Finale transition
-- Destroy Core victory + score
-- Core Critical → Engineer recovery → later final defeat
-- deterministic boss activation and battlefield ability use
-- Boss Hunt victory
-- replay packet identity
-- replay checkpoint MATCH
-- tampered command-stream DIVERGED
-- replay target-tick injection
-- canonical five-act / event pacing assertions
-- existing M01–M05 regression coverage remains required
-- strict TypeScript + production build remain required
+- PR #14 final CI `34041915124`: PASS
+- final PR suite: 25 test files / 130 tests PASS
+- M06 focused suite: 9 / 9 PASS
+- M02 2,048-seed hard-invariant regression: PASS
+- M01–M05 regressions: PASS
+- strict TypeScript: PASS
+- production Vite build: PASS
+- merged runtime main: `c7ec126efce64e8411c1398c0a789f1963b85546`
+- main CI `34042091843`: PASS
+- GitHub Pages `34042091831`: PASS
 
 Closure audit: `docs/milestones/M06_CLOSURE_GAP_AUDIT.md`.
 
@@ -163,24 +162,36 @@ Closure audit: `docs/milestones/M06_CLOSURE_GAP_AUDIT.md`.
 
 ## 5. Remaining M06 closure blockers
 
-After PR #14 automated gates are green:
+Automated implementation, merge, main CI, and Pages deployment are complete. Only human WebGL acceptance remains.
 
-1. Merge M06 implementation to `main`.
-2. Confirm main CI and GitHub Pages deployment PASS.
-3. Human WebGL smoke acceptance on the deployed runtime:
-   - Run HUD and objective health readable
-   - smoke Destroy/Boss Hunt completion reaches result screen
-   - Retry Block / Next Block work
-   - Replay Last reaches `REPLAY MATCH`
-   - boss is visible and battlefield effect is perceptible
-   - Core Critical/recovery/defeat presentation is understandable
-4. Complete at least one standard start-to-finish run and judge:
-   - meaningful decisions throughout
-   - loss explainability if defeated
-   - memorable systemic event
-   - next seed worth trying
-   - approximately 25–35 minute standard duration plausibility
-5. Only after the human gate passes: finalize `M06_CLOSURE_REPORT.md`, mark M06 CLOSED, and open M07.
+### A. Deployed smoke acceptance
+
+Verify on the deployed runtime:
+
+- Run HUD and objective health are readable
+- smoke Destroy completion reaches a visible result screen
+- smoke Boss Hunt shows a visible boss and perceptible elemental battlefield effect
+- score breakdown is readable
+- Retry Block reloads the same block
+- Next Block advances the block height
+- Replay Last reaches `REPLAY MATCH`
+- Core Critical / Engineer recovery / final defeat presentation is understandable if encountered
+
+### B. Standard start-to-finish run
+
+Complete at least one normal-pace run and judge:
+
+- meaningful decisions throughout
+- loss explainability if defeated
+- memorable systemic event
+- next seed worth trying
+- approximately 25–35 minute standard duration plausibility
+
+Only after the human gate passes:
+
+1. finalize `docs/milestones/M06_CLOSURE_REPORT.md`
+2. mark M06 CLOSED in canonical docs
+3. open M07 — PEPEPOW Block Challenge
 
 Do not close M06 from automated tests alone.
 
@@ -211,6 +222,6 @@ Not M06 blockers:
 
 ## 8. Next exact action
 
-Finish PR #14 automated verification, merge and deploy M06, then perform the human WebGL smoke + standard start-to-finish acceptance defined in `M06_CLOSURE_GAP_AUDIT.md`.
+Perform the human WebGL smoke acceptance, then complete one standard start-to-finish run as defined above. If both pass, formally close M06 and open M07.
 
 Do not start M07 until M06 is formally CLOSED.
