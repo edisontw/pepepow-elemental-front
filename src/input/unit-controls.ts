@@ -1,13 +1,13 @@
 import * as pc from 'playcanvas';
 import type { UnitRenderBridge } from '../rendering/unit-render-bridge';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
-import type { EntityID } from '../simulation/components';
-import type { Simulation } from '../simulation/simulation';
+import type { EntitySnapshot, Simulation } from '../simulation/simulation';
+import { SelectionState } from './selection-state';
 
 const DRAG_THRESHOLD = 6;
 
 export class UnitControls {
-  private readonly selectedIds = new Set<EntityID>();
+  private readonly selection = new SelectionState();
   private pointerId: number | null = null;
   private startClientX = 0;
   private startClientY = 0;
@@ -29,7 +29,18 @@ export class UnitControls {
   }
 
   get selectedCount(): number {
-    return this.selectedIds.size;
+    return this.selection.ids.length;
+  }
+
+  get selectedUnits(): readonly EntitySnapshot[] {
+    const selected = new Set(this.selection.ids);
+    return this.simulation.snapshot().entities.filter((entity) => selected.has(entity.id));
+  }
+
+  syncSelection(): void {
+    if (this.selection.prune((entityId) => this.bridge.isControllable(entityId))) {
+      this.renderSelected();
+    }
   }
 
   destroy(): void {
@@ -71,37 +82,57 @@ export class UnitControls {
     const end = this.toCanvasCoordinates(this.currentClientX, this.currentClientY);
     if (this.dragDistance() < DRAG_THRESHOLD) {
       const entityId = this.bridge.pickSingle(this.camera, end.x, end.y);
-      this.replaceSelection(entityId !== null && this.bridge.isControllable(entityId) ? [entityId] : []);
+      if (entityId !== null && this.bridge.isControllable(entityId)) {
+        this.selection.select([entityId], event.shiftKey ? 'TOGGLE' : 'REPLACE');
+      } else if (!event.shiftKey) {
+        this.selection.select([], 'REPLACE');
+      }
     } else {
-      this.replaceSelection(this.bridge.pickBox(
+      this.selection.select(this.bridge.pickBox(
         this.camera,
         Math.min(start.x, end.x),
         Math.min(start.y, end.y),
         Math.max(start.x, end.x),
         Math.max(start.y, end.y),
-      ));
+      ), event.shiftKey ? 'ADD' : 'REPLACE');
     }
+    this.renderSelected();
     this.pointerId = null;
     this.selectionBox.hidden = true;
   };
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
+    const controlGroupSlot = this.controlGroupSlot(event.code);
+    if (controlGroupSlot !== null && !event.repeat) {
+      event.preventDefault();
+      if (event.ctrlKey) {
+        this.selection.assignControlGroup(controlGroupSlot);
+      } else if (!event.altKey && !event.metaKey && this.selection.recallControlGroup(
+        controlGroupSlot,
+        (entityId) => this.bridge.isControllable(entityId),
+      )) {
+        this.renderSelected();
+      }
+      return;
+    }
     if ((event.code === 'KeyF' || event.code === 'KeyH' || event.code === 'KeyR') && !event.repeat) {
-      const crossing = this.simulation.arena.zones.find((zone) => zone.kind === 'FREEZABLE_CROSSING');
-      if (!crossing) return;
+      const targetZone = this.simulation.arena.zones.find((zone) => (
+        event.code === 'KeyR' ? zone.kind === 'FOREST' : zone.kind === 'FREEZABLE_CROSSING'
+      ));
+      if (!targetZone) return;
       this.simulation.enqueueCommand({
         targetTick: this.simulation.snapshot().tick + 1,
         playerId: 0,
         type: 'CAST',
         effectId: event.code === 'KeyF' ? 'FREEZE' : event.code === 'KeyR' ? 'FIRE' : 'HEAT',
-        targetX: crossing.centerX,
-        targetZ: crossing.centerZ,
+        targetX: targetZone.centerX,
+        targetZ: targetZone.centerZ,
         radius: 5 * WORLD_UNITS_PER_METER,
       });
       return;
     }
     if (event.code === 'KeyL' && !event.repeat) {
-      const target = this.simulation.snapshot().entities.find((entity) => entity.alive && entity.playerId !== 0);
+      const target = this.simulation.snapshot().entities.find((entity) => entity.alive && entity.visibleToPlayer && entity.playerId !== 0);
       if (!target) return;
       this.simulation.enqueueCommand({
         targetTick: this.simulation.snapshot().tick + 1,
@@ -112,25 +143,23 @@ export class UnitControls {
       });
       return;
     }
-    if (event.code !== 'KeyX' || event.repeat || this.selectedIds.size === 0) return;
+    if (event.code !== 'KeyX' || event.repeat || this.selection.ids.length === 0) return;
     this.simulation.enqueueCommand({
       targetTick: this.simulation.snapshot().tick + 1,
       playerId: 0,
       type: 'STOP',
-      entityIds: [...this.selectedIds].sort((first, second) => first - second),
+      entityIds: this.selection.ids,
     });
   };
 
-  private replaceSelection(entityIds: readonly EntityID[]): void {
-    this.selectedIds.clear();
-    for (const entityId of entityIds) this.selectedIds.add(entityId);
-    this.bridge.setSelected(this.selectedIds);
+  private renderSelected(): void {
+    this.bridge.setSelected(new Set(this.selection.ids));
   }
 
   private readonly onContextMenu = (event: MouseEvent): void => { event.preventDefault(); };
 
   private enqueueContextOrder(clientX: number, clientY: number): void {
-    if (this.selectedIds.size === 0) return;
+    if (this.selection.ids.length === 0) return;
     const screen = this.toCanvasCoordinates(clientX, clientY);
     const picked = this.bridge.pickSingle(this.camera, screen.x, screen.y);
     if (picked !== null && this.bridge.isEnemy(picked)) {
@@ -138,7 +167,7 @@ export class UnitControls {
         targetTick: this.simulation.snapshot().tick + 1,
         playerId: 0,
         type: 'ATTACK',
-        entityIds: [...this.selectedIds].sort((first, second) => first - second),
+        entityIds: this.selection.ids,
         targetEntityId: picked,
       });
       return;
@@ -155,7 +184,7 @@ export class UnitControls {
       targetTick: this.simulation.snapshot().tick + 1,
       playerId: 0,
       type: 'MOVE',
-      entityIds: [...this.selectedIds].sort((first, second) => first - second),
+      entityIds: this.selection.ids,
       targetX: Math.round(worldX * WORLD_UNITS_PER_METER),
       targetZ: Math.round(worldZ * WORLD_UNITS_PER_METER),
     });
@@ -182,5 +211,10 @@ export class UnitControls {
     this.selectionBox.style.top = `${Math.min(this.startClientY, this.currentClientY)}px`;
     this.selectionBox.style.width = `${Math.abs(this.currentClientX - this.startClientX)}px`;
     this.selectionBox.style.height = `${Math.abs(this.currentClientY - this.startClientY)}px`;
+  }
+
+  private controlGroupSlot(code: string): number | null {
+    const match = /^Digit([1-9])$/.exec(code);
+    return match?.[1] ? Number(match[1]) : null;
   }
 }

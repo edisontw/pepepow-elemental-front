@@ -23,6 +23,7 @@ export interface ArenaTraversalDefinition {
   initialNavVersion: number;
   patches: readonly TraversalPatch[];
   freezableWaterPatches: readonly TraversalPatch[];
+  vegetationPatches: readonly TraversalPatch[];
 }
 
 export interface ArenaZone {
@@ -44,28 +45,34 @@ export interface ArenaDefinition {
 }
 
 const METRE = WORLD_UNITS_PER_METER;
-const PLAYER_UNIT_COUNT = 16;
+const PLAYER_UNIT_COUNT = 24;
 
-const units: UnitSpawn[] = Array.from({ length: PLAYER_UNIT_COUNT }, (_, index) => ({
-  archetype: index % 2 === 0 ? 'VANGUARD' : 'RANGER',
-  playerId: 0,
-  x: (-15 + (index % 4) * 2.1) * METRE,
-  z: (-11 + Math.floor(index / 4) * 2.1) * METRE,
-  speedPerTick: 420,
-  selectionRadius: 700,
-  maxHealth: index % 2 === 0 ? 180 : 110,
-  attackDamage: index % 2 === 0 ? 18 : 12,
-  attackIntervalTicks: index % 2 === 0 ? 11 : 8,
-  attackRange: index % 2 === 0 ? 1_250 : 6_000,
-}));
+const units: UnitSpawn[] = Array.from({ length: PLAYER_UNIT_COUNT }, (_, index) => {
+  const archetype = index === 14 ? 'ELEMENTALIST' : index === 15 ? 'GOLEM' : index % 2 === 0 ? 'VANGUARD' : 'RANGER';
+  const stats = archetype === 'ELEMENTALIST'
+    ? { speedPerTick: 320, maxHealth: 100, attackDamage: 14, attackIntervalTicks: 15, attackRange: 9_000 }
+    : archetype === 'GOLEM'
+      ? { speedPerTick: 230, maxHealth: 600, attackDamage: 42, attackIntervalTicks: 18, attackRange: 1_250 }
+      : archetype === 'VANGUARD'
+        ? { speedPerTick: 420, maxHealth: 180, attackDamage: 18, attackIntervalTicks: 11, attackRange: 1_250 }
+        : { speedPerTick: 420, maxHealth: 110, attackDamage: 12, attackIntervalTicks: 8, attackRange: 6_000 };
+  return {
+    archetype,
+    playerId: 0,
+    x: (-15 + (index % 4) * 2.1) * METRE,
+    z: (-11 + Math.floor(index / 4) * 2.1) * METRE,
+    selectionRadius: 700,
+    ...stats,
+  };
+});
 
-for (let index = 0; index < 8; index += 1) {
+for (let index = 0; index < 16; index += 1) {
   const ranged = index >= 4;
   units.push({
     archetype: ranged ? 'RANGER' : 'VANGUARD',
     playerId: 1,
     x: (13 + (index % 4) * 2.1) * METRE,
-    z: (-5 + Math.floor(index / 4) * 10) * METRE,
+    z: (index < 8 ? -5 + Math.floor(index / 4) * 10 : index < 12 ? 10 : 14) * METRE,
     speedPerTick: ranged ? 390 : 430,
     selectionRadius: 700,
     maxHealth: ranged ? 105 : 190,
@@ -106,6 +113,10 @@ export const M01_ARENA: ArenaDefinition = {
     ],
     freezableWaterPatches: [
       { id: 'future-ice-crossing', kind: 'BLOCKED_RIVER', minColumn: 24, maxColumn: 28, minRow: 13, maxRow: 19 },
+    ],
+    vegetationPatches: [
+      { id: 'west-forest', kind: 'WALKABLE_GROUND', minColumn: 4, maxColumn: 14, minRow: 24, maxRow: 32 },
+      { id: 'east-forest', kind: 'WALKABLE_GROUND', minColumn: 33, maxColumn: 42, minRow: 5, maxRow: 12 },
     ],
   },
   units,

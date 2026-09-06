@@ -2,7 +2,7 @@ import * as pc from 'playcanvas';
 import { UnitControls } from '../input/unit-controls';
 import { WORLD_UNITS_PER_METER, type ArenaZone } from '../simulation/arena';
 import type { TickFrame } from '../simulation/fixed-tick-runner';
-import type { Simulation } from '../simulation/simulation';
+import type { EntitySnapshot, Simulation } from '../simulation/simulation';
 import { RtsCamera } from './rts-camera';
 import { UnitRenderBridge } from './unit-render-bridge';
 
@@ -79,6 +79,7 @@ export interface SceneShell {
   app: pc.Application;
   camera: RtsCamera;
   get selectedCount(): number;
+  get selectedUnits(): readonly EntitySnapshot[];
   sync(frame: TickFrame): void;
   destroy(): void;
 }
@@ -108,12 +109,27 @@ export function createSceneShell(
     forest: createMaterial(new pc.Color(0.08, 0.24, 0.10)),
     trunk: createMaterial(new pc.Color(0.22, 0.13, 0.07)),
     canopy: createMaterial(new pc.Color(0.08, 0.34, 0.13)),
+    burning: createMaterial(new pc.Color(1, 0.28, 0.02), new pc.Color(0.85, 0.08, 0.01)),
     rock: createMaterial(new pc.Color(0.27, 0.29, 0.27)),
   };
   let freezablePatch: pc.Entity | null = null;
   for (const zone of simulation.arena.zones) {
     const rendered = renderZone(app, zone, materials);
     if (zone.kind === 'FREEZABLE_CROSSING') freezablePatch = rendered;
+  }
+  const burningMarkers = new Map<string, pc.Entity>();
+  for (const cell of simulation.terrain.flammableCells()) {
+    const center = simulation.terrain.cellCenter(cell);
+    const marker = addPrimitive(
+      app,
+      'box',
+      `Burning ${cell.column},${cell.row}`,
+      new pc.Vec3(metres(center.x), 0.18, metres(center.z)),
+      new pc.Vec3(0.78, 0.18, 0.78),
+      materials.burning!,
+    );
+    marker.enabled = false;
+    burningMarkers.set(`${cell.column},${cell.row}`, marker);
   }
 
   const light = new pc.Entity('Sun');
@@ -159,11 +175,17 @@ export function createSceneShell(
     get selectedCount(): number {
       return controls.selectedCount;
     },
+    get selectedUnits(): readonly EntitySnapshot[] {
+      return controls.selectedUnits;
+    },
     sync(frame: TickFrame): void {
       bridge.sync(frame.previousSnapshot, frame.snapshot, frame.interpolationAlpha);
+      controls.syncSelection();
       if (freezablePatch?.render) {
         freezablePatch.render.material = frame.snapshot.terrain.ice > 0 ? materials.ice! : materials.river!;
       }
+      const burningKeys = new Set(frame.snapshot.burningCells.map((cell) => `${cell.column},${cell.row}`));
+      for (const [key, marker] of burningMarkers) marker.enabled = burningKeys.has(key);
     },
     destroy(): void {
       window.removeEventListener('resize', onResize);

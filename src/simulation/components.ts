@@ -1,5 +1,6 @@
 export type EntityID = number;
 export type PlayerID = number;
+export type UnitArchetype = 'VANGUARD' | 'RANGER' | 'ELEMENTALIST' | 'GOLEM';
 
 export interface PositionComponent {
   x: number;
@@ -28,6 +29,8 @@ export interface HealthComponent {
 
 export interface StatusComponent {
   wet: boolean;
+  chilledTicks: number;
+  frozenTicks: number;
 }
 
 export interface CombatComponent {
@@ -48,7 +51,7 @@ export interface SelectableComponent {
 }
 
 export interface UnitSpawn {
-  archetype: 'VANGUARD' | 'RANGER';
+  archetype: UnitArchetype;
   playerId: PlayerID;
   x: number;
   z: number;

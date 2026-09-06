@@ -24,7 +24,7 @@ try {
     const frame = tickRunner.advance(deltaSeconds * 1000);
     scene.camera.update(deltaSeconds);
     scene.sync(frame);
-    overlay.update(deltaSeconds, frame, scene.selectedCount);
+    overlay.update(deltaSeconds, frame, scene.selectedUnits);
   });
 
   requestAnimationFrame(() => bootScreen.classList.add('ready'));

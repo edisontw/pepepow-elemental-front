@@ -7,6 +7,9 @@ export const ICE_DURABILITY_MAX = 100;
 export const FREEZE_TEMPERATURE_DELTA = -40;
 export const HEAT_TEMPERATURE_DELTA = 60;
 export const HEAT_ICE_DAMAGE = 50;
+export const BURNING_DURATION_TICKS = 9;
+export const FIRE_SPREAD_INTERVAL_TICKS = 3;
+export const BURNING_HEAT_PER_TICK = 10;
 
 export const enum SurfaceType {
   GROUND = 0,
@@ -29,13 +32,31 @@ export interface TerrainCounts {
   water: number;
   ice: number;
   freezableWater: number;
+  flammableVegetation: number;
+  burning: number;
+  consumedVegetation: number;
 }
+
+export const enum VegetationState {
+  NONE = 0,
+  FLAMMABLE = 1,
+  CONSUMED = 2,
+}
+
+const FIXED_NEIGHBOR_OFFSETS = [
+  { column: 0, row: -1 },
+  { column: 1, row: 0 },
+  { column: 0, row: 1 },
+  { column: -1, row: 0 },
+] as const;
 
 export class TerrainState {
   readonly surface: Uint8Array;
   readonly temperature: Int16Array;
   readonly iceDurability: Uint8Array;
   readonly freezable: Uint8Array;
+  readonly vegetation: Uint8Array;
+  readonly burningAge: Uint8Array;
 
   constructor(readonly definition: ArenaTraversalDefinition) {
     const cellCount = definition.columns * definition.rows;
@@ -43,6 +64,8 @@ export class TerrainState {
     this.temperature = new Int16Array(cellCount);
     this.iceDurability = new Uint8Array(cellCount);
     this.freezable = new Uint8Array(cellCount);
+    this.vegetation = new Uint8Array(cellCount);
+    this.burningAge = new Uint8Array(cellCount);
 
     for (const patch of definition.patches) {
       const surface = patch.kind === 'BLOCKED_RIVER'
@@ -57,6 +80,11 @@ export class TerrainState {
     for (const patch of definition.freezableWaterPatches) {
       this.forPatch(patch, (index) => {
         if (this.surface[index] === SurfaceType.WATER) this.freezable[index] = 1;
+      });
+    }
+    for (const patch of definition.vegetationPatches) {
+      this.forPatch(patch, (index) => {
+        if (this.surface[index] === SurfaceType.GROUND) this.vegetation[index] = VegetationState.FLAMMABLE;
       });
     }
   }
@@ -77,6 +105,34 @@ export class TerrainState {
     return this.inBounds(cell) && this.freezable[this.index(cell)] === 1;
   }
 
+  vegetationAt(cell: GridCell): VegetationState | null {
+    return this.inBounds(cell) ? this.vegetation[this.index(cell)] as VegetationState : null;
+  }
+
+  burningAgeAt(cell: GridCell): number | null {
+    return this.inBounds(cell) ? this.burningAge[this.index(cell)]! : null;
+  }
+
+  cellCenter(cell: GridCell): { x: number; z: number } {
+    return this.cellToWorld(cell);
+  }
+
+  flammableCells(): GridCell[] {
+    const cells: GridCell[] = [];
+    for (let index = 0; index < this.vegetation.length; index += 1) {
+      if (this.vegetation[index] !== VegetationState.NONE) cells.push(this.cellAt(index));
+    }
+    return cells;
+  }
+
+  burningCells(): GridCell[] {
+    const cells: GridCell[] = [];
+    for (let index = 0; index < this.burningAge.length; index += 1) {
+      if (this.burningAge[index] !== 0) cells.push(this.cellAt(index));
+    }
+    return cells;
+  }
+
   applyEffects(effects: readonly TerrainEffect[]): WalkabilityChange[] {
     const changed = new Map<number, WalkabilityChange>();
     for (const effect of effects) {
@@ -90,11 +146,54 @@ export class TerrainState {
           if (deltaX * deltaX + deltaZ * deltaZ > radiusSquared) continue;
           const index = this.index(cell);
           if (effect.effectId === 'FREEZE') this.applyFreeze(index, cell, changed);
-          else this.applyHeat(index, cell, changed);
+          else if (effect.effectId === 'FIRE') {
+            this.applyHeat(index, cell, changed);
+            this.ignite(index);
+          } else this.applyHeat(index, cell, changed);
         }
       }
     }
     return [...changed.values()].sort((left, right) => this.index(left.cell) - this.index(right.cell));
+  }
+
+  advanceBurning(dousedCellIndices: ReadonlySet<number> = new Set()): void {
+    const spreadCandidates: number[] = [];
+    const marked = new Uint8Array(this.burningAge.length);
+
+    for (let index = 0; index < this.burningAge.length; index += 1) {
+      const age = this.burningAge[index]!;
+      if (age === 0) continue;
+      if (dousedCellIndices.has(index) || this.surface[index] === SurfaceType.WATER) {
+        this.burningAge[index] = 0;
+        continue;
+      }
+
+      this.temperature[index] = Math.min(32_767, this.temperature[index]! + BURNING_HEAT_PER_TICK);
+      const nextAge = age + 1;
+      if (nextAge > BURNING_DURATION_TICKS) {
+        this.burningAge[index] = 0;
+        this.vegetation[index] = VegetationState.CONSUMED;
+        continue;
+      }
+      this.burningAge[index] = nextAge;
+      if (nextAge % FIRE_SPREAD_INTERVAL_TICKS !== 0) continue;
+
+      const cell = this.cellAt(index);
+      for (const offset of FIXED_NEIGHBOR_OFFSETS) {
+        const neighbor = { column: cell.column + offset.column, row: cell.row + offset.row };
+        if (!this.inBounds(neighbor)) continue;
+        const neighborIndex = this.index(neighbor);
+        if (marked[neighborIndex] === 1 || !this.canIgnite(neighborIndex)) continue;
+        marked[neighborIndex] = 1;
+        spreadCandidates.push(neighborIndex);
+      }
+    }
+
+    for (const index of spreadCandidates) this.ignite(index);
+  }
+
+  indexOf(cell: GridCell): number | null {
+    return this.inBounds(cell) ? this.index(cell) : null;
   }
 
   counts(): TerrainCounts {
@@ -107,7 +206,26 @@ export class TerrainState {
         if (this.freezable[index] === 1) freezableWater += 1;
       } else if (this.surface[index] === SurfaceType.ICE) ice += 1;
     }
-    return { water, ice, freezableWater };
+    let flammableVegetation = 0;
+    let burning = 0;
+    let consumedVegetation = 0;
+    for (let index = 0; index < this.vegetation.length; index += 1) {
+      if (this.vegetation[index] === VegetationState.FLAMMABLE) flammableVegetation += 1;
+      else if (this.vegetation[index] === VegetationState.CONSUMED) consumedVegetation += 1;
+      if (this.burningAge[index] !== 0) burning += 1;
+    }
+    return { water, ice, freezableWater, flammableVegetation, burning, consumedVegetation };
+  }
+
+  private canIgnite(index: number): boolean {
+    return this.vegetation[index] === VegetationState.FLAMMABLE
+      && this.burningAge[index] === 0
+      && this.surface[index] !== SurfaceType.WATER
+      && this.surface[index] !== SurfaceType.ICE;
+  }
+
+  private ignite(index: number): void {
+    if (this.canIgnite(index)) this.burningAge[index] = 1;
   }
 
   private applyFreeze(index: number, cell: GridCell, changed: Map<number, WalkabilityChange>): void {
@@ -146,6 +264,10 @@ export class TerrainState {
 
   private inBounds(cell: GridCell): boolean {
     return cell.column >= 0 && cell.row >= 0 && cell.column < this.definition.columns && cell.row < this.definition.rows;
+  }
+
+  private cellAt(index: number): GridCell {
+    return { column: index % this.definition.columns, row: Math.floor(index / this.definition.columns) };
   }
 
   private index(cell: GridCell): number { return cell.row * this.definition.columns + cell.column; }

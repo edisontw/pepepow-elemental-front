@@ -37,7 +37,7 @@ export class EntityStore {
     this.factions.set(entityId, { playerId: spawn.playerId });
     this.selectables.set(entityId, { radius: Math.round(spawn.selectionRadius) });
     this.health.set(entityId, { current: spawn.maxHealth, max: spawn.maxHealth, alive: true });
-    this.statuses.set(entityId, { wet: false });
+    this.statuses.set(entityId, { wet: false, chilledTicks: 0, frozenTicks: 0 });
     this.combat.set(entityId, {
       attackDamage: spawn.attackDamage,
       attackIntervalTicks: spawn.attackIntervalTicks,

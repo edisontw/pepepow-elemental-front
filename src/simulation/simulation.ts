@@ -1,16 +1,19 @@
 import { M01_ARENA, type ArenaDefinition } from './arena';
 import type { ChainLightningCommand, GameCommand } from './commands';
 import { CommandQueue } from './commands';
-import type { EntityID } from './components';
+import type { EntityID, UnitArchetype } from './components';
 import { EntityStore } from './entity-store';
 import { NavigationGrid } from './navigation';
 import { DeterministicRng } from './random';
 import { computeStateHash } from './state-hash';
 import { buildLightningChain, lightningDamage } from './lightning';
 import { SurfaceType, TerrainState, type TerrainCounts, type TerrainEffect, type TerrainEffectId } from './terrain-state';
+import { VisibilityState, type VisibilityCounts } from './visibility-state';
 
 export const SIMULATION_HZ = 10;
 export const TICK_MS = 1000 / SIMULATION_HZ;
+export const CHILLED_DURATION_TICKS = 20;
+export const FROZEN_DURATION_TICKS = 10;
 
 export interface SimulationSnapshot {
   tick: number;
@@ -20,17 +23,22 @@ export interface SimulationSnapshot {
   stateHash: string;
   queuedCommandCount: number;
   navVersion: number;
+  navDirty: boolean;
   activeAttackOrders: number;
   wetUnitCount: number;
+  chilledUnitCount: number;
+  frozenUnitCount: number;
+  visibility: VisibilityCounts;
   terrain: TerrainCounts;
   lastTerrainEffect: TerrainEffectId | null;
   lastLightningChain: readonly EntityID[];
+  burningCells: readonly { column: number; row: number }[];
   entities: readonly EntitySnapshot[];
 }
 
 export interface EntitySnapshot {
   id: EntityID;
-  archetype: 'VANGUARD' | 'RANGER';
+  archetype: UnitArchetype;
   x: number;
   z: number;
   playerId: number;
@@ -49,12 +57,16 @@ export interface EntitySnapshot {
   nextAttackTick: number;
   attackTargetEntityId: EntityID | null;
   wet: boolean;
+  chilledTicks: number;
+  frozenTicks: number;
+  visibleToPlayer: boolean;
 }
 
 export class Simulation {
   readonly entities = new EntityStore();
   readonly navigation: NavigationGrid;
   readonly terrain: TerrainState;
+  readonly visibility: VisibilityState;
   private readonly rng: DeterministicRng;
   private readonly commandQueue = new CommandQueue();
   private tick = 0;
@@ -69,19 +81,24 @@ export class Simulation {
     this.terrain = new TerrainState(arena.traversal);
     this.navigation = new NavigationGrid(arena.traversal);
     for (const spawn of arena.units) this.entities.createUnit(spawn);
+    this.visibility = new VisibilityState(arena.traversal, arena.units.map((spawn) => spawn.playerId));
+    this.visibility.update(this.entities, this.navigation);
   }
 
   enqueueCommand(command: GameCommand): void { this.commandQueue.enqueue(command); }
 
   step(): SimulationSnapshot {
     this.tick += 1;
+    this.advanceTimedStatuses();
     this.processCommands();
     this.updateMovementAndNavigation();
     this.updateCombat();
     this.updateTerrainEffects();
+    this.updateBurning();
     this.synchronizeEnvironmentalStatuses();
     this.resolveLightningCasts();
     this.cleanupDeaths();
+    this.visibility.update(this.entities, this.navigation);
     this.smokeValue = this.rng.nextUint32();
     return this.snapshot();
   }
@@ -94,14 +111,19 @@ export class Simulation {
       elapsedMs: this.tick * TICK_MS,
       rngState,
       smokeValue: this.smokeValue,
-      stateHash: computeStateHash(this.tick, rngState, this.navigation.navVersion, this.entities, this.terrain),
+      stateHash: computeStateHash(this.tick, rngState, this.navigation.navVersion, this.entities, this.terrain, this.visibility),
       queuedCommandCount: this.commandQueue.size,
       navVersion: this.navigation.navVersion,
+      navDirty: false,
       activeAttackOrders: entities.filter((entity) => entity.alive && entity.attackTargetEntityId !== null).length,
       wetUnitCount: entities.filter((entity) => entity.alive && entity.wet).length,
+      chilledUnitCount: entities.filter((entity) => entity.alive && entity.chilledTicks > 0).length,
+      frozenUnitCount: entities.filter((entity) => entity.alive && entity.frozenTicks > 0).length,
+      visibility: this.visibility.counts(0),
       terrain: this.terrain.counts(),
       lastTerrainEffect: this.lastTerrainEffect,
       lastLightningChain: [...this.lastLightningChain],
+      burningCells: this.terrain.burningCells(),
       entities,
     };
   }
@@ -126,7 +148,8 @@ export class Simulation {
       alive: health.alive, attackDamage: combat.attackDamage,
       attackIntervalTicks: combat.attackIntervalTicks, attackRange: combat.attackRange,
       nextAttackTick: combat.nextAttackTick, attackTargetEntityId: combat.targetEntityId,
-      wet: status.wet,
+      wet: status.wet, chilledTicks: status.chilledTicks, frozenTicks: status.frozenTicks,
+      visibleToPlayer: faction.playerId === 0 || this.visibility.isWorldVisible(0, position.x, position.z, this.navigation),
     };
   }
 
@@ -238,24 +261,28 @@ export class Simulation {
     const position = this.entities.positions.get(entityId);
     const movement = this.entities.movements.get(entityId);
     if (!position || !movement || movement.pathIndex >= movement.path.length) return;
+    const status = this.entities.statuses.get(entityId);
+    if (status?.frozenTicks) return;
     const waypoint = movement.path[movement.pathIndex]!;
     const deltaX = waypoint.x - position.x;
     const deltaZ = waypoint.z - position.z;
     const distance = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
-    if (distance <= movement.speedPerTick) {
+    const speedPerTick = status?.chilledTicks ? Math.max(1, Math.floor(movement.speedPerTick / 2)) : movement.speedPerTick;
+    if (distance <= speedPerTick) {
       position.x = waypoint.x;
       position.z = waypoint.z;
       movement.pathIndex += 1;
       if (movement.pathIndex >= movement.path.length) this.clearMovement(entityId);
       return;
     }
-    position.x += Math.round((deltaX * movement.speedPerTick) / distance);
-    position.z += Math.round((deltaZ * movement.speedPerTick) / distance);
+    position.x += Math.round((deltaX * speedPerTick) / distance);
+    position.z += Math.round((deltaZ * speedPerTick) / distance);
   }
 
   private updateCombat(): void {
     for (const entityId of this.entities.entityIds()) {
       if (!this.entities.hasUnit(entityId)) continue;
+      if (this.entities.statuses.get(entityId)?.frozenTicks) continue;
       const combat = this.entities.combat.get(entityId)!;
       const targetId = combat.targetEntityId;
       if (targetId === null || !this.entities.hasUnit(targetId) || !this.areHostile(entityId, targetId)) continue;
@@ -268,9 +295,57 @@ export class Simulation {
 
   private updateTerrainEffects(): void {
     if (this.pendingTerrainEffects.length === 0) return;
-    const changes = this.terrain.applyEffects(this.pendingTerrainEffects);
+    const effects = this.pendingTerrainEffects;
+    const changes = this.terrain.applyEffects(effects);
+    this.applyUnitElementalEffects(effects);
     this.pendingTerrainEffects = [];
     this.navigation.applyWalkabilityChanges(changes);
+  }
+
+  private advanceTimedStatuses(): void {
+    for (const entityId of this.entities.entityIds()) {
+      const status = this.entities.statuses.get(entityId);
+      if (!status) continue;
+      status.chilledTicks = Math.max(0, status.chilledTicks - 1);
+      status.frozenTicks = Math.max(0, status.frozenTicks - 1);
+    }
+  }
+
+  private applyUnitElementalEffects(effects: readonly TerrainEffect[]): void {
+    for (const effect of effects) {
+      const radiusSquared = effect.radius * effect.radius;
+      for (const entityId of this.entities.entityIds()) {
+        if (!this.entities.hasUnit(entityId)) continue;
+        const position = this.entities.positions.get(entityId)!;
+        const deltaX = position.x - effect.targetX;
+        const deltaZ = position.z - effect.targetZ;
+        if (deltaX * deltaX + deltaZ * deltaZ > radiusSquared) continue;
+        const status = this.entities.statuses.get(entityId)!;
+        if (effect.effectId === 'FREEZE') {
+          if (status.wet || status.chilledTicks > 0) {
+            status.chilledTicks = 0;
+            status.frozenTicks = FROZEN_DURATION_TICKS;
+          } else if (status.frozenTicks === 0) {
+            status.chilledTicks = CHILLED_DURATION_TICKS;
+          }
+        } else {
+          status.chilledTicks = 0;
+          status.frozenTicks = 0;
+        }
+      }
+    }
+  }
+
+  private updateBurning(): void {
+    const dousedCells = new Set<number>();
+    for (const entityId of this.entities.entityIds()) {
+      if (this.entities.statuses.get(entityId)?.wet !== true) continue;
+      const position = this.entities.positions.get(entityId);
+      if (!position) continue;
+      const index = this.terrain.indexOf(this.navigation.worldToCell(position.x, position.z));
+      if (index !== null) dousedCells.add(index);
+    }
+    this.terrain.advanceBurning(dousedCells);
   }
 
   private synchronizeEnvironmentalStatuses(): void {

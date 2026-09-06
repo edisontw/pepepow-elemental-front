@@ -21,7 +21,7 @@ describe('M01 deterministic unit control', () => {
       second.snapshot().entities.map(({ id }) => id),
     );
     expect(first.snapshot().entities.map(({ id }) => id)).toEqual(
-      Array.from({ length: 24 }, (_, index) => index + 1),
+      Array.from({ length: 40 }, (_, index) => index + 1),
     );
   });
 

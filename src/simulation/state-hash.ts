@@ -1,6 +1,7 @@
 import type { EntityID } from './components';
 import type { EntityStore } from './entity-store';
 import type { TerrainState } from './terrain-state';
+import type { VisibilityState } from './visibility-state';
 
 const FNV_OFFSET = 0x811c9dc5;
 const FNV_PRIME = 0x01000193;
@@ -16,7 +17,14 @@ function hashInteger(hash: number, value: number): number {
   return result >>> 0;
 }
 
-export function computeStateHash(tick: number, rngState: number, navVersion: number, entities: EntityStore, terrain: TerrainState): string {
+export function computeStateHash(
+  tick: number,
+  rngState: number,
+  navVersion: number,
+  entities: EntityStore,
+  terrain: TerrainState,
+  visibility: VisibilityState,
+): string {
   let hash = FNV_OFFSET;
   hash = hashInteger(hash, tick);
   hash = hashInteger(hash, rngState);
@@ -27,6 +35,14 @@ export function computeStateHash(tick: number, rngState: number, navVersion: num
     hash = hashInteger(hash, terrain.temperature[index]!);
     hash = hashInteger(hash, terrain.iceDurability[index]!);
     hash = hashInteger(hash, terrain.freezable[index]!);
+    hash = hashInteger(hash, terrain.vegetation[index]!);
+    hash = hashInteger(hash, terrain.burningAge[index]!);
+  }
+
+  for (const playerId of visibility.playerIds()) {
+    hash = hashInteger(hash, playerId);
+    const cells = visibility.cellsForPlayer(playerId)!;
+    for (const level of cells) hash = hashInteger(hash, level);
   }
 
   for (const entityId of entities.entityIds()) {
@@ -67,6 +83,8 @@ function hashEntity(hash: number, entityId: EntityID, entities: EntityStore): nu
   result = hashInteger(result, health.max);
   result = hashInteger(result, health.alive ? 1 : 0);
   result = hashInteger(result, status.wet ? 1 : 0);
+  result = hashInteger(result, status.chilledTicks);
+  result = hashInteger(result, status.frozenTicks);
   result = hashInteger(result, combat.attackDamage);
   result = hashInteger(result, combat.attackIntervalTicks);
   result = hashInteger(result, combat.attackRange);
