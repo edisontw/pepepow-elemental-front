@@ -1,7 +1,7 @@
 # PEPEPOW Elemental Front — ROADMAP
 
 **Canonical milestone roadmap**  
-**Current status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 CLOSED → M04 IN_PROGRESS
+**Current status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 CLOSED → M04 CLOSED → M05 OPEN
 
 ---
 
@@ -280,7 +280,7 @@ Closure: `docs/milestones/M03_CLOSURE_REPORT.md`.
 
 # 6. M04 — Roguelite Layer
 
-**Status:** IN_PROGRESS  
+**Status:** CLOSED  
 **Goal:** Make different generated runs produce different builds and meaningful adaptation.
 
 ## Scope
@@ -312,18 +312,22 @@ Do not implement all content before the generic system works.
 - no dominant mandatory upgrade path
 - upgrades do not break determinism/replays
 
-## Current implementation evidence
+## Closure evidence
 
-- M04 implementation PR: `#5`
+- implementation PR #5 merged to `main`: `95ad699f96a29d6461ed337ff8c1120a8b8876c8`
+- playtest-readability PR #6 merged to `main`: `7547469bb773d9edbb777bf83e879fca91c03e31`
 - authoritative pure-TypeScript roguelite state extends the M03 runtime without replacing CLOSED systems
 - existing M02 Shrine POIs drive the interaction flow
 - deterministic three-choice Shrine offers use an isolated Shrine RNG identity
 - representative Fire / Water / Ice / Lightning / mixed upgrade catalog is data-authored through generic modifier/trigger descriptors
 - run-level maximum Mana progression, synergy detection, deterministic world events, M04 command ordering, and M04 state hashing are implemented
-- upgrade effects are connected to current elemental test mechanics through Fire / Heat / Freeze radius modifiers and Lightning trigger behavior
-- desktop Shrine/upgrade/event UI exists
-- initial PR CI run `34033184883`: tests PASS, production build PASS
-- final deployment and human WebGL three-choice smoke remain required before closure
+- upgrade effects are connected to current elemental mechanics through Fire / Heat / Freeze radius modifiers and Lightning trigger behavior
+- Shrine/upgrade/event browser UI exists, including generated Shrine region locator
+- main CI run `34033548041`: **PASS**
+- GitHub Pages run `34033548064`: **PASS**
+- human WebGL Shrine three-choice smoke on 2026-09-06: **PASS**
+
+Closure: `docs/milestones/M04_CLOSURE_REPORT.md`.
 
 ---
 
@@ -571,6 +575,6 @@ No milestone can close with:
 
 # 14. Current next action
 
-M00, M01, M02, and M03 are CLOSED. M04 is IN_PROGRESS on implementation PR `#5`.
+M00, M01, M02, M03, and M04 are CLOSED. Begin **M05 — Enemy War** on top of the existing tactical, generated-world, economy/territory, and roguelite foundations.
 
-Finish final PR CI, merge the M04 implementation to `main`, verify GitHub Pages deployment, then perform a minimal human WebGL smoke of the Shrine three-choice flow. Do not begin M05 until M04 acceptance and closure are complete.
+Start with a deterministic enemy knowledge/blackboard model constrained by legal visibility and last-known information. Then prove a minimal strategic Utility AI decision loop over the existing region/supply/POI graph before expanding faction personalities, Director pressure, and anti-turtle behavior. Do not begin M06 full-run completion until M05 acceptance and closure are complete.
