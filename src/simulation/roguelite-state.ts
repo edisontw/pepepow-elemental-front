@@ -86,10 +86,6 @@ function shuffleDeterministic<T>(values: readonly T[], rng: DeterministicRng): T
   return shuffled;
 }
 
-function sortedUnique(values: readonly string[]): string[] {
-  return [...new Set(values)].sort((left, right) => left.localeCompare(right));
-}
-
 function emptyTagCounts(): Record<ElementTag, number> {
   return { FIRE: 0, WATER: 0, ICE: 0, LIGHTNING: 0, MIXED: 0 };
 }
@@ -128,6 +124,8 @@ export class RogueliteState {
   private currentTick = 0;
 
   constructor(readonly world: GeneratedWorld) {
+    this.ensurePlayer(0);
+    this.ensurePlayer(1);
     this.schedule = this.createEventSchedule();
   }
 
