@@ -1,6 +1,14 @@
 export type EntityID = number;
 export type PlayerID = number;
-export type UnitArchetype = 'VANGUARD' | 'RANGER' | 'ELEMENTALIST' | 'GOLEM';
+export type UnitArchetype =
+  | 'VANGUARD'
+  | 'SPEAR_GUARD'
+  | 'RANGER'
+  | 'SCOUT'
+  | 'ELEMENTALIST'
+  | 'ENGINEER'
+  | 'GOLEM'
+  | 'SIEGE_CONSTRUCT';
 
 export interface PositionComponent {
   x: number;

@@ -2,14 +2,15 @@
 
 A deterministic 2.5D browser RTS roguelite built with TypeScript, PlayCanvas, and Vite.
 
-The project centers on procedurally generated battlefields, systemic elemental warfare, territory control, and ruleset-bound block-height world generation. Rendering presents authoritative simulation/world state and does not own gameplay truth.
+The project centers on procedurally generated battlefields, systemic elemental warfare, territory control, deterministic economy, roguelite adaptation, and ruleset-bound block-height world generation. Rendering presents authoritative simulation/world state and does not own gameplay truth.
 
 ## Current milestone state
 
 - M00 — Repository Bootstrap: **CLOSED**
 - M01 — Systemic Combat Foundation: **CLOSED**
 - M02 — Procedural Battlefield: **CLOSED**
-- M03 — Economy & Territory: **OPEN**
+- M03 — Economy & Territory: **CLOSED**
+- M04 — Roguelite Layer: **OPEN**
 
 See `docs/PROJECT_CONTEXT.md` for the concise current handoff and `docs/ROADMAP.md` for milestone scope and acceptance criteria.
 
@@ -33,7 +34,19 @@ GitHub Pages:
 
 `https://edisontw.github.io/pepepow-elemental-front/`
 
-The browser build currently includes the M01 systemic-combat arena and the M02 generated-world debug visualization. A deterministic manual battlefield can be selected with:
+The browser build now runs the M01 systemic-combat simulation on the deterministic M02 generated battlefield and includes the M03 economy/territory runtime:
+
+- Material / Mana / Influence
+- population
+- buildings and deterministic production queues
+- eight-role production data
+- region and POI capture
+- territory/supply connectivity and disconnection penalties
+- Outpost specialization state
+- resource/build/production/capture controls
+- dynamic strategic debug map and combined deterministic state hash
+
+A deterministic manual battlefield can be selected with:
 
 ```text
 ?block=<non-negative block height>

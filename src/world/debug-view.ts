@@ -1,5 +1,11 @@
 import { BiomeType, TerrainType, type GeneratedWorld, type GridPoint } from './world-definition';
 
+export interface TerritoryDebugState {
+  regionOwners: readonly number[];
+  contestedRegions: readonly number[];
+  suppliedRegions?: Readonly<Record<number, readonly number[]>>;
+}
+
 function pointCenter(point: GridPoint, scaleX: number, scaleY: number): [number, number] {
   return [(point.x + 0.5) * scaleX, (point.z + 0.5) * scaleY];
 }
@@ -15,12 +21,13 @@ function drawMarker(context: CanvasRenderingContext2D, point: GridPoint, scaleX:
   context.stroke();
 }
 
-export function renderWorldDebug(canvas: HTMLCanvasElement, world: GeneratedWorld): void {
+export function renderWorldDebug(canvas: HTMLCanvasElement, world: GeneratedWorld, territory?: TerritoryDebugState): void {
   const context = canvas.getContext('2d');
   if (!context) throw new Error('Generated-world debug canvas 2D context is unavailable.');
   const scaleX = canvas.width / world.width;
   const scaleY = canvas.height / world.height;
   context.clearRect(0, 0, canvas.width, canvas.height);
+  const contested = new Set(territory?.contestedRegions ?? []);
 
   for (let z = 0; z < world.height; z += 1) {
     for (let x = 0; x < world.width; x += 1) {
@@ -37,6 +44,16 @@ export function renderWorldDebug(canvas: HTMLCanvasElement, world: GeneratedWorl
               ? '#77776c'
               : '#597a52';
       context.fillRect(x * scaleX, z * scaleY, Math.ceil(scaleX), Math.ceil(scaleY));
+
+      if (territory) {
+        const regionId = world.regionByCell[index];
+        const owner = regionId === undefined ? -1 : territory.regionOwners[regionId] ?? -1;
+        if (regionId !== undefined && contested.has(regionId)) context.fillStyle = 'rgba(255, 209, 82, .28)';
+        else if (owner === 0) context.fillStyle = 'rgba(63, 231, 190, .22)';
+        else if (owner === 1) context.fillStyle = 'rgba(244, 91, 79, .20)';
+        else continue;
+        context.fillRect(x * scaleX, z * scaleY, Math.ceil(scaleX), Math.ceil(scaleY));
+      }
     }
   }
 
@@ -57,12 +74,20 @@ export function renderWorldDebug(canvas: HTMLCanvasElement, world: GeneratedWorl
     context.stroke();
   }
 
+  const supplied = new Set(territory?.suppliedRegions?.[0] ?? []);
   context.font = '9px ui-monospace, monospace';
   context.textAlign = 'center';
   context.textBaseline = 'middle';
   for (const region of world.regions) {
     drawMarker(context, region.center, scaleX, scaleY, 4, '#f4de7a');
     const [x, y] = pointCenter(region.center, scaleX, scaleY);
+    if (supplied.has(region.id)) {
+      context.beginPath();
+      context.arc(x, y, 6.2, 0, Math.PI * 2);
+      context.strokeStyle = '#65d9bd';
+      context.lineWidth = 1.2;
+      context.stroke();
+    }
     context.fillStyle = '#07100f';
     context.fillText(String(region.id + 1), x, y + 0.5);
   }

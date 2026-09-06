@@ -1,7 +1,7 @@
 # PEPEPOW Elemental Front — ROADMAP
 
 **Canonical milestone roadmap**  
-**Current status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 OPEN
+**Current status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 CLOSED → M04 OPEN
 
 ---
 
@@ -215,7 +215,7 @@ Closure: `docs/milestones/M02_CLOSURE_REPORT.md`.
 
 # 5. M03 — Economy & Territory
 
-**Status:** OPEN  
+**Status:** CLOSED  
 **Goal:** Turn the systemic battlefield into a functioning RTS economy and territorial war.
 
 ## Scope
@@ -258,6 +258,23 @@ Units:
 - resource pacing reaches intended timing targets
 - 25–35 minute run economy appears plausible in simulation/playtest
 - economy/territory state preserves determinism and replay compatibility
+
+## Closure evidence
+
+- implementation and browser integration completed in PR #2
+- final acceptance head: `95b107e2fce0dd609a58eaf4b594a35c33f04f7e`
+- PR CI: **18 files / 93 tests PASS**
+- M03 economy/territory suite: **5 / 5 PASS**
+- M02 2,048-seed hard-invariant regression: PASS
+- M01 regression suite: PASS
+- strict TypeScript: PASS
+- production build: PASS
+- generated battlefield boots through M03 runtime
+- resource/build/production/capture UI exists
+- territory/supply state and combined deterministic hash are exposed in debug presentation
+- 30-minute passive-economy acceptance is bounded and supports the intended 25–35 minute run envelope
+
+Closure: `docs/milestones/M03_CLOSURE_REPORT.md`.
 
 ---
 
@@ -541,6 +558,6 @@ No milestone can close with:
 
 # 14. Current next action
 
-M00, M01, and M02 are CLOSED. Begin **M03 — Economy & Territory** on top of the existing M01 simulation and M02 generated-world foundation.
+M00, M01, M02, and M03 are CLOSED. Begin **M04 — Roguelite Layer** on top of the existing M01 combat, M02 generated-world, and M03 economy/territory foundations.
 
-Start with deterministic economy/territory state and commands, then implement resource flow, buildings and production, capture/territory, and supply connectivity with targeted tests. Do not redo M01/M02 or begin M04/M05 systems beyond interfaces genuinely required for M03.
+Start with a generic deterministic upgrade data model and Shrine interaction/three-choice flow using the existing M02 Shrine POIs. Prove authoring, deterministic choice generation, effect application, and replay/hash compatibility before expanding content. Do not begin M05 autonomous enemy strategy except for minimal fixtures genuinely required to exercise M04 effects.

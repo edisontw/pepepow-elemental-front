@@ -42,6 +42,13 @@ export interface ChainLightningCommand extends CommandBase {
 
 export type CastCommand = TerrainCastCommand | ChainLightningCommand;
 export type GameCommand = MoveCommand | StopCommand | AttackCommand | CastCommand;
+export type {
+  BuildCommand,
+  CaptureCommand,
+  M03Command as StrategicCommand,
+  SpecializeOutpostCommand,
+  TrainCommand,
+} from './m03-commands';
 
 interface QueuedCommand {
   command: GameCommand;

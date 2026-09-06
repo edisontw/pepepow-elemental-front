@@ -1,8 +1,9 @@
 import './styles.css';
 import { createSceneShell } from './rendering/scene';
 import { FixedTickRunner } from './simulation/fixed-tick-runner';
-import { Simulation } from './simulation/simulation';
+import { M03Simulation } from './simulation/m03-simulation';
 import { DebugOverlay } from './ui/debug-overlay';
+import { StrategicPanel } from './ui/strategic-panel';
 import { renderWorldDebug, worldDebugSummary } from './world/debug-view';
 import { generateWorld } from './world/generator';
 
@@ -26,24 +27,36 @@ try {
   const selectionBox = requiredElement<HTMLElement>('selection-box');
   const worldCanvas = requiredElement<HTMLCanvasElement>('world-debug-canvas');
   const worldSummary = requiredElement<HTMLElement>('world-debug-summary');
+  const strategyElement = requiredElement<HTMLElement>('strategy-panel');
   const generatedWorld = generateWorld(requestedBlockHeight());
-  renderWorldDebug(worldCanvas, generatedWorld);
+  const simulation = new M03Simulation(generatedWorld);
+  renderWorldDebug(worldCanvas, generatedWorld, simulation.strategy.snapshot());
   worldSummary.textContent = worldDebugSummary(generatedWorld);
 
-  const simulation = new Simulation('pepepow:rules-v0:m01-arena');
   const scene = createSceneShell(canvas, simulation, selectionBox);
   const tickRunner = new FixedTickRunner(simulation);
-  const overlay = new DebugOverlay(overlayElement);
+  const overlay = new DebugOverlay(overlayElement, () => simulation.strategy.snapshot());
+  const strategyPanel = new StrategicPanel(strategyElement, simulation, () => scene.selectedUnits);
+  let territoryDebugElapsed = 0;
 
   scene.app.on('update', (deltaSeconds: number) => {
     const frame = tickRunner.advance(deltaSeconds * 1000);
     scene.camera.update(deltaSeconds);
     scene.sync(frame);
     overlay.update(deltaSeconds, frame, scene.selectedUnits);
+    strategyPanel.update(deltaSeconds);
+    territoryDebugElapsed += deltaSeconds;
+    if (territoryDebugElapsed >= 0.25) {
+      territoryDebugElapsed = 0;
+      renderWorldDebug(worldCanvas, generatedWorld, simulation.strategy.snapshot());
+    }
   });
 
   requestAnimationFrame(() => bootScreen.classList.add('ready'));
-  window.addEventListener('pagehide', () => scene.destroy(), { once: true });
+  window.addEventListener('pagehide', () => {
+    strategyPanel.destroy();
+    scene.destroy();
+  }, { once: true });
 } catch (error) {
   const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
   const fatal = requiredElement<HTMLElement>('fatal-error');

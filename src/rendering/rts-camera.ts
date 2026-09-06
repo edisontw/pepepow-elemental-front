@@ -3,9 +3,18 @@ import * as pc from 'playcanvas';
 const MIN_DISTANCE = 12;
 const MAX_DISTANCE = 46;
 
+export interface RtsCameraOptions {
+  halfWidth?: number;
+  halfDepth?: number;
+  targetX?: number;
+  targetZ?: number;
+}
+
 export class RtsCamera {
   private readonly target = new pc.Vec3(0, 0, 0);
   private readonly pressedKeys = new Set<string>();
+  private readonly halfWidth: number;
+  private readonly halfDepth: number;
   private distance = 28;
   private yaw = 45;
   private pitch = -48;
@@ -16,7 +25,12 @@ export class RtsCamera {
   constructor(
     private readonly entity: pc.Entity,
     private readonly canvas: HTMLCanvasElement,
+    options: RtsCameraOptions = {},
   ) {
+    this.halfWidth = Math.max(4, options.halfWidth ?? 24);
+    this.halfDepth = Math.max(4, options.halfDepth ?? 24);
+    this.target.x = pc.math.clamp(options.targetX ?? 0, -this.halfWidth, this.halfWidth);
+    this.target.z = pc.math.clamp(options.targetZ ?? 0, -this.halfDepth, this.halfDepth);
     window.addEventListener('keydown', this.onKeyDown);
     window.addEventListener('keyup', this.onKeyUp);
     canvas.addEventListener('wheel', this.onWheel, { passive: false });
@@ -93,8 +107,8 @@ export class RtsCamera {
     const yawRadians = this.yaw * pc.math.DEG_TO_RAD;
     this.target.x += localX * Math.cos(yawRadians) + localZ * Math.sin(yawRadians);
     this.target.z += -localX * Math.sin(yawRadians) + localZ * Math.cos(yawRadians);
-    this.target.x = pc.math.clamp(this.target.x, -24, 24);
-    this.target.z = pc.math.clamp(this.target.z, -24, 24);
+    this.target.x = pc.math.clamp(this.target.x, -this.halfWidth, this.halfWidth);
+    this.target.z = pc.math.clamp(this.target.z, -this.halfDepth, this.halfDepth);
     this.applyTransform();
   }
 

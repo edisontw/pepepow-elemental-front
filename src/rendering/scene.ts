@@ -2,8 +2,10 @@ import * as pc from 'playcanvas';
 import { UnitControls } from '../input/unit-controls';
 import { WORLD_UNITS_PER_METER, type ArenaZone } from '../simulation/arena';
 import type { TickFrame } from '../simulation/fixed-tick-runner';
+import { M03Simulation } from '../simulation/m03-simulation';
 import type { EntitySnapshot, Simulation } from '../simulation/simulation';
 import { RtsCamera } from './rts-camera';
+import { StrategicRenderBridge } from './strategic-render-bridge';
 import { UnitRenderBridge } from './unit-render-bridge';
 
 function createMaterial(color: pc.Color, emissive?: pc.Color, opacity = 1): pc.StandardMaterial {
@@ -45,22 +47,22 @@ function renderZone(app: pc.Application, zone: ArenaZone, materials: Record<stri
   const position = new pc.Vec3(metres(zone.centerX), 0.025, metres(zone.centerZ));
   const scale = new pc.Vec3(metres(zone.width), 1, metres(zone.depth));
   if (zone.kind === 'NORMAL_GROUND') {
-    addPrimitive(app, 'plane', 'Normal Ground', pc.Vec3.ZERO, scale, materials.ground!);
+    addPrimitive(app, 'plane', 'Normal Ground', position, scale, materials.ground!);
   } else if (zone.kind === 'RIVER') {
     addPrimitive(app, 'plane', 'River', position, scale, materials.river!);
   } else if (zone.kind === 'FREEZABLE_CROSSING') {
     position.y = 0.045;
-    return addPrimitive(app, 'plane', 'Future Freezable Crossing', position, scale, materials.river!);
+    return addPrimitive(app, 'plane', 'Freezable Water Test', position, scale, materials.river!);
   } else if (zone.kind === 'NATURAL_CROSSING') {
     position.y = 0.08;
     addPrimitive(app, 'box', 'Natural Crossing', position, new pc.Vec3(scale.x, 0.12, scale.z), materials.bridge!);
   } else if (zone.kind === 'FOREST') {
     addPrimitive(app, 'box', `Forest Floor ${zone.id}`, new pc.Vec3(position.x, 0.08, position.z), new pc.Vec3(scale.x, 0.12, scale.z), materials.forest!);
-    for (let index = 0; index < 7; index += 1) {
+    for (let index = 0; index < 5; index += 1) {
       const column = index % 3;
       const row = Math.floor(index / 3);
-      const x = position.x + (column - 1) * (scale.x / 3.8);
-      const z = position.z + (row - 1) * (scale.z / 3.4);
+      const x = position.x + (column - 1) * Math.min(scale.x / 3.8, 1.4);
+      const z = position.z + (row - 0.5) * Math.min(scale.z / 3.4, 1.2);
       addPrimitive(app, 'cylinder', 'Forest Tree', new pc.Vec3(x, 0.75, z), new pc.Vec3(0.35, 1.4, 0.35), materials.trunk!);
       addPrimitive(app, 'capsule', 'Forest Canopy', new pc.Vec3(x, 1.65, z), new pc.Vec3(0.9, 1.15, 0.9), materials.canopy!);
     }
@@ -118,7 +120,11 @@ export function createSceneShell(
     if (zone.kind === 'FREEZABLE_CROSSING') freezablePatch = rendered;
   }
   const burningMarkers = new Map<string, pc.Entity>();
-  for (const cell of simulation.terrain.flammableCells()) {
+  const flammableCells = simulation.terrain.flammableCells();
+  const markerStride = Math.max(1, Math.ceil(flammableCells.length / 512));
+  for (let index = 0; index < flammableCells.length; index += markerStride) {
+    const cell = flammableCells[index];
+    if (!cell) continue;
     const center = simulation.terrain.cellCenter(cell);
     const marker = addPrimitive(
       app,
@@ -149,7 +155,14 @@ export function createSceneShell(
     fov: 48,
   });
   app.root.addChild(cameraEntity);
-  const camera = new RtsCamera(cameraEntity, canvas);
+  const initialSnapshot = simulation.snapshot();
+  const initialPlayer = initialSnapshot.entities.find((entity) => entity.playerId === 0 && entity.alive);
+  const camera = new RtsCamera(cameraEntity, canvas, {
+    halfWidth: simulation.arena.width / (2 * WORLD_UNITS_PER_METER),
+    halfDepth: simulation.arena.depth / (2 * WORLD_UNITS_PER_METER),
+    targetX: initialPlayer ? metres(initialPlayer.x) : 0,
+    targetZ: initialPlayer ? metres(initialPlayer.z) : 0,
+  });
   const cameraComponent = cameraEntity.camera;
   if (!cameraComponent) throw new Error('RTS camera component failed to initialize.');
 
@@ -160,8 +173,10 @@ export function createSceneShell(
   };
   const selectionMaterial = createMaterial(new pc.Color(0.96, 0.78, 0.2), new pc.Color(0.55, 0.32, 0.03));
   const healthMaterial = createMaterial(new pc.Color(0.18, 0.9, 0.25), new pc.Color(0.03, 0.2, 0.04));
-  const bridge = new UnitRenderBridge(app, simulation.snapshot(), unitMaterials, selectionMaterial, healthMaterial);
+  const bridge = new UnitRenderBridge(app, initialSnapshot, unitMaterials, selectionMaterial, healthMaterial);
   const controls = new UnitControls(canvas, cameraComponent, simulation, bridge, selectionBox);
+  const strategicBridge = simulation instanceof M03Simulation ? new StrategicRenderBridge(app) : null;
+  if (simulation instanceof M03Simulation) strategicBridge?.sync(simulation.strategy.snapshot());
 
   const onResize = (): void => {
     app.resizeCanvas();
@@ -181,6 +196,7 @@ export function createSceneShell(
     sync(frame: TickFrame): void {
       bridge.sync(frame.previousSnapshot, frame.snapshot, frame.interpolationAlpha);
       controls.syncSelection();
+      if (simulation instanceof M03Simulation) strategicBridge?.sync(simulation.strategy.snapshot());
       if (freezablePatch?.render) {
         freezablePatch.render.material = frame.snapshot.terrain.ice > 0 ? materials.ice! : materials.river!;
       }
@@ -191,6 +207,7 @@ export function createSceneShell(
       window.removeEventListener('resize', onResize);
       controls.destroy();
       bridge.destroy();
+      strategicBridge?.destroy();
       camera.destroy();
       app.destroy();
     },
