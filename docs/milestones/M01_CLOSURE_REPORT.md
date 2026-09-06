@@ -24,7 +24,7 @@ blocked Water → Freeze → cross → enemy follows → FIRE melts Ice
 - 40-unit exact-convergence/deadlock smoke: PASS
 - 40-unit replay and render-FPS independence: PASS
 - 40-unit performance gate: PASS — 181.3 ms / 420 ticks (0.432 ms/tick) in the final local run
-- GitHub CI: pending the final main update
+- GitHub CI: run `34020239510` — SUCCESS
 
 ## Why M01 is not CLOSED yet
 
