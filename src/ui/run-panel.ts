@@ -4,6 +4,7 @@ import {
   createBlockChallengeShareUrl,
   type BlockChallengeIdentity,
 } from '../challenge/block-challenge';
+import type { BlockResolution } from '../challenge/block-source';
 import type { M06Simulation } from '../simulation/m06-simulation';
 import type { RunSnapshot, ScoreBreakdown } from '../simulation/run-state';
 
@@ -46,11 +47,15 @@ export class RunPanel {
     else if (action === 'replay') this.replayLast();
     else if (action === 'mode') this.navigate({ blockDelta: 0, toggleMode: true });
     else if (action === 'share') void this.copyChallengeLink();
+    else if (action === 'pepepow-now') this.navigatePepepow(0);
+    else if (action === 'pepepow-10') this.navigatePepepow(10);
+    else if (action === 'pepepow-100') this.navigatePepepow(100);
   };
 
   constructor(
     private readonly element: HTMLElement,
     private readonly simulation: M06Simulation,
+    private readonly blockResolution: BlockResolution,
   ) {
     this.element.addEventListener('click', this.onClick);
     this.render(this.simulation.run.snapshot());
@@ -89,7 +94,14 @@ export class RunPanel {
     const simulation = this.simulation.snapshot();
     const identity = this.challengeIdentity(run);
     const challengeCode = blockChallengeCode(identity);
+    const sourceLabel = this.simulation.isReplayPlayback ? 'Replay Packet' : this.blockResolution.label;
+    const sourceDetail = this.blockResolution.source === 'PEPEPOW_RPC' && this.blockResolution.networkTipHeight !== undefined
+      ? ` · Tip ${this.blockResolution.networkTipHeight.toLocaleString()}`
+      : this.blockResolution.fallbackReason
+        ? ' · RPC unavailable → manual fallback'
+        : '';
     const challengeMeta = `Block ${identity.blockHeight.toLocaleString()} · Rules ${identity.rulesetVersion} · ${challengeCode}`;
+    const sourceMeta = `${sourceLabel}${sourceDetail}`;
     const shareLabel = this.shareStatus === 'COPIED'
       ? 'Link Copied'
       : this.shareStatus === 'FAILED'
@@ -111,6 +123,7 @@ export class RunPanel {
         <div class="run-title">M07 BLOCK CHALLENGE · ${run.mode.replace('_', ' ')}</div>
         ${replayLine}
         <div class="run-challenge">${challengeMeta}</div>
+        <div class="run-source">${sourceMeta}</div>
         <div class="run-result ${run.result.outcome.toLowerCase()}">${run.result.outcome}</div>
         <div class="run-result-meta">${run.result.reason.replaceAll('_', ' ')} · ${formatTime(run.result.durationSeconds)}</div>
         <div class="run-score-total"><span>SCORE · ${challengeCode}</span><b>${run.result.score.total.toLocaleString()}</b></div>
@@ -121,6 +134,12 @@ export class RunPanel {
           <button data-run-action="share">${shareLabel}</button>
           <button data-run-action="replay" ${this.hasStoredReplay() ? '' : 'disabled'}>Replay Last</button>
           <button data-run-action="mode">${run.mode === 'DESTROY' ? 'Boss Hunt' : 'Destroy'} Mode</button>
+        </div>
+        <div class="run-live-actions">
+          <span>PEPEPOW Network</span>
+          <button data-run-action="pepepow-now">Current</button>
+          <button data-run-action="pepepow-10">Recent -10</button>
+          <button data-run-action="pepepow-100">Recent -100</button>
         </div>`;
       return;
     }
@@ -140,6 +159,7 @@ export class RunPanel {
       <div class="run-title">M07 BLOCK CHALLENGE · ${run.mode.replace('_', ' ')}</div>
       ${replayLine}
       <div class="run-challenge">${challengeMeta}</div>
+      <div class="run-source">${sourceMeta}</div>
       <div class="run-meta">
         <b>${run.phase}</b><span>${formatTime(elapsedSeconds)}</span><span>${identity.difficulty}</span>
       </div>
@@ -150,6 +170,8 @@ export class RunPanel {
       <div class="run-pressure">Assault P:${run.pressure.playerCoreAttackers} · E:${run.pressure.enemyCoreAttackers} · Boss:${run.pressure.bossAttackers} · Repair:${run.pressure.repairingEngineers}</div>
       <div class="run-inline-actions">
         <button class="run-mode-button" data-run-action="share">${shareLabel}</button>
+        <button class="run-mode-button" data-run-action="pepepow-now">PEPEPOW Current</button>
+        <button class="run-mode-button" data-run-action="pepepow-10">Recent -10</button>
         <button class="run-mode-button" data-run-action="mode">Switch to ${run.mode === 'DESTROY' ? 'Boss Hunt' : 'Destroy'}</button>
       </div>`;
   }
@@ -171,11 +193,7 @@ export class RunPanel {
     const url = new URL(window.location.href);
     const current = this.simulation.generatedWorld.identity.blockHeight;
     url.searchParams.set('block', String(current + options.blockDelta));
-    url.searchParams.delete('replay');
-    url.searchParams.delete('challenge');
-    url.searchParams.delete('ruleset');
-    url.searchParams.delete('world');
-    url.searchParams.delete('attempt');
+    this.clearChallengeSourceParams(url);
     url.searchParams.set('pace', this.simulation.run.pace.toLowerCase());
     url.searchParams.set('faction', this.simulation.enemyWar.faction.toLowerCase());
     url.searchParams.set('difficulty', this.simulation.enemyWar.difficulty.toLowerCase());
@@ -184,6 +202,30 @@ export class RunPanel {
       : (this.simulation.run.mode === 'BOSS_HUNT' ? 'boss' : 'destroy');
     url.searchParams.set('mode', mode);
     window.location.assign(url);
+  }
+
+  private navigatePepepow(offset: number): void {
+    const url = new URL(window.location.href);
+    this.clearChallengeSourceParams(url);
+    url.searchParams.set('block', String(this.simulation.generatedWorld.identity.blockHeight));
+    url.searchParams.set('live', 'pepepow');
+    url.searchParams.set('offset', String(offset));
+    url.searchParams.set('pace', this.simulation.run.pace.toLowerCase());
+    url.searchParams.set('faction', this.simulation.enemyWar.faction.toLowerCase());
+    url.searchParams.set('difficulty', this.simulation.enemyWar.difficulty.toLowerCase());
+    url.searchParams.set('mode', this.simulation.run.mode === 'BOSS_HUNT' ? 'boss' : 'destroy');
+    window.location.assign(url);
+  }
+
+  private clearChallengeSourceParams(url: URL): void {
+    url.searchParams.delete('replay');
+    url.searchParams.delete('challenge');
+    url.searchParams.delete('ruleset');
+    url.searchParams.delete('world');
+    url.searchParams.delete('attempt');
+    url.searchParams.delete('live');
+    url.searchParams.delete('offset');
+    url.searchParams.delete('source');
   }
 
   private replayLast(): void {
