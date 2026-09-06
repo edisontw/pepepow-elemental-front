@@ -5,7 +5,7 @@
 **Primary development environment:** ChatGPT Work with `@site`  
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **M00 source snapshot on GitHub:** `05557b249774064603b8eeb7960472fe2f1a4f42`  
-**Latest completed source snapshot:** `0b97eb610bca5f79dfa6c7a0cbd459357f711dfc` (M01 Slice 3 implementation; the documentation-only follow-up commit containing this reference is newer)
+**Latest completed source snapshot:** `1de57fe55f14e8343aef827beb52e63dca1524c3` (M01 Slice 4 implementation; the documentation-only follow-up commit containing this reference is newer)
 **Working title:** PEPEPOW Elemental Front｜元素戰線
 
 ---
@@ -403,16 +403,44 @@ Known issues / intentional limits:
 - Unit collision/steering, autonomous AI, procedural generation, M02, and code splitting remain out of scope.
 - Production bundle is approximately 517.08 KB gzip; the existing size warning remains non-blocking.
 
+### M01 Slice 4 — Wet + Lightning Conductivity + Fire Integration
+
+**Implementation status:** COMPLETE
+**Implementation commit:** `1de57fe55f14e8343aef827beb52e63dca1524c3`
+**Milestone status:** M01 remains `IN_PROGRESS`
+
+Completed systems:
+
+- Minimal authoritative Status component with deterministic per-tick `wet` synchronization from the unit's current surface: Water is Wet; Ground, Natural Crossing, and Ice are dry.
+- Melt-under-unit now resolves in the same elemental phase to Water + Wet while preserving authoritative position; refreezing the surface clears Wet under the provisional current-surface rule.
+- Integer conductivity scale with Dry Ground 200, Ice 400, Wet Unit 900, and Water 1000; effective unit conductivity is derived from the maximum of its current surface and Wet status.
+- Discriminated terrain/entity CAST command variants. Existing FREEZE/HEAT remain compatible; FIRE reuses the authoritative heat → ice durability → Water pathway, and CHAIN_LIGHTNING requires a validated entity target.
+- Chain Lightning baseline: 55 dry damage, 68 Wet damage, 4 m base jump range, 6 m from a Wet/Water node, and at most four additional unique targets.
+- Deterministic chain selection priority: effective conductivity descending, squared distance ascending, then EntityID ascending. Friendly, dead, repeated, invalid, and out-of-range targets are excluded.
+- Fixed tick semantics now commit terrain effects, synchronize environmental status, resolve queued Lightning casts, run normal death cleanup, and then hash the resulting authoritative state.
+- Wet status is included in the canonical state hash; instantaneous Lightning presentation history is not authoritative because HP/death already records the gameplay result.
+- Complete automated signature scenario proves blocked Water → Freeze → player/enemy crossing routes → FIRE melt beneath a unit → Water + Wet without teleport → conductivity-driven Lightning chain, including replay checkpoint equality.
+- Minimal cyan Wet marker, `R` FIRE and `L` deterministic debug Lightning controls, Wet count, and last Lightning chain debug display. Existing `F` FREEZE and `H` HEAT controls remain intact.
+- Eleven test files / 55 tests pass, covering Wet/surface transitions, all conductivity baselines, Lightning validation/damage/range/priority/ties/caps/exclusions/death, FIRE integration, full signature replay, hash divergence, FPS independence, and all prior behavior.
+
+Known issues / intentional limits:
+
+- Visual browser interaction smoke remains pending because the controlled environment cannot provide reliable WebGL and previously returned `ERR_BLOCKED_BY_CLIENT`; no additional workaround was attempted.
+- Wet persistence/decay, terrain wetness values, METAL/building/weather conductivity, mana/cooldowns/cast range/line of sight/fog validation, polished targeting UX, and Lightning VFX/audio remain intentionally deferred.
+- FIRE in Slice 4 only supplies the formal elemental identity for the existing heat/ice-melt path. Forest ignition, propagation, vegetation consumption, Burning DoT, smoke, and steam remain unimplemented.
+- Frozen/Chilled unit statuses, fog of war, Elementalist/Golem units, collision/steering, autonomous AI, the 40-unit acceptance stress case, procedural generation, M02, and code splitting remain out of scope for this slice.
+- Production bundle is approximately 518.08 KB gzip; the existing size warning remains non-blocking.
+
 ---
 
 ## 15. Next exact action
 
-Continue M01 with **Slice 4 — Wet + Lightning Conductivity + Fire Integration**:
+Continue M01 with **Slice 5 — Deterministic Fire / Burning Foundation**:
 
-1. Add authoritative Wet unit status when units occupy Water.
-2. Add Water/Wet conductivity and deterministic Lightning chain target preference.
-3. Integrate Fire/heat with the existing Ice durability and melt transition without replacing the Slice 3 terrain architecture.
-4. Complete the automated signature scenario: freeze → cross → melt → Wet → conductive Lightning chain.
+1. Define the smallest deterministic forest ignition and propagation model on the existing authoritative terrain arrays.
+2. Add minimal Burning state/damage only where required to prove Fire changes terrain and tactical movement; do not build a generic buff framework.
+3. Preserve the completed Freeze → Cross → Fire Melt → Wet → Lightning signature path and all 55 tests.
+4. Keep placeholder presentation inexpensive and prioritize simulation/replay tests.
 5. Keep M01 `IN_PROGRESS`; do not start M02.
 
 Do not start M02 procedural world generation.
