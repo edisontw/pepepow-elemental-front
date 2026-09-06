@@ -1,4 +1,9 @@
-import type { ChallengeScoreSubmission, RejectedScoreProof, VerifiedScoreProof } from './score-proof';
+import type {
+  ChallengeScoreSubmission,
+  RejectedScoreProof,
+  ScoreProofResult,
+  VerifiedScoreProof,
+} from './score-proof';
 import { verifyChallengeScoreSubmission } from './score-proof';
 
 export const LOCAL_LEADERBOARD_VERSION = 'm07-local-leaderboard-v1' as const;
@@ -36,6 +41,8 @@ export interface KeyValueStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
 }
+
+export type ScoreSubmissionVerifier = (submission: ChallengeScoreSubmission) => ScoreProofResult;
 
 function storageKey(challengeCode: string): string {
   return `pepepow:elemental-front:m07:leaderboard:${challengeCode}`;
@@ -77,10 +84,11 @@ export class LocalVerifiedLeaderboard implements ChallengeLeaderboardGateway {
   constructor(
     private readonly storage: KeyValueStorage,
     private readonly now: () => string = () => new Date().toISOString(),
+    private readonly verify: ScoreSubmissionVerifier = verifyChallengeScoreSubmission,
   ) {}
 
   async submit(submission: ChallengeScoreSubmission): Promise<LeaderboardSubmissionResult> {
-    const proof = verifyChallengeScoreSubmission(submission);
+    const proof = this.verify(submission);
     if (proof.status === 'REJECTED') return { status: 'REJECTED', proof };
 
     const existing = await this.list(proof.challengeCode);
