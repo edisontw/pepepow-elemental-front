@@ -35,9 +35,11 @@ Human WebGL Destroy smoke on 2026-09-06: **PASS**. The deployed runtime showed t
 
 ### Boss Hunt victory family
 
-**Implemented / automated; human smoke pending.**
+**PASS — implemented, automated, and human smoke accepted.**
 
 The generated boss site is reused. Frost Titan, Storm Colossus, and Infernal Behemoth are selected deterministically and modify the battlefield through existing Freeze, Lightning, Fire, and Heat command paths. Boss defeat produces `VICTORY / BOSS_DEFEATED`.
+
+Human WebGL Boss Hunt smoke on 2026-09-06: **PASS**. The deployed runtime showed the Boss Hunt HUD, entered the smoke Finale, displayed the generated boss marker and perceptible elemental battlefield behavior, allowed boss HP to be reduced through combat proximity, and displayed the Victory result/score screen after boss defeat.
 
 ### Defeat and Core Critical State
 
@@ -47,9 +49,9 @@ The player Core has one authoritative critical recovery window per run. First ze
 
 ### Score and results
 
-**PASS for Destroy smoke; automated coverage complete.**
+**PASS for Destroy + Boss Hunt smoke; automated coverage complete.**
 
-Final results contain outcome, reason, duration, and deterministic score components for victory, time, army survival, territory, objectives, resource efficiency, and elemental style. Destroy smoke confirmed the deployed result/score presentation is visible.
+Final results contain outcome, reason, duration, and deterministic score components for victory, time, army survival, territory, objectives, resource efficiency, and elemental style. Destroy and Boss Hunt smoke both confirmed the deployed result/score presentation is visible.
 
 ### Replay playback and verification
 
@@ -116,15 +118,15 @@ These remain M07/M08 or later work.
 
 Current status:
 
-- Run HUD visible and updates phase/time/Core/objective health — **PASS (Destroy smoke)**
-- Finale becomes available — **PASS (Destroy smoke)**
+- Run HUD visible and updates phase/time/Core/objective health — **PASS**
+- Finale becomes available — **PASS**
 - Destroy reaches a visible result screen — **PASS**
+- Boss Hunt reaches a visible result screen — **PASS**
 - Score breakdown readable — **PASS**
-- Boss Hunt reaches a visible result screen — **PENDING**
+- Boss Hunt displays a visible boss and perceptible elemental battlefield effects — **PASS**
 - Retry Block reloads the same block — **PENDING**
 - Next Block advances the block height — **PENDING**
 - Replay Last starts playback and eventually displays `REPLAY MATCH` — **PENDING**
-- Boss Hunt displays a visible boss and perceptible elemental battlefield effects — **PENDING**
 
 ### B. Core Critical readability
 
@@ -153,4 +155,4 @@ Only these human-only portions remain closure blockers. Automated verification, 
 
 **M06 is not yet CLOSED.**
 
-Automated acceptance and deployment are complete, and Destroy smoke is human-accepted. Remaining blockers are Boss Hunt/replay/navigation/Core Critical browser acceptance plus one standard start-to-finish run.
+Automated acceptance and deployment are complete. Destroy and Boss Hunt smoke are human-accepted. Remaining blockers are replay/navigation/Core Critical browser acceptance plus one standard start-to-finish run.
