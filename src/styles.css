@@ -48,10 +48,38 @@ body { min-width: 320px; }
 .debug-row span:first-child { color: #78928e; }
 .debug-ok { color: #80e0ae; }
 
+#world-debug {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  display: grid;
+  gap: .35rem;
+  width: 17.4rem;
+  padding: .7rem;
+  border: 1px solid rgba(245, 210, 112, .28);
+  border-radius: .35rem;
+  background: rgba(4, 13, 12, .86);
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, .24);
+  color: #a9bfba;
+  font: 600 .67rem/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  pointer-events: none;
+}
+
+#world-debug b { color: #f4de7a; letter-spacing: .08em; }
+#world-debug-canvas {
+  display: block;
+  width: 16rem;
+  height: 16rem;
+  border: 1px solid rgba(255, 255, 255, .12);
+  image-rendering: pixelated;
+}
+#world-debug-summary { margin: 0; color: #dceee8; white-space: pre-wrap; }
+
 #camera-help {
   position: fixed;
   right: 1rem;
   bottom: 1rem;
+  max-width: min(55rem, calc(100vw - 2rem));
   padding: .55rem .75rem;
   border: 1px solid rgba(255, 255, 255, .1);
   border-radius: .35rem;
@@ -63,7 +91,7 @@ body { min-width: 320px; }
 
 #arena-legend {
   position: fixed;
-  top: 1rem;
+  top: 27rem;
   right: 1rem;
   display: grid;
   gap: .35rem;
@@ -108,8 +136,10 @@ body { min-width: 320px; }
   white-space: pre-wrap;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 800px) {
   #debug-overlay { top: .5rem; left: .5rem; min-width: 12.5rem; }
+  #world-debug { top: .5rem; right: .5rem; width: 13.4rem; }
+  #world-debug-canvas { width: 12rem; height: 12rem; }
   #arena-legend { display: none; }
   #camera-help { right: .5rem; bottom: .5rem; left: .5rem; text-align: center; }
 }
