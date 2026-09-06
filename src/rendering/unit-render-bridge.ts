@@ -8,6 +8,7 @@ interface UnitPresentation {
   selection: pc.Entity;
   healthBar: pc.Entity;
   wetMarker: pc.Entity;
+  wetBeacon: pc.Entity;
   coldMarker: pc.Entity;
 }
 
@@ -30,8 +31,9 @@ export class UnitRenderBridge {
     selectionMaterial: pc.Material,
     healthMaterial: pc.Material,
   ) {
-    this.wetMaterial.diffuse = new pc.Color(0.08, 0.78, 1);
-    this.wetMaterial.emissive = new pc.Color(0.02, 0.25, 0.4);
+    this.wetMaterial.diffuse = new pc.Color(0.04, 0.82, 1);
+    this.wetMaterial.emissive = new pc.Color(0.03, 0.55, 0.85);
+    this.wetMaterial.emissiveIntensity = 2.2;
     this.wetMaterial.update();
     this.chilledMaterial.diffuse = new pc.Color(0.42, 0.78, 1);
     this.chilledMaterial.emissive = new pc.Color(0.04, 0.18, 0.32);
@@ -58,17 +60,22 @@ export class UnitRenderBridge {
       const healthBar = new pc.Entity(`Health ${unit.id}`);
       healthBar.addComponent('render', { type: 'box', material: healthMaterial });
       app.root.addChild(healthBar);
-      const wetMarker = new pc.Entity(`Wet ${unit.id}`);
+      const wetMarker = new pc.Entity(`Wet Halo ${unit.id}`);
       wetMarker.addComponent('render', { type: 'cylinder', material: this.wetMaterial });
-      wetMarker.setLocalScale(0.92, 0.025, 0.92);
+      wetMarker.setLocalScale(1.35, 0.05, 1.35);
       wetMarker.enabled = false;
       app.root.addChild(wetMarker);
+      const wetBeacon = new pc.Entity(`Wet Beacon ${unit.id}`);
+      wetBeacon.addComponent('render', { type: 'sphere', material: this.wetMaterial });
+      wetBeacon.setLocalScale(0.34, 0.46, 0.34);
+      wetBeacon.enabled = false;
+      app.root.addChild(wetBeacon);
       const coldMarker = new pc.Entity(`Cold ${unit.id}`);
       coldMarker.addComponent('render', { type: 'box', material: this.chilledMaterial });
       coldMarker.setLocalScale(0.82, 0.08, 0.82);
       coldMarker.enabled = false;
       app.root.addChild(coldMarker);
-      this.units.set(unit.id, { body, selection, healthBar, wetMarker, coldMarker });
+      this.units.set(unit.id, { body, selection, healthBar, wetMarker, wetBeacon, coldMarker });
     }
     this.sync(initialSnapshot, initialSnapshot, 1);
   }
@@ -84,6 +91,7 @@ export class UnitRenderBridge {
       presentation.selection.enabled = presented && presentation.selection.enabled;
       presentation.healthBar.enabled = presented;
       presentation.wetMarker.enabled = presented && unit.wet;
+      presentation.wetBeacon.enabled = presented && unit.wet;
       presentation.coldMarker.enabled = presented && (unit.chilledTicks > 0 || unit.frozenTicks > 0);
       if (presentation.coldMarker.render) {
         presentation.coldMarker.render.material = unit.frozenTicks > 0 ? this.frozenMaterial : this.chilledMaterial;
@@ -94,7 +102,8 @@ export class UnitRenderBridge {
       const z = pc.math.lerp(prior.z, unit.z, alpha) / WORLD_UNITS_PER_METER;
       presentation.body.setPosition(x, 0.78, z);
       presentation.selection.setPosition(x, 0.07, z);
-      presentation.wetMarker.setPosition(x, 0.115, z);
+      presentation.wetMarker.setPosition(x, 0.18, z);
+      presentation.wetBeacon.setPosition(x, 2.52, z);
       presentation.coldMarker.setPosition(x, 1.5, z);
       const healthRatio = unit.currentHealth / unit.maxHealth;
       presentation.healthBar.setPosition(x - (1 - healthRatio) * 0.55, 2.05, z);
@@ -162,6 +171,7 @@ export class UnitRenderBridge {
       presentation.selection.destroy();
       presentation.healthBar.destroy();
       presentation.wetMarker.destroy();
+      presentation.wetBeacon.destroy();
       presentation.coldMarker.destroy();
     }
     this.units.clear();
