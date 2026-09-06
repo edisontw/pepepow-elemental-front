@@ -2,9 +2,10 @@
 
 **Status:** IN_PROGRESS — HUMAN WEBGL ACCEPTANCE PENDING  
 **Implementation PR:** #14  
-**Runtime baseline:** `c7ec126efce64e8411c1398c0a789f1963b85546`  
-**Main CI:** `34042091843` — PASS  
-**GitHub Pages:** `34042091831` — PASS  
+**Presentation fix PR:** #15  
+**Runtime baseline:** `fb2a0fb1129287413803aa9cee3e2906a5ef22a3`  
+**PR #15 CI:** `34044796173` — PASS  
+**Post-merge main CI / GitHub Pages:** verification in progress at audit update  
 **Audit date:** 2026-09-06
 
 ---
@@ -63,9 +64,27 @@ Human WebGL replay acceptance on 2026-09-06: **PASS**. `Replay Last` replayed th
 
 ### Retry / next-block flow
 
-**Implemented; browser interaction pending.**
+**PASS — implemented and human browser accepted.**
 
-The results UI provides Retry Block, Next Block, Replay Last, and mode switching. The flow is local and requires no RPC. Final button/navigation behavior remains part of WebGL acceptance.
+The results UI provides Retry Block, Next Block, Replay Last, and mode switching. Human WebGL acceptance on 2026-09-06 confirmed that Retry Block reloads the same block/run options and Next Block advances the block height while retaining the run options.
+
+### Generated terrain and minimap presentation
+
+**Fix merged; deployed human re-acceptance pending.**
+
+Human WebGL acceptance identified that the generated terrain presentation was incomplete, the river looked incorrect, and the displayed battlefield map did not behave as a correct live minimap.
+
+Root-cause audit found presentation-only drift from the authoritative M02 world:
+
+- generated water was presented through M01-style per-row proxy zones rather than directly from authoritative generated cells;
+- ground and river proxy planes were coplanar, producing a z-fighting risk;
+- the largest water strip received an additional always-present freezable-water presentation overlay;
+- generated Woodland presentation was truncated and Highlands were not presented;
+- the battlefield map showed static spawn markers rather than live unit positions.
+
+PR #15 fixes presentation without modifying authoritative simulation, navigation, RNG, replay, economy, roguelite, enemy-war, or scoring rules. Generated 3D terrain now reads `GeneratedWorld.terrain` / `biome` directly, dynamic Ice reflects `TerrainState.surface`, and the minimap receives live player units, visible enemy units, Core markers, Ice, and burning state. Minimap coordinate regression coverage verifies exact world/simulation alignment across deterministic blocks 0, 42, and 1,000,000.
+
+PR #15 CI `34044796173`: **PASS** for tests and production build. Human visual acceptance remains required after Pages deploys merge `fb2a0fb1129287413803aa9cee3e2906a5ef22a3`.
 
 ### Event pacing integration
 
@@ -127,8 +146,10 @@ Current status:
 - Score breakdown readable — **PASS**
 - Boss Hunt displays a visible boss and perceptible elemental battlefield effects — **PASS**
 - Replay Last starts playback and eventually displays `REPLAY MATCH` — **PASS**
-- Retry Block reloads the same block — **PENDING**
-- Next Block advances the block height — **PENDING**
+- Retry Block reloads the same block — **PASS**
+- Next Block advances the block height — **PASS**
+- Generated terrain / river presentation matches the authoritative world without visible overlap artifacts — **PENDING RE-ACCEPTANCE AFTER PR #15 DEPLOY**
+- Live minimap tracks moving player units and visible enemies on the same terrain layout — **PENDING RE-ACCEPTANCE AFTER PR #15 DEPLOY**
 
 ### B. Core Critical readability
 
@@ -149,7 +170,7 @@ Complete at least one normal-pace run and answer:
 - Did the next seed feel worth trying?
 - Was the overall duration plausibly within the approximately 25–35 minute target?
 
-Only these human-only portions remain closure blockers. Automated verification, main CI, production build, and Pages deployment are green.
+Only these human-only portions remain closure blockers once PR #15 post-merge CI and Pages deployment are green.
 
 ---
 
@@ -157,4 +178,4 @@ Only these human-only portions remain closure blockers. Automated verification, 
 
 **M06 is not yet CLOSED.**
 
-Automated acceptance and deployment are complete. Destroy smoke, Boss Hunt smoke, and deterministic replay playback are human-accepted. Remaining blockers are Retry/Next navigation, Core Critical browser acceptance, and one standard start-to-finish run.
+Destroy smoke, Boss Hunt smoke, deterministic replay playback, Retry Block, and Next Block are human-accepted. PR #15 addresses the newly reported generated-terrain / river / minimap presentation blocker and has green PR CI. Remaining blockers are deployed terrain/minimap re-acceptance, Core Critical browser readability, and one standard start-to-finish run.
