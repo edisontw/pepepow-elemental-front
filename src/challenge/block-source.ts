@@ -6,6 +6,9 @@ export interface BlockResolution {
   blockHeight: number;
   source: BlockSourceKind;
   label: string;
+  networkTipHeight?: number;
+  endpoint?: string;
+  fallbackReason?: string;
 }
 
 export interface BlockSource {

@@ -7,7 +7,12 @@ import {
 import {
   ManualBlockSource,
   manualBlockHeightFromSearch,
+  type BlockResolution,
 } from './challenge/block-source';
+import {
+  PepepowRpcBlockSource,
+  pepepowLiveOffsetFromSearch,
+} from './challenge/pepepow-rpc-block-source';
 import { createSceneShell } from './rendering/scene';
 import { FixedTickRunner } from './simulation/fixed-tick-runner';
 import type { EnemyDifficulty, EnemyFaction } from './simulation/m05-content';
@@ -69,6 +74,15 @@ function requestedReplay(): M06ReplayPacket | null {
   }
 }
 
+function pinResolvedLiveBlock(resolution: BlockResolution): void {
+  const url = new URL(window.location.href);
+  url.searchParams.set('block', String(resolution.blockHeight));
+  url.searchParams.delete('live');
+  url.searchParams.delete('offset');
+  url.searchParams.set('source', resolution.source === 'PEPEPOW_RPC' ? 'pepepow' : 'manual-fallback');
+  window.history.replaceState(null, '', url);
+}
+
 async function boot(): Promise<void> {
   try {
     const canvas = requiredElement<HTMLCanvasElement>('game-canvas');
@@ -90,7 +104,16 @@ async function boot(): Promise<void> {
     const manualBlockHeight = replay?.header.blockHeight
       ?? sharedChallenge?.blockHeight
       ?? manualBlockHeightFromSearch(window.location.search);
-    const blockResolution = await new ManualBlockSource(manualBlockHeight).resolve();
+    const liveOffset = replay || sharedChallenge ? null : pepepowLiveOffsetFromSearch(window.location.search);
+    const blockSource = liveOffset === null
+      ? new ManualBlockSource(manualBlockHeight)
+      : new PepepowRpcBlockSource({
+          offset: liveOffset,
+          fallbackBlockHeight: manualBlockHeight,
+        });
+    const blockResolution = await blockSource.resolve();
+    if (liveOffset !== null) pinResolvedLiveBlock(blockResolution);
+
     const generatedWorld = generateWorld(blockResolution.blockHeight);
     if (sharedChallenge) assertBlockChallengeWorldMatches(sharedChallenge, generatedWorld);
 
@@ -122,7 +145,7 @@ async function boot(): Promise<void> {
     );
     const strategyPanel = new StrategicPanel(strategyElement, simulation, () => scene.selectedUnits);
     const roguelitePanel = new RoguelitePanel(rogueliteElement, simulation);
-    const runPanel = new RunPanel(runElement, simulation);
+    const runPanel = new RunPanel(runElement, simulation, blockResolution);
     let territoryDebugElapsed = 0;
 
     scene.app.on('update', (deltaSeconds: number) => {
