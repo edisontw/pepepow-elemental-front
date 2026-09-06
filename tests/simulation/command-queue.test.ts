@@ -40,4 +40,20 @@ describe('CommandQueue', () => {
       targetTick: 2, playerId: 0, type: 'ATTACK', entityIds: [1, 2, 4], targetEntityId: 17,
     });
   });
+
+  it('normalizes and validates terrain-only CAST commands without requiring entities', () => {
+    const queue = new CommandQueue();
+    queue.enqueue({
+      targetTick: 2, playerId: 0, type: 'CAST', effectId: 'FREEZE',
+      targetX: 2_000, targetZ: -3_000, radius: 5_000,
+    });
+    expect(queue.drainForTick(2)[0]).toEqual({
+      targetTick: 2, playerId: 0, type: 'CAST', effectId: 'FREEZE',
+      targetX: 2_000, targetZ: -3_000, radius: 5_000,
+    });
+    expect(() => queue.enqueue({
+      targetTick: 3, playerId: 0, type: 'CAST', effectId: 'HEAT',
+      targetX: 0, targetZ: 0, radius: -1,
+    })).toThrow('CAST radius');
+  });
 });

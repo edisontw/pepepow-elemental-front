@@ -86,6 +86,20 @@ export class UnitControls {
   };
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
+    if ((event.code === 'KeyF' || event.code === 'KeyH') && !event.repeat) {
+      const crossing = this.simulation.arena.zones.find((zone) => zone.kind === 'FREEZABLE_CROSSING');
+      if (!crossing) return;
+      this.simulation.enqueueCommand({
+        targetTick: this.simulation.snapshot().tick + 1,
+        playerId: 0,
+        type: 'CAST',
+        effectId: event.code === 'KeyF' ? 'FREEZE' : 'HEAT',
+        targetX: crossing.centerX,
+        targetZ: crossing.centerZ,
+        radius: 5 * WORLD_UNITS_PER_METER,
+      });
+      return;
+    }
     if (event.code !== 'KeyX' || event.repeat || this.selectedIds.size === 0) return;
     this.simulation.enqueueCommand({
       targetTick: this.simulation.snapshot().tick + 1,

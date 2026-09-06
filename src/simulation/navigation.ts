@@ -2,6 +2,7 @@ import type { ArenaTraversalDefinition, TraversalCellKind } from './arena';
 import type { NavigationPoint } from './components';
 
 export interface GridCell { column: number; row: number }
+export interface WalkabilityChange { cell: GridCell; walkable: boolean }
 
 interface OpenNode extends GridCell {
   g: number;
@@ -18,8 +19,9 @@ const NEIGHBORS: readonly GridCell[] = [
 ];
 
 export class NavigationGrid {
-  readonly navVersion: number;
+  navVersion: number;
   private readonly cells: TraversalCellKind[];
+  private readonly walkable: Uint8Array;
 
   constructor(readonly definition: ArenaTraversalDefinition) {
     this.navVersion = definition.initialNavVersion;
@@ -31,6 +33,11 @@ export class NavigationGrid {
         }
       }
     }
+    this.walkable = new Uint8Array(this.cells.length);
+    for (let index = 0; index < this.cells.length; index += 1) {
+      const kind = this.cells[index];
+      this.walkable[index] = kind === 'WALKABLE_GROUND' || kind === 'NATURAL_CROSSING' ? 1 : 0;
+    }
   }
 
   cellKind(cell: GridCell): TraversalCellKind | null {
@@ -38,8 +45,21 @@ export class NavigationGrid {
   }
 
   isWalkable(cell: GridCell): boolean {
-    const kind = this.cellKind(cell);
-    return kind === 'WALKABLE_GROUND' || kind === 'NATURAL_CROSSING';
+    return this.inBounds(cell) && this.walkable[this.index(cell)] === 1;
+  }
+
+  applyWalkabilityChanges(changes: readonly WalkabilityChange[]): boolean {
+    let changed = false;
+    for (const change of changes) {
+      if (!this.inBounds(change.cell)) continue;
+      const index = this.index(change.cell);
+      const next = change.walkable ? 1 : 0;
+      if (this.walkable[index] === next) continue;
+      this.walkable[index] = next;
+      changed = true;
+    }
+    if (changed) this.navVersion += 1;
+    return changed;
   }
 
   worldToCell(x: number, z: number): GridCell {

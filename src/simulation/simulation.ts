@@ -6,6 +6,7 @@ import { EntityStore } from './entity-store';
 import { NavigationGrid } from './navigation';
 import { DeterministicRng } from './random';
 import { computeStateHash } from './state-hash';
+import { TerrainState, type TerrainCounts, type TerrainEffect, type TerrainEffectId } from './terrain-state';
 
 export const SIMULATION_HZ = 10;
 export const TICK_MS = 1000 / SIMULATION_HZ;
@@ -19,6 +20,8 @@ export interface SimulationSnapshot {
   queuedCommandCount: number;
   navVersion: number;
   activeAttackOrders: number;
+  terrain: TerrainCounts;
+  lastTerrainEffect: TerrainEffectId | null;
   entities: readonly EntitySnapshot[];
 }
 
@@ -47,13 +50,17 @@ export interface EntitySnapshot {
 export class Simulation {
   readonly entities = new EntityStore();
   readonly navigation: NavigationGrid;
+  readonly terrain: TerrainState;
   private readonly rng: DeterministicRng;
   private readonly commandQueue = new CommandQueue();
   private tick = 0;
   private smokeValue = 0;
+  private pendingTerrainEffects: TerrainEffect[] = [];
+  private lastTerrainEffect: TerrainEffectId | null = null;
 
   constructor(readonly seed: string, readonly arena: ArenaDefinition = M01_ARENA) {
     this.rng = new DeterministicRng(seed);
+    this.terrain = new TerrainState(arena.traversal);
     this.navigation = new NavigationGrid(arena.traversal);
     for (const spawn of arena.units) this.entities.createUnit(spawn);
   }
@@ -65,6 +72,7 @@ export class Simulation {
     this.processCommands();
     this.updateMovementAndNavigation();
     this.updateCombat();
+    this.updateTerrainEffects();
     this.cleanupDeaths();
     this.smokeValue = this.rng.nextUint32();
     return this.snapshot();
@@ -78,10 +86,12 @@ export class Simulation {
       elapsedMs: this.tick * TICK_MS,
       rngState,
       smokeValue: this.smokeValue,
-      stateHash: computeStateHash(this.tick, rngState, this.navigation.navVersion, this.entities),
+      stateHash: computeStateHash(this.tick, rngState, this.navigation.navVersion, this.entities, this.terrain),
       queuedCommandCount: this.commandQueue.size,
       navVersion: this.navigation.navVersion,
       activeAttackOrders: entities.filter((entity) => entity.alive && entity.attackTargetEntityId !== null).length,
+      terrain: this.terrain.counts(),
+      lastTerrainEffect: this.lastTerrainEffect,
       entities,
     };
   }
@@ -110,6 +120,16 @@ export class Simulation {
 
   private processCommands(): void {
     for (const command of this.commandQueue.drainForTick(this.tick)) {
+      if (command.type === 'CAST') {
+        this.pendingTerrainEffects.push({
+          effectId: command.effectId,
+          targetX: command.targetX,
+          targetZ: command.targetZ,
+          radius: command.radius,
+        });
+        this.lastTerrainEffect = command.effectId;
+        continue;
+      }
       const validIds = command.entityIds.filter((entityId) => (
         this.entities.hasUnit(entityId) && this.entities.factions.get(entityId)?.playerId === command.playerId
       ));
@@ -142,8 +162,22 @@ export class Simulation {
       if (!this.entities.hasUnit(entityId)) continue;
       const combat = this.entities.combat.get(entityId)!;
       if (combat.targetEntityId !== null) this.updatePursuit(entityId, combat.targetEntityId);
+      else this.validateMovementPath(entityId);
       this.moveAlongPath(entityId);
     }
+  }
+
+  private validateMovementPath(entityId: EntityID): void {
+    const position = this.entities.positions.get(entityId)!;
+    const movement = this.entities.movements.get(entityId)!;
+    if (movement.pathNavVersion === this.navigation.navVersion || movement.targetX === null || movement.targetZ === null) return;
+    if (!this.navigation.isWalkable(this.navigation.worldToCell(position.x, position.z))) {
+      this.clearMovement(entityId);
+      return;
+    }
+    const targetX = movement.targetX;
+    const targetZ = movement.targetZ;
+    this.assignPath(entityId, targetX, targetZ);
   }
 
   private updatePursuit(entityId: EntityID, targetEntityId: EntityID): void {
@@ -214,6 +248,13 @@ export class Simulation {
       health.current = Math.max(0, health.current - combat.attackDamage);
       combat.nextAttackTick = this.tick + combat.attackIntervalTicks;
     }
+  }
+
+  private updateTerrainEffects(): void {
+    if (this.pendingTerrainEffects.length === 0) return;
+    const changes = this.terrain.applyEffects(this.pendingTerrainEffects);
+    this.pendingTerrainEffects = [];
+    this.navigation.applyWalkabilityChanges(changes);
   }
 
   private cleanupDeaths(): void {

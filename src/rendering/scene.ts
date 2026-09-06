@@ -41,7 +41,7 @@ function metres(value: number): number {
   return value / WORLD_UNITS_PER_METER;
 }
 
-function renderZone(app: pc.Application, zone: ArenaZone, materials: Record<string, pc.Material>): void {
+function renderZone(app: pc.Application, zone: ArenaZone, materials: Record<string, pc.Material>): pc.Entity | null {
   const position = new pc.Vec3(metres(zone.centerX), 0.025, metres(zone.centerZ));
   const scale = new pc.Vec3(metres(zone.width), 1, metres(zone.depth));
   if (zone.kind === 'NORMAL_GROUND') {
@@ -50,7 +50,7 @@ function renderZone(app: pc.Application, zone: ArenaZone, materials: Record<stri
     addPrimitive(app, 'plane', 'River', position, scale, materials.river!);
   } else if (zone.kind === 'FREEZABLE_CROSSING') {
     position.y = 0.045;
-    addPrimitive(app, 'plane', 'Future Freezable Crossing', position, scale, materials.crossing!);
+    return addPrimitive(app, 'plane', 'Future Freezable Crossing', position, scale, materials.river!);
   } else if (zone.kind === 'NATURAL_CROSSING') {
     position.y = 0.08;
     addPrimitive(app, 'box', 'Natural Crossing', position, new pc.Vec3(scale.x, 0.12, scale.z), materials.bridge!);
@@ -72,6 +72,7 @@ function renderZone(app: pc.Application, zone: ArenaZone, materials: Record<stri
   } else if (zone.kind === 'BLOCKED_TERRAIN') {
     addPrimitive(app, 'box', `Blocked Terrain ${zone.id}`, new pc.Vec3(position.x, 0.65, position.z), new pc.Vec3(scale.x, 1.3, scale.z), materials.rock!);
   }
+  return null;
 }
 
 export interface SceneShell {
@@ -102,14 +103,18 @@ export function createSceneShell(
   const materials: Record<string, pc.Material> = {
     ground: createMaterial(new pc.Color(0.13, 0.23, 0.16)),
     river: createMaterial(new pc.Color(0.06, 0.25, 0.42), new pc.Color(0.01, 0.08, 0.16)),
-    crossing: createMaterial(new pc.Color(0.24, 0.72, 0.82), new pc.Color(0.06, 0.28, 0.34), 0.58),
+    ice: createMaterial(new pc.Color(0.58, 0.88, 0.96), new pc.Color(0.12, 0.34, 0.42), 0.82),
     bridge: createMaterial(new pc.Color(0.45, 0.32, 0.18)),
     forest: createMaterial(new pc.Color(0.08, 0.24, 0.10)),
     trunk: createMaterial(new pc.Color(0.22, 0.13, 0.07)),
     canopy: createMaterial(new pc.Color(0.08, 0.34, 0.13)),
     rock: createMaterial(new pc.Color(0.27, 0.29, 0.27)),
   };
-  for (const zone of simulation.arena.zones) renderZone(app, zone, materials);
+  let freezablePatch: pc.Entity | null = null;
+  for (const zone of simulation.arena.zones) {
+    const rendered = renderZone(app, zone, materials);
+    if (zone.kind === 'FREEZABLE_CROSSING') freezablePatch = rendered;
+  }
 
   const light = new pc.Entity('Sun');
   light.addComponent('light', {
@@ -156,6 +161,9 @@ export function createSceneShell(
     },
     sync(frame: TickFrame): void {
       bridge.sync(frame.previousSnapshot, frame.snapshot, frame.interpolationAlpha);
+      if (freezablePatch?.render) {
+        freezablePatch.render.material = frame.snapshot.terrain.ice > 0 ? materials.ice! : materials.river!;
+      }
     },
     destroy(): void {
       window.removeEventListener('resize', onResize);

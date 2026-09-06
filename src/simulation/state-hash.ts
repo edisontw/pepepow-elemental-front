@@ -1,5 +1,6 @@
 import type { EntityID } from './components';
 import type { EntityStore } from './entity-store';
+import type { TerrainState } from './terrain-state';
 
 const FNV_OFFSET = 0x811c9dc5;
 const FNV_PRIME = 0x01000193;
@@ -15,11 +16,18 @@ function hashInteger(hash: number, value: number): number {
   return result >>> 0;
 }
 
-export function computeStateHash(tick: number, rngState: number, navVersion: number, entities: EntityStore): string {
+export function computeStateHash(tick: number, rngState: number, navVersion: number, entities: EntityStore, terrain: TerrainState): string {
   let hash = FNV_OFFSET;
   hash = hashInteger(hash, tick);
   hash = hashInteger(hash, rngState);
   hash = hashInteger(hash, navVersion);
+
+  for (let index = 0; index < terrain.surface.length; index += 1) {
+    hash = hashInteger(hash, terrain.surface[index]!);
+    hash = hashInteger(hash, terrain.temperature[index]!);
+    hash = hashInteger(hash, terrain.iceDurability[index]!);
+    hash = hashInteger(hash, terrain.freezable[index]!);
+  }
 
   for (const entityId of entities.entityIds()) {
     hash = hashEntity(hash, entityId, entities);

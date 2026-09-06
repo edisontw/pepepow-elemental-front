@@ -22,6 +22,7 @@ export interface ArenaTraversalDefinition {
   rows: number;
   initialNavVersion: number;
   patches: readonly TraversalPatch[];
+  freezableWaterPatches: readonly TraversalPatch[];
 }
 
 export interface ArenaZone {
@@ -102,6 +103,9 @@ export const M01_ARENA: ArenaDefinition = {
       { id: 'southeast-wall', kind: 'BLOCKED_TERRAIN', minColumn: 38, maxColumn: 39, minRow: 3, maxRow: 12 },
       // Later patches intentionally override earlier ones. This is the only static river route in Slice 2.
       { id: 'natural-crossing', kind: 'NATURAL_CROSSING', minColumn: 24, maxColumn: 28, minRow: 30, maxRow: 32 },
+    ],
+    freezableWaterPatches: [
+      { id: 'future-ice-crossing', kind: 'BLOCKED_RIVER', minColumn: 24, maxColumn: 28, minRow: 13, maxRow: 19 },
     ],
   },
   units,

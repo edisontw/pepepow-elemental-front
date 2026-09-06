@@ -3,25 +3,37 @@ import type { EntityID, PlayerID } from './components';
 interface CommandBase {
   targetTick: number;
   playerId: PlayerID;
+}
+
+interface EntityCommandBase extends CommandBase {
   entityIds: readonly EntityID[];
 }
 
-export interface MoveCommand extends CommandBase {
+export interface MoveCommand extends EntityCommandBase {
   type: 'MOVE';
   targetX: number;
   targetZ: number;
 }
 
-export interface StopCommand extends CommandBase {
+export interface StopCommand extends EntityCommandBase {
   type: 'STOP';
 }
 
-export interface AttackCommand extends CommandBase {
+export interface AttackCommand extends EntityCommandBase {
   type: 'ATTACK';
   targetEntityId: EntityID;
 }
 
-export type GameCommand = MoveCommand | StopCommand | AttackCommand;
+export interface CastCommand extends CommandBase {
+  type: 'CAST';
+  entityIds?: readonly EntityID[];
+  effectId: 'FREEZE' | 'HEAT';
+  targetX: number;
+  targetZ: number;
+  radius: number;
+}
+
+export type GameCommand = MoveCommand | StopCommand | AttackCommand | CastCommand;
 
 interface QueuedCommand {
   command: GameCommand;
@@ -38,15 +50,25 @@ function normalizeCommand(command: GameCommand): GameCommand {
   const base = {
     targetTick: command.targetTick,
     playerId: command.playerId,
-    entityIds: normalizeEntityIds(command.entityIds),
   };
+  if (command.type === 'CAST') {
+    return {
+      ...base,
+      type: 'CAST',
+      effectId: command.effectId,
+      targetX: Math.round(command.targetX),
+      targetZ: Math.round(command.targetZ),
+      radius: Math.round(command.radius),
+    };
+  }
+  const entityIds = normalizeEntityIds(command.entityIds);
   if (command.type === 'MOVE') {
-    return { ...base, type: 'MOVE', targetX: Math.round(command.targetX), targetZ: Math.round(command.targetZ) };
+    return { ...base, entityIds, type: 'MOVE', targetX: Math.round(command.targetX), targetZ: Math.round(command.targetZ) };
   }
   if (command.type === 'ATTACK') {
-    return { ...base, type: 'ATTACK', targetEntityId: command.targetEntityId };
+    return { ...base, entityIds, type: 'ATTACK', targetEntityId: command.targetEntityId };
   }
-  return { ...base, type: 'STOP' };
+  return { ...base, entityIds, type: 'STOP' };
 }
 
 export class CommandQueue {
@@ -61,10 +83,13 @@ export class CommandQueue {
       throw new Error('Command playerId must be a non-negative integer.');
     }
     if (
-      command.type === 'MOVE'
+      (command.type === 'MOVE' || command.type === 'CAST')
       && (!Number.isSafeInteger(command.targetX) || !Number.isSafeInteger(command.targetZ))
     ) {
-      throw new Error('MOVE target coordinates must be safe integers.');
+      throw new Error(`${command.type} target coordinates must be safe integers.`);
+    }
+    if (command.type === 'CAST' && (!Number.isSafeInteger(command.radius) || command.radius < 0)) {
+      throw new Error('CAST radius must be a non-negative safe integer.');
     }
     if (command.type === 'ATTACK' && (!Number.isSafeInteger(command.targetEntityId) || command.targetEntityId <= 0)) {
       throw new Error('ATTACK targetEntityId must be a positive safe integer.');
