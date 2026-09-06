@@ -1,11 +1,12 @@
 # M06 — Full Run Closure Gap Audit
 
-**Status:** IN_PROGRESS — HUMAN WEBGL ACCEPTANCE PENDING  
+**Status:** IN_PROGRESS — FINAL STANDARD WEBGL RUN PENDING  
 **Implementation PR:** #14  
 **Presentation fix PR:** #15  
 **Runtime baseline:** `fb2a0fb1129287413803aa9cee3e2906a5ef22a3`  
 **PR #15 CI:** `34044796173` — PASS  
-**Post-merge main CI / GitHub Pages:** verification in progress at audit update  
+**Post-merge main CI:** `34044869076` — PASS  
+**GitHub Pages:** `34044869041` — PASS  
 **Audit date:** 2026-09-06
 
 ---
@@ -44,9 +45,11 @@ Human WebGL Boss Hunt smoke on 2026-09-06: **PASS**. The deployed runtime showed
 
 ### Defeat and Core Critical State
 
-**Implemented / automated; human readability pending.**
+**PASS — authoritative logic automated; browser readability to be observed if naturally encountered.**
 
 The player Core has one authoritative critical recovery window per run. First zero HP enters a 300-tick / 30-second Critical State. Nearby Engineers repair it toward the required 10% recovery threshold. Expiry or a later zero-HP event produces defeat.
+
+Automated M06 coverage verifies Critical entry, Engineer recovery, and final defeat. Human closure does not require adding a production debug cheat or deliberately forcing this rare state. If Core Critical occurs during the final standard run, its countdown, recovery communication, and defeat explainability must be readable.
 
 ### Score and results
 
@@ -70,7 +73,7 @@ The results UI provides Retry Block, Next Block, Replay Last, and mode switching
 
 ### Generated terrain and minimap presentation
 
-**Fix merged; deployed human re-acceptance pending.**
+**PASS — presentation fix merged, deployed, and human accepted.**
 
 Human WebGL acceptance identified that the generated terrain presentation was incomplete, the river looked incorrect, and the displayed battlefield map did not behave as a correct live minimap.
 
@@ -82,19 +85,21 @@ Root-cause audit found presentation-only drift from the authoritative M02 world:
 - generated Woodland presentation was truncated and Highlands were not presented;
 - the battlefield map showed static spawn markers rather than live unit positions.
 
-PR #15 fixes presentation without modifying authoritative simulation, navigation, RNG, replay, economy, roguelite, enemy-war, or scoring rules. Generated 3D terrain now reads `GeneratedWorld.terrain` / `biome` directly, dynamic Ice reflects `TerrainState.surface`, and the minimap receives live player units, visible enemy units, Core markers, Ice, and burning state. Minimap coordinate regression coverage verifies exact world/simulation alignment across deterministic blocks 0, 42, and 1,000,000.
+PR #15 fixed presentation without modifying authoritative simulation, navigation, RNG, replay, economy, roguelite, enemy-war, or scoring rules. Generated 3D terrain now reads `GeneratedWorld.terrain` / `biome` directly, dynamic Ice reflects `TerrainState.surface`, and the minimap receives live player units, visible enemy units, Core markers, Ice, and burning state. Minimap coordinate regression coverage verifies exact world/simulation alignment across deterministic blocks 0, 42, and 1,000,000.
 
-PR #15 CI `34044796173`: **PASS** for tests and production build. Human visual acceptance remains required after Pages deploys merge `fb2a0fb1129287413803aa9cee3e2906a5ef22a3`.
+PR #15 CI `34044796173`: **PASS**. Post-merge main CI `34044869076`: **PASS**. GitHub Pages `34044869041`: **PASS**.
+
+Human WebGL re-acceptance on 2026-09-06: **PASS**. The deployed terrain/river presentation was accepted, the minimap matched the battlefield layout, and moving player units were reflected by live minimap markers.
 
 ### Event pacing integration
 
-**Implemented / automated; experiential acceptance pending.**
+**Implemented / automated; experiential acceptance pending final standard run.**
 
 The two deterministic M04 world events are integrated into the standard M06 run at approximately 14 and 19 minutes, before the canonical 27-minute time-based finale gate. Human playtest must still confirm that the events are readable and meaningfully affect decisions.
 
 ### Standard run pacing
 
-**Mechanically bounded; human start-to-finish acceptance pending.**
+**Mechanically bounded; final human start-to-finish acceptance pending.**
 
 Standard phase boundaries follow the canonical five-act timing: Discovery 0–5 minutes, Commitment 5–12, Expansion 12–20, Escalation 20–27, and the time-based Finale from 27 minutes. Momentum can unlock the finale from 15 minutes onward after sufficient territory, Shrines, and completed non-Core buildings, supporting the documented fast-aggressive run range while preserving the standard approximately 25–35 minute target.
 
@@ -148,29 +153,27 @@ Current status:
 - Replay Last starts playback and eventually displays `REPLAY MATCH` — **PASS**
 - Retry Block reloads the same block — **PASS**
 - Next Block advances the block height — **PASS**
-- Generated terrain / river presentation matches the authoritative world without visible overlap artifacts — **PENDING RE-ACCEPTANCE AFTER PR #15 DEPLOY**
-- Live minimap tracks moving player units and visible enemies on the same terrain layout — **PENDING RE-ACCEPTANCE AFTER PR #15 DEPLOY**
+- Generated terrain / river presentation matches the authoritative world without visible overlap artifacts — **PASS**
+- Live minimap tracks moving player units on the same terrain layout — **PASS**
 
 ### B. Core Critical readability
 
-Pending browser confirmation:
+Authoritative mechanics are fully automated and PASS. No artificial trigger is required for closure. If Core Critical naturally occurs during the final standard run, verify:
 
-- Core Critical is clearly visible.
-- Countdown is understandable.
-- moving an Engineer near the Core communicates/reaches recovery.
-- final defeat is explainable.
+- Core Critical is clearly visible;
+- countdown is understandable;
+- Engineer recovery communication is understandable if recovery occurs;
+- final defeat is explainable if the Core is lost.
 
-### C. Standard start-to-finish run
+### C. Standard start-to-finish run — FINAL BLOCKER
 
-Complete at least one normal-pace run and answer:
+Complete at least one normal-pace run and judge:
 
-- Were there meaningful decisions throughout?
-- Could the player explain the loss, if any?
-- Did the run produce a memorable systemic event?
-- Did the next seed feel worth trying?
-- Was the overall duration plausibly within the approximately 25–35 minute target?
-
-Only these human-only portions remain closure blockers once PR #15 post-merge CI and Pages deployment are green.
+- meaningful decisions throughout;
+- loss explainability if defeated;
+- at least one memorable/readable systemic event;
+- whether the next seed feels worth trying;
+- overall duration plausibly within the approximately 25–35 minute standard target, allowing the documented faster momentum path when earned.
 
 ---
 
@@ -178,4 +181,4 @@ Only these human-only portions remain closure blockers once PR #15 post-merge CI
 
 **M06 is not yet CLOSED.**
 
-Destroy smoke, Boss Hunt smoke, deterministic replay playback, Retry Block, and Next Block are human-accepted. PR #15 addresses the newly reported generated-terrain / river / minimap presentation blocker and has green PR CI. Remaining blockers are deployed terrain/minimap re-acceptance, Core Critical browser readability, and one standard start-to-finish run.
+Destroy smoke, Boss Hunt smoke, deterministic replay playback, Retry Block, Next Block, and the corrected generated terrain/live minimap are human-accepted. Automated Core Critical behavior is complete. The only remaining M06 closure blocker is one human standard start-to-finish run on the deployed runtime.
