@@ -112,7 +112,7 @@ export class RunPanel {
     const objective = !run.finaleUnlocked
       ? (run.pace === 'SMOKE'
         ? 'Finale unlocks at 00:30 in smoke mode.'
-        : 'Scout, expand, build and take Shrines. Finale unlocks at 24:00 or earlier with strategic momentum.')
+        : 'Scout, expand, build and take Shrines. Finale unlocks at 27:00 or earlier with strategic momentum.')
       : run.mode === 'DESTROY'
         ? 'FINALE: move combat units into the enemy Core assault radius.'
         : `FINALE: defeat ${run.boss.label}. Its attacks alter the battlefield.`;
