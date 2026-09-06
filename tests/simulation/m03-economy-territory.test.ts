@@ -159,15 +159,14 @@ describe('M03 economy and territory', () => {
     expect(start).toBe(playerSpawnRegion(world));
 
     for (const regionId of expansion.path.slice(1)) captureRegion(state, world, entities, playerUnits, 0, regionId);
-    const occupied = new Set<string>();
+    const resource = world.resources.find((candidate) => candidate.id === expansion.resourceId)!;
+    const occupied = new Set<string>([`${resource.cell.x},${resource.cell.z}`]);
     const outpostCell = buildableCell(world, target, occupied);
-    occupied.add(`${outpostCell.x},${outpostCell.z}`);
     const outpostPosition = worldCellToSimulationPosition(world, outpostCell);
     expect(state.processCommand({ targetTick: 1, playerId: 0, type: 'BUILD', buildingType: 'OUTPOST', targetX: outpostPosition.x, targetZ: outpostPosition.z }, 1)).toBe(true);
     for (let tick = 1; tick <= 301; tick += 1) state.advanceEconomy(tick);
     expect(state.snapshot().populationCap[0]).toBe(40);
 
-    const resource = world.resources.find((candidate) => candidate.id === expansion.resourceId)!;
     const resourcePosition = worldCellToSimulationPosition(world, resource.cell);
     expect(state.processCommand({ targetTick: 302, playerId: 0, type: 'BUILD', buildingType: 'EXTRACTOR', targetX: resourcePosition.x, targetZ: resourcePosition.z, resourceNodeId: resource.id }, 302)).toBe(true);
     for (let tick = 302; tick <= 482; tick += 1) state.advanceEconomy(tick);
