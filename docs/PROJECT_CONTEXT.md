@@ -5,7 +5,7 @@
 **Primary development environment:** ChatGPT Work with `@site`  
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **M00 source snapshot on GitHub:** `05557b249774064603b8eeb7960472fe2f1a4f42`  
-**Latest completed source snapshot:** `715d3fc9ccabad30bbee7929095055204a5b6835` (M01 Slice 1 implementation; the documentation-only follow-up commit containing this reference is newer)
+**Latest completed source snapshot:** `ec7fb15a8047f55731301ba632ebfd9a0691505d` (M01 Slice 2 implementation; the documentation-only follow-up commit containing this reference is newer)
 **Working title:** PEPEPOW Elemental Front｜元素戰線
 
 ---
@@ -350,17 +350,44 @@ Known issues / intentional limits:
 - No collision avoidance or pathfinding is present; deterministic destination offsets only reduce exact overlap.
 - The PlayCanvas bundle remains approximately 513 KB gzip. Code splitting remains explicitly non-blocking for M01.
 
+### M01 Slice 2 — Basic Combat + Static Arena Navigation
+
+**Implementation status:** COMPLETE
+**Implementation commit:** `ec7fb15a8047f55731301ba632ebfd9a0691505d`
+**Milestone status:** M01 remains `IN_PROGRESS`
+
+Completed systems:
+
+- Pure-TypeScript 1 m logical traversal grid with authoritative walkable ground, blocked river, blocked terrain walls, and a static natural crossing.
+- Deterministic A* using integer cell costs, fixed north/east/south/west neighbor order, stable tie-breaking, and deterministic nearest-walkable resolution for blocked MOVE targets.
+- Minimal `navVersion = 1`, stored on paths and included in the canonical state hash without introducing dynamic invalidation.
+- Path-following MOVE that cannot enter blocked cells and deterministically routes through the natural crossing/chokepoint.
+- Health and Combat components with integer HP, damage, range, attack intervals, next-attack tick, and direct target state.
+- Eight deterministic enemy placeholders split between Vanguard-style melee and Ranger-style ranged archetypes.
+- Validated ATTACK commands with stable attacker ordering, issuing-player ownership, hostile/alive target checks, pursuit, exact-tick damage cadence, deterministic death cleanup, and no autonomous retargeting.
+- Explicit order semantics: STOP cancels movement/pursuit/attack; MOVE replaces ATTACK.
+- Player/enemy presentation distinction, right-click enemy ATTACK, right-click ground MOVE, health bars, dead-unit hiding, and expanded debug counters.
+- State hash coverage for health/alive state, combat/order/cooldown state, path state, and nav version.
+- Six test files / 24 tests covering navigation, blocked cells, crossing use, tie-breaking, combat validation/cadence/death, order replacement, iteration-order stability, replay checkpoints, and all prior fixed-tick/RNG/unit-control behavior.
+
+Known issues / intentional limits:
+
+- Visual browser interaction smoke remains pending. The controlled browser blocked the local preview before loading (`ERR_BLOCKED_BY_CLIENT`); the prior controlled-environment WebGL limitation is also still applicable. No PlayCanvas workaround was attempted.
+- Unit-vs-unit collision, occupancy, steering, autonomous AI, projectiles, animations, VFX, sound, and code splitting remain intentionally out of scope.
+- Traversal is static. The future freezable crossing remains blocked river truth; Water/Ice state and nav invalidation belong to Slice 3.
+- Production bundle is approximately 515.85 KB gzip; the existing size warning remains non-blocking.
+
 ---
 
 ## 15. Next exact action
 
-Continue M01 with **Slice 2 — Basic Combat + Fixed Arena Traversal/Navigation Baseline**:
+Continue M01 with **Slice 3 — Water / Ice Dynamic Navigation**:
 
-1. Add minimal health/combat components and deterministic ATTACK command processing.
-2. Add fixed-arena walkability/traversal rules plus a small navigation baseline suitable for the handcrafted river/chokepoint layout.
-3. Keep terrain state static in Slice 2; do not implement Water/Ice dynamic navigation yet.
-4. Add deterministic combat/navigation tests and extend the state hash/replay checkpoints for new authoritative state.
-5. After Slice 2 is stable, begin Water/Ice dynamic navigation and the signature freeze/cross/melt interaction.
+1. Add authoritative terrain state and temperature/cold baseline for Water → Ice.
+2. Add ice durability plus deterministic heat/melt back to non-walkable Water.
+3. Introduce minimal local nav invalidation/version updates and deterministic path reaction to terrain transitions.
+4. Prove river blocked → freeze → cross → melt → river blocked with replay/hash coverage.
+5. Keep Wet + Lightning conductivity for Slice 4.
 
 Do not start M02 procedural world generation.
 
