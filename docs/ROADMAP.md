@@ -1,7 +1,7 @@
-# PEPEPOW Elemental Front｜ROADMAP
+# PEPEPOW Elemental Front — ROADMAP
 
 **Canonical milestone roadmap**  
-**Current status:** M00 CLOSED → M01 CLOSED → M02 OPEN
+**Current status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 OPEN
 
 ---
 
@@ -65,19 +65,6 @@ Status vocabulary:
 - asset/audio manifest conventions
 - placeholder asset convention
 
-## Work/@site rule
-
-Use ChatGPT Work + `@site`.
-
-M00 should not turn into a long infrastructure project.
-
-Parallel agents may help with:
-- repository/tooling
-- test/CI
-- scene/bootstrap
-
-but only when their file scopes do not conflict.
-
 ## Acceptance criteria
 
 - repository builds locally/in target environment
@@ -89,20 +76,8 @@ but only when their file scopes do not conflict.
 - canonical docs committed
 - asset status convention documented
 - `main` is runnable
-- `PROJECT_CONTEXT.md` updated with latest main SHA
 
-## Explicit non-goals
-
-- no procedural map
-- no polished art
-- no full combat
-- no blockchain RPC
-- no boss
-- no final audio
-
-## Closure output
-
-Create concise M00 closure report in repository and mark M00 CLOSED.
+Closure: `docs/milestones/M00_CLOSURE_REPORT.md`.
 
 ---
 
@@ -113,64 +88,41 @@ Create concise M00 closure report in repository and mark M00 CLOSED.
 
 ## Scope
 
-### Controls
+Controls:
 - pan/zoom
-- limited camera rotation if needed
-- click select
-- drag select
-- shift/control-group basics
+- click and drag selection
+- control groups
 - move
 - attack
 - stop
 
-### Initial units
-Use at least:
+Initial units:
 - Vanguard
 - Ranger
 - Elementalist
 - Golem
 
-### Test arena
-Fixed handcrafted arena containing:
+Fixed test arena:
 - ground
 - forest
 - river/water
 - chokepoint
 - ice-capable crossing area
 
-### Core systems
+Core systems:
 - fixed 10 Hz simulation
 - movement/pathfinding
 - combat
 - statuses
-- Fire
-- Water
-- Ice
-- Lightning
-- Wet
-- Burning
-- Frozen/Chilled
+- Fire / Water / Ice / Lightning
+- Wet / Burning / Frozen / Chilled
 - conductivity
 - dynamic navigation
 - fog-of-war baseline
-
-### Determinism
-- deterministic RNG
-- command queue
-- state hash
-- basic replay smoke test
-
-### Debug
-- entity count
-- sim tick
-- terrain flags
-- active elemental cells
-- nav dirty state
-- selected unit state
+- deterministic RNG, command queue, state hash, replay smoke
+- debug overlay
 
 ## Signature test
-
-Must work:
 
 ```text
 River blocked
@@ -199,34 +151,20 @@ River blocked
 - performance is acceptable
 - no gameplay dependency on final visuals
 
-## Asset policy
+Human WebGL playtest on 2026-09-06: **PASS**.
 
-Use primitives/placeholders freely.
-
-If agents create ugly or inconsistent art:
-- do not block M01
-- create canonical image prompt
-- keep placeholder
-- mark `NEEDS_MANUAL_GENERATION`
-
-No repeated expensive regeneration loops.
-
-## Closure question
-
-> Is the elemental battlefield mechanic already fun enough to justify the rest of the game?
-
-Human WebGL playtest on 2026-09-06: **PASS**. See `docs/milestones/M01_CLOSURE_REPORT.md`.
+Closure: `docs/milestones/M01_CLOSURE_REPORT.md`.
 
 ---
 
 # 4. M02 — Procedural Battlefield
 
-**Status:** OPEN  
+**Status:** CLOSED  
 **Goal:** Any valid Block Height can generate a deterministic, strategically playable battlefield.
 
 ## Scope
 
-- master seed
+- master seed / ruleset identity
 - independent RNG streams
 - elevation
 - hydrology
@@ -243,6 +181,8 @@ Human WebGL playtest on 2026-09-06: **PASS**. See `docs/milestones/M01_CLOSURE_R
 - quality score
 - deterministic retry
 - Golden Block regression set
+- large seed-batch tests
+- minimal generated-world debug visualization
 
 ## Acceptance criteria
 
@@ -252,19 +192,24 @@ Human WebGL playtest on 2026-09-06: **PASS**. See `docs/milestones/M01_CLOSURE_R
 - objectives reachable
 - resources valid
 - no illegal overlaps
+- deterministic retries reproduce
 - large seed batch passes hard invariants
-- generated regions are strategically legible
-- debug visualization can show region/route structure
+- generated regions/routes are strategically legible
+- debug visualization can show generated region/route/world structure
+- required TypeScript, tests, build, and CI pass
 
-## Testing target
+## Closure evidence
 
-Automated generation over a large seed set, eventually thousands to 10,000+ as performance permits.
+- implementation merged to main: `c26eecf5b324bd3e9ac4a09ca571a5522450ce21`
+- PR CI: **17 files / 88 tests PASS**
+- M02 large batch: **2,048 deterministic seeds PASS** with zero hard-invariant failures
+- strict TypeScript: PASS
+- production build: PASS
+- existing M01 regression suite: PASS
+- Golden Block fixed-hash regression set exists
+- generated-world browser debug map exists
 
-## Visual policy
-
-Generated terrain may use simple materials and proxy props.
-
-Polished biome art is deferred.
+Closure: `docs/milestones/M02_CLOSURE_REPORT.md`.
 
 ---
 
@@ -300,7 +245,7 @@ Systems:
 - basic build UI
 
 Units:
-- expand toward full initial 8-role roster
+- expand toward the full initial eight-role roster where needed
 
 ## Acceptance criteria
 
@@ -312,6 +257,7 @@ Units:
 - no infinite/free resource bugs
 - resource pacing reaches intended timing targets
 - 25–35 minute run economy appears plausible in simulation/playtest
+- economy/territory state preserves determinism and replay compatibility
 
 ---
 
@@ -492,7 +438,7 @@ This milestone starts only after M01–M07 gameplay is sufficiently healthy.
 
 ## Scope
 
-### Combat presentation
+Combat presentation:
 - final/project-level unit visual language
 - animation
 - attacks
@@ -502,7 +448,7 @@ This milestone starts only after M01–M07 gameplay is sufficiently healthy.
 - camera feedback
 - readable telegraphs
 
-### Elemental VFX
+Elemental VFX:
 - fire
 - steam
 - freezing
@@ -514,7 +460,7 @@ This milestone starts only after M01–M07 gameplay is sufficiently healthy.
 - smoke
 - environmental reaction
 
-### Environment
+Environment:
 - biome materials
 - props
 - terrain blending
@@ -523,13 +469,13 @@ This milestone starts only after M01–M07 gameplay is sufficiently healthy.
 - post-processing
 - fog/atmosphere
 
-### UI
+UI:
 - final HUD direction
 - iconography
 - minimap polish
 - results/challenge presentation
 
-### Audio
+Audio:
 - final/polished SFX set
 - ambient loops
 - user-supplied Gemini background music
@@ -538,7 +484,7 @@ This milestone starts only after M01–M07 gameplay is sufficiently healthy.
 
 ---
 
-# 11. M08 visual-production workflow
+# 11. Visual and audio production policy
 
 AI/agents may create development assets, but final art can be produced manually.
 
@@ -553,82 +499,13 @@ For any asset that is not worth refining in Work:
 7. user uploads to GitHub
 8. change status to `FINAL`
 
-Do not repeatedly regenerate the same low-quality asset inside Work.
+Background music is generated separately by the user in Gemini. SFX may use suitable public/licensed sources with documented provenance.
 
 ---
 
-# 12. M08 background-music workflow
+# 12. Agent and token discipline
 
-Background music is generated separately by the user in Gemini.
-
-Project work should prepare music briefs/prompts such as:
-- main menu
-- exploration low intensity
-- escalation
-- battle
-- boss
-- victory/defeat
-
-Each brief should define:
-- mood
-- instrumentation
-- energy
-- BPM range if useful
-- duration
-- loopability
-- transition requirements
-
-User uploads chosen final music to GitHub.
-
-Work agents integrate only the canonical files.
-
----
-
-# 13. SFX acquisition workflow
-
-SFX can use suitable public/licensed sources.
-
-Before `FINAL`:
-- confirm license/provenance
-- normalize/trim if needed
-- assign stable audio ID
-- document source
-- store compliant final file
-
-Important SFX should be auditioned for:
-- clarity
-- impact
-- frequency masking
-- repetition fatigue
-- consistency with other effects
-
----
-
-# 14. Agent strategy by milestone
-
-Use multiple agents primarily when work is separable.
-
-Good parallelization:
-- engine/bootstrap vs CI
-- worldgen module vs validator tests
-- AI strategic layer vs debug visualization
-- data definitions vs schema validation
-- SFX sourcing vs audio manifest
-- different independent visual prompt batches
-
-Poor parallelization:
-- two agents modifying the same simulation core
-- multiple agents “reviewing everything”
-- parallel redesign of locked architecture
-- multiple agents regenerating the same image repeatedly
-
-Coordinator integrates and verifies repository state.
-
----
-
-# 15. Token-budget discipline
-
-At every milestone:
+Use multiple agents only when work is genuinely separable.
 
 Prefer:
 - exact task scopes
@@ -636,18 +513,21 @@ Prefer:
 - concise agent summaries
 - reading only relevant canonical sections
 - targeted code inspection
+- one full regression pass at milestone closure
 
 Avoid:
 - broad redundant audits
 - long narrative reports when tests suffice
 - excessive screenshot/image iteration
 - rewriting stable docs without new decisions
+- multiple agents modifying the same simulation core
+- parallel redesign of locked architecture
 
-Token efficiency is not permission to skip verification. It is a requirement to verify more selectively.
+Token efficiency is not permission to skip verification.
 
 ---
 
-# 16. Cross-milestone quality gates
+# 13. Cross-milestone quality gates
 
 No milestone can close with:
 - failing required tests
@@ -659,8 +539,8 @@ No milestone can close with:
 
 ---
 
-# 17. Current next action
+# 14. Current next action
 
-M00 and M01 are CLOSED. Begin **M02 — Procedural Battlefield** from the existing deterministic simulation/navigation/terrain baseline.
+M00, M01, and M02 are CLOSED. Begin **M03 — Economy & Territory** on top of the existing M01 simulation and M02 generated-world foundation.
 
-Start with a deterministic world-generation foundation that cleanly separates master seed and independent RNG streams, then add elevation/hydrology/biome/region/route generation plus hard-invariant validation and deterministic retry. Do not reimplement M01 combat or elemental systems.
+Start with deterministic economy/territory state and commands, then implement resource flow, buildings and production, capture/territory, and supply connectivity with targeted tests. Do not redo M01/M02 or begin M04/M05 systems beyond interfaces genuinely required for M03.
