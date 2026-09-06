@@ -103,8 +103,8 @@ export interface BossAbilityIntent {
   radius: number;
 }
 
-interface MutableCoreState extends CoreObjectiveSnapshot {}
-interface MutableBossState extends BossObjectiveSnapshot {}
+type MutableCoreState = CoreObjectiveSnapshot;
+type MutableBossState = BossObjectiveSnapshot;
 
 interface AssaultResult {
   damage: number;
@@ -217,7 +217,13 @@ export class RunState {
     );
     this.pressure = { ...this.pressure, playerCoreAttackers: playerCoreAssault.attackers };
     if (this.playerCore.state === 'ACTIVE' && playerCoreAssault.damage > 0) {
-      this.damagePlayerCore(armoredDamage(playerCoreAssault.damage, CORE_ARMOR), tick, strategic, roguelite);
+      this.damagePlayerCore(
+        armoredDamage(playerCoreAssault.damage, CORE_ARMOR),
+        tick,
+        strategic,
+        roguelite,
+        entities,
+      );
       if (this.outcome !== 'IN_PROGRESS') return null;
     }
 
@@ -314,10 +320,10 @@ export class RunState {
   }
 
   snapshot(): RunSnapshot {
-    const snapshotWithoutHash = {
+    const snapshotWithoutHash: Omit<RunSnapshot, 'stateHash'> = {
       mode: this.mode,
       pace: this.pace,
-      phase: this.outcome === 'IN_PROGRESS' ? this.phase : 'COMPLETE' as const,
+      phase: this.outcome === 'IN_PROGRESS' ? this.phase : 'COMPLETE',
       outcome: this.outcome,
       finaleUnlocked: this.finaleUnlocked,
       finaleUnlockedTick: this.finaleUnlockedTick,
@@ -357,6 +363,7 @@ export class RunState {
     tick: number,
     strategic: StrategicSnapshot,
     roguelite: RogueliteSnapshot,
+    entities: EntityStore,
   ): void {
     this.playerCore.currentHealth = Math.max(0, this.playerCore.currentHealth - damage);
     if (this.playerCore.currentHealth > 0) return;
@@ -367,7 +374,7 @@ export class RunState {
       return;
     }
     this.playerCore.state = 'DESTROYED';
-    this.finish('DEFEAT', 'PLAYER_CORE_DESTROYED', tick, strategic, roguelite, null);
+    this.finish('DEFEAT', 'PLAYER_CORE_DESTROYED', tick, strategic, roguelite, entities);
   }
 
   private objectiveAssault(
@@ -442,7 +449,7 @@ export class RunState {
     tick: number,
     strategic: StrategicSnapshot,
     roguelite: RogueliteSnapshot,
-    entities: EntityStore | null,
+    entities: EntityStore,
   ): void {
     if (this.outcome !== 'IN_PROGRESS') return;
     this.outcome = outcome;
@@ -461,19 +468,17 @@ export class RunState {
     tick: number,
     strategic: StrategicSnapshot,
     roguelite: RogueliteSnapshot,
-    entities: EntityStore | null,
+    entities: EntityStore,
   ): ScoreBreakdown {
     const victory = outcome === 'VICTORY' ? 10_000 : 0;
     const time = outcome === 'VICTORY'
       ? Math.max(0, 5_000 - Math.floor((Math.max(0, tick - 12_000) * 5_000) / 12_000))
       : 0;
-    const alivePlayerUnits = entities === null
-      ? 0
-      : entities.entityIds().filter((entityId) => (
-        entities.hasUnit(entityId)
-        && entities.factions.get(entityId)?.playerId === 0
-        && entities.health.get(entityId)?.alive === true
-      )).length;
+    const alivePlayerUnits = entities.entityIds().filter((entityId) => (
+      entities.hasUnit(entityId)
+      && entities.factions.get(entityId)?.playerId === 0
+      && entities.health.get(entityId)?.alive === true
+    )).length;
     const armySurvival = Math.min(4_000, alivePlayerUnits * 200);
     const ownedRegions = strategic.regionOwners.filter((owner) => owner === 0).length;
     const territory = Math.min(3_000, Math.floor((ownedRegions * 3_000) / Math.max(1, strategic.regionOwners.length)));
@@ -532,8 +537,15 @@ export class RunState {
       hash = hashString(hash, snapshot.result.outcome);
       hash = hashString(hash, snapshot.result.reason);
       hash = hashInteger(hash, snapshot.result.completedTick);
+      hash = hashInteger(hash, snapshot.result.durationSeconds);
+      hash = hashInteger(hash, snapshot.result.score.victory);
+      hash = hashInteger(hash, snapshot.result.score.time);
+      hash = hashInteger(hash, snapshot.result.score.armySurvival);
+      hash = hashInteger(hash, snapshot.result.score.territory);
+      hash = hashInteger(hash, snapshot.result.score.objectives);
+      hash = hashInteger(hash, snapshot.result.score.resourceEfficiency);
+      hash = hashInteger(hash, snapshot.result.score.elementalStyle);
       hash = hashInteger(hash, snapshot.result.score.total);
-      for (const value of Object.values(snapshot.result.score)) hash = hashInteger(hash, value);
     }
     return hash.toString(16).padStart(8, '0');
   }
