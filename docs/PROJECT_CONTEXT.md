@@ -1,11 +1,12 @@
 # PEPEPOW Elemental Front — PROJECT_CONTEXT
 
-**Project status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 CLOSED → M04 CLOSED → M05 CLOSED → M06 IN_PROGRESS — HUMAN WEBGL ACCEPTANCE PENDING  
+**Project status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 CLOSED → M04 CLOSED → M05 CLOSED → M06 IN_PROGRESS — FINAL STANDARD WEBGL RUN PENDING  
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Final M05 runtime baseline:** `7e0e5082d1e0c1ed44d8546f0031d45f4a3899a6`  
-**M06 deployed runtime baseline:** `c7ec126efce64e8411c1398c0a789f1963b85546`  
+**Current M06 deployed runtime baseline:** `fb2a0fb1129287413803aa9cee3e2906a5ef22a3`  
 **M06 implementation PR:** #14 — MERGED  
+**M06 terrain/minimap fix PR:** #15 — MERGED  
 **M06 closure gap audit:** `docs/milestones/M06_CLOSURE_GAP_AUDIT.md`
 
 ---
@@ -63,141 +64,150 @@ base
 ## 3. CLOSED milestone baseline
 
 ### M00 — Repository Bootstrap
-
 CLOSED. Tooling, PlayCanvas/Vite, tests, CI, fixed-tick simulation shell, deterministic RNG smoke, debug foundation, and asset conventions are permanent.
 
-Closure: `docs/milestones/M00_CLOSURE_REPORT.md`.
-
 ### M01 — Systemic Combat Foundation
-
-CLOSED. Permanent tactical baseline includes selection/control groups, MOVE / ATTACK / STOP, deterministic navigation, combat, fog, Fire / Water / Ice / Lightning, Wet / Burning / Chilled / Frozen, dynamic navigation, command replay, and tactical state hashes.
-
-Closure: `docs/milestones/M01_CLOSURE_REPORT.md`.
+CLOSED. Selection/control groups, MOVE / ATTACK / STOP, deterministic navigation, combat, fog, elemental interactions, dynamic navigation, replay, and tactical state hashes are permanent.
 
 ### M02 — Procedural Battlefield
-
-CLOSED. Permanent world baseline includes deterministic block/ruleset identity, isolated RNG streams, 128×128 typed-array world data, elevation/hydrology/biomes, strategic regions/routes, resources, POIs/Shrines, player/enemy spawns, objective/boss areas, validation/quality/retry, Golden Blocks, 2,048-seed regression coverage, and generated-world debug visualization.
-
-Closure: `docs/milestones/M02_CLOSURE_REPORT.md`.
+CLOSED. Deterministic block/ruleset identity, isolated RNG streams, 128×128 typed-array world data, elevation/hydrology/biomes, regions/routes, resources, POIs/Shrines, spawns, objective/boss sites, validation/quality/retry, Golden Blocks, and 2,048-seed regression coverage are permanent.
 
 ### M03 — Economy & Territory
-
-CLOSED. Permanent strategic baseline includes Material / Mana / Influence, Core economy, six building types, deterministic construction/production, eight-role production data, population, capture, territory, supply, disconnected penalties, Outpost specialization, strategic command/hash, and browser economy/build UI.
-
-Closure: `docs/milestones/M03_CLOSURE_REPORT.md`.
+CLOSED. Material / Mana / Influence, Core economy, buildings, construction/production, population, capture, territory, supply, penalties, Outpost specialization, strategic commands/hashes, and browser economy/build UI are permanent.
 
 ### M04 — Roguelite Layer
-
-CLOSED. Permanent roguelite baseline includes Shrines, deterministic three-choice upgrades, generic modifiers/triggers, elemental/mixed paths, run Mana progression, synergies, deterministic world events, M04 hashing, and browser Shrine/upgrade/event HUD.
-
-Closure: `docs/milestones/M04_CLOSURE_REPORT.md`.
+CLOSED. Shrines, deterministic three-choice upgrades, generic modifiers/triggers, elemental/mixed paths, run Mana progression, synergies, world events, hashing, and browser Shrine/upgrade/event HUD are permanent.
 
 ### M05 — Enemy War
-
-CLOSED. Do not redo.
-
-Permanent enemy-war baseline includes fog-bounded last-known-information AI, Utility actions, tactical/strategic execution through existing command paths, hidden-target pursuit cutoff, Iron Legion / Flame Cult / Wild Horde behavior, Casual / Standard / Hard tempo/intelligence profiles, Director pressure/recovery/anti-turtle behavior, fair BUILD/TRAIN logistics, M05 hashing, and browser AI debug state.
+CLOSED. Fog-bounded last-known-information AI, Utility actions, faction behaviors, Casual / Standard / Hard profiles, Director pressure/recovery/anti-turtle behavior, fair logistics, hashing, and browser AI debug state are permanent.
 
 Final M05 verification:
 
-- final runtime `7e0e5082d1e0c1ed44d8546f0031d45f4a3899a6`
-- 24 test files / 121 tests: PASS
-- M02 2,048-seed regression: PASS
-- main CI `34037645488`: PASS
-- Pages `34037645465`: PASS
-- human WebGL acceptance 2026-09-06: PASS
-
-Closure: `docs/milestones/M05_CLOSURE_REPORT.md`.
+- runtime `7e0e5082d1e0c1ed44d8546f0031d45f4a3899a6`
+- 24 test files / 121 tests PASS
+- M02 2,048-seed regression PASS
+- main CI `34037645488` PASS
+- Pages `34037645465` PASS
+- human WebGL acceptance 2026-09-06 PASS
 
 ---
 
 ## 4. Current milestone — M06 Full Run
 
-**Status: IN_PROGRESS — HUMAN WEBGL ACCEPTANCE PENDING**
+**Status: IN_PROGRESS — FINAL STANDARD WEBGL RUN PENDING**
 
 Goal:
 
 > Complete the first deterministic start-to-finish game loop using the systems already proven in M01–M05.
 
-### Implemented and merged in PR #14
+### Implemented in PR #14
 
-- authoritative `M06Simulation` extending M05 rather than a parallel runtime
-- deterministic run phases: Discovery / Commitment / Expansion / Escalation / Finale / Complete
-- canonical standard five-act timing: 0–5 / 5–12 / 12–20 / 20–27 / 27+ minutes
-- time-based standard Finale gate at 27:00
+- authoritative `M06Simulation` extending M05
+- deterministic phases: Discovery / Commitment / Expansion / Escalation / Finale / Complete
+- canonical standard timing: 0–5 / 5–12 / 12–20 / 20–27 / 27+ minutes
+- standard Finale time gate at 27:00
 - optional momentum Finale unlock from 15:00 after sufficient territory + Shrines + completed non-Core buildings
-- Destroy victory family using the generated enemy Core
-- Boss Hunt victory family using the generated boss site
+- Destroy victory family using enemy Core
+- Boss Hunt victory family using generated boss site
 - Frost Titan / Storm Colossus / Infernal Behemoth deterministic boss selection
-- boss battlefield actions through existing Freeze / Lightning / Fire / Heat systems
+- boss abilities routed through existing Freeze / Lightning / Fire / Heat systems
 - player Core HP/Armor and one-time 30-second Core Critical State
-- nearby Engineer recovery to the canonical 10% Core HP threshold
+- nearby Engineer recovery to 10% Core HP
 - deterministic victory / defeat / result reason
-- deterministic score breakdown: victory, time, army survival, territory, objectives, resource efficiency, elemental style
-- M06 run state included in the combined authoritative hash
-- versioned replay packet with block/ruleset/world/faction/difficulty/mode/pace identity
+- deterministic score breakdown
+- M06 run state included in authoritative hash
+- versioned replay packet with exact run/world identity
 - external GAME / STRATEGIC / ROGUELITE command recording
-- replay commands injected at their authoritative target tick so upgrade/status-dependent CAST semantics are evaluated at the correct state
-- replay checkpoint `MATCH` / altered-command `DIVERGED` verification
-- local Retry Block / Next Block / Replay Last / Destroy↔Boss Hunt flow
-- browser Full Run HUD, Core/target health, Critical countdown, results/score screen, replay status, and boss marker
-- deterministic M04 world events paced at approximately 14 and 19 minutes before the standard Finale
+- replay commands injected at their authoritative target tick
+- replay checkpoint `MATCH` / altered-command `DIVERGED`
+- Retry Block / Next Block / Replay Last / Destroy↔Boss Hunt flow
+- browser Full Run HUD, objective health, Critical countdown, results/score, replay status, and boss marker
+- M04 world events paced at approximately 14 and 19 minutes before the 27-minute standard Finale
 
-### Automated and deployment verification
+### Presentation correction in PR #15
 
-- PR #14 final CI `34041915124`: PASS
-- final PR suite: 25 test files / 130 tests PASS
-- M06 focused suite: 9 / 9 PASS
-- M02 2,048-seed hard-invariant regression: PASS
-- M01–M05 regressions: PASS
-- strict TypeScript: PASS
-- production Vite build: PASS
-- merged runtime main: `c7ec126efce64e8411c1398c0a789f1963b85546`
-- main CI `34042091843`: PASS
-- GitHub Pages `34042091831`: PASS
+Human WebGL testing exposed generated terrain / river / minimap presentation drift. PR #15 corrected presentation only; authoritative gameplay rules were not changed.
 
-Closure audit: `docs/milestones/M06_CLOSURE_GAP_AUDIT.md`.
+Permanent presentation baseline now includes:
+
+- generated 3D battlefield reads authoritative `GeneratedWorld.terrain` / `biome` cells directly
+- no M01-style coplanar ground/river proxy overlap on generated worlds
+- no duplicate always-visible freezable-water overlay
+- complete generated Woodland and Highlands presentation
+- dynamic Ice overlays only where `TerrainState.surface` is actually ICE
+- live minimap aligned to the same generated world
+- moving player-unit markers
+- enemy-unit markers only when `visibleToPlayer`
+- separate player/enemy Core markers
+- live Ice and burning minimap state
+- minimap coordinate regression coverage across deterministic blocks 0, 42, and 1,000,000
+
+### Automated / deployment verification
+
+PR #14:
+
+- CI `34041915124` PASS
+- 25 test files / 130 tests PASS
+- M06 focused suite 9/9 PASS
+- M02 2,048-seed hard-invariant regression PASS
+- strict TypeScript PASS
+- production Vite build PASS
+
+PR #15:
+
+- PR CI `34044796173` PASS
+- post-merge main CI `34044869076` PASS
+- GitHub Pages `34044869041` PASS
+- deployed runtime baseline `fb2a0fb1129287413803aa9cee3e2906a5ef22a3`
 
 ---
 
-## 5. Remaining M06 closure blockers
+## 5. Human WebGL acceptance completed
 
-Automated implementation, merge, main CI, and Pages deployment are complete. Only human WebGL acceptance remains.
+On 2026-09-06 the deployed runtime passed:
 
-### A. Deployed smoke acceptance
+- Destroy smoke completion — PASS
+- Boss Hunt smoke completion — PASS
+- score/result readability — PASS
+- visible boss + elemental battlefield behavior — PASS
+- Replay Last → `REPLAY MATCH` — PASS
+- Retry Block — PASS
+- Next Block — PASS
+- corrected generated terrain / river presentation — PASS
+- live minimap battlefield alignment — PASS
+- moving player markers on minimap — PASS
 
-Verify on the deployed runtime:
+Core Critical authoritative mechanics are automated and PASS. Human closure does not require a production debug cheat or deliberately forcing the state. If Core Critical naturally occurs during the final standard run, its countdown/recovery/defeat presentation should be judged for readability.
 
-- Run HUD and objective health are readable
-- smoke Destroy completion reaches a visible result screen
-- smoke Boss Hunt shows a visible boss and perceptible elemental battlefield effect
-- score breakdown is readable
-- Retry Block reloads the same block
-- Next Block advances the block height
-- Replay Last reaches `REPLAY MATCH`
-- Core Critical / Engineer recovery / final defeat presentation is understandable if encountered
+---
 
-### B. Standard start-to-finish run
+## 6. ONLY remaining M06 closure blocker
 
-Complete at least one normal-pace run and judge:
+Complete one normal-pace start-to-finish run on the deployed runtime and judge:
 
 - meaningful decisions throughout
 - loss explainability if defeated
-- memorable systemic event
-- next seed worth trying
-- approximately 25–35 minute standard duration plausibility
+- at least one memorable/readable systemic event
+- whether the next seed feels worth trying
+- duration plausibly consistent with the approximately 25–35 minute standard target, allowing the documented faster momentum path when earned
+- Core Critical readability if it naturally occurs
 
-Only after the human gate passes:
+Recommended final acceptance URL:
 
-1. finalize `docs/milestones/M06_CLOSURE_REPORT.md`
+`https://edisontw.github.io/pepepow-elemental-front/?block=1000000&pace=standard&mode=destroy&difficulty=standard`
+
+If the final standard run passes:
+
+1. create/finalize `docs/milestones/M06_CLOSURE_REPORT.md`
 2. mark M06 CLOSED in canonical docs
-3. open M07 — PEPEPOW Block Challenge
+3. update `docs/ROADMAP.md` to M06 CLOSED → M07 OPEN
+4. only then begin M07 — PEPEPOW Block Challenge
 
-Do not close M06 from automated tests alone.
+Do not start M07 before formal M06 closure.
 
 ---
 
-## 6. Explicit non-goals / deferred work
+## 7. Explicit deferred work / non-blockers
 
 Not M06 blockers:
 
@@ -208,20 +218,16 @@ Not M06 blockers:
 - advanced collision/steering
 - full 60–80-upgrade content envelope
 
----
+Known non-blocking debt:
 
-## 7. Known non-blocking debt
-
-- PlayCanvas bundle-size warning remains known and non-blocking.
-- Unit-vs-unit collision / advanced steering is not mature.
-- Procedural terrain remains proxy/debug presentation rather than final world geometry.
-- Final economy, AI, boss, score, and upgrade balance still require full-run playtesting.
-- Advanced spell UX, polished VFX/audio, weather, steam, and complex terrain wetness remain later work.
+- PlayCanvas bundle-size warning
+- unit-vs-unit collision / advanced steering is not mature
+- generated terrain is authoritative cell-aligned presentation but still prototype geometry rather than final environment art
+- economy, AI, boss, score, and upgrade balance remain subject to full-run playtesting
+- advanced spell UX, polished VFX/audio, weather, steam, and complex terrain wetness remain later work
 
 ---
 
 ## 8. Next exact action
 
-Perform the human WebGL smoke acceptance, then complete one standard start-to-finish run as defined above. If both pass, formally close M06 and open M07.
-
-Do not start M07 until M06 is formally CLOSED.
+Run the final standard start-to-finish WebGL acceptance using the URL above. If it passes, formally close M06 and open M07.
