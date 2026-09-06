@@ -3,7 +3,7 @@ import type { M03Command } from './m03-commands';
 import type { M04Command } from './m04-commands';
 import type { EnemyDifficulty, EnemyFaction } from './m05-content';
 import { M05Simulation, type M05SimulationOptions, type M05SimulationSnapshot } from './m05-simulation';
-import type { RunMode, RunPace } from './m06-content';
+import type { RunMode, RunOutcome, RunPace } from './m06-content';
 import { RunState, type BossAbilityIntent, type RunSnapshot } from './run-state';
 import type { GeneratedWorld } from '../world/world-definition';
 
@@ -30,7 +30,7 @@ export interface M06ReplayPacket {
   commands: readonly M06ReplayEntry[];
   finalTick: number;
   finalStateHash: string;
-  outcome: 'VICTORY' | 'DEFEAT';
+  outcome: RunOutcome;
   totalScore: number;
 }
 
@@ -46,10 +46,7 @@ export interface M06SimulationSnapshot extends M05SimulationSnapshot {
 }
 
 function cloneGameCommand(command: GameCommand): GameCommand {
-  if (command.type === 'CAST') {
-    if (command.effectId === 'CHAIN_LIGHTNING') return { ...command };
-    return { ...command };
-  }
+  if (command.type === 'CAST') return { ...command };
   return { ...command, entityIds: [...command.entityIds] };
 }
 
@@ -75,7 +72,7 @@ export function isM06ReplayPacket(value: unknown): value is M06ReplayPacket {
   if (!['CASUAL', 'STANDARD', 'HARD'].includes(header.difficulty ?? '')) return false;
   if (!Array.isArray(packet.commands)) return false;
   if (!Number.isSafeInteger(packet.finalTick) || typeof packet.finalStateHash !== 'string') return false;
-  if (packet.outcome !== 'VICTORY' && packet.outcome !== 'DEFEAT') return false;
+  if (!['IN_PROGRESS', 'VICTORY', 'DEFEAT'].includes(packet.outcome ?? '')) return false;
   return Number.isSafeInteger(packet.totalScore);
 }
 
@@ -152,26 +149,12 @@ export class M06Simulation extends M05Simulation {
 
   replayPacket(): M06ReplayPacket | null {
     const snapshot = this.snapshot();
-    const result = snapshot.run.result;
-    if (!result) return null;
-    return {
-      header: {
-        version: 'm06-replay-v1',
-        blockHeight: this.generatedWorld.identity.blockHeight,
-        rulesetVersion: this.generatedWorld.identity.rulesetVersion,
-        worldGameplayHash: this.generatedWorld.gameplayHash,
-        generationAttempt: this.generatedWorld.generationAttempt,
-        mode: snapshot.run.mode,
-        pace: snapshot.run.pace,
-        faction: this.enemyWar.faction,
-        difficulty: this.enemyWar.difficulty,
-      },
-      commands: this.recordedCommands.map((entry) => this.cloneReplayEntry(entry)),
-      finalTick: result.completedTick,
-      finalStateHash: snapshot.stateHash,
-      outcome: result.outcome,
-      totalScore: result.score.total,
-    };
+    if (!snapshot.run.result) return null;
+    return this.buildReplayPacket(snapshot);
+  }
+
+  replayCheckpointPacket(): M06ReplayPacket {
+    return this.buildReplayPacket(this.snapshot());
   }
 
   loadReplay(packet: M06ReplayPacket): void {
@@ -197,6 +180,27 @@ export class M06Simulation extends M05Simulation {
 
   get isReplayPlayback(): boolean {
     return this.playback;
+  }
+
+  private buildReplayPacket(snapshot: M06SimulationSnapshot): M06ReplayPacket {
+    return {
+      header: {
+        version: 'm06-replay-v1',
+        blockHeight: this.generatedWorld.identity.blockHeight,
+        rulesetVersion: this.generatedWorld.identity.rulesetVersion,
+        worldGameplayHash: this.generatedWorld.gameplayHash,
+        generationAttempt: this.generatedWorld.generationAttempt,
+        mode: snapshot.run.mode,
+        pace: snapshot.run.pace,
+        faction: this.enemyWar.faction,
+        difficulty: this.enemyWar.difficulty,
+      },
+      commands: this.recordedCommands.map((entry) => this.cloneReplayEntry(entry)),
+      finalTick: snapshot.tick,
+      finalStateHash: snapshot.stateHash,
+      outcome: snapshot.run.outcome,
+      totalScore: snapshot.run.result?.score.total ?? 0,
+    };
   }
 
   private enqueueBossAbility(targetTick: number, intent: BossAbilityIntent): void {
