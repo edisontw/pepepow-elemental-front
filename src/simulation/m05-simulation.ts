@@ -1,3 +1,4 @@
+import { EnemyLogisticsState, type EnemyLogisticsSnapshot } from './enemy-logistics-state';
 import { EnemyWarState, type EnemyWarSnapshot } from './enemy-war-state';
 import type { EnemyDifficulty, EnemyFaction } from './m05-content';
 import { M04Simulation, type M04SimulationSnapshot } from './m04-simulation';
@@ -10,10 +11,12 @@ export interface M05SimulationOptions {
 
 export interface M05SimulationSnapshot extends M04SimulationSnapshot {
   enemyWar: EnemyWarSnapshot;
+  enemyLogistics: EnemyLogisticsSnapshot;
 }
 
 export class M05Simulation extends M04Simulation {
   readonly enemyWar: EnemyWarState;
+  readonly enemyLogistics: EnemyLogisticsState;
 
   constructor(generatedWorld: GeneratedWorld, options: M05SimulationOptions = {}) {
     super(generatedWorld);
@@ -25,26 +28,35 @@ export class M05Simulation extends M04Simulation {
       options.faction,
       options.difficulty,
     );
+    this.enemyLogistics = new EnemyLogisticsState(generatedWorld, this.enemyWar.faction);
   }
 
   override step(): M05SimulationSnapshot {
     const nextTick = super.snapshot().tick + 1;
     this.stopIllegalHiddenPursuit(nextTick);
     const frame = super.step();
-    this.enemyWar.advance(frame.tick, this.strategy.snapshot(), {
+    const strategic = this.strategy.snapshot();
+    this.enemyWar.advance(frame.tick, strategic, {
       enqueueCommand: (command) => this.enqueueCommand(command),
       enqueueStrategicCommand: (command) => this.enqueueStrategicCommand(command),
     });
+    this.enemyLogistics.advance(
+      frame.tick,
+      strategic,
+      (command) => this.enqueueStrategicCommand(command),
+    );
     return this.snapshot();
   }
 
   override snapshot(): M05SimulationSnapshot {
     const base = super.snapshot();
     const enemyWar = this.enemyWar.snapshot();
+    const enemyLogistics = this.enemyLogistics.snapshot();
     return {
       ...base,
-      stateHash: `${base.stateHash}:${enemyWar.stateHash}`,
+      stateHash: `${base.stateHash}:${enemyWar.stateHash}:${enemyLogistics.stateHash}`,
       enemyWar,
+      enemyLogistics,
     };
   }
 
