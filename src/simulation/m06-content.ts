@@ -12,11 +12,13 @@ export interface BossDefinition {
   id: BossType;
   label: string;
   maxHealth: number;
+  armor: number;
   abilityIntervalTicks: number;
   battlefieldRadius: number;
 }
 
 export const CORE_MAX_HEALTH = BUILDINGS.ELEMENTAL_CORE.maxHealth;
+export const CORE_ARMOR = 30;
 export const CORE_CRITICAL_TICKS = 300;
 export const CORE_RECOVERY_HEALTH = Math.ceil(CORE_MAX_HEALTH * 0.1);
 export const ENGINEER_REPAIR_PER_TICK = 5;
@@ -32,6 +34,7 @@ export const BOSS_DEFINITIONS: Readonly<Record<BossType, BossDefinition>> = {
     id: 'FROST_TITAN',
     label: 'Frost Titan',
     maxHealth: 8_000,
+    armor: 35,
     abilityIntervalTicks: 60,
     battlefieldRadius: 7_000,
   },
@@ -39,6 +42,7 @@ export const BOSS_DEFINITIONS: Readonly<Record<BossType, BossDefinition>> = {
     id: 'STORM_COLOSSUS',
     label: 'Storm Colossus',
     maxHealth: 7_000,
+    armor: 25,
     abilityIntervalTicks: 50,
     battlefieldRadius: 12_000,
   },
@@ -46,6 +50,7 @@ export const BOSS_DEFINITIONS: Readonly<Record<BossType, BossDefinition>> = {
     id: 'INFERNAL_BEHEMOTH',
     label: 'Infernal Behemoth',
     maxHealth: 9_000,
+    armor: 30,
     abilityIntervalTicks: 45,
     battlefieldRadius: 8_000,
   },
