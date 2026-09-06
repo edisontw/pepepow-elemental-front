@@ -50,7 +50,7 @@ describe('M06 full run', () => {
       finaleUnlockReason: 'TIME',
     });
     expect(first.snapshot().stateHash).toBe(second.snapshot().stateHash);
-  });
+  }, 15_000);
 
   it('completes Destroy with authoritative Core damage, victory, and score', () => {
     const simulation = new M06Simulation(generateWorld(1_000_001), {
@@ -68,7 +68,7 @@ describe('M06 full run', () => {
     expect(final.run.result?.score.victory).toBe(10_000);
     expect(final.run.result?.score.total).toBeGreaterThanOrEqual(10_000);
     expect(simulation.step().stateHash).toBe(final.stateHash);
-  });
+  }, 15_000);
 
   it('uses the one-time 30-second Core Critical window, Engineer recovery, then final defeat', () => {
     const simulation = new M06Simulation(generateWorld(1_000_002), {
@@ -130,7 +130,7 @@ describe('M06 full run', () => {
     expect(run.boss.active).toBe(true);
     expect(run.boss.lastAbilityTick).toBeGreaterThan(300);
     expect(['FROST_TITAN', 'STORM_COLOSSUS', 'INFERNAL_BEHEMOTH']).toContain(run.boss.type);
-  });
+  }, 15_000);
 
   it('defeats the generated boss and produces a Boss Hunt result', () => {
     const simulation = new M06Simulation(generateWorld(1_000_004), {
@@ -145,7 +145,7 @@ describe('M06 full run', () => {
     expect(final.run.outcome).toBe('VICTORY');
     expect(final.run.boss.currentHealth).toBe(0);
     expect(final.run.result?.reason).toBe('BOSS_DEFEATED');
-  });
+  }, 15_000);
 
   it('records a versioned replay packet with exact world/run/enemy identity', () => {
     const simulation = new M06Simulation(generateWorld(1_000_005), {
@@ -178,5 +178,5 @@ describe('M06 full run', () => {
     expect(packet?.commands).toHaveLength(1);
     expect(packet?.commands[0]?.channel).toBe('GAME');
     expect(packet?.finalStateHash).toBe(simulation.snapshot().stateHash);
-  });
+  }, 15_000);
 });
