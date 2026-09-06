@@ -1,3 +1,9 @@
+import {
+  blockChallengeCode,
+  createBlockChallengeIdentity,
+  createBlockChallengeShareUrl,
+  type BlockChallengeIdentity,
+} from '../challenge/block-challenge';
 import type { M06Simulation } from '../simulation/m06-simulation';
 import type { RunSnapshot, ScoreBreakdown } from '../simulation/run-state';
 
@@ -30,6 +36,7 @@ export class RunPanel {
   private elapsed = 0;
   private lastSignature = '';
   private savedReplay = false;
+  private shareStatus: 'IDLE' | 'COPIED' | 'FAILED' = 'IDLE';
   private readonly onClick = (event: Event): void => {
     const target = event.target instanceof HTMLElement ? event.target.closest<HTMLButtonElement>('button[data-run-action]') : null;
     if (!target) return;
@@ -38,6 +45,7 @@ export class RunPanel {
     else if (action === 'next') this.navigate({ blockDelta: 1 });
     else if (action === 'replay') this.replayLast();
     else if (action === 'mode') this.navigate({ blockDelta: 0, toggleMode: true });
+    else if (action === 'share') void this.copyChallengeLink();
   };
 
   constructor(
@@ -60,11 +68,13 @@ export class RunPanel {
         this.savedReplay = true;
       }
     }
+    const simulation = this.simulation.snapshot();
     const signature = [
-      this.simulation.snapshot().tick,
+      simulation.tick,
       run.stateHash,
-      this.simulation.snapshot().replayVerification,
+      simulation.replayVerification,
       this.savedReplay ? 1 : 0,
+      this.shareStatus,
     ].join(':');
     if (signature === this.lastSignature) return;
     this.lastSignature = signature;
@@ -77,6 +87,14 @@ export class RunPanel {
 
   private render(run: RunSnapshot): void {
     const simulation = this.simulation.snapshot();
+    const identity = this.challengeIdentity(run);
+    const challengeCode = blockChallengeCode(identity);
+    const challengeMeta = `Block ${identity.blockHeight.toLocaleString()} · Rules ${identity.rulesetVersion} · ${challengeCode}`;
+    const shareLabel = this.shareStatus === 'COPIED'
+      ? 'Link Copied'
+      : this.shareStatus === 'FAILED'
+        ? 'Copy Failed'
+        : 'Share Challenge';
     const elapsedSeconds = Math.floor(simulation.tick / 10);
     const playerCore = run.playerCore;
     const target = run.mode === 'DESTROY' ? run.enemyCore : run.boss;
@@ -90,15 +108,17 @@ export class RunPanel {
     if (run.result) {
       this.element.classList.add('complete');
       this.element.innerHTML = `
-        <div class="run-title">M06 FULL RUN · ${run.mode.replace('_', ' ')}</div>
+        <div class="run-title">M07 BLOCK CHALLENGE · ${run.mode.replace('_', ' ')}</div>
         ${replayLine}
+        <div class="run-challenge">${challengeMeta}</div>
         <div class="run-result ${run.result.outcome.toLowerCase()}">${run.result.outcome}</div>
         <div class="run-result-meta">${run.result.reason.replaceAll('_', ' ')} · ${formatTime(run.result.durationSeconds)}</div>
-        <div class="run-score-total"><span>SCORE</span><b>${run.result.score.total.toLocaleString()}</b></div>
+        <div class="run-score-total"><span>SCORE · ${challengeCode}</span><b>${run.result.score.total.toLocaleString()}</b></div>
         <div class="run-score-grid">${scoreRows(run.result.score)}</div>
         <div class="run-actions">
           <button data-run-action="retry">Retry Block</button>
           <button data-run-action="next">Next Block</button>
+          <button data-run-action="share">${shareLabel}</button>
           <button data-run-action="replay" ${this.hasStoredReplay() ? '' : 'disabled'}>Replay Last</button>
           <button data-run-action="mode">${run.mode === 'DESTROY' ? 'Boss Hunt' : 'Destroy'} Mode</button>
         </div>`;
@@ -117,17 +137,30 @@ export class RunPanel {
         ? 'FINALE: move combat units into the enemy Core assault radius.'
         : `FINALE: defeat ${run.boss.label}. Its attacks alter the battlefield.`;
     this.element.innerHTML = `
-      <div class="run-title">M06 FULL RUN · ${run.mode.replace('_', ' ')}</div>
+      <div class="run-title">M07 BLOCK CHALLENGE · ${run.mode.replace('_', ' ')}</div>
       ${replayLine}
+      <div class="run-challenge">${challengeMeta}</div>
       <div class="run-meta">
-        <b>${run.phase}</b><span>${formatTime(elapsedSeconds)}</span><span>Block ${this.simulation.generatedWorld.identity.blockHeight.toLocaleString()}</span>
+        <b>${run.phase}</b><span>${formatTime(elapsedSeconds)}</span><span>${identity.difficulty}</span>
       </div>
       ${critical}
       <div class="run-health-row"><span>Player Core</span><div><i style="width:${playerPercent}%"></i></div><b>${playerCore.currentHealth}/${playerCore.maxHealth}</b></div>
       <div class="run-health-row target"><span>${targetLabel}</span><div><i style="width:${targetPercent}%"></i></div><b>${target.currentHealth}/${target.maxHealth}</b></div>
       <div class="run-objective">${objective}</div>
       <div class="run-pressure">Assault P:${run.pressure.playerCoreAttackers} · E:${run.pressure.enemyCoreAttackers} · Boss:${run.pressure.bossAttackers} · Repair:${run.pressure.repairingEngineers}</div>
-      <button class="run-mode-button" data-run-action="mode">Switch to ${run.mode === 'DESTROY' ? 'Boss Hunt' : 'Destroy'}</button>`;
+      <div class="run-inline-actions">
+        <button class="run-mode-button" data-run-action="share">${shareLabel}</button>
+        <button class="run-mode-button" data-run-action="mode">Switch to ${run.mode === 'DESTROY' ? 'Boss Hunt' : 'Destroy'}</button>
+      </div>`;
+  }
+
+  private challengeIdentity(run: RunSnapshot): BlockChallengeIdentity {
+    return createBlockChallengeIdentity(this.simulation.generatedWorld, {
+      mode: run.mode,
+      pace: run.pace,
+      faction: this.simulation.enemyWar.faction,
+      difficulty: this.simulation.enemyWar.difficulty,
+    });
   }
 
   private hasStoredReplay(): boolean {
@@ -139,6 +172,10 @@ export class RunPanel {
     const current = this.simulation.generatedWorld.identity.blockHeight;
     url.searchParams.set('block', String(current + options.blockDelta));
     url.searchParams.delete('replay');
+    url.searchParams.delete('challenge');
+    url.searchParams.delete('ruleset');
+    url.searchParams.delete('world');
+    url.searchParams.delete('attempt');
     url.searchParams.set('pace', this.simulation.run.pace.toLowerCase());
     url.searchParams.set('faction', this.simulation.enemyWar.faction.toLowerCase());
     url.searchParams.set('difficulty', this.simulation.enemyWar.difficulty.toLowerCase());
@@ -154,5 +191,30 @@ export class RunPanel {
     const url = new URL(window.location.href);
     url.searchParams.set('replay', 'last');
     window.location.assign(url);
+  }
+
+  private async copyChallengeLink(): Promise<void> {
+    const identity = this.challengeIdentity(this.simulation.run.snapshot());
+    const shareUrl = createBlockChallengeShareUrl(window.location.href, identity).toString();
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = shareUrl;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+        const copied = document.execCommand('copy');
+        textArea.remove();
+        if (!copied) throw new Error('Clipboard copy failed.');
+      }
+      this.shareStatus = 'COPIED';
+    } catch {
+      this.shareStatus = 'FAILED';
+    }
+    this.lastSignature = '';
+    this.render(this.simulation.run.snapshot());
   }
 }
