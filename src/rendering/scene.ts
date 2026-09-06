@@ -157,11 +157,19 @@ export function createSceneShell(
   app.root.addChild(cameraEntity);
   const initialSnapshot = simulation.snapshot();
   const initialPlayer = initialSnapshot.entities.find((entity) => entity.playerId === 0 && entity.alive);
+  const arenaSpanMetres = Math.max(simulation.arena.width, simulation.arena.depth) / WORLD_UNITS_PER_METER;
+  const generatedCamera = simulation instanceof M03Simulation
+    ? {
+      initialDistance: pc.math.clamp(arenaSpanMetres * 0.34, 40, 56),
+      maxDistance: pc.math.clamp(arenaSpanMetres * 0.7, 64, 96),
+    }
+    : {};
   const camera = new RtsCamera(cameraEntity, canvas, {
     halfWidth: simulation.arena.width / (2 * WORLD_UNITS_PER_METER),
     halfDepth: simulation.arena.depth / (2 * WORLD_UNITS_PER_METER),
     targetX: initialPlayer ? metres(initialPlayer.x) : 0,
     targetZ: initialPlayer ? metres(initialPlayer.z) : 0,
+    ...generatedCamera,
   });
   const cameraComponent = cameraEntity.camera;
   if (!cameraComponent) throw new Error('RTS camera component failed to initialize.');

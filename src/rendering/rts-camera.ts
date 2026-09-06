@@ -1,13 +1,17 @@
 import * as pc from 'playcanvas';
 
-const MIN_DISTANCE = 12;
-const MAX_DISTANCE = 46;
+const DEFAULT_MIN_DISTANCE = 12;
+const DEFAULT_MAX_DISTANCE = 46;
+const DEFAULT_DISTANCE = 28;
 
 export interface RtsCameraOptions {
   halfWidth?: number;
   halfDepth?: number;
   targetX?: number;
   targetZ?: number;
+  minDistance?: number;
+  maxDistance?: number;
+  initialDistance?: number;
 }
 
 export class RtsCamera {
@@ -15,7 +19,9 @@ export class RtsCamera {
   private readonly pressedKeys = new Set<string>();
   private readonly halfWidth: number;
   private readonly halfDepth: number;
-  private distance = 28;
+  private readonly minDistance: number;
+  private readonly maxDistance: number;
+  private distance: number;
   private yaw = 45;
   private pitch = -48;
   private dragging = false;
@@ -29,6 +35,9 @@ export class RtsCamera {
   ) {
     this.halfWidth = Math.max(4, options.halfWidth ?? 24);
     this.halfDepth = Math.max(4, options.halfDepth ?? 24);
+    this.minDistance = Math.max(4, options.minDistance ?? DEFAULT_MIN_DISTANCE);
+    this.maxDistance = Math.max(this.minDistance, options.maxDistance ?? DEFAULT_MAX_DISTANCE);
+    this.distance = pc.math.clamp(options.initialDistance ?? DEFAULT_DISTANCE, this.minDistance, this.maxDistance);
     this.target.x = pc.math.clamp(options.targetX ?? 0, -this.halfWidth, this.halfWidth);
     this.target.z = pc.math.clamp(options.targetZ ?? 0, -this.halfDepth, this.halfDepth);
     window.addEventListener('keydown', this.onKeyDown);
@@ -42,7 +51,7 @@ export class RtsCamera {
   }
 
   update(deltaSeconds: number): void {
-    const speed = 12 * deltaSeconds * (this.distance / 28);
+    const speed = 12 * deltaSeconds * (this.distance / DEFAULT_DISTANCE);
     let localX = 0;
     let localZ = 0;
     if (this.isPressed('KeyA', 'ArrowLeft')) localX -= speed;
@@ -72,7 +81,7 @@ export class RtsCamera {
 
   private readonly onWheel = (event: WheelEvent): void => {
     event.preventDefault();
-    this.distance = pc.math.clamp(this.distance + event.deltaY * 0.018, MIN_DISTANCE, MAX_DISTANCE);
+    this.distance = pc.math.clamp(this.distance + event.deltaY * 0.018, this.minDistance, this.maxDistance);
     this.applyTransform();
   };
 
