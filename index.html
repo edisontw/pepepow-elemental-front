@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#07100f" />
+    <meta
+      name="description"
+      content="PEPEPOW Elemental Front — deterministic browser RTS prototype"
+    />
+    <title>Elemental Front｜元素戰線</title>
+  </head>
+  <body>
+    <main id="app" aria-label="Elemental Front game shell">
+      <canvas id="game-canvas" aria-label="RTS battlefield"></canvas>
+      <section id="boot-screen" role="status" aria-live="polite">
+        <p class="eyebrow">PEPEPOW</p>
+        <h1>ELEMENTAL FRONT</h1>
+        <p>正在初始化戰場系統…</p>
+      </section>
+      <aside id="debug-overlay" aria-label="Debug information"></aside>
+      <div id="camera-help">WASD／方向鍵移動 · 滾輪縮放 · 中鍵拖曳</div>
+      <div id="fatal-error" role="alert" hidden></div>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

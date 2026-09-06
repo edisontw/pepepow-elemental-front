@@ -1,0 +1,21 @@
+{
+  "$schemaVersion": 1,
+  "entries": [
+    {
+      "id": "environment.ground.debug",
+      "kind": "model",
+      "status": "PLACEHOLDER",
+      "path": "playcanvas://primitive/plane",
+      "canonicalFilename": "environment-ground-debug.glb",
+      "notes": "M00 runtime primitive; no final file is required."
+    },
+    {
+      "id": "building.elemental-core.debug",
+      "kind": "model",
+      "status": "PLACEHOLDER",
+      "path": "playcanvas://primitive/cylinder",
+      "canonicalFilename": "building-elemental-core.glb",
+      "notes": "Replace through this manifest ID; gameplay must not reference the filename."
+    }
+  ]
+}
