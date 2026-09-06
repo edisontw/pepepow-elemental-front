@@ -10,6 +10,11 @@ import {
   type BlockResolution,
 } from './challenge/block-source';
 import {
+  OfficialBlockSource,
+  officialChallengeById,
+  officialChallengeIdFromSearch,
+} from './challenge/official-challenge';
+import {
   PepepowRpcBlockSource,
   pepepowLiveOffsetFromSearch,
 } from './challenge/pepepow-rpc-block-source';
@@ -96,21 +101,32 @@ async function boot(): Promise<void> {
     const runElement = requiredElement<HTMLElement>('run-panel');
     const replay = requestedReplay();
     const sharedChallenge = replay ? null : readBlockChallengeShareRequest(window.location.search);
+    const officialId = replay || sharedChallenge ? null : officialChallengeIdFromSearch(window.location.search);
+    const officialChallenge = officialId === null ? null : officialChallengeById(officialId);
 
+    if (officialId !== null && officialChallenge === null) throw new Error(`Unknown official challenge: ${officialId}.`);
     if (sharedChallenge && sharedChallenge.rulesetVersion !== M02_STANDARD_RULES.rulesetVersion) {
       throw new Error(`Unsupported challenge ruleset: ${sharedChallenge.rulesetVersion}.`);
+    }
+    if (officialChallenge && officialChallenge.rulesetVersion !== M02_STANDARD_RULES.rulesetVersion) {
+      throw new Error(`Unsupported official challenge ruleset: ${officialChallenge.rulesetVersion}.`);
     }
 
     const manualBlockHeight = replay?.header.blockHeight
       ?? sharedChallenge?.blockHeight
+      ?? officialChallenge?.blockHeight
       ?? manualBlockHeightFromSearch(window.location.search);
-    const liveOffset = replay || sharedChallenge ? null : pepepowLiveOffsetFromSearch(window.location.search);
-    const blockSource = liveOffset === null
-      ? new ManualBlockSource(manualBlockHeight)
-      : new PepepowRpcBlockSource({
-          offset: liveOffset,
-          fallbackBlockHeight: manualBlockHeight,
-        });
+    const liveOffset = replay || sharedChallenge || officialChallenge
+      ? null
+      : pepepowLiveOffsetFromSearch(window.location.search);
+    const blockSource = officialChallenge
+      ? new OfficialBlockSource(officialChallenge)
+      : liveOffset === null
+        ? new ManualBlockSource(manualBlockHeight)
+        : new PepepowRpcBlockSource({
+            offset: liveOffset,
+            fallbackBlockHeight: manualBlockHeight,
+          });
     const blockResolution = await blockSource.resolve();
     if (liveOffset !== null) pinResolvedLiveBlock(blockResolution);
 
