@@ -267,7 +267,7 @@ export class RogueliteState {
     const rng = new DeterministicRng(seed);
     const ordered = shuffleDeterministic(WORLD_EVENTS, rng);
     return ordered.slice(0, Math.min(2, ordered.length)).map((event, index) => {
-      const startTick = 900 + index * 900;
+      const startTick = 8_400 + index * 3_000;
       return { id: event.id, startTick, endTick: startTick + event.durationTicks };
     });
   }
