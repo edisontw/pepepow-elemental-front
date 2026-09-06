@@ -5,7 +5,7 @@
 **Primary development environment:** ChatGPT Work with `@site`  
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **M00 source snapshot on GitHub:** `05557b249774064603b8eeb7960472fe2f1a4f42`  
-**Latest completed source snapshot:** `1de57fe55f14e8343aef827beb52e63dca1524c3` (M01 Slice 4 implementation; the documentation-only follow-up commit containing this reference is newer)
+**Latest completed source snapshot:** `f278bf326375ad45848b96cbf5008e4beb7b6bef` (M01 automated closure implementation; the documentation-only follow-up commit containing this reference is newer)
 **Working title:** PEPEPOW Elemental Front｜元素戰線
 
 ---
@@ -431,17 +431,59 @@ Known issues / intentional limits:
 - Frozen/Chilled unit statuses, fog of war, Elementalist/Golem units, collision/steering, autonomous AI, the 40-unit acceptance stress case, procedural generation, M02, and code splitting remain out of scope for this slice.
 - Production bundle is approximately 518.08 KB gzip; the existing size warning remains non-blocking.
 
+### M01 Slice 5 — Deterministic Fire / Burning Foundation
+
+**Implementation status:** COMPLETE
+**Implementation commit:** `f278bf326375ad45848b96cbf5008e4beb7b6bef`
+**Milestone status:** M01 remains `IN_PROGRESS`
+
+Completed systems:
+
+- Authoritative row-major `vegetation` and `burningAge` typed arrays on the existing 48×38 terrain grid; only the two handcrafted forest patches are eligible, and cells overlapped by blocked terrain are excluded.
+- Deterministic FIRE ignition restricted to unconsumed flammable Ground, while retaining the existing FIRE → heat → ice durability → Water pathway.
+- Fixed Burning rules: 9-tick lifetime, +10 integer heat per active tick, and local propagation every 3 ticks through north/east/south/west neighbors in fixed order.
+- Expired vegetation becomes consumed and cannot reignite. Water/Ice cannot ignite; Water extinguishes active Burning, and an authoritative Wet occupant douses its current cell without adding a full terrain-wetness or hydrology system.
+- Canonical state hash coverage for vegetation and Burning age on every cell, plus replay and render-FPS-independent determinism coverage.
+- Minimal orange Burning cell markers, a forest-targeted `R` developer FIRE control, and debug counts for active Burning and consumed vegetation.
+- Twelve test files / 60 tests pass, including a deterministic forest-to-forest-cell spread integration test and all prior Freeze → Cross → Fire Melt → Wet → Lightning coverage.
+
+Known issues / intentional limits:
+
+- Burning is a terrain/vegetation state only. Unit Burning DoT, smoke, steam, wind, weather, diffusion, persistent terrain wetness, polished VFX, and audio remain intentionally out of scope.
+- Visual browser interaction smoke remains pending because the controlled environment cannot provide reliable WebGL; no workaround was attempted.
+- Frozen/Chilled unit statuses, fog-of-war baseline, Elementalist/Golem archetypes, collision/steering, autonomous AI, and the 40-unit acceptance stress case remain unresolved M01 scope to assess in the closure gap audit.
+- Production bundle is approximately 518.87 KB gzip; the existing size warning remains non-blocking.
+
+### M01 Automated Closure Implementation
+
+**Implementation status:** COMPLETE
+**Implementation commit:** `f278bf326375ad45848b96cbf5008e4beb7b6bef`
+**Milestone status:** M01 remains `IN_PROGRESS — MANUAL WEBGL PLAYTEST PENDING`
+
+Completed systems and acceptance evidence:
+
+- The production handcrafted arena now contains exactly 40 units and includes Vanguard, Ranger, Elementalist, and Golem placeholder archetypes with distinct M01 stats and readable primitive silhouettes.
+- Minimal authoritative Chilled/Frozen statuses: first dry FREEZE exposure Chills, a second exposure or first exposure while Wet Freezes, Chilled halves movement, Frozen pauses movement/attacks, and HEAT/FIRE thaws. Timers are deterministic and state-hashed.
+- Minimal authoritative per-player fog-of-war baseline with Unexplored/Explored/Visible cell state, explored persistence, dead-unit vision removal, canonical hash coverage, player-0 debug counts, and renderer/picking concealment for non-visible enemies.
+- Shift additive/toggle selection, deterministic Ctrl+1–9 groups, 1–9 recall with dead/non-owned filtering, automatic stale-selection pruning, and selected-unit archetype/HP/order/status debug state.
+- Debug overlay now covers total entities, immediate-commit nav dirty state, elemental/status counts, fog counts, selected state, commands, and state hash.
+- Forty-unit closure smoke sends both factions through the single natural crossing, proves exact destination convergence without blocked-cell entry or deadlock, and verifies replay/FPS-independent hashes.
+- Local performance smoke exercises 40 units and three cross-map order waves for 420 ticks with a generous 5,000 ms regression gate; the final local run completed in 181.3 ms (0.432 ms/tick).
+- Final local verification: TypeScript PASS, 16 Vitest files / 75 tests PASS, and production build PASS.
+
+Automated acceptance is complete. Formal closure remains blocked only by the canonical human-facing gates that cannot be judged in the controlled non-WebGL environment: selection/order usability, signature readability, 40-unit render performance, and the milestone fun question. See `docs/milestones/M01_CLOSURE_GAP_AUDIT.md` and `docs/milestones/M01_CLOSURE_REPORT.md`.
+
 ---
 
 ## 15. Next exact action
 
-Continue M01 with **Slice 5 — Deterministic Fire / Burning Foundation**:
+Run one **manual WebGL-capable M01 playtest**:
 
-1. Define the smallest deterministic forest ignition and propagation model on the existing authoritative terrain arrays.
-2. Add minimal Burning state/damage only where required to prove Fire changes terrain and tactical movement; do not build a generic buff framework.
-3. Preserve the completed Freeze → Cross → Fire Melt → Wet → Lightning signature path and all 55 tests.
-4. Keep placeholder presentation inexpensive and prioritize simulation/replay tests.
-5. Keep M01 `IN_PROGRESS`; do not start M02.
+1. Verify camera, click/drag/Shift selection, Ctrl groups, MOVE/ATTACK/STOP, and elemental developer controls are usable.
+2. Verify the Freeze → Cross → Fire Melt → Wet → Lightning signature and Burning/Chilled/Frozen/fog markers are readable.
+3. Observe 40-unit renderer performance and confirm no severe visual/input failure.
+4. Answer the canonical closure question: is the elemental battlefield mechanic already fun enough to justify continuing?
+5. If all four pass, update M01 to `CLOSED` and only then begin M02. If any fail, keep M01 `IN_PROGRESS` and record the smallest concrete correction.
 
 Do not start M02 procedural world generation.
 
