@@ -2,6 +2,9 @@
 
 **Status:** IN_PROGRESS — HUMAN WEBGL ACCEPTANCE PENDING  
 **Implementation PR:** #14  
+**Runtime baseline:** `c7ec126efce64e8411c1398c0a789f1963b85546`  
+**Main CI:** `34042091843` — PASS  
+**GitHub Pages:** `34042091831` — PASS  
 **Audit date:** 2026-09-06
 
 ---
@@ -24,31 +27,33 @@ The runtime now has deterministic run phases, finale gating, victory/defeat, obj
 
 ### Destroy victory family
 
-**Implemented / automated.**
+**PASS — implemented, automated, and human smoke accepted.**
 
 The generated enemy Core becomes the finale target. Player combat units in legal assault range apply deterministic structure damage and can produce `VICTORY / ENEMY_CORE_DESTROYED`.
 
+Human WebGL Destroy smoke on 2026-09-06: **PASS**. The deployed runtime showed the M06 Destroy HUD, entered the smoke Finale, allowed the enemy Core to be destroyed through the assault-radius flow, and displayed the Victory result/score screen.
+
 ### Boss Hunt victory family
 
-**Implemented / automated.**
+**Implemented / automated; human smoke pending.**
 
 The generated boss site is reused. Frost Titan, Storm Colossus, and Infernal Behemoth are selected deterministically and modify the battlefield through existing Freeze, Lightning, Fire, and Heat command paths. Boss defeat produces `VICTORY / BOSS_DEFEATED`.
 
 ### Defeat and Core Critical State
 
-**Implemented / automated.**
+**Implemented / automated; human readability pending.**
 
 The player Core has one authoritative critical recovery window per run. First zero HP enters a 300-tick / 30-second Critical State. Nearby Engineers repair it toward the required 10% recovery threshold. Expiry or a later zero-HP event produces defeat.
 
 ### Score and results
 
-**Implemented / automated.**
+**PASS for Destroy smoke; automated coverage complete.**
 
-Final results contain outcome, reason, duration, and deterministic score components for victory, time, army survival, territory, objectives, resource efficiency, and elemental style.
+Final results contain outcome, reason, duration, and deterministic score components for victory, time, army survival, territory, objectives, resource efficiency, and elemental style. Destroy smoke confirmed the deployed result/score presentation is visible.
 
 ### Replay playback and verification
 
-**Implemented / automated.**
+**Implemented / automated; human playback pending.**
 
 External GAME / STRATEGIC / ROGUELITE commands are recorded with exact block/ruleset/world/faction/difficulty/mode identity. Playback reuses the same M06 simulation. Replay commands are injected at their authoritative target tick so upgrade/status-dependent CAST semantics are evaluated at the correct run state. Checkpoint verification reports `MATCH` when the replay reaches the expected state hash and `DIVERGED` when the command stream is altered.
 
@@ -107,24 +112,23 @@ These remain M07/M08 or later work.
 
 ## 5. Remaining human WebGL acceptance
 
-After PR #14 is merged and GitHub Pages deployment succeeds, verify the deployed runtime.
-
 ### A. Smoke completion flow
 
-Use a smoke run to quickly verify presentation and navigation:
+Current status:
 
-- Run HUD is visible and updates phase/time/Core/objective health.
-- Finale becomes available.
-- Destroy or Boss Hunt can reach a visible result screen.
-- Score breakdown is readable.
-- Retry Block reloads the same block.
-- Next Block advances the block height.
-- Replay Last starts playback and eventually displays `REPLAY MATCH`.
-- Boss Hunt displays a visible boss and its elemental battlefield effects.
+- Run HUD visible and updates phase/time/Core/objective health — **PASS (Destroy smoke)**
+- Finale becomes available — **PASS (Destroy smoke)**
+- Destroy reaches a visible result screen — **PASS**
+- Score breakdown readable — **PASS**
+- Boss Hunt reaches a visible result screen — **PENDING**
+- Retry Block reloads the same block — **PENDING**
+- Next Block advances the block height — **PENDING**
+- Replay Last starts playback and eventually displays `REPLAY MATCH` — **PENDING**
+- Boss Hunt displays a visible boss and perceptible elemental battlefield effects — **PENDING**
 
 ### B. Core Critical readability
 
-Confirm in browser that:
+Pending browser confirmation:
 
 - Core Critical is clearly visible.
 - Countdown is understandable.
@@ -141,7 +145,7 @@ Complete at least one normal-pace run and answer:
 - Did the next seed feel worth trying?
 - Was the overall duration plausibly within the approximately 25–35 minute target?
 
-Only this human-only portion remains a closure blocker once final CI/build and Pages deployment are green.
+Only these human-only portions remain closure blockers. Automated verification, main CI, production build, and Pages deployment are green.
 
 ---
 
@@ -149,4 +153,4 @@ Only this human-only portion remains a closure blocker once final CI/build and P
 
 **M06 is not yet CLOSED.**
 
-The implementation is at pre-closure stage. Automated acceptance covers the authoritative run loop; final closure requires a green final PR/main verification and human WebGL start-to-finish acceptance.
+Automated acceptance and deployment are complete, and Destroy smoke is human-accepted. Remaining blockers are Boss Hunt/replay/navigation/Core Critical browser acceptance plus one standard start-to-finish run.
