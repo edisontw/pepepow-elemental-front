@@ -55,9 +55,11 @@ Final results contain outcome, reason, duration, and deterministic score compone
 
 ### Replay playback and verification
 
-**Implemented / automated; human playback pending.**
+**PASS — implemented, automated, and human playback accepted.**
 
 External GAME / STRATEGIC / ROGUELITE commands are recorded with exact block/ruleset/world/faction/difficulty/mode identity. Playback reuses the same M06 simulation. Replay commands are injected at their authoritative target tick so upgrade/status-dependent CAST semantics are evaluated at the correct run state. Checkpoint verification reports `MATCH` when the replay reaches the expected state hash and `DIVERGED` when the command stream is altered.
+
+Human WebGL replay acceptance on 2026-09-06: **PASS**. `Replay Last` replayed the completed Boss Hunt smoke run and reached `REPLAY MATCH` on the deployed runtime.
 
 ### Retry / next-block flow
 
@@ -124,9 +126,9 @@ Current status:
 - Boss Hunt reaches a visible result screen — **PASS**
 - Score breakdown readable — **PASS**
 - Boss Hunt displays a visible boss and perceptible elemental battlefield effects — **PASS**
+- Replay Last starts playback and eventually displays `REPLAY MATCH` — **PASS**
 - Retry Block reloads the same block — **PENDING**
 - Next Block advances the block height — **PENDING**
-- Replay Last starts playback and eventually displays `REPLAY MATCH` — **PENDING**
 
 ### B. Core Critical readability
 
@@ -155,4 +157,4 @@ Only these human-only portions remain closure blockers. Automated verification, 
 
 **M06 is not yet CLOSED.**
 
-Automated acceptance and deployment are complete. Destroy and Boss Hunt smoke are human-accepted. Remaining blockers are replay/navigation/Core Critical browser acceptance plus one standard start-to-finish run.
+Automated acceptance and deployment are complete. Destroy smoke, Boss Hunt smoke, and deterministic replay playback are human-accepted. Remaining blockers are Retry/Next navigation, Core Critical browser acceptance, and one standard start-to-finish run.
