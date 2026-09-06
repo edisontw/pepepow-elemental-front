@@ -1,7 +1,7 @@
 # PEPEPOW Elemental Front — ROADMAP
 
 **Canonical milestone roadmap**  
-**Current status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 CLOSED → M04 CLOSED → M05 OPEN
+**Current status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 CLOSED → M04 CLOSED → M05 IN_PROGRESS — HUMAN WEBGL ACCEPTANCE PENDING
 
 ---
 
@@ -333,7 +333,7 @@ Closure: `docs/milestones/M04_CLOSURE_REPORT.md`.
 
 # 7. M05 — Enemy War
 
-**Status:** OPEN  
+**Status:** IN_PROGRESS — HUMAN WEBGL ACCEPTANCE PENDING  
 **Goal:** Create a fair but strategically active opponent that produces pressure without cheating.
 
 ## Scope
@@ -369,6 +369,27 @@ Enemy archetypes:
 - factions feel behaviorally distinct
 - difficulty changes intelligence/tempo more than raw stat cheating
 - no arbitrary unit spawning beside player base
+
+## Pre-closure evidence
+
+Automated implementation and regression acceptance are complete:
+
+- PR #8 — deterministic imperfect-information Enemy War core
+- PR #9 — end-to-end RAID / REGROUP acceptance hardening
+- PR #10 — fair enemy production through existing M03 resources, BUILD / TRAIN queues, population, and timing
+- latest deployed runtime: `144a93b8e73f1885f266a0981166056d9d8f8aaf`
+- main CI run `34036742615`: **PASS**
+- GitHub Pages run `34036742620`: **PASS**
+- final automated suite: **24 files / 121 tests PASS**
+- M02 2,048-seed hard-invariant regression: PASS
+- M01–M04 regression suite: PASS
+- strict TypeScript / production build: PASS
+
+Automated acceptance proves legal fog-bounded knowledge, last-known memory, hidden-target pursuit cutoff, RAID, REGROUP, deterministic faction profiles, difficulty without raw combat-stat multipliers, deterministic replay/hash compatibility, and legitimate producer-based enemy reinforcements without arbitrary spawning.
+
+Human WebGL acceptance is still required for plausible/readable behavior and faction feel before M05 can be CLOSED.
+
+Pre-closure report: `docs/milestones/M05_CLOSURE_REPORT.md`.
 
 ---
 
@@ -575,6 +596,8 @@ No milestone can close with:
 
 # 14. Current next action
 
-M00, M01, M02, M03, and M04 are CLOSED. Begin **M05 — Enemy War** on top of the existing tactical, generated-world, economy/territory, and roguelite foundations.
+M00–M04 are CLOSED. M05 implementation, automated acceptance, regression, build, and deployment are complete.
 
-Start with a deterministic enemy knowledge/blackboard model constrained by legal visibility and last-known information. Then prove a minimal strategic Utility AI decision loop over the existing region/supply/POI graph before expanding faction personalities, Director pressure, and anti-turtle behavior. Do not begin M06 full-run completion until M05 acceptance and closure are complete.
+Perform the required human WebGL behavior/readability smoke on the deployed M05 runtime. Use the same block with `faction=iron`, `faction=flame`, and `faction=wild` to compare behavior directly; `difficulty=hard` is recommended for a faster decision cadence.
+
+Do not begin M06 until M05 human acceptance passes and M05 is formally CLOSED.
