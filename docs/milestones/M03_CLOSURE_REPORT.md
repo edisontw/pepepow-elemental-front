@@ -3,7 +3,8 @@
 **Status:** CLOSED  
 **Date:** 2026-09-06  
 **Pull request:** #2 — `M03: economy and territory foundation`  
-**Final acceptance head:** `95b107e2fce0dd609a58eaf4b594a35c33f04f7e`
+**Implementation acceptance head:** `95b107e2fce0dd609a58eaf4b594a35c33f04f7e`  
+**Post-closure runtime baseline:** `455cbcb015b48e36b2bf570721d90cb6b5512280`
 
 ---
 
@@ -133,7 +134,7 @@ The M01 tactical hash implementation remains unchanged. M03 combines the tactica
 
 ## 4. Acceptance evidence
 
-Final PR acceptance run for `95b107e2fce0dd609a58eaf4b594a35c33f04f7e`:
+Final implementation PR acceptance run for `95b107e2fce0dd609a58eaf4b594a35c33f04f7e`:
 
 - **18 / 18 test files PASS**
 - **93 / 93 tests PASS**
@@ -152,6 +153,13 @@ M03 acceptance tests demonstrate:
 5. **Expansion value** — capturing remote territory, completing an Outpost, and building a remote Extractor increases strategic capacity and income.
 6. **Supply cuts matter** — loss of an intermediate region disconnects a remote region, removes its Outpost population-cap contribution, and reduces remote Extractor throughput.
 7. **Replay compatibility** — identical generated world + identical M03 strategic command stream produces identical combined tactical/economy state hashes and strategic snapshots.
+
+Post-closure browser-usability hotfixes #3 and #4 addressed two presentation issues found by human WebGL smoke:
+
+- generated-battlefield camera opening view/zoom range was too tight for the 128×128 world
+- starting units were initially packed close enough to the Elemental Core to be visually hidden by the Core model
+
+The final hotfix baseline `455cbcb015b48e36b2bf570721d90cb6b5512280` keeps deterministic starting units on separate walkable cells outside the Core footprint. Follow-up automated verification reached **19 / 19 test files PASS** and **96 / 96 tests PASS**, including representative generated-start formation regression coverage.
 
 ---
 
@@ -180,9 +188,16 @@ Expansion adds Material/Mana throughput and population capacity, while supply cu
 
 ## 7. Manual verification
 
-The automated suite, strict TypeScript build, and browser production bundle are sufficient to close the deterministic M03 systems milestone.
+Human WebGL smoke on the deployed GitHub Pages build is **PASS** as of 2026-09-06.
 
-One non-blocking human WebGL smoke remains useful after deployment: confirm that the generated battlefield, resource/build/production panel, newly trained units/buildings, territory-map tint, camera traversal, and M01 elemental shortcuts are visually usable together in the browser. Any presentation-only issue found there may be fixed without reopening M03 unless it reveals an authoritative simulation regression.
+Verified after the post-closure usability hotfixes:
+
+- generated battlefield renders in browser
+- M03 economy/territory UI is present
+- camera opens at a usable generated-battlefield scale
+- six starting player units are visibly separated around the Elemental Core rather than hidden by it
+
+This clears the remaining M03 visual smoke item. Further presentation polish may continue in later milestones without reopening M03 unless an authoritative simulation regression is discovered.
 
 ---
 
