@@ -231,6 +231,36 @@ describe('M06 full run', () => {
     expect(divergentReplay.snapshot().stateHash).not.toBe(tampered.finalStateHash);
   }, 15_000);
 
+  it('defers replay commands until their authoritative target tick', () => {
+    const world = generateWorld(1_000_008);
+    const options = {
+      mode: 'DESTROY' as const,
+      pace: 'SMOKE' as const,
+      difficulty: 'CASUAL' as const,
+    };
+    const source = new M06Simulation(world, options);
+    source.enqueueCommand({
+      targetTick: 5,
+      playerId: 0,
+      type: 'CAST',
+      effectId: 'FIRE',
+      targetX: 0,
+      targetZ: 0,
+      radius: 1_000,
+    });
+    for (let tick = 1; tick <= 5; tick += 1) source.step();
+    const packet = source.replayCheckpointPacket();
+
+    const replay = new M06Simulation(world, options);
+    replay.loadReplay(packet);
+    expect(replay.snapshot().queuedCommandCount).toBe(0);
+    for (let tick = 1; tick < 5; tick += 1) replay.step();
+    expect(replay.snapshot().replayVerification).toBe('PENDING');
+    replay.step();
+    expect(replay.snapshot().replayVerification).toBe('MATCH');
+    expect(replay.snapshot().stateHash).toBe(packet.finalStateHash);
+  });
+
   it('aligns standard five-act and world-event pacing with the intended run envelope', () => {
     expect(phaseForTick(0, 'STANDARD')).toBe('DISCOVERY');
     expect(phaseForTick(3_000, 'STANDARD')).toBe('COMMITMENT');
