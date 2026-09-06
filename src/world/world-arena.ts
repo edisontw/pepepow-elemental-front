@@ -1,6 +1,7 @@
 import {
   WORLD_UNITS_PER_METER,
   type ArenaDefinition,
+  type ArenaZone,
   type TraversalCellKind,
   type TraversalPatch,
 } from '../simulation/arena';
@@ -49,6 +50,27 @@ function rowRunPatches(
   return patches;
 }
 
+function patchToZone(world: GeneratedWorld, patch: TraversalPatch, kind: ArenaZone['kind'], suffix = ''): ArenaZone {
+  const widthCells = patch.maxColumn - patch.minColumn + 1;
+  const depthCells = patch.maxRow - patch.minRow + 1;
+  const centerCell = {
+    x: patch.minColumn + (widthCells - 1) / 2,
+    z: patch.minRow + (depthCells - 1) / 2,
+  };
+  return {
+    id: `${patch.id}${suffix}`,
+    kind,
+    centerX: originCoordinate(world.width) + Math.round((centerCell.x + 0.5) * CELL_SIZE),
+    centerZ: originCoordinate(world.height) + Math.round((centerCell.z + 0.5) * CELL_SIZE),
+    width: widthCells * CELL_SIZE,
+    depth: depthCells * CELL_SIZE,
+  };
+}
+
+function patchArea(patch: TraversalPatch): number {
+  return (patch.maxColumn - patch.minColumn + 1) * (patch.maxRow - patch.minRow + 1);
+}
+
 function spawnArmy(world: GeneratedWorld, playerId: number, spawnId: 'PLAYER' | 'ENEMY'): UnitSpawn[] {
   const spawn = world.spawns.find((candidate) => candidate.id === spawnId);
   if (!spawn) throw new Error(`Generated world is missing ${spawnId} spawn.`);
@@ -93,13 +115,24 @@ export function generatedWorldToArena(world: GeneratedWorld): ArenaDefinition {
 
   const width = world.width * CELL_SIZE;
   const depth = world.height * CELL_SIZE;
+  const showcaseWater = [...blockedWater].sort((left, right) => patchArea(right) - patchArea(left))[0];
+  const forestZones = [...vegetation]
+    .sort((left, right) => patchArea(right) - patchArea(left) || left.id.localeCompare(right.id))
+    .slice(0, 8)
+    .map((patch) => patchToZone(world, patch, 'FOREST'));
+  const zones: ArenaZone[] = [
+    { id: 'generated-ground', kind: 'NORMAL_GROUND', centerX: 0, centerZ: 0, width, depth },
+    ...blockedWater.map((patch) => patchToZone(world, patch, 'RIVER')),
+    ...naturalCrossings.map((patch) => patchToZone(world, patch, 'NATURAL_CROSSING')),
+    ...forestZones,
+  ];
+  if (showcaseWater) zones.push(patchToZone(world, showcaseWater, 'FREEZABLE_CROSSING', '-elemental-test'));
+
   return {
     id: `generated-${world.identity.rulesetVersion}-${world.identity.blockHeight}-${world.generationAttempt}`,
     width,
     depth,
-    zones: [
-      { id: 'generated-ground', kind: 'NORMAL_GROUND', centerX: 0, centerZ: 0, width, depth },
-    ],
+    zones,
     traversal: {
       originX: originCoordinate(world.width),
       originZ: originCoordinate(world.height),
