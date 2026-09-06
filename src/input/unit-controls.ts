@@ -22,6 +22,7 @@ export class UnitControls {
     private readonly selectionBox: HTMLElement,
   ) {
     canvas.addEventListener('pointerdown', this.onPointerDown);
+    canvas.addEventListener('contextmenu', this.onContextMenu);
     window.addEventListener('pointermove', this.onPointerMove);
     window.addEventListener('pointerup', this.onPointerUp);
     window.addEventListener('keydown', this.onKeyDown);
@@ -33,6 +34,7 @@ export class UnitControls {
 
   destroy(): void {
     this.canvas.removeEventListener('pointerdown', this.onPointerDown);
+    this.canvas.removeEventListener('contextmenu', this.onContextMenu);
     window.removeEventListener('pointermove', this.onPointerMove);
     window.removeEventListener('pointerup', this.onPointerUp);
     window.removeEventListener('keydown', this.onKeyDown);
@@ -41,7 +43,7 @@ export class UnitControls {
   private readonly onPointerDown = (event: PointerEvent): void => {
     if (event.button === 2) {
       event.preventDefault();
-      this.enqueueMove(event.clientX, event.clientY);
+      this.enqueueContextOrder(event.clientX, event.clientY);
       return;
     }
     if (event.button !== 0) return;
@@ -69,7 +71,7 @@ export class UnitControls {
     const end = this.toCanvasCoordinates(this.currentClientX, this.currentClientY);
     if (this.dragDistance() < DRAG_THRESHOLD) {
       const entityId = this.bridge.pickSingle(this.camera, end.x, end.y);
-      this.replaceSelection(entityId === null ? [] : [entityId]);
+      this.replaceSelection(entityId !== null && this.bridge.isControllable(entityId) ? [entityId] : []);
     } else {
       this.replaceSelection(this.bridge.pickBox(
         this.camera,
@@ -99,9 +101,22 @@ export class UnitControls {
     this.bridge.setSelected(this.selectedIds);
   }
 
-  private enqueueMove(clientX: number, clientY: number): void {
+  private readonly onContextMenu = (event: MouseEvent): void => { event.preventDefault(); };
+
+  private enqueueContextOrder(clientX: number, clientY: number): void {
     if (this.selectedIds.size === 0) return;
     const screen = this.toCanvasCoordinates(clientX, clientY);
+    const picked = this.bridge.pickSingle(this.camera, screen.x, screen.y);
+    if (picked !== null && this.bridge.isEnemy(picked)) {
+      this.simulation.enqueueCommand({
+        targetTick: this.simulation.snapshot().tick + 1,
+        playerId: 0,
+        type: 'ATTACK',
+        entityIds: [...this.selectedIds].sort((first, second) => first - second),
+        targetEntityId: picked,
+      });
+      return;
+    }
     const near = this.camera.screenToWorld(screen.x, screen.y, this.camera.nearClip);
     const far = this.camera.screenToWorld(screen.x, screen.y, this.camera.farClip);
     const verticalDelta = far.y - near.y;

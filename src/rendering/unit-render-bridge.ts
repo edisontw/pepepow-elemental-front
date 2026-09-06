@@ -6,6 +6,7 @@ import type { EntitySnapshot, SimulationSnapshot } from '../simulation/simulatio
 interface UnitPresentation {
   body: pc.Entity;
   selection: pc.Entity;
+  healthBar: pc.Entity;
 }
 
 function snapshotMap(snapshot: SimulationSnapshot): Map<EntityID, EntitySnapshot> {
@@ -14,18 +15,23 @@ function snapshotMap(snapshot: SimulationSnapshot): Map<EntityID, EntitySnapshot
 
 export class UnitRenderBridge {
   private readonly units = new Map<EntityID, UnitPresentation>();
+  private latest = new Map<EntityID, EntitySnapshot>();
   private readonly screenPosition = new pc.Vec3();
 
   constructor(
     app: pc.Application,
     initialSnapshot: SimulationSnapshot,
-    unitMaterial: pc.Material,
+    unitMaterials: { player: pc.Material; enemyMelee: pc.Material; enemyRanged: pc.Material },
     selectionMaterial: pc.Material,
+    healthMaterial: pc.Material,
   ) {
     for (const unit of initialSnapshot.entities) {
       const body = new pc.Entity(`Unit ${unit.id}`);
-      body.addComponent('render', { type: 'capsule', material: unitMaterial });
-      body.setLocalScale(0.72, 1.15, 0.72);
+      const material = unit.playerId === 0
+        ? unitMaterials.player
+        : unit.archetype === 'RANGER' ? unitMaterials.enemyRanged : unitMaterials.enemyMelee;
+      body.addComponent('render', { type: unit.archetype === 'RANGER' ? 'box' : 'capsule', material });
+      body.setLocalScale(unit.archetype === 'RANGER' ? 0.9 : 0.72, 1.15, unit.archetype === 'RANGER' ? 0.9 : 0.72);
       app.root.addChild(body);
 
       const selection = new pc.Entity(`Selection ${unit.id}`);
@@ -33,27 +39,38 @@ export class UnitRenderBridge {
       selection.setLocalScale(1.2, 0.035, 1.2);
       selection.enabled = false;
       app.root.addChild(selection);
-      this.units.set(unit.id, { body, selection });
+      const healthBar = new pc.Entity(`Health ${unit.id}`);
+      healthBar.addComponent('render', { type: 'box', material: healthMaterial });
+      app.root.addChild(healthBar);
+      this.units.set(unit.id, { body, selection, healthBar });
     }
     this.sync(initialSnapshot, initialSnapshot, 1);
   }
 
   sync(previous: SimulationSnapshot, current: SimulationSnapshot, alpha: number): void {
+    this.latest = snapshotMap(current);
     const previousById = snapshotMap(previous);
     for (const unit of current.entities) {
       const presentation = this.units.get(unit.id);
       if (!presentation) continue;
+      presentation.body.enabled = unit.alive;
+      presentation.selection.enabled = unit.alive && presentation.selection.enabled;
+      presentation.healthBar.enabled = unit.alive;
+      if (!unit.alive) continue;
       const prior = previousById.get(unit.id) ?? unit;
       const x = pc.math.lerp(prior.x, unit.x, alpha) / WORLD_UNITS_PER_METER;
       const z = pc.math.lerp(prior.z, unit.z, alpha) / WORLD_UNITS_PER_METER;
       presentation.body.setPosition(x, 0.78, z);
       presentation.selection.setPosition(x, 0.07, z);
+      const healthRatio = unit.currentHealth / unit.maxHealth;
+      presentation.healthBar.setPosition(x - (1 - healthRatio) * 0.55, 2.05, z);
+      presentation.healthBar.setLocalScale(1.1 * healthRatio, 0.11, 0.12);
     }
   }
 
   setSelected(entityIds: ReadonlySet<EntityID>): void {
     for (const [entityId, presentation] of this.units) {
-      presentation.selection.enabled = entityIds.has(entityId);
+      presentation.selection.enabled = entityIds.has(entityId) && this.latest.get(entityId)?.alive === true;
     }
   }
 
@@ -61,6 +78,7 @@ export class UnitRenderBridge {
     let bestId: EntityID | null = null;
     let bestDistanceSquared = maxDistance * maxDistance;
     for (const [entityId, presentation] of this.units) {
+      if (!this.latest.get(entityId)?.alive) continue;
       camera.worldToScreen(presentation.body.getPosition(), this.screenPosition);
       if (this.screenPosition.z < 0) continue;
       const deltaX = this.screenPosition.x - screenX;
@@ -77,6 +95,8 @@ export class UnitRenderBridge {
   pickBox(camera: pc.CameraComponent, left: number, top: number, right: number, bottom: number): EntityID[] {
     const selected: EntityID[] = [];
     for (const [entityId, presentation] of this.units) {
+      const state = this.latest.get(entityId);
+      if (!state?.alive || state.playerId !== 0) continue;
       camera.worldToScreen(presentation.body.getPosition(), this.screenPosition);
       if (
         this.screenPosition.z >= 0
@@ -91,10 +111,21 @@ export class UnitRenderBridge {
     return selected.sort((first, second) => first - second);
   }
 
+  isControllable(entityId: EntityID): boolean {
+    const entity = this.latest.get(entityId);
+    return entity?.alive === true && entity.playerId === 0;
+  }
+
+  isEnemy(entityId: EntityID): boolean {
+    const entity = this.latest.get(entityId);
+    return entity?.alive === true && entity.playerId !== 0;
+  }
+
   destroy(): void {
     for (const presentation of this.units.values()) {
       presentation.body.destroy();
       presentation.selection.destroy();
+      presentation.healthBar.destroy();
     }
     this.units.clear();
   }

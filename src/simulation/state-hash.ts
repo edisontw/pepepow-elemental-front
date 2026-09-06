@@ -15,10 +15,11 @@ function hashInteger(hash: number, value: number): number {
   return result >>> 0;
 }
 
-export function computeStateHash(tick: number, rngState: number, entities: EntityStore): string {
+export function computeStateHash(tick: number, rngState: number, navVersion: number, entities: EntityStore): string {
   let hash = FNV_OFFSET;
   hash = hashInteger(hash, tick);
   hash = hashInteger(hash, rngState);
+  hash = hashInteger(hash, navVersion);
 
   for (const entityId of entities.entityIds()) {
     hash = hashEntity(hash, entityId, entities);
@@ -32,7 +33,9 @@ function hashEntity(hash: number, entityId: EntityID, entities: EntityStore): nu
   const movement = entities.movements.get(entityId);
   const faction = entities.factions.get(entityId);
   const selectable = entities.selectables.get(entityId);
-  if (!position || !movement || !faction || !selectable) {
+  const health = entities.health.get(entityId);
+  const combat = entities.combat.get(entityId);
+  if (!position || !movement || !faction || !selectable || !health || !combat) {
     throw new Error(`Entity ${entityId} is missing a required M01 component.`);
   }
 
@@ -42,6 +45,25 @@ function hashEntity(hash: number, entityId: EntityID, entities: EntityStore): nu
   result = hashInteger(result, movement.speedPerTick);
   result = hashInteger(result, movement.targetX ?? NULL_TARGET);
   result = hashInteger(result, movement.targetZ ?? NULL_TARGET);
+  result = hashInteger(result, movement.pathIndex);
+  result = hashInteger(result, movement.pathNavVersion);
+  result = hashInteger(result, movement.path.length);
+  for (const waypoint of movement.path) {
+    result = hashInteger(result, waypoint.x);
+    result = hashInteger(result, waypoint.z);
+  }
   result = hashInteger(result, faction.playerId);
-  return hashInteger(result, selectable.radius);
+  result = hashInteger(result, selectable.radius);
+  result = hashInteger(result, health.current);
+  result = hashInteger(result, health.max);
+  result = hashInteger(result, health.alive ? 1 : 0);
+  result = hashInteger(result, combat.attackDamage);
+  result = hashInteger(result, combat.attackIntervalTicks);
+  result = hashInteger(result, combat.attackRange);
+  result = hashInteger(result, combat.nextAttackTick);
+  result = hashInteger(result, combat.targetEntityId ?? NULL_TARGET);
+  if (combat.pursuitTargetCellKey === null) return hashInteger(result, NULL_TARGET);
+  result = hashInteger(result, combat.pursuitTargetCellKey.length);
+  for (const codePoint of combat.pursuitTargetCellKey) result = hashInteger(result, codePoint.charCodeAt(0));
+  return result;
 }

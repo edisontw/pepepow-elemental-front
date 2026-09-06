@@ -16,7 +16,12 @@ export interface StopCommand extends CommandBase {
   type: 'STOP';
 }
 
-export type GameCommand = MoveCommand | StopCommand;
+export interface AttackCommand extends CommandBase {
+  type: 'ATTACK';
+  targetEntityId: EntityID;
+}
+
+export type GameCommand = MoveCommand | StopCommand | AttackCommand;
 
 interface QueuedCommand {
   command: GameCommand;
@@ -35,9 +40,13 @@ function normalizeCommand(command: GameCommand): GameCommand {
     playerId: command.playerId,
     entityIds: normalizeEntityIds(command.entityIds),
   };
-  return command.type === 'MOVE'
-    ? { ...base, type: 'MOVE', targetX: Math.round(command.targetX), targetZ: Math.round(command.targetZ) }
-    : { ...base, type: 'STOP' };
+  if (command.type === 'MOVE') {
+    return { ...base, type: 'MOVE', targetX: Math.round(command.targetX), targetZ: Math.round(command.targetZ) };
+  }
+  if (command.type === 'ATTACK') {
+    return { ...base, type: 'ATTACK', targetEntityId: command.targetEntityId };
+  }
+  return { ...base, type: 'STOP' };
 }
 
 export class CommandQueue {
@@ -56,6 +65,9 @@ export class CommandQueue {
       && (!Number.isSafeInteger(command.targetX) || !Number.isSafeInteger(command.targetZ))
     ) {
       throw new Error('MOVE target coordinates must be safe integers.');
+    }
+    if (command.type === 'ATTACK' && (!Number.isSafeInteger(command.targetEntityId) || command.targetEntityId <= 0)) {
+      throw new Error('ATTACK targetEntityId must be a positive safe integer.');
     }
     this.commands.push({
       command: normalizeCommand(command),

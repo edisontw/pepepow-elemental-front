@@ -1,6 +1,8 @@
 import type {
+  CombatComponent,
   EntityID,
   FactionComponent,
+  HealthComponent,
   MovementComponent,
   PositionComponent,
   SelectableComponent,
@@ -12,6 +14,9 @@ export class EntityStore {
   readonly movements = new Map<EntityID, MovementComponent>();
   readonly factions = new Map<EntityID, FactionComponent>();
   readonly selectables = new Map<EntityID, SelectableComponent>();
+  readonly health = new Map<EntityID, HealthComponent>();
+  readonly combat = new Map<EntityID, CombatComponent>();
+  readonly archetypes = new Map<EntityID, UnitSpawn['archetype']>();
 
   private nextEntityId = 1;
 
@@ -23,9 +28,22 @@ export class EntityStore {
       speedPerTick: Math.round(spawn.speedPerTick),
       targetX: null,
       targetZ: null,
+      path: [],
+      pathIndex: 0,
+      pathNavVersion: 0,
     });
     this.factions.set(entityId, { playerId: spawn.playerId });
     this.selectables.set(entityId, { radius: Math.round(spawn.selectionRadius) });
+    this.health.set(entityId, { current: spawn.maxHealth, max: spawn.maxHealth, alive: true });
+    this.combat.set(entityId, {
+      attackDamage: spawn.attackDamage,
+      attackIntervalTicks: spawn.attackIntervalTicks,
+      attackRange: spawn.attackRange,
+      nextAttackTick: 0,
+      targetEntityId: null,
+      pursuitTargetCellKey: null,
+    });
+    this.archetypes.set(entityId, spawn.archetype);
     return entityId;
   }
 
@@ -33,7 +51,9 @@ export class EntityStore {
     return this.positions.has(entityId)
       && this.movements.has(entityId)
       && this.factions.has(entityId)
-      && this.selectables.has(entityId);
+      && this.selectables.has(entityId)
+      && this.health.get(entityId)?.alive === true
+      && this.combat.has(entityId);
   }
 
   entityIds(): EntityID[] {

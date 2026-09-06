@@ -32,4 +32,12 @@ describe('CommandQueue', () => {
     };
     expect(makeQueue()).toEqual(makeQueue());
   });
+
+  it('normalizes ATTACK attackers while preserving the target entity', () => {
+    const queue = new CommandQueue();
+    queue.enqueue({ targetTick: 2, playerId: 0, type: 'ATTACK', entityIds: [4, 1, 4, 2], targetEntityId: 17 });
+    expect(queue.drainForTick(2)[0]).toEqual({
+      targetTick: 2, playerId: 0, type: 'ATTACK', entityIds: [1, 2, 4], targetEntityId: 17,
+    });
+  });
 });

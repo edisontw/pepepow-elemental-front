@@ -51,6 +51,9 @@ function renderZone(app: pc.Application, zone: ArenaZone, materials: Record<stri
   } else if (zone.kind === 'FREEZABLE_CROSSING') {
     position.y = 0.045;
     addPrimitive(app, 'plane', 'Future Freezable Crossing', position, scale, materials.crossing!);
+  } else if (zone.kind === 'NATURAL_CROSSING') {
+    position.y = 0.08;
+    addPrimitive(app, 'box', 'Natural Crossing', position, new pc.Vec3(scale.x, 0.12, scale.z), materials.bridge!);
   } else if (zone.kind === 'FOREST') {
     addPrimitive(app, 'box', `Forest Floor ${zone.id}`, new pc.Vec3(position.x, 0.08, position.z), new pc.Vec3(scale.x, 0.12, scale.z), materials.forest!);
     for (let index = 0; index < 7; index += 1) {
@@ -66,6 +69,8 @@ function renderZone(app: pc.Application, zone: ArenaZone, materials: Record<stri
     const wallWidth = scale.x / 2 - halfGap;
     addPrimitive(app, 'box', 'Chokepoint West Wall', new pc.Vec3(position.x - (scale.x + halfGap * 2) / 4, 0.65, position.z), new pc.Vec3(wallWidth, 1.3, scale.z), materials.rock!);
     addPrimitive(app, 'box', 'Chokepoint East Wall', new pc.Vec3(position.x + (scale.x + halfGap * 2) / 4, 0.65, position.z), new pc.Vec3(wallWidth, 1.3, scale.z), materials.rock!);
+  } else if (zone.kind === 'BLOCKED_TERRAIN') {
+    addPrimitive(app, 'box', `Blocked Terrain ${zone.id}`, new pc.Vec3(position.x, 0.65, position.z), new pc.Vec3(scale.x, 1.3, scale.z), materials.rock!);
   }
 }
 
@@ -98,6 +103,7 @@ export function createSceneShell(
     ground: createMaterial(new pc.Color(0.13, 0.23, 0.16)),
     river: createMaterial(new pc.Color(0.06, 0.25, 0.42), new pc.Color(0.01, 0.08, 0.16)),
     crossing: createMaterial(new pc.Color(0.24, 0.72, 0.82), new pc.Color(0.06, 0.28, 0.34), 0.58),
+    bridge: createMaterial(new pc.Color(0.45, 0.32, 0.18)),
     forest: createMaterial(new pc.Color(0.08, 0.24, 0.10)),
     trunk: createMaterial(new pc.Color(0.22, 0.13, 0.07)),
     canopy: createMaterial(new pc.Color(0.08, 0.34, 0.13)),
@@ -126,9 +132,14 @@ export function createSceneShell(
   const cameraComponent = cameraEntity.camera;
   if (!cameraComponent) throw new Error('RTS camera component failed to initialize.');
 
-  const unitMaterial = createMaterial(new pc.Color(0.18, 0.68, 0.61), new pc.Color(0.02, 0.2, 0.16));
+  const unitMaterials = {
+    player: createMaterial(new pc.Color(0.18, 0.68, 0.61), new pc.Color(0.02, 0.2, 0.16)),
+    enemyMelee: createMaterial(new pc.Color(0.78, 0.18, 0.15), new pc.Color(0.24, 0.02, 0.01)),
+    enemyRanged: createMaterial(new pc.Color(0.82, 0.43, 0.12), new pc.Color(0.22, 0.08, 0.01)),
+  };
   const selectionMaterial = createMaterial(new pc.Color(0.96, 0.78, 0.2), new pc.Color(0.55, 0.32, 0.03));
-  const bridge = new UnitRenderBridge(app, simulation.snapshot(), unitMaterial, selectionMaterial);
+  const healthMaterial = createMaterial(new pc.Color(0.18, 0.9, 0.25), new pc.Color(0.03, 0.2, 0.04));
+  const bridge = new UnitRenderBridge(app, simulation.snapshot(), unitMaterials, selectionMaterial, healthMaterial);
   const controls = new UnitControls(canvas, cameraComponent, simulation, bridge, selectionBox);
 
   const onResize = (): void => {
