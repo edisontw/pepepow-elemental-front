@@ -9,6 +9,7 @@
 
 html, body, #app { width: 100%; height: 100%; margin: 0; overflow: hidden; }
 body { min-width: 320px; }
+button { font: inherit; }
 
 #game-canvas { display: block; width: 100%; height: 100%; }
 
@@ -32,13 +33,15 @@ body { min-width: 320px; }
   top: 1rem;
   left: 1rem;
   min-width: 15rem;
+  max-height: 38vh;
+  overflow: hidden;
   padding: .8rem 1rem;
   border: 1px solid rgba(122, 223, 196, .24);
   border-radius: .35rem;
   background: rgba(4, 13, 12, .82);
   box-shadow: 0 1rem 3rem rgba(0, 0, 0, .26);
   backdrop-filter: blur(10px);
-  font: 600 .75rem/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font: 600 .7rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   letter-spacing: .025em;
   pointer-events: none;
 }
@@ -75,17 +78,59 @@ body { min-width: 320px; }
 }
 #world-debug-summary { margin: 0; color: #dceee8; white-space: pre-wrap; }
 
+#strategy-panel {
+  position: fixed;
+  left: 1rem;
+  bottom: 3.5rem;
+  width: min(38rem, calc(100vw - 2rem));
+  max-height: 48vh;
+  overflow: auto;
+  padding: .75rem;
+  border: 1px solid rgba(105, 217, 189, .3);
+  border-radius: .4rem;
+  background: rgba(4, 13, 12, .9);
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, .28);
+  backdrop-filter: blur(10px);
+  color: #cfe4de;
+  font-size: .72rem;
+}
+
+.strategy-title { color: #65d9bd; font-weight: 800; letter-spacing: .1em; margin-bottom: .5rem; }
+.resource-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: .35rem; margin-bottom: .45rem; }
+.resource-strip b { display: grid; padding: .38rem .45rem; border-radius: .28rem; background: rgba(255,255,255,.055); font-size: .88rem; }
+.resource-strip span { color: #78928e; font-size: .58rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.strategy-meta { margin-bottom: .55rem; color: #92aaa4; font: 600 .64rem/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.strategy-section { margin-top: .5rem; }
+.strategy-section > strong { display: block; margin-bottom: .25rem; color: #dceee8; font-size: .66rem; text-transform: uppercase; letter-spacing: .08em; }
+.strategy-buttons { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .28rem; }
+.strategy-buttons.compact { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.strategy-buttons button {
+  min-height: 2.15rem;
+  padding: .32rem .38rem;
+  border: 1px solid rgba(105, 217, 189, .2);
+  border-radius: .28rem;
+  background: rgba(25, 73, 62, .65);
+  color: #dceee8;
+  cursor: pointer;
+  font-size: .64rem;
+  line-height: 1.15;
+}
+.strategy-buttons button:hover { background: rgba(35, 105, 88, .82); border-color: rgba(105, 217, 189, .52); }
+.strategy-buttons button:active { transform: translateY(1px); }
+.strategy-buttons small { display: block; margin-top: .12rem; color: #89a49e; font-size: .54rem; }
+.strategy-message { margin-top: .6rem; padding-top: .5rem; border-top: 1px solid rgba(255,255,255,.08); color: #f0d982; font: 600 .64rem/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
 #camera-help {
   position: fixed;
   right: 1rem;
   bottom: 1rem;
-  max-width: min(55rem, calc(100vw - 2rem));
+  max-width: min(58rem, calc(100vw - 2rem));
   padding: .55rem .75rem;
   border: 1px solid rgba(255, 255, 255, .1);
   border-radius: .35rem;
   background: rgba(4, 13, 12, .76);
   color: #a9bfba;
-  font-size: .8rem;
+  font-size: .75rem;
   pointer-events: none;
 }
 
@@ -136,10 +181,18 @@ body { min-width: 320px; }
   white-space: pre-wrap;
 }
 
+@media (max-width: 1000px) {
+  #strategy-panel { width: min(32rem, calc(100vw - 2rem)); }
+  .strategy-buttons { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .strategy-buttons.compact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
 @media (max-width: 800px) {
-  #debug-overlay { top: .5rem; left: .5rem; min-width: 12.5rem; }
+  #debug-overlay { top: .5rem; left: .5rem; min-width: 12.5rem; max-height: 28vh; }
   #world-debug { top: .5rem; right: .5rem; width: 13.4rem; }
   #world-debug-canvas { width: 12rem; height: 12rem; }
+  #strategy-panel { left: .5rem; bottom: 3.25rem; width: calc(100vw - 1rem); max-height: 42vh; }
+  .resource-strip { grid-template-columns: repeat(2, 1fr); }
   #arena-legend { display: none; }
-  #camera-help { right: .5rem; bottom: .5rem; left: .5rem; text-align: center; }
+  #camera-help { right: .5rem; bottom: .5rem; left: .5rem; text-align: center; font-size: .65rem; }
 }
