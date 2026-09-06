@@ -10,6 +10,16 @@ import { STARTING_ENEMY_ARCHETYPES, STARTING_PLAYER_ARCHETYPES, UNITS } from '..
 import { BiomeType, TerrainType, WorldCellFlag, type GeneratedWorld, type GridPoint } from './world-definition';
 
 const CELL_SIZE = WORLD_UNITS_PER_METER;
+const MIN_CORE_CLEARANCE_CELLS = 3;
+const FORMATION_SEARCH_RADIUS = 7;
+const FORMATION_OFFSETS: readonly GridPoint[] = [
+  { x: -4, z: -3 },
+  { x: 0, z: -4 },
+  { x: 4, z: -3 },
+  { x: -4, z: 3 },
+  { x: 0, z: 4 },
+  { x: 4, z: 3 },
+];
 
 function originCoordinate(cellCount: number): number {
   return -Math.floor((cellCount * CELL_SIZE) / 2);
@@ -71,45 +81,52 @@ function patchArea(patch: TraversalPatch): number {
   return (patch.maxColumn - patch.minColumn + 1) * (patch.maxRow - patch.minRow + 1);
 }
 
-function nearbyWalkableSpawnCells(world: GeneratedWorld, center: GridPoint, regionId: number, count: number): GridPoint[] {
-  const candidates: GridPoint[] = [];
+function squaredCellDistance(left: GridPoint, right: GridPoint): number {
+  const dx = left.x - right.x;
+  const dz = left.z - right.z;
+  return dx * dx + dz * dz;
+}
+
+function formationSpawnCells(world: GeneratedWorld, center: GridPoint, regionId: number, count: number): GridPoint[] {
+  const sameRegion: GridPoint[] = [];
   const fallback: GridPoint[] = [];
-  const radius = 4;
-  for (let z = Math.max(0, center.z - radius); z <= Math.min(world.height - 1, center.z + radius); z += 1) {
-    for (let x = Math.max(0, center.x - radius); x <= Math.min(world.width - 1, center.x + radius); x += 1) {
+  const minClearanceSquared = MIN_CORE_CLEARANCE_CELLS * MIN_CORE_CLEARANCE_CELLS;
+  for (let z = Math.max(0, center.z - FORMATION_SEARCH_RADIUS); z <= Math.min(world.height - 1, center.z + FORMATION_SEARCH_RADIUS); z += 1) {
+    for (let x = Math.max(0, center.x - FORMATION_SEARCH_RADIUS); x <= Math.min(world.width - 1, center.x + FORMATION_SEARCH_RADIUS); x += 1) {
+      const point = { x, z };
+      if (squaredCellDistance(point, center) < minClearanceSquared) continue;
       const index = z * world.width + x;
       if (((world.flags[index] ?? 0) & WorldCellFlag.WALKABLE) === 0) continue;
-      const point = { x, z };
       fallback.push(point);
-      if (world.regionByCell[index] === regionId) candidates.push(point);
+      if (world.regionByCell[index] === regionId) sameRegion.push(point);
     }
   }
-  const order = (left: GridPoint, right: GridPoint): number => {
-    const leftDx = left.x - center.x;
-    const leftDz = left.z - center.z;
-    const rightDx = right.x - center.x;
-    const rightDz = right.z - center.z;
-    return (leftDx * leftDx + leftDz * leftDz) - (rightDx * rightDx + rightDz * rightDz)
+
+  const selected: GridPoint[] = [];
+  const preferredOffsets = FORMATION_OFFSETS.slice(0, count);
+  for (let slot = 0; slot < count; slot += 1) {
+    const preferred = preferredOffsets[slot] ?? FORMATION_OFFSETS[slot % FORMATION_OFFSETS.length] ?? { x: 4, z: 0 };
+    const target = { x: center.x + preferred.x, z: center.z + preferred.z };
+    const rank = (left: GridPoint, right: GridPoint): number => (
+      squaredCellDistance(left, target) - squaredCellDistance(right, target)
+      || squaredCellDistance(left, center) - squaredCellDistance(right, center)
       || left.z - right.z
-      || left.x - right.x;
-  };
-  candidates.sort(order);
-  fallback.sort(order);
-  const selected = [...candidates];
-  for (const point of fallback) {
-    if (selected.length >= count) break;
-    if (selected.some((candidate) => candidate.x === point.x && candidate.z === point.z)) continue;
-    selected.push(point);
+      || left.x - right.x
+    );
+    const candidate = [...sameRegion, ...fallback]
+      .filter((point) => !selected.some((used) => used.x === point.x && used.z === point.z))
+      .sort(rank)[0];
+    if (!candidate) throw new Error(`Generated ${regionId} spawn region lacks ${count} visible formation cells.`);
+    selected.push(candidate);
   }
-  if (selected.length < count) throw new Error(`Generated ${regionId} spawn region lacks ${count} nearby walkable cells.`);
-  return selected.slice(0, count);
+  return selected;
 }
 
 function spawnArmy(world: GeneratedWorld, playerId: number, spawnId: 'PLAYER' | 'ENEMY'): UnitSpawn[] {
   const spawn = world.spawns.find((candidate) => candidate.id === spawnId);
   if (!spawn) throw new Error(`Generated world is missing ${spawnId} spawn.`);
   const archetypes = spawnId === 'PLAYER' ? STARTING_PLAYER_ARCHETYPES : STARTING_ENEMY_ARCHETYPES;
-  const cells = nearbyWalkableSpawnCells(world, spawn.cell, spawn.regionId, archetypes.length);
+  const cells = formationSpawnCells(world, spawn.cell, spawn.regionId, archetypes.length);
   return archetypes.map((archetype, index) => {
     const definition = UNITS[archetype];
     const cell = cells[index] ?? spawn.cell;
