@@ -570,7 +570,7 @@ export function generateWorldAttempt(
     enemyRng,
     bossRng,
   );
-  const layers = {
+  const layers: GenerationLayers = {
     elevation,
     moisture: biomeLayer.moisture,
     terrain,
