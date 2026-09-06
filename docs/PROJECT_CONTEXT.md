@@ -3,7 +3,8 @@
 **Project status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 CLOSED → M04 OPEN  
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
-**M03 acceptance head:** `95b107e2fce0dd609a58eaf4b594a35c33f04f7e`  
+**M03 implementation acceptance head:** `95b107e2fce0dd609a58eaf4b594a35c33f04f7e`  
+**M03 post-closure runtime baseline:** `455cbcb015b48e36b2bf570721d90cb6b5512280`  
 **M03 closure report:** `docs/milestones/M03_CLOSURE_REPORT.md`
 
 ---
@@ -101,8 +102,11 @@ Permanent baseline now includes:
 - resource/build/production/capture browser UI
 - dynamic trained-unit and building presentation
 - territory/supply debug visualization
+- generated-battlefield camera scaling and deterministic starting formations kept outside the Elemental Core footprint
 
-Final M03 PR acceptance: **18 files / 93 tests PASS**, M03 **5 / 5 PASS**, M02 2,048-seed regression PASS, M01 regressions PASS, strict TypeScript PASS, production build PASS.
+Final M03 implementation PR acceptance: **18 files / 93 tests PASS**, M03 **5 / 5 PASS**, M02 2,048-seed regression PASS, M01 regressions PASS, strict TypeScript PASS, production build PASS.
+
+Post-closure WebGL usability hotfix baseline: `455cbcb015b48e36b2bf570721d90cb6b5512280`. Follow-up automated verification reached **19 files / 96 tests PASS**, and the human browser smoke on 2026-09-06 confirmed all six starting player units are visible around the Core: **PASS**.
 
 Closure: `docs/milestones/M03_CLOSURE_REPORT.md`.
 
@@ -170,7 +174,6 @@ M04 acceptance must demonstrate:
 - Final economy balance requires later full-run playtesting.
 - Advanced spell UX, polished VFX/audio, weather, steam, and complex terrain wetness remain later work.
 - PEPEPOW RPC integration remains deferred to M07; manual deterministic block input is sufficient.
-- One non-blocking human WebGL smoke of the combined M03 generated battlefield + strategic UI remains useful after deployment.
 
 ---
 
