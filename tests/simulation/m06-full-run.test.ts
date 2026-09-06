@@ -179,4 +179,54 @@ describe('M06 full run', () => {
     expect(packet?.commands[0]?.channel).toBe('GAME');
     expect(packet?.finalStateHash).toBe(simulation.snapshot().stateHash);
   }, 15_000);
+
+  it('replays a checkpoint to MATCH and flags a tampered command stream as DIVERGED', () => {
+    const world = generateWorld(1_000_006);
+    const options = {
+      mode: 'DESTROY' as const,
+      pace: 'SMOKE' as const,
+      faction: 'IRON_LEGION' as const,
+      difficulty: 'CASUAL' as const,
+    };
+    const source = new M06Simulation(world, options);
+    const playerIds = livingIds(source, 0);
+    source.enqueueCommand({
+      targetTick: 1,
+      playerId: 0,
+      type: 'MOVE',
+      entityIds: playerIds,
+      targetX: 12_000,
+      targetZ: 12_000,
+    });
+    for (let tick = 1; tick <= 120; tick += 1) source.step();
+    const packet = source.replayCheckpointPacket();
+    expect(packet.finalTick).toBe(120);
+    expect(packet.outcome).toBe('IN_PROGRESS');
+
+    const replay = new M06Simulation(world, options);
+    replay.loadReplay(packet);
+    for (let tick = 1; tick <= packet.finalTick; tick += 1) replay.step();
+    expect(replay.snapshot().replayVerification).toBe('MATCH');
+    expect(replay.snapshot().stateHash).toBe(packet.finalStateHash);
+
+    const tampered = {
+      ...packet,
+      commands: packet.commands.map((entry, index) => index === 0
+        ? {
+          channel: 'GAME' as const,
+          command: {
+            targetTick: 1,
+            playerId: 0,
+            type: 'STOP' as const,
+            entityIds: playerIds,
+          },
+        }
+        : entry),
+    };
+    const divergentReplay = new M06Simulation(world, options);
+    divergentReplay.loadReplay(tampered);
+    for (let tick = 1; tick <= tampered.finalTick; tick += 1) divergentReplay.step();
+    expect(divergentReplay.snapshot().replayVerification).toBe('DIVERGED');
+    expect(divergentReplay.snapshot().stateHash).not.toBe(tampered.finalStateHash);
+  }, 15_000);
 });
