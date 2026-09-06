@@ -1,10 +1,10 @@
 # PEPEPOW Elemental Front — PROJECT_CONTEXT
 
-**Project status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 OPEN  
+**Project status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 CLOSED → M04 OPEN  
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
-**M02 implementation merged to main:** `c26eecf5b324bd3e9ac4a09ca571a5522450ce21`  
-**M02 closure report:** `docs/milestones/M02_CLOSURE_REPORT.md`
+**M03 acceptance head:** `95b107e2fce0dd609a58eaf4b594a35c33f04f7e`  
+**M03 closure report:** `docs/milestones/M03_CLOSURE_REPORT.md`
 
 ---
 
@@ -19,7 +19,9 @@ Canonical files:
 3. `docs/TECH_ARCHITECTURE.md`
 4. `docs/ROADMAP.md`
 
-Historical milestone detail belongs in `docs/milestones/`. Do not rebuild context from old chat history when repository state is available.
+Historical milestone detail belongs in `docs/milestones/`. Do not reconstruct closed milestones from chat history when repository state is available.
+
+All repository content and current in-game/debug UI are English-only for now.
 
 ---
 
@@ -32,131 +34,130 @@ Do not change these without demonstrated technical or playtest need:
 - fixed simulation target: 10 Hz / 100 ms tick
 - ECS-style integer entity IDs and composition
 - deterministic gameplay RNG only; no uncontrolled `Math.random()` in authoritative paths
-- logically independent deterministic RNG streams
+- logically independent deterministic RNG streams; visual RNG must not perturb gameplay
 - command-stream replay and deterministic state hashes
+- integer/fixed-point arithmetic where replay-critical
 - typed-array/grid-oriented world data where practical
-- terrain state can change navigation and combat
+- deterministic system ordering
+- renderer/UI consume simulation state but never own gameplay truth
 - block height is a deterministic seed input, not an online dependency
 - local/practice play must not require blockchain RPC
-- gameplay remains data-driven where practical
-- renderer may read gameplay state but may not own gameplay truth
+- data-driven content with validated authoring structures where practical
+- generic tags/modifiers/triggers are preferred over deep inheritance or one-off effect logic
 
-All repository content and in-game/debug UI are English-only for now.
+Preferred modifier order from `TECH_ARCHITECTURE.md`:
+
+```text
+base
+→ unit modifier
+→ upgrade/shrine modifier
+→ terrain modifier
+→ status modifier
+→ final value
+```
+
+Ordering must remain deterministic.
 
 ---
 
-## 3. Closed milestones
+## 3. Closed milestone baseline
 
 ### M00 — Repository Bootstrap
 
-CLOSED. Tooling, PlayCanvas/Vite, tests, CI, fixed-tick simulation shell, deterministic RNG smoke, debug foundation, and asset conventions are established.
+CLOSED. Tooling, PlayCanvas/Vite, tests, CI, fixed-tick shell, deterministic RNG smoke, debug foundation, and asset conventions are established.
 
 ### M01 — Systemic Combat Foundation
 
-CLOSED. Do not redo.
-
-Permanent baseline includes:
-
-- 40-unit systemic arena
-- selection, control groups, MOVE / ATTACK / STOP
-- deterministic A* navigation and dynamic nav updates
-- combat, death, statuses, and fog baseline
-- Fire / Water / Ice / Lightning
-- Wet / Burning / Chilled / Frozen
-- Water → Ice walkability and Fire/heat → Water reversal
-- conductivity-driven deterministic lightning chaining
-- deterministic forest fire
-- command replay and authoritative state hashes
-- debug overlay and human-tested WebGL signature interaction
+CLOSED. Permanent tactical baseline includes selection/control groups, MOVE / ATTACK / STOP, deterministic navigation, combat, fog, Fire / Water / Ice / Lightning, Wet / Burning / Chilled / Frozen, dynamic navigation, command replay, and tactical state hashes. Do not redo.
 
 Closure: `docs/milestones/M01_CLOSURE_REPORT.md`.
 
 ### M02 — Procedural Battlefield
 
-CLOSED. Do not redo.
-
-Permanent baseline includes:
-
-- ruleset-bound `WorldIdentity` from namespace + ruleset version + block height
-- independent deterministic worldgen RNG streams
-- 128×128 typed-array generated-world model
-- elevation, hydrology, crossings, biome/moisture
-- 12 strategic regions and connected route graph
-- Material/Mana resources and POIs
-- player/enemy spawns
-- objective and boss areas
-- hard-invariant validator
-- battlefield quality score
-- deterministic generation retry
-- gameplay hash isolated from visual RNG
-- Golden Block regression set
-- 2,048-seed automated hard-invariant batch
-- minimal generated-world debug visualization and `?block=<height>` manual input
-
-M02 PR acceptance: **17 files / 88 tests PASS**, TypeScript PASS, production build PASS, large seed batch PASS.
+CLOSED. Permanent world baseline includes deterministic block/ruleset identity, independent worldgen RNG streams, 128×128 typed-array world data, elevation/hydrology/biomes, 12 strategic regions and route graph, Material/Mana resources, POIs including Shrines, player/enemy spawns, objective/boss areas, validation/quality/retry, Golden Blocks, 2,048-seed regression coverage, and generated-world debug visualization. Do not redo.
 
 Closure: `docs/milestones/M02_CLOSURE_REPORT.md`.
 
+### M03 — Economy & Territory
+
+CLOSED. Do not redo.
+
+Permanent baseline now includes:
+
+- generated M02 battlefield as the active M01-compatible tactical arena
+- Material / Mana / Influence fixed-point stocks
+- passive Core economy without worker spam
+- Elemental Core / Barracks / Arcane Tower / Workshop / Outpost / Extractor
+- deterministic construction and production queues
+- eight-role production data: Vanguard, Spear Guard, Ranger, Scout, Elementalist, Engineer, Golem, Siege Construct
+- population and Outpost population-cap expansion
+- region and POI capture
+- one-time POI Influence rewards
+- territory ownership and contested state
+- supply graph based on M02 region adjacency
+- disconnected resource/population penalties
+- Outpost specialization state
+- strategic command queue and strategic hash combined with the unchanged M01 tactical hash
+- resource/build/production/capture browser UI
+- dynamic trained-unit and building presentation
+- territory/supply debug visualization
+
+Final M03 PR acceptance: **18 files / 93 tests PASS**, M03 **5 / 5 PASS**, M02 2,048-seed regression PASS, M01 regressions PASS, strict TypeScript PASS, production build PASS.
+
+Closure: `docs/milestones/M03_CLOSURE_REPORT.md`.
+
 ---
 
-## 4. Current milestone — M03 Economy & Territory
+## 4. Current milestone — M04 Roguelite Layer
 
 **Status: OPEN**
 
 Goal:
 
-> Turn the systemic battlefield into a functioning RTS economy and territorial war without weakening determinism or simulation authority.
+> Make different generated runs produce different builds and meaningful adaptation while keeping upgrades deterministic, data-driven, and replay-safe.
 
-M03 scope from `ROADMAP.md`:
+M04 scope from `ROADMAP.md`:
 
-Resources:
-- Material
-- Mana
-- Influence
+- Shrines
+- deterministic three-choice upgrade UI
+- generic tags / modifiers / triggers
+- Fire upgrade set
+- Water upgrade set
+- Ice upgrade set
+- Lightning upgrade set
+- mixed-element upgrades
+- world-event framework
+- run-level max Mana progression
+- early synergy detection
 
-Buildings:
-- Elemental Core
-- Barracks
-- Arcane Tower
-- Workshop
-- Outpost
-- Extractor
+Target content envelope is eventually approximately 24 Shrine types/locations and 60–80 upgrade effects, but **do not author the full content set before the generic system is proven**.
 
-Systems:
-- population
-- production queues
-- capture
-- territory
-- supply graph
-- connected/disconnected penalties
-- outpost specialization
-- resource UI
-- basic build UI
-- expansion toward the initial eight-role unit roster where genuinely required
+M04 acceptance must demonstrate:
 
-M03 acceptance must demonstrate:
-
-- working economy without worker-spam dependency
-- strategically valuable expansion
-- meaningful supply cuts and disconnected penalties
-- contestable enemy/neutral territory
-- no infinite/free-resource bugs
-- plausible resource pacing toward a 25–35 minute run
-- deterministic/replay-safe economy and territory state
+- upgrades can be authored mostly as data
+- deterministic Shrine choices can be reproduced from the same run inputs
+- a three-choice decision changes authoritative gameplay state
+- several distinct build paths can emerge
+- different seeds can encourage different choices without perturbing unrelated RNG
+- no single mandatory upgrade path is structurally baked into the system
+- upgrades preserve replay/state-hash determinism
 
 ---
 
-## 5. M03 implementation constraints
+## 5. M04 implementation constraints
 
-- Extend the M01 ECS/simulation and M02 generated-world data; do not replace them.
-- Use generated M02 resources, regions, routes, and spawn locations as the world foundation.
-- Do not begin M04 shrine/roguelite implementation beyond interfaces genuinely required by M03.
-- Do not begin M05 autonomous strategic AI beyond minimal fixtures needed to test territory/economy interactions.
-- Keep economy, capture, territory, and supply authoritative in pure TypeScript.
-- Rendering/UI should consume state through presentation bridges only.
-- Preserve deterministic ordering, replay/hash behavior, and explicit RNG streams.
-- Prefer targeted tests while developing and one full regression pass at milestone closure.
-- Do not reopen M00, M01, or M02 unless a failing regression demonstrates a real dependency defect.
+- Extend M01 combat, M02 world/POIs, and M03 strategic runtime; replace none of them.
+- Use existing M02 `SHRINE` POIs as the first interaction locations rather than generating a second Shrine-location model.
+- Introduce deterministic Shrine/upgrade choice RNG isolated from worldgen visual randomness and unrelated gameplay streams.
+- Choice identity must be replayable from stable inputs such as ruleset/run identity, Shrine identity, and deterministic visit/choice state.
+- Keep upgrade ownership, tags, modifiers, triggers, Mana progression, and synergy state authoritative in pure TypeScript.
+- Prefer generic modifier/effect descriptors and deterministic ordering over effect-specific inheritance trees.
+- UI may present choices and enqueue commands; it may not directly mutate upgrade state.
+- Include acquired upgrades and any replay-relevant Shrine choice state in authoritative hashing.
+- Do not begin M05 autonomous strategic AI except minimal deterministic fixtures required to exercise M04 effects.
+- Do not implement M06 victory/boss run completion, M07 RPC, or M08 polish during M04.
+- Use targeted tests while developing, then one full regression pass at closure.
+- Do not reopen M00–M03 unless a failing regression proves a real dependency defect.
 
 ---
 
@@ -164,23 +165,25 @@ M03 acceptance must demonstrate:
 
 - PlayCanvas bundle size warning remains known and does not block systems milestones.
 - Unit-vs-unit collision/advanced steering is not mature.
-- Procedural terrain is still debug/proxy presentation rather than polished world geometry.
+- Procedural terrain remains proxy/debug presentation rather than final world geometry.
 - Enemy autonomous strategy remains deferred to M05.
+- Final economy balance requires later full-run playtesting.
 - Advanced spell UX, polished VFX/audio, weather, steam, and complex terrain wetness remain later work.
-- PEPEPOW RPC integration remains deferred to M07; manual deterministic block input is sufficient now.
+- PEPEPOW RPC integration remains deferred to M07; manual deterministic block input is sufficient.
+- One non-blocking human WebGL smoke of the combined M03 generated battlefield + strategic UI remains useful after deployment.
 
 ---
 
 ## 7. Next exact action
 
-Begin M03 at milestone level.
+Begin M04 at milestone level, not as repeated micro-handoffs.
 
-First establish deterministic economy/territory data and commands on top of the existing generated battlefield, then implement resource flow, buildings/production, capture/territory, and the supply graph with targeted automated tests. Continue autonomously through M03 acceptance rather than stopping after each small subsystem.
+First implement the generic deterministic upgrade/Shrine data model and authoritative command/state flow. Then wire M02 Shrine POIs to a deterministic three-choice interaction, apply a small representative set of Fire/Water/Ice/Lightning/mixed effects through generic tags/modifiers/triggers, include upgrade state in replay/hash verification, and only then expand content enough to prove several distinct build paths.
 
-At M03 closure:
+At M04 closure:
 
-1. run final automated acceptance
-2. create `docs/milestones/M03_CLOSURE_REPORT.md`
-3. mark M03 CLOSED and M04 OPEN in `docs/ROADMAP.md`
-4. compact this file to the M04 handoff
-5. commit/push final state and verify CI/deployment as applicable
+1. run final automated acceptance and full M01–M03 regressions
+2. create `docs/milestones/M04_CLOSURE_REPORT.md`
+3. mark M04 CLOSED and M05 OPEN in `docs/ROADMAP.md`
+4. compact this file to the M05 handoff
+5. commit/push final state and verify CI/deployment
