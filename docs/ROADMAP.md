@@ -1,7 +1,7 @@
 # PEPEPOW Elemental Front — ROADMAP
 
 **Canonical milestone roadmap**  
-**Current status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 CLOSED → M04 CLOSED → M05 CLOSED → M06 OPEN
+**Current status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 CLOSED → M04 CLOSED → M05 CLOSED → M06 CLOSED → M07 OPEN
 
 ---
 
@@ -397,7 +397,7 @@ Closure: `docs/milestones/M05_CLOSURE_REPORT.md`.
 
 # 8. M06 — Full Run
 
-**Status:** OPEN  
+**Status:** CLOSED  
 **Goal:** Complete the first start-to-finish game loop.
 
 ## Scope
@@ -449,6 +449,30 @@ Playtest should answer:
 - Could the player explain the loss?
 - Did the run produce a memorable systemic event?
 - Did the next seed feel worth trying?
+
+## Closure evidence
+
+- implementation PR #14 merged to `main`
+- presentation correction PR #15 merged to `main`
+- final deployed runtime baseline: `fb2a0fb1129287413803aa9cee3e2906a5ef22a3`
+- PR #14 CI `34041915124`: **PASS**
+- PR #14 final suite: **25 test files / 130 tests PASS**
+- M06 focused suite: **9 / 9 PASS**
+- M02 2,048-seed hard-invariant regression: PASS
+- strict TypeScript / production build: PASS
+- PR #15 CI `34044796173`: **PASS**
+- post-merge main CI `34044869076`: **PASS**
+- GitHub Pages `34044869041`: **PASS**
+- human Destroy smoke: PASS
+- human Boss Hunt smoke: PASS
+- human Replay Last → `REPLAY MATCH`: PASS
+- human Retry Block / Next Block: PASS
+- corrected terrain / river / live minimap re-acceptance: PASS
+- final human normal-pace start-to-finish checklist: PASS
+
+Optional Objective Control was not required for closure and remains deferred.
+
+Closure: `docs/milestones/M06_CLOSURE_REPORT.md`.
 
 ---
 
@@ -598,6 +622,14 @@ No milestone can close with:
 
 # 14. Current next action
 
-M00–M05 are CLOSED. Begin **M06 — Full Run** on top of the existing tactical, procedural-world, economy/territory, roguelite, and Enemy War foundations.
+M00–M06 are CLOSED. Begin **M07 — PEPEPOW Block Challenge** without reopening the deterministic M06 run lifecycle.
 
-Start with a deterministic authoritative run-state/objective framework and prove the smallest complete Destroy-mode loop: run start → objective/finale → victory or Core Critical State/defeat → score/results → retry, while preserving command replay and state-hash compatibility. Then add Boss Hunt using the generated boss area and battlefield-modifying boss mechanics. Do not begin M07 until M06 acceptance and closure are complete.
+First establish the block-source/challenge boundary defined in `TECH_ARCHITECTURE.md`:
+
+1. formalize a `BlockSource` interface around the existing manual block-height flow;
+2. keep `ManualBlockSource` as the always-available practice path;
+3. add deterministic challenge identity based primarily on Block Height + Ruleset Version and surface that identity in the browser/results/replay context;
+4. then add the PEPEPOW RPC adapter behind the interface with graceful failure and no simulation-owned network fetches;
+5. only after challenge identity is stable, proceed to sharing, Daily/Official Block, leaderboard/score submission, and replay/state-hash verification interfaces.
+
+No wallet requirement is introduced. Do not begin M08 polish as a substitute for M07 challenge-system work.
