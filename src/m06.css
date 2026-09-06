@@ -23,6 +23,13 @@
   letter-spacing: .11em;
 }
 
+.run-challenge {
+  margin: -.12rem 0 .45rem;
+  color: #b7d4df;
+  font-size: .57rem;
+  letter-spacing: .025em;
+}
+
 .run-meta {
   display: grid;
   grid-template-columns: 1fr auto auto;
@@ -73,6 +80,11 @@
   letter-spacing: .04em;
 }
 .run-replay { margin-bottom: .35rem; color: #c6a7ff; letter-spacing: .1em; }
+.run-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .32rem;
+}
 .run-mode-button {
   margin-top: .42rem;
   padding: .3rem .45rem;
@@ -86,7 +98,7 @@
 .run-mode-button:hover { background: rgba(39, 103, 130, .75); }
 
 #run-panel.complete {
-  width: min(38rem, calc(100vw - 4rem));
+  width: min(42rem, calc(100vw - 4rem));
   min-width: 28rem;
   padding: .9rem 1rem;
   border-color: rgba(255,255,255,.2);
@@ -119,7 +131,7 @@
 .run-score-grid b { color: #d7e9ef; text-align: right; }
 .run-actions {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: .32rem;
   margin-top: .72rem;
 }
@@ -137,6 +149,7 @@
 
 @media (max-width: 1280px) {
   #run-panel { top: .5rem; width: 26rem; min-width: 22rem; }
+  .run-actions { grid-template-columns: repeat(3, 1fr); }
 }
 
 @media (max-width: 1000px) {
