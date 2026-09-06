@@ -20,13 +20,13 @@
       </section>
       <aside id="debug-overlay" aria-label="Debug information"></aside>
       <aside id="run-panel" aria-label="Full run objective and results"></aside>
-      <aside id="world-debug" aria-label="Generated battlefield debug map">
-        <b>M06 BATTLEFIELD MAP</b>
-        <canvas id="world-debug-canvas" width="256" height="256" aria-label="Generated world regions and routes"></canvas>
+      <aside id="world-debug" aria-label="Live battlefield minimap">
+        <b>M06 BATTLEFIELD MINIMAP</b>
+        <canvas id="world-debug-canvas" width="256" height="256" aria-label="Live generated battlefield minimap"></canvas>
         <pre id="world-debug-summary"></pre>
-        <span>Gold lines: strategic routes</span>
-        <span>Numbered dots: strategic regions</span>
-        <span>Teal / red: player / enemy</span>
+        <span>Gold lines / numbered dots: routes / regions</span>
+        <span>Teal / red dots: live player / visible enemy units</span>
+        <span>Teal / red squares: player / enemy Core</span>
         <span>Yellow / magenta: objective / boss</span>
       </aside>
       <aside id="strategy-panel" aria-label="Economy and territory controls"></aside>
@@ -34,7 +34,8 @@
       <aside id="arena-legend" aria-label="Generated terrain legend">
         <b>GENERATED BATTLEFIELD</b>
         <span><i class="swatch ground"></i>Ground</span>
-        <span><i class="swatch forest"></i>Woodland proxy</span>
+        <span><i class="swatch forest"></i>Woodland</span>
+        <span><i class="swatch highland"></i>Highlands</span>
         <span><i class="swatch river"></i>River</span>
         <span><i class="swatch crossing"></i>Natural crossing</span>
       </aside>
