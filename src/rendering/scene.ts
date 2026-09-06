@@ -3,8 +3,10 @@ import { UnitControls } from '../input/unit-controls';
 import { WORLD_UNITS_PER_METER, type ArenaZone } from '../simulation/arena';
 import type { TickFrame } from '../simulation/fixed-tick-runner';
 import { M03Simulation } from '../simulation/m03-simulation';
+import { M06Simulation } from '../simulation/m06-simulation';
 import type { EntitySnapshot, Simulation } from '../simulation/simulation';
 import { RtsCamera } from './rts-camera';
+import { RunRenderBridge } from './run-render-bridge';
 import { StrategicRenderBridge } from './strategic-render-bridge';
 import { UnitRenderBridge } from './unit-render-bridge';
 
@@ -185,6 +187,8 @@ export function createSceneShell(
   const controls = new UnitControls(canvas, cameraComponent, simulation, bridge, selectionBox);
   const strategicBridge = simulation instanceof M03Simulation ? new StrategicRenderBridge(app) : null;
   if (simulation instanceof M03Simulation) strategicBridge?.sync(simulation.strategy.snapshot());
+  const runBridge = simulation instanceof M06Simulation ? new RunRenderBridge(app) : null;
+  if (simulation instanceof M06Simulation) runBridge?.sync(simulation.run.snapshot());
 
   const onResize = (): void => {
     app.resizeCanvas();
@@ -205,6 +209,7 @@ export function createSceneShell(
       bridge.sync(frame.previousSnapshot, frame.snapshot, frame.interpolationAlpha);
       controls.syncSelection();
       if (simulation instanceof M03Simulation) strategicBridge?.sync(simulation.strategy.snapshot());
+      if (simulation instanceof M06Simulation) runBridge?.sync(simulation.run.snapshot());
       if (freezablePatch?.render) {
         freezablePatch.render.material = frame.snapshot.terrain.ice > 0 ? materials.ice! : materials.river!;
       }
@@ -216,6 +221,7 @@ export function createSceneShell(
       controls.destroy();
       bridge.destroy();
       strategicBridge?.destroy();
+      runBridge?.destroy();
       camera.destroy();
       app.destroy();
     },
