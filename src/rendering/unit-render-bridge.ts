@@ -25,11 +25,11 @@ export class UnitRenderBridge {
   private readonly frozenMaterial = new pc.StandardMaterial();
 
   constructor(
-    app: pc.Application,
+    private readonly app: pc.Application,
     initialSnapshot: SimulationSnapshot,
-    unitMaterials: { player: pc.Material; enemyMelee: pc.Material; enemyRanged: pc.Material },
-    selectionMaterial: pc.Material,
-    healthMaterial: pc.Material,
+    private readonly unitMaterials: { player: pc.Material; enemyMelee: pc.Material; enemyRanged: pc.Material },
+    private readonly selectionMaterial: pc.Material,
+    private readonly healthMaterial: pc.Material,
   ) {
     this.wetMaterial.diffuse = new pc.Color(0.04, 0.82, 1);
     this.wetMaterial.emissive = new pc.Color(0.03, 0.55, 0.85);
@@ -41,42 +41,7 @@ export class UnitRenderBridge {
     this.frozenMaterial.diffuse = new pc.Color(0.72, 0.94, 1);
     this.frozenMaterial.emissive = new pc.Color(0.14, 0.42, 0.55);
     this.frozenMaterial.update();
-    for (const unit of initialSnapshot.entities) {
-      const body = new pc.Entity(`Unit ${unit.id}`);
-      const material = unit.playerId === 0
-        ? unitMaterials.player
-        : unit.archetype === 'RANGER' ? unitMaterials.enemyRanged : unitMaterials.enemyMelee;
-      const bodyType = unit.archetype === 'VANGUARD' ? 'capsule' : unit.archetype === 'ELEMENTALIST' ? 'cylinder' : 'box';
-      body.addComponent('render', { type: bodyType, material });
-      const bodyScale = unit.archetype === 'GOLEM' ? 1.25 : unit.archetype === 'ELEMENTALIST' ? 0.68 : unit.archetype === 'RANGER' ? 0.9 : 0.72;
-      body.setLocalScale(bodyScale, unit.archetype === 'GOLEM' ? 1.55 : 1.15, bodyScale);
-      app.root.addChild(body);
-
-      const selection = new pc.Entity(`Selection ${unit.id}`);
-      selection.addComponent('render', { type: 'cylinder', material: selectionMaterial });
-      selection.setLocalScale(1.2, 0.035, 1.2);
-      selection.enabled = false;
-      app.root.addChild(selection);
-      const healthBar = new pc.Entity(`Health ${unit.id}`);
-      healthBar.addComponent('render', { type: 'box', material: healthMaterial });
-      app.root.addChild(healthBar);
-      const wetMarker = new pc.Entity(`Wet Halo ${unit.id}`);
-      wetMarker.addComponent('render', { type: 'cylinder', material: this.wetMaterial });
-      wetMarker.setLocalScale(1.35, 0.05, 1.35);
-      wetMarker.enabled = false;
-      app.root.addChild(wetMarker);
-      const wetBeacon = new pc.Entity(`Wet Beacon ${unit.id}`);
-      wetBeacon.addComponent('render', { type: 'sphere', material: this.wetMaterial });
-      wetBeacon.setLocalScale(0.34, 0.46, 0.34);
-      wetBeacon.enabled = false;
-      app.root.addChild(wetBeacon);
-      const coldMarker = new pc.Entity(`Cold ${unit.id}`);
-      coldMarker.addComponent('render', { type: 'box', material: this.chilledMaterial });
-      coldMarker.setLocalScale(0.82, 0.08, 0.82);
-      coldMarker.enabled = false;
-      app.root.addChild(coldMarker);
-      this.units.set(unit.id, { body, selection, healthBar, wetMarker, wetBeacon, coldMarker });
-    }
+    for (const unit of initialSnapshot.entities) this.createPresentation(unit);
     this.sync(initialSnapshot, initialSnapshot, 1);
   }
 
@@ -84,8 +49,10 @@ export class UnitRenderBridge {
     this.latest = snapshotMap(current);
     const previousById = snapshotMap(previous);
     for (const unit of current.entities) {
-      const presentation = this.units.get(unit.id);
-      if (!presentation) continue;
+      let presentation = this.units.get(unit.id);
+      if (!presentation) {
+        presentation = this.createPresentation(unit);
+      }
       const presented = unit.alive && unit.visibleToPlayer;
       presentation.body.enabled = presented;
       presentation.selection.enabled = presented && presentation.selection.enabled;
@@ -166,17 +133,66 @@ export class UnitRenderBridge {
   }
 
   destroy(): void {
-    for (const presentation of this.units.values()) {
-      presentation.body.destroy();
-      presentation.selection.destroy();
-      presentation.healthBar.destroy();
-      presentation.wetMarker.destroy();
-      presentation.wetBeacon.destroy();
-      presentation.coldMarker.destroy();
-    }
+    for (const presentation of this.units.values()) this.destroyPresentation(presentation);
     this.units.clear();
     this.wetMaterial.destroy();
     this.chilledMaterial.destroy();
     this.frozenMaterial.destroy();
+  }
+
+  private createPresentation(unit: EntitySnapshot): UnitPresentation {
+    const body = new pc.Entity(`Unit ${unit.id}`);
+    const material = unit.playerId === 0
+      ? this.unitMaterials.player
+      : (unit.archetype === 'RANGER' || unit.archetype === 'SIEGE_CONSTRUCT') ? this.unitMaterials.enemyRanged : this.unitMaterials.enemyMelee;
+    const bodyType = unit.archetype === 'VANGUARD' || unit.archetype === 'SPEAR_GUARD'
+      ? 'capsule'
+      : unit.archetype === 'ELEMENTALIST' || unit.archetype === 'ENGINEER' ? 'cylinder' : 'box';
+    body.addComponent('render', { type: bodyType, material });
+    const bodyScale = unit.archetype === 'GOLEM'
+      ? 1.25
+      : unit.archetype === 'SIEGE_CONSTRUCT' ? 1.05
+        : unit.archetype === 'ELEMENTALIST' ? 0.68
+          : unit.archetype === 'SCOUT' ? 0.62
+            : unit.archetype === 'RANGER' ? 0.9 : 0.72;
+    body.setLocalScale(bodyScale, unit.archetype === 'GOLEM' ? 1.55 : 1.15, bodyScale);
+    this.app.root.addChild(body);
+
+    const selection = new pc.Entity(`Selection ${unit.id}`);
+    selection.addComponent('render', { type: 'cylinder', material: this.selectionMaterial });
+    selection.setLocalScale(1.2, 0.035, 1.2);
+    selection.enabled = false;
+    this.app.root.addChild(selection);
+    const healthBar = new pc.Entity(`Health ${unit.id}`);
+    healthBar.addComponent('render', { type: 'box', material: this.healthMaterial });
+    this.app.root.addChild(healthBar);
+    const wetMarker = new pc.Entity(`Wet Halo ${unit.id}`);
+    wetMarker.addComponent('render', { type: 'cylinder', material: this.wetMaterial });
+    wetMarker.setLocalScale(1.35, 0.05, 1.35);
+    wetMarker.enabled = false;
+    this.app.root.addChild(wetMarker);
+    const wetBeacon = new pc.Entity(`Wet Beacon ${unit.id}`);
+    wetBeacon.addComponent('render', { type: 'sphere', material: this.wetMaterial });
+    wetBeacon.setLocalScale(0.34, 0.46, 0.34);
+    wetBeacon.enabled = false;
+    this.app.root.addChild(wetBeacon);
+    const coldMarker = new pc.Entity(`Cold ${unit.id}`);
+    coldMarker.addComponent('render', { type: 'box', material: this.chilledMaterial });
+    coldMarker.setLocalScale(0.82, 0.08, 0.82);
+    coldMarker.enabled = false;
+    this.app.root.addChild(coldMarker);
+
+    const presentation = { body, selection, healthBar, wetMarker, wetBeacon, coldMarker };
+    this.units.set(unit.id, presentation);
+    return presentation;
+  }
+
+  private destroyPresentation(presentation: UnitPresentation): void {
+    presentation.body.destroy();
+    presentation.selection.destroy();
+    presentation.healthBar.destroy();
+    presentation.wetMarker.destroy();
+    presentation.wetBeacon.destroy();
+    presentation.coldMarker.destroy();
   }
 }
