@@ -53,7 +53,7 @@ export class DebugOverlay {
     const strategy = this.strategicSnapshot?.();
     const enemy = this.enemySnapshot?.();
     const stock = strategy?.resources[0];
-    const strategyRows = strategy && stock ? `
+    const strategyRows = strategy && stock && !enemy ? `
       <div class="debug-row"><span>Material / Mana</span><b>${resourceValue(stock.materialMilli)} / ${resourceValue(stock.manaMilli)}</b></div>
       <div class="debug-row"><span>Influence</span><b>${resourceValue(stock.influenceMilli)}</b></div>
       <div class="debug-row"><span>population</span><b>${strategy.populationUsed[0] ?? 0} / ${strategy.populationCap[0] ?? 0}</b></div>
@@ -73,11 +73,11 @@ export class DebugOverlay {
     ` : '';
     this.element.innerHTML = `
       <div class="debug-title">${enemy ? 'M05 ENEMY WAR' : strategy ? 'M03 DETERMINISTIC RTS' : 'M01 ELEMENTAL COMBAT'}</div>
+      ${enemyRows}
       <div class="debug-row"><span>renderer</span><b class="debug-ok">ONLINE · ${this.fps} FPS</b></div>
       <div class="debug-row"><span>simulation</span><b class="debug-ok">ONLINE · 10 Hz</b></div>
       <div class="debug-row"><span>sim tick</span><b>${snapshot.tick}</b></div>
       ${strategyRows}
-      ${enemyRows}
       <div class="debug-row"><span>entities</span><b>${snapshot.entities.length}</b></div>
       <div class="debug-row"><span>player alive</span><b>${snapshot.entities.filter((entity) => entity.alive && entity.playerId === 0).length}</b></div>
       <div class="debug-row"><span>enemy alive</span><b>${snapshot.entities.filter((entity) => entity.alive && entity.playerId !== 0).length}</b></div>
