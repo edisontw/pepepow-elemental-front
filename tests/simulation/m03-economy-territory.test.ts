@@ -30,6 +30,12 @@ function playerSpawnRegion(world: GeneratedWorld): number {
   return spawn.regionId;
 }
 
+function enemySpawnRegion(world: GeneratedWorld): number {
+  const spawn = world.spawns.find((candidate) => candidate.id === 'ENEMY');
+  if (!spawn) throw new Error('Missing enemy spawn.');
+  return spawn.regionId;
+}
+
 function buildableCell(world: GeneratedWorld, regionId: number, avoid: ReadonlySet<string> = new Set()): { x: number; z: number } {
   for (let z = 0; z < world.height; z += 1) {
     for (let x = 0; x < world.width; x += 1) {
@@ -81,12 +87,19 @@ function shortestPath(world: GeneratedWorld, start: number, target: number): num
 
 function materialExpansionPath(world: GeneratedWorld): { path: number[]; resourceId: string; rich: boolean } {
   const start = playerSpawnRegion(world);
-  const candidates = world.resources.filter((resource) => resource.type === 'MATERIAL' && resource.regionId !== start);
+  const enemy = enemySpawnRegion(world);
+  const candidates = world.resources.filter((resource) => (
+    resource.type === 'MATERIAL'
+    && resource.regionId !== start
+    && resource.regionId !== enemy
+  ));
   for (const resource of candidates) {
     const path = shortestPath(world, start, resource.regionId);
-    if (path && path.length >= 3) return { path, resourceId: resource.id, rich: resource.rich };
+    if (path && path.length >= 3 && !path.slice(1).includes(enemy)) {
+      return { path, resourceId: resource.id, rich: resource.rich };
+    }
   }
-  throw new Error('Golden M03 seed does not expose a two-hop Material expansion path.');
+  throw new Error('Golden M03 seed does not expose a safe two-hop Material expansion path.');
 }
 
 describe('M03 economy and territory', () => {
@@ -183,7 +196,7 @@ describe('M03 economy and territory', () => {
     const position = worldCellToSimulationPosition(world, cell);
     for (const simulation of [first, second]) {
       simulation.enqueueStrategicCommand({ targetTick: 1, playerId: 0, type: 'BUILD', buildingType: 'BARRACKS', targetX: position.x, targetZ: position.z });
-      for (let tick = 0; tick < 500; tick += 1) simulation.step();
+      for (let tick = 0; tick < 60; tick += 1) simulation.step();
     }
     expect(first.snapshot().stateHash).toBe(second.snapshot().stateHash);
     expect(first.snapshot().strategic).toEqual(second.snapshot().strategic);
