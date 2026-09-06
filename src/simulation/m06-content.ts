@@ -26,7 +26,7 @@ export const ENGINEER_REPAIR_RADIUS = 8_000;
 export const STRUCTURE_BODY_RADIUS = 2_800;
 export const BOSS_BODY_RADIUS = 3_200;
 export const MIN_EARLY_FINALE_TICK = 9_000;
-export const STANDARD_FINALE_TICK = 14_400;
+export const STANDARD_FINALE_TICK = 16_200;
 export const SMOKE_FINALE_TICK = 300;
 
 export const BOSS_DEFINITIONS: Readonly<Record<BossType, BossDefinition>> = {
