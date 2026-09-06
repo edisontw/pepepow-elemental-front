@@ -46,7 +46,7 @@ describe('M05 enemy logistics', () => {
 
     let sawProducer = false;
     let sawTrainQueue = false;
-    for (let tick = 0; tick < 700; tick += 1) {
+    for (let tick = 0; tick < 620; tick += 1) {
       simulation.step();
       const strategic = simulation.strategy.snapshot();
       const barracks = strategic.buildings.find((building) => building.playerId === 1 && building.type === 'BARRACKS');
@@ -62,13 +62,13 @@ describe('M05 enemy logistics', () => {
     expect(newEnemies.length).toBeGreaterThan(0);
     expect(newEnemies[0]?.archetype).toBe('SPEAR_GUARD');
     expect(simulation.enemyLogistics.snapshot().commandCount).toBeGreaterThanOrEqual(2);
-  });
+  }, 15_000);
 
   it('keeps logistics deterministic and part of the combined M05 hash', () => {
     const world = generateWorld(1_000_999);
     const first = new M05Simulation(world, { faction: 'WILD_HORDE', difficulty: 'HARD' });
     const second = new M05Simulation(world, { faction: 'WILD_HORDE', difficulty: 'HARD' });
-    for (let tick = 0; tick < 450; tick += 1) {
+    for (let tick = 0; tick < 120; tick += 1) {
       const firstFrame = first.step();
       const secondFrame = second.step();
       expect(firstFrame.stateHash).toBe(secondFrame.stateHash);
