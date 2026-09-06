@@ -1,7 +1,7 @@
 # PEPEPOW Elemental Front — ROADMAP
 
 **Canonical milestone roadmap**  
-**Current status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 CLOSED → M04 CLOSED → M05 IN_PROGRESS — HUMAN WEBGL ACCEPTANCE PENDING
+**Current status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 CLOSED → M04 CLOSED → M05 CLOSED → M06 OPEN
 
 ---
 
@@ -333,7 +333,7 @@ Closure: `docs/milestones/M04_CLOSURE_REPORT.md`.
 
 # 7. M05 — Enemy War
 
-**Status:** IN_PROGRESS — HUMAN WEBGL ACCEPTANCE PENDING  
+**Status:** CLOSED  
 **Goal:** Create a fair but strategically active opponent that produces pressure without cheating.
 
 ## Scope
@@ -370,26 +370,28 @@ Enemy archetypes:
 - difficulty changes intelligence/tempo more than raw stat cheating
 - no arbitrary unit spawning beside player base
 
-## Pre-closure evidence
-
-Automated implementation and regression acceptance are complete:
+## Closure evidence
 
 - PR #8 — deterministic imperfect-information Enemy War core
 - PR #9 — end-to-end RAID / REGROUP acceptance hardening
 - PR #10 — fair enemy production through existing M03 resources, BUILD / TRAIN queues, population, and timing
-- latest deployed runtime: `144a93b8e73f1885f266a0981166056d9d8f8aaf`
-- main CI run `34036742615`: **PASS**
-- GitHub Pages run `34036742620`: **PASS**
+- PR #11 — pre-closure documentation
+- PR #12 — M05 WebGL debug-readability follow-up
+- automated gameplay baseline: `144a93b8e73f1885f266a0981166056d9d8f8aaf`
+- gameplay baseline main CI run `34036742615`: **PASS**
+- gameplay baseline GitHub Pages run `34036742620`: **PASS**
 - final automated suite: **24 files / 121 tests PASS**
 - M02 2,048-seed hard-invariant regression: PASS
 - M01–M04 regression suite: PASS
 - strict TypeScript / production build: PASS
+- final runtime after readability follow-up: `7e0e5082d1e0c1ed44d8546f0031d45f4a3899a6`
+- final runtime main CI run `34037645488`: **PASS**
+- final runtime GitHub Pages run `34037645465`: **PASS**
+- human WebGL enemy-behavior/readability acceptance on 2026-09-06: **PASS**
 
-Automated acceptance proves legal fog-bounded knowledge, last-known memory, hidden-target pursuit cutoff, RAID, REGROUP, deterministic faction profiles, difficulty without raw combat-stat multipliers, deterministic replay/hash compatibility, and legitimate producer-based enemy reinforcements without arbitrary spawning.
+Acceptance confirms legal fog-bounded knowledge, last-known memory, hidden-target pursuit cutoff, RAID, REGROUP, structurally and perceptibly distinct faction behavior, difficulty without raw combat-stat cheating, deterministic replay/hash compatibility, and legitimate producer-based enemy reinforcements without arbitrary beside-base spawning.
 
-Human WebGL acceptance is still required for plausible/readable behavior and faction feel before M05 can be CLOSED.
-
-Pre-closure report: `docs/milestones/M05_CLOSURE_REPORT.md`.
+Closure: `docs/milestones/M05_CLOSURE_REPORT.md`.
 
 ---
 
@@ -596,8 +598,6 @@ No milestone can close with:
 
 # 14. Current next action
 
-M00–M04 are CLOSED. M05 implementation, automated acceptance, regression, build, and deployment are complete.
+M00–M05 are CLOSED. Begin **M06 — Full Run** on top of the existing tactical, procedural-world, economy/territory, roguelite, and Enemy War foundations.
 
-Perform the required human WebGL behavior/readability smoke on the deployed M05 runtime. Use the same block with `faction=iron`, `faction=flame`, and `faction=wild` to compare behavior directly; `difficulty=hard` is recommended for a faster decision cadence.
-
-Do not begin M06 until M05 human acceptance passes and M05 is formally CLOSED.
+Start with a deterministic authoritative run-state/objective framework and prove the smallest complete Destroy-mode loop: run start → objective/finale → victory or Core Critical State/defeat → score/results → retry, while preserving command replay and state-hash compatibility. Then add Boss Hunt using the generated boss area and battlefield-modifying boss mechanics. Do not begin M07 until M06 acceptance and closure are complete.
