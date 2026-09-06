@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,7 +8,7 @@
       name="description"
       content="PEPEPOW Elemental Front — deterministic browser RTS prototype"
     />
-    <title>Elemental Front｜元素戰線</title>
+    <title>PEPEPOW Elemental Front</title>
   </head>
   <body>
     <main id="app" aria-label="Elemental Front game shell">
@@ -16,19 +16,28 @@
       <section id="boot-screen" role="status" aria-live="polite">
         <p class="eyebrow">PEPEPOW</p>
         <h1>ELEMENTAL FRONT</h1>
-        <p>正在初始化戰場系統…</p>
+        <p>Initializing battlefield systems…</p>
       </section>
       <aside id="debug-overlay" aria-label="Debug information"></aside>
+      <aside id="world-debug" aria-label="Generated battlefield debug map">
+        <b>M02 GENERATED BATTLEFIELD</b>
+        <canvas id="world-debug-canvas" width="256" height="256" aria-label="Generated world regions and routes"></canvas>
+        <pre id="world-debug-summary"></pre>
+        <span>Gold lines: strategic routes</span>
+        <span>Numbered dots: strategic regions</span>
+        <span>Teal / red: player / enemy</span>
+        <span>Yellow / magenta: objective / boss</span>
+      </aside>
       <aside id="arena-legend" aria-label="Arena terrain legend">
-        <b>M01 固定測試場</b>
-        <span><i class="swatch ground"></i>一般地面</span>
-        <span><i class="swatch forest"></i>森林區</span>
-        <span><i class="swatch river"></i>河流</span>
-        <span><i class="swatch choke"></i>隘口</span>
-        <span><i class="swatch crossing"></i>冰凍渡口</span>
+        <b>M01 SYSTEMIC ARENA</b>
+        <span><i class="swatch ground"></i>Ground</span>
+        <span><i class="swatch forest"></i>Forest</span>
+        <span><i class="swatch river"></i>River</span>
+        <span><i class="swatch choke"></i>Chokepoint</span>
+        <span><i class="swatch crossing"></i>Freezable crossing</span>
       </aside>
       <div id="selection-box" hidden></div>
-      <div id="camera-help">左鍵選取／拖曳框選 · Shift 加選 · 右鍵移動／攻擊 · X 停止 · Ctrl+1–9 編組／1–9 選組 · F 凍結渡口 · R 火焰融冰 · B 燃燒森林 · L 閃電 · H 熱測試 · WASD／方向鍵移動鏡頭 · 滾輪縮放 · 中鍵拖曳</div>
+      <div id="camera-help">Left click select / drag box · Shift add · Right click move / attack · X stop · Ctrl+1–9 assign group / 1–9 select group · F freeze crossing · R fire melt · B burn forest · L lightning · H heat test · WASD / arrows pan · Wheel zoom · Middle drag</div>
       <div id="fatal-error" role="alert" hidden></div>
     </main>
     <script type="module" src="/src/main.ts"></script>

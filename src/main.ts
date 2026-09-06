@@ -3,6 +3,8 @@ import { createSceneShell } from './rendering/scene';
 import { FixedTickRunner } from './simulation/fixed-tick-runner';
 import { Simulation } from './simulation/simulation';
 import { DebugOverlay } from './ui/debug-overlay';
+import { renderWorldDebug, worldDebugSummary } from './world/debug-view';
+import { generateWorld } from './world/generator';
 
 function requiredElement<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id);
@@ -10,11 +12,24 @@ function requiredElement<T extends HTMLElement>(id: string): T {
   return element as T;
 }
 
+function requestedBlockHeight(): number {
+  const raw = new URLSearchParams(window.location.search).get('block');
+  if (raw === null || raw.trim() === '') return 1_000_000;
+  const parsed = Number(raw);
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : 1_000_000;
+}
+
 try {
   const canvas = requiredElement<HTMLCanvasElement>('game-canvas');
   const bootScreen = requiredElement<HTMLElement>('boot-screen');
   const overlayElement = requiredElement<HTMLElement>('debug-overlay');
   const selectionBox = requiredElement<HTMLElement>('selection-box');
+  const worldCanvas = requiredElement<HTMLCanvasElement>('world-debug-canvas');
+  const worldSummary = requiredElement<HTMLElement>('world-debug-summary');
+  const generatedWorld = generateWorld(requestedBlockHeight());
+  renderWorldDebug(worldCanvas, generatedWorld);
+  worldSummary.textContent = worldDebugSummary(generatedWorld);
+
   const simulation = new Simulation('pepepow:rules-v0:m01-arena');
   const scene = createSceneShell(canvas, simulation, selectionBox);
   const tickRunner = new FixedTickRunner(simulation);
