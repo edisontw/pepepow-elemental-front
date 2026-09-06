@@ -5,6 +5,7 @@ import type { TickFrame } from '../simulation/fixed-tick-runner';
 import { M03Simulation } from '../simulation/m03-simulation';
 import { M06Simulation } from '../simulation/m06-simulation';
 import type { EntitySnapshot, Simulation } from '../simulation/simulation';
+import { GeneratedWorldRenderBridge } from './generated-world-render-bridge';
 import { RtsCamera } from './rts-camera';
 import { RunRenderBridge } from './run-render-bridge';
 import { StrategicRenderBridge } from './strategic-render-bridge';
@@ -46,20 +47,21 @@ function metres(value: number): number {
 }
 
 function renderZone(app: pc.Application, zone: ArenaZone, materials: Record<string, pc.Material>): pc.Entity | null {
-  const position = new pc.Vec3(metres(zone.centerX), 0.025, metres(zone.centerZ));
+  const position = new pc.Vec3(metres(zone.centerX), 0, metres(zone.centerZ));
   const scale = new pc.Vec3(metres(zone.width), 1, metres(zone.depth));
   if (zone.kind === 'NORMAL_GROUND') {
     addPrimitive(app, 'plane', 'Normal Ground', position, scale, materials.ground!);
   } else if (zone.kind === 'RIVER') {
+    position.y = 0.035;
     addPrimitive(app, 'plane', 'River', position, scale, materials.river!);
   } else if (zone.kind === 'FREEZABLE_CROSSING') {
-    position.y = 0.045;
-    return addPrimitive(app, 'plane', 'Freezable Water Test', position, scale, materials.river!);
+    position.y = 0.046;
+    return addPrimitive(app, 'plane', 'Freezable Water Test', position, scale, materials.ice!);
   } else if (zone.kind === 'NATURAL_CROSSING') {
-    position.y = 0.08;
-    addPrimitive(app, 'box', 'Natural Crossing', position, new pc.Vec3(scale.x, 0.12, scale.z), materials.bridge!);
+    position.y = 0.055;
+    addPrimitive(app, 'box', 'Natural Crossing', position, new pc.Vec3(scale.x, 0.08, scale.z), materials.bridge!);
   } else if (zone.kind === 'FOREST') {
-    addPrimitive(app, 'box', `Forest Floor ${zone.id}`, new pc.Vec3(position.x, 0.08, position.z), new pc.Vec3(scale.x, 0.12, scale.z), materials.forest!);
+    addPrimitive(app, 'box', `Forest Floor ${zone.id}`, new pc.Vec3(position.x, 0.018, position.z), new pc.Vec3(scale.x, 0.025, scale.z), materials.forest!);
     for (let index = 0; index < 5; index += 1) {
       const column = index % 3;
       const row = Math.floor(index / 3);
@@ -116,11 +118,19 @@ export function createSceneShell(
     burning: createMaterial(new pc.Color(1, 0.28, 0.02), new pc.Color(0.85, 0.08, 0.01)),
     rock: createMaterial(new pc.Color(0.27, 0.29, 0.27)),
   };
+
+  const generatedWorldBridge = simulation instanceof M03Simulation
+    ? new GeneratedWorldRenderBridge(app, simulation.generatedWorld, simulation.terrain)
+    : null;
   let freezablePatch: pc.Entity | null = null;
-  for (const zone of simulation.arena.zones) {
-    const rendered = renderZone(app, zone, materials);
-    if (zone.kind === 'FREEZABLE_CROSSING') freezablePatch = rendered;
+  if (!generatedWorldBridge) {
+    for (const zone of simulation.arena.zones) {
+      const rendered = renderZone(app, zone, materials);
+      if (zone.kind === 'FREEZABLE_CROSSING') freezablePatch = rendered;
+    }
+    if (freezablePatch) freezablePatch.enabled = false;
   }
+
   const burningMarkers = new Map<string, pc.Entity>();
   const flammableCells = simulation.terrain.flammableCells();
   const markerStride = Math.max(1, Math.ceil(flammableCells.length / 512));
@@ -210,8 +220,11 @@ export function createSceneShell(
       controls.syncSelection();
       if (simulation instanceof M03Simulation) strategicBridge?.sync(simulation.strategy.snapshot());
       if (simulation instanceof M06Simulation) runBridge?.sync(simulation.run.snapshot());
+      generatedWorldBridge?.sync(frame.snapshot.navVersion, frame.snapshot.terrain.ice);
       if (freezablePatch?.render) {
-        freezablePatch.render.material = frame.snapshot.terrain.ice > 0 ? materials.ice! : materials.river!;
+        const frozen = frame.snapshot.terrain.ice > 0;
+        freezablePatch.enabled = frozen;
+        if (frozen) freezablePatch.render.material = materials.ice!;
       }
       const burningKeys = new Set(frame.snapshot.burningCells.map((cell) => `${cell.column},${cell.row}`));
       for (const [key, marker] of burningMarkers) marker.enabled = burningKeys.has(key);
@@ -222,6 +235,7 @@ export function createSceneShell(
       bridge.destroy();
       strategicBridge?.destroy();
       runBridge?.destroy();
+      generatedWorldBridge?.destroy();
       camera.destroy();
       app.destroy();
     },
