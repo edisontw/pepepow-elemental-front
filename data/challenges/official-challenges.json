@@ -1,0 +1,14 @@
+{
+  "version": "m07-official-challenges-v1",
+  "entries": [
+    {
+      "id": "m07-launch",
+      "label": "M07 Official Launch",
+      "blockHeight": 4950628,
+      "rulesetVersion": "m02-standard-v1",
+      "dayKey": null,
+      "source": "PEPEPOW explorer",
+      "sourceBlockHash": "000000034ba72cb2a55b61f4d08dd7861c77807ec1857b8e766e0f5d299f5c3b"
+    }
+  ]
+}
