@@ -1,10 +1,16 @@
 import './styles.css';
 import { createSceneShell } from './rendering/scene';
 import { FixedTickRunner } from './simulation/fixed-tick-runner';
-import { M05Simulation } from './simulation/m05-simulation';
 import type { EnemyDifficulty, EnemyFaction } from './simulation/m05-content';
+import {
+  M06Simulation,
+  isM06ReplayPacket,
+  type M06ReplayPacket,
+} from './simulation/m06-simulation';
+import type { RunMode, RunPace } from './simulation/m06-content';
 import { DebugOverlay } from './ui/debug-overlay';
 import { RoguelitePanel } from './ui/roguelite-panel';
+import { M06_REPLAY_STORAGE_KEY, RunPanel } from './ui/run-panel';
 import { StrategicPanel } from './ui/strategic-panel';
 import { renderWorldDebug, worldDebugSummary } from './world/debug-view';
 import { generateWorld } from './world/generator';
@@ -37,6 +43,29 @@ function requestedDifficulty(): EnemyDifficulty {
   return 'STANDARD';
 }
 
+function requestedMode(): RunMode {
+  const raw = new URLSearchParams(window.location.search).get('mode')?.trim().toLowerCase();
+  return raw === 'boss' || raw === 'boss_hunt' ? 'BOSS_HUNT' : 'DESTROY';
+}
+
+function requestedPace(): RunPace {
+  const raw = new URLSearchParams(window.location.search).get('pace')?.trim().toLowerCase();
+  return raw === 'smoke' ? 'SMOKE' : 'STANDARD';
+}
+
+function requestedReplay(): M06ReplayPacket | null {
+  const replayId = new URLSearchParams(window.location.search).get('replay')?.trim().toLowerCase();
+  if (replayId !== 'last') return null;
+  const stored = localStorage.getItem(M06_REPLAY_STORAGE_KEY);
+  if (!stored) return null;
+  try {
+    const parsed: unknown = JSON.parse(stored);
+    return isM06ReplayPacket(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 try {
   const canvas = requiredElement<HTMLCanvasElement>('game-canvas');
   const bootScreen = requiredElement<HTMLElement>('boot-screen');
@@ -46,11 +75,17 @@ try {
   const worldSummary = requiredElement<HTMLElement>('world-debug-summary');
   const strategyElement = requiredElement<HTMLElement>('strategy-panel');
   const rogueliteElement = requiredElement<HTMLElement>('roguelite-panel');
-  const generatedWorld = generateWorld(requestedBlockHeight());
-  const simulation = new M05Simulation(generatedWorld, {
-    faction: requestedFaction(),
-    difficulty: requestedDifficulty(),
+  const runElement = requiredElement<HTMLElement>('run-panel');
+  const replay = requestedReplay();
+  const blockHeight = replay?.header.blockHeight ?? requestedBlockHeight();
+  const generatedWorld = generateWorld(blockHeight);
+  const simulation = new M06Simulation(generatedWorld, {
+    faction: replay?.header.faction ?? requestedFaction(),
+    difficulty: replay?.header.difficulty ?? requestedDifficulty(),
+    mode: replay?.header.mode ?? requestedMode(),
+    pace: replay?.header.pace ?? requestedPace(),
   });
+  if (replay) simulation.loadReplay(replay);
   renderWorldDebug(worldCanvas, generatedWorld, simulation.strategy.snapshot());
   worldSummary.textContent = worldDebugSummary(generatedWorld);
 
@@ -63,6 +98,7 @@ try {
   );
   const strategyPanel = new StrategicPanel(strategyElement, simulation, () => scene.selectedUnits);
   const roguelitePanel = new RoguelitePanel(rogueliteElement, simulation);
+  const runPanel = new RunPanel(runElement, simulation);
   let territoryDebugElapsed = 0;
 
   scene.app.on('update', (deltaSeconds: number) => {
@@ -72,6 +108,7 @@ try {
     overlay.update(deltaSeconds, frame, scene.selectedUnits);
     strategyPanel.update(deltaSeconds);
     roguelitePanel.update(deltaSeconds);
+    runPanel.update(deltaSeconds);
     territoryDebugElapsed += deltaSeconds;
     if (territoryDebugElapsed >= 0.25) {
       territoryDebugElapsed = 0;
@@ -81,6 +118,7 @@ try {
 
   requestAnimationFrame(() => bootScreen.classList.add('ready'));
   window.addEventListener('pagehide', () => {
+    runPanel.destroy();
     roguelitePanel.destroy();
     strategyPanel.destroy();
     scene.destroy();
