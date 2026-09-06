@@ -1,4 +1,5 @@
 import './styles.css';
+import './m06.css';
 import { createSceneShell } from './rendering/scene';
 import { FixedTickRunner } from './simulation/fixed-tick-runner';
 import type { EnemyDifficulty, EnemyFaction } from './simulation/m05-content';
