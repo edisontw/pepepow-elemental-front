@@ -30,6 +30,21 @@ export type ScoreProofFailureReason =
   | 'REPLAY_DIVERGED'
   | 'RESULT_MISMATCH';
 
+export interface VerifiedReplayProof {
+  status: 'MATCH';
+  finalTick: number;
+  finalStateHash: string;
+  outcome: M06ReplayPacket['outcome'];
+  totalScore: number;
+}
+
+export interface RejectedScoreProof {
+  status: 'REJECTED';
+  reason: ScoreProofFailureReason;
+}
+
+export type ReplayProofResult = VerifiedReplayProof | RejectedScoreProof;
+
 export interface VerifiedScoreProof {
   status: 'VERIFIED';
   challenge: BlockChallengeIdentity;
@@ -38,11 +53,6 @@ export interface VerifiedScoreProof {
   finalTick: number;
   finalStateHash: string;
   outcome: 'VICTORY' | 'DEFEAT';
-}
-
-export interface RejectedScoreProof {
-  status: 'REJECTED';
-  reason: ScoreProofFailureReason;
 }
 
 export type ScoreProofResult = VerifiedScoreProof | RejectedScoreProof;
@@ -88,16 +98,9 @@ export function createChallengeScoreSubmission(packet: M06ReplayPacket): Challen
   };
 }
 
-export function verifyChallengeScoreSubmission(submission: ChallengeScoreSubmission): ScoreProofResult {
-  const packet = submission.replay;
-  if (packet.outcome === 'IN_PROGRESS') return { status: 'REJECTED', reason: 'RUN_NOT_COMPLETE' };
+export function verifyReplayPacketDeterministically(packet: M06ReplayPacket): ReplayProofResult {
   if (packet.header.rulesetVersion !== M02_STANDARD_RULES.rulesetVersion) {
     return { status: 'REJECTED', reason: 'UNSUPPORTED_RULESET' };
-  }
-  const replayChallenge = challengeIdentityFromReplay(packet);
-  if (!sameChallenge(submission.challenge, replayChallenge)
-    || submission.challengeCode !== blockChallengeCode(replayChallenge)) {
-    return { status: 'REJECTED', reason: 'IDENTITY_MISMATCH' };
   }
   if (!competitiveCommandStreamIsAllowed(packet)) return { status: 'REJECTED', reason: 'FORBIDDEN_COMMAND' };
   if (packet.finalTick < 1 || packet.finalTick > MAX_COMPETITIVE_REPLAY_TICKS) {
@@ -133,19 +136,40 @@ export function verifyChallengeScoreSubmission(submission: ChallengeScoreSubmiss
   if (snapshot.replayVerification !== 'MATCH' || snapshot.stateHash !== packet.finalStateHash) {
     return { status: 'REJECTED', reason: 'REPLAY_DIVERGED' };
   }
-  if (!snapshot.run.result
-    || snapshot.run.outcome !== packet.outcome
-    || snapshot.run.result.score.total !== packet.totalScore) {
+  const computedScore = snapshot.run.result?.score.total ?? 0;
+  if (snapshot.run.outcome !== packet.outcome || computedScore !== packet.totalScore) {
     return { status: 'REJECTED', reason: 'RESULT_MISMATCH' };
   }
+
+  return {
+    status: 'MATCH',
+    finalTick: packet.finalTick,
+    finalStateHash: packet.finalStateHash,
+    outcome: packet.outcome,
+    totalScore: computedScore,
+  };
+}
+
+export function verifyChallengeScoreSubmission(submission: ChallengeScoreSubmission): ScoreProofResult {
+  const packet = submission.replay;
+  if (packet.outcome === 'IN_PROGRESS') return { status: 'REJECTED', reason: 'RUN_NOT_COMPLETE' };
+  const replayChallenge = challengeIdentityFromReplay(packet);
+  if (!sameChallenge(submission.challenge, replayChallenge)
+    || submission.challengeCode !== blockChallengeCode(replayChallenge)) {
+    return { status: 'REJECTED', reason: 'IDENTITY_MISMATCH' };
+  }
+
+  const replayProof = verifyReplayPacketDeterministically(packet);
+  if (replayProof.status === 'REJECTED') return replayProof;
+  if (replayProof.outcome === 'IN_PROGRESS') return { status: 'REJECTED', reason: 'RUN_NOT_COMPLETE' };
 
   return {
     status: 'VERIFIED',
     challenge: replayChallenge,
     challengeCode: submission.challengeCode,
-    score: snapshot.run.result.score.total,
-    finalTick: packet.finalTick,
-    finalStateHash: packet.finalStateHash,
-    outcome: packet.outcome,
+    score: replayProof.totalScore,
+    finalTick: replayProof.finalTick,
+    finalStateHash: replayProof.finalStateHash,
+    outcome: replayProof.outcome,
   };
 }
