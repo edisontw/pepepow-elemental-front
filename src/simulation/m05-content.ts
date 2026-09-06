@@ -115,7 +115,7 @@ export function scoreEnemyActions(
 
   const raw: Record<StrategicAiAction, number> = {
     SCOUT: context.unknownRegionCount * 55 + (context.visiblePlayerUnits === 0 ? 180 : 0) + Math.floor(lowPressure / 2),
-    EXPAND: context.neutralFrontierCount * 135 + context.ownRegionCount < 3 ? 90 : 0,
+    EXPAND: context.neutralFrontierCount * 135 + (context.ownRegionCount < 3 ? 90 : 0),
     DEFEND: context.threatenedOwnRegions * 240 + armyDisadvantage * 2 + recovery,
     RAID: context.knownPlayerSuppliedRegions * 210 + antiTurtle + Math.floor(highPressure * 1.5),
     ATTACK: context.visiblePlayerUnits * 120 + armyAdvantage * 2 + highPressure * 2,
