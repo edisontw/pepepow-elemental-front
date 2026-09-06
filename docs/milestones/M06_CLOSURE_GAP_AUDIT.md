@@ -50,7 +50,7 @@ Final results contain outcome, reason, duration, and deterministic score compone
 
 **Implemented / automated.**
 
-External GAME / STRATEGIC / ROGUELITE commands are recorded with exact block/ruleset/world/faction/difficulty/mode identity. Playback reuses the same M06 simulation. Checkpoint verification reports `MATCH` when the replay reaches the expected state hash and `DIVERGED` when the command stream is altered.
+External GAME / STRATEGIC / ROGUELITE commands are recorded with exact block/ruleset/world/faction/difficulty/mode identity. Playback reuses the same M06 simulation. Replay commands are injected at their authoritative target tick so upgrade/status-dependent CAST semantics are evaluated at the correct run state. Checkpoint verification reports `MATCH` when the replay reaches the expected state hash and `DIVERGED` when the command stream is altered.
 
 ### Retry / next-block flow
 
@@ -62,13 +62,13 @@ The results UI provides Retry Block, Next Block, Replay Last, and mode switching
 
 **Implemented / automated; experiential acceptance pending.**
 
-The two deterministic M04 world events are integrated into the standard M06 run at approximately 14 and 19 minutes, before the standard 24-minute finale gate. Human playtest must still confirm that the events are readable and meaningfully affect decisions.
+The two deterministic M04 world events are integrated into the standard M06 run at approximately 14 and 19 minutes, before the canonical 27-minute time-based finale gate. Human playtest must still confirm that the events are readable and meaningfully affect decisions.
 
 ### Standard run pacing
 
 **Mechanically bounded; human start-to-finish acceptance pending.**
 
-Standard phase boundaries are deterministic and the time-based finale gate is 24:00, allowing the intended approximately 25–35 minute complete-run envelope once finale combat is included. Momentum can unlock the finale earlier after sufficient territory, Shrines, and completed non-Core buildings.
+Standard phase boundaries follow the canonical five-act timing: Discovery 0–5 minutes, Commitment 5–12, Expansion 12–20, Escalation 20–27, and the time-based Finale from 27 minutes. Momentum can unlock the finale from 15 minutes onward after sufficient territory, Shrines, and completed non-Core buildings, supporting the documented fast-aggressive run range while preserving the standard approximately 25–35 minute target.
 
 ---
 
