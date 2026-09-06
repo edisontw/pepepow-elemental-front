@@ -266,8 +266,8 @@ describe('M06 full run', () => {
     expect(phaseForTick(3_000, 'STANDARD')).toBe('COMMITMENT');
     expect(phaseForTick(7_200, 'STANDARD')).toBe('EXPANSION');
     expect(phaseForTick(12_000, 'STANDARD')).toBe('ESCALATION');
-    expect(finaleUnlockTick('STANDARD')).toBe(14_400);
-    expect(phaseForTick(14_400, 'STANDARD')).toBe('FINALE');
+    expect(finaleUnlockTick('STANDARD')).toBe(16_200);
+    expect(phaseForTick(16_200, 'STANDARD')).toBe('FINALE');
 
     const simulation = new M06Simulation(generateWorld(1_000_007), {
       pace: 'STANDARD',
