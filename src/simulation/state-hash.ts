@@ -17,6 +17,12 @@ function hashInteger(hash: number, value: number): number {
   return result >>> 0;
 }
 
+function hashString(hash: number, value: string): number {
+  let result = hashInteger(hash, value.length);
+  for (const character of value) result = hashInteger(result, character.charCodeAt(0));
+  return result;
+}
+
 export function computeStateHash(
   tick: number,
   rngState: number,
@@ -24,6 +30,7 @@ export function computeStateHash(
   entities: EntityStore,
   terrain: TerrainState,
   visibility: VisibilityState,
+  strategicHash?: string,
 ): string {
   let hash = FNV_OFFSET;
   hash = hashInteger(hash, tick);
@@ -49,6 +56,7 @@ export function computeStateHash(
     hash = hashEntity(hash, entityId, entities);
   }
 
+  if (strategicHash !== undefined) hash = hashString(hash, strategicHash);
   return hash.toString(16).padStart(8, '0');
 }
 
