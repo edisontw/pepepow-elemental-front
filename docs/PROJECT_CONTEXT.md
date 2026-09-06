@@ -5,6 +5,7 @@
 **Primary development environment:** ChatGPT Work with `@site`  
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **M00 source snapshot on GitHub:** `05557b249774064603b8eeb7960472fe2f1a4f42`  
+**Latest completed source snapshot:** `715d3fc9ccabad30bbee7929095055204a5b6835` (M01 Slice 1 implementation; the documentation-only follow-up commit containing this reference is newer)
 **Working title:** PEPEPOW Elemental Front｜元素戰線
 
 ---
@@ -324,17 +325,44 @@ M00 completed the permanent TypeScript + PlayCanvas + Vite foundation, independe
 
 Do not redo M00. M01 may extend these shells but must preserve simulation authority outside PlayCanvas.
 
+### M01 Slice 1 — Deterministic Unit Control Core
+
+**Implementation status:** COMPLETE
+**Milestone status:** M01 remains `IN_PROGRESS`
+
+Completed systems:
+
+- Pure-TypeScript integer `EntityID` allocation with minimal Position, Movement, Faction, and Selectable component stores.
+- Authoritative integer simulation coordinates and 10 Hz fixed-tick movement; PlayCanvas transforms are presentation-only.
+- Deterministic MOVE / STOP command queue with tick-boundary execution, stable ordering, normalized entity IDs, and ownership/validity checks.
+- Data-driven handcrafted M01 arena with normal ground, two forest zones, river, chokepoint, and a marked future-freezable crossing.
+- Sixteen deterministic placeholder player units.
+- Left-click single selection, drag-box multi-selection, empty-ground clear, right-click MOVE, and `X` STOP.
+- Deterministic multi-unit destination offsets, arrival stopping, and previous/current snapshot interpolation in a one-way rendering bridge.
+- Canonical state hash covering tick, RNG state, ordered entity IDs, authoritative positions, movement targets/speed, faction, and selectable radius.
+- Debug overlay fields for sim tick, entity count, selected count, state hash, and queued command count.
+- Replay/hash smoke coverage plus entity-ID, MOVE, STOP, ownership, command-ordering, FPS-schedule, and divergence tests.
+
+Known issues / intentional limits:
+
+- Work's controlled cloud browser currently reports `WebGL not supported`; the page and UI shell load, but camera/selection/MOVE/STOP visual smoke remains pending on a WebGL-capable browser. This is an environment limitation, not a production build failure.
+- River, forest, chokepoint, and crossing are metadata/readable placeholders only. Units do not yet obey terrain traversal rules; this belongs to the next slice.
+- No collision avoidance or pathfinding is present; deterministic destination offsets only reduce exact overlap.
+- The PlayCanvas bundle remains approximately 513 KB gzip. Code splitting remains explicitly non-blocking for M01.
+
 ---
 
 ## 15. Next exact action
 
-Begin M01 with the smallest playable systemic-combat slice:
+Continue M01 with **Slice 2 — Basic Combat + Fixed Arena Traversal/Navigation Baseline**:
 
-1. Add ECS-style entity/component storage and command queue in pure TypeScript.
-2. Add a fixed handcrafted arena data model; do not start procedural generation.
-3. Implement click/drag selection plus move/stop orders for placeholder units.
-4. Add state hashing and replay smoke coverage before combat breadth.
-5. Keep `main` runnable and update this handoff after the first M01 slice.
+1. Add minimal health/combat components and deterministic ATTACK command processing.
+2. Add fixed-arena walkability/traversal rules plus a small navigation baseline suitable for the handcrafted river/chokepoint layout.
+3. Keep terrain state static in Slice 2; do not implement Water/Ice dynamic navigation yet.
+4. Add deterministic combat/navigation tests and extend the state hash/replay checkpoints for new authoritative state.
+5. After Slice 2 is stable, begin Water/Ice dynamic navigation and the signature freeze/cross/melt interaction.
+
+Do not start M02 procedural world generation.
 
 ---
 
