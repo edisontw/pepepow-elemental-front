@@ -6,7 +6,6 @@ import {
   productionSpeedPercent,
   type BuildingType,
   type ProducerBuildingType,
-  type ResourceCost,
 } from '../simulation/m03-content';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
 import type { UnitArchetype } from '../simulation/components';
