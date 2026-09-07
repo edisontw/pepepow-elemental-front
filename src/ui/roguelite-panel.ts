@@ -14,12 +14,15 @@ function eventName(eventId: string): string {
 export class RoguelitePanel {
   private elapsed = 0;
   private message = 'Capture a Shrine POI, then open it to choose one of three upgrades.';
+  private pointerInside = false;
 
   constructor(
     private readonly element: HTMLElement,
     private readonly simulation: M04Simulation,
   ) {
     element.addEventListener('click', this.onClick);
+    element.addEventListener('pointerenter', this.onPointerEnter);
+    element.addEventListener('pointerleave', this.onPointerLeave);
     this.render();
   }
 
@@ -27,12 +30,25 @@ export class RoguelitePanel {
     this.elapsed += deltaSeconds;
     if (this.elapsed < 0.2) return;
     this.elapsed = 0;
+    if (this.pointerInside) return;
     this.render();
   }
 
   destroy(): void {
     this.element.removeEventListener('click', this.onClick);
+    this.element.removeEventListener('pointerenter', this.onPointerEnter);
+    this.element.removeEventListener('pointerleave', this.onPointerLeave);
   }
+
+  private readonly onPointerEnter = (): void => {
+    this.pointerInside = true;
+  };
+
+  private readonly onPointerLeave = (): void => {
+    this.pointerInside = false;
+    this.elapsed = 0;
+    this.render();
+  };
 
   private readonly onClick = (event: MouseEvent): void => {
     const target = event.target instanceof Element ? event.target.closest<HTMLButtonElement>('button[data-roguelite-action]') : null;
