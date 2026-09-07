@@ -1,12 +1,14 @@
 import type { EntitySnapshot } from '../simulation/simulation';
 import { M03Simulation } from '../simulation/m03-simulation';
 import { BUILDINGS, UNITS, type BuildingType, type OutpostSpecialization } from '../simulation/m03-content';
+import { WORLD_UNITS_PER_METER } from '../simulation/arena';
 import type { UnitArchetype } from '../simulation/components';
 import { WorldCellFlag } from '../world/world-definition';
 import { worldCellToSimulationPosition } from '../world/world-arena';
 
 const PLAYER_ID = 0;
 const TICKS_PER_SECOND = 10;
+const EXTRACTOR_PICK_RADIUS = 2.5 * WORLD_UNITS_PER_METER;
 const BUILD_ORDER: readonly Exclude<BuildingType, 'ELEMENTAL_CORE'>[] = [
   'BARRACKS', 'ARCANE_TOWER', 'WORKSHOP', 'OUTPOST', 'EXTRACTOR',
 ];
@@ -37,6 +39,9 @@ function remainingSeconds(tick: number, completeTick: number): string {
 interface PlacementCheck {
   valid: boolean;
   regionId: number | null;
+  resourceNodeId: string | null;
+  targetX: number;
+  targetZ: number;
   reason: string;
 }
 
@@ -121,25 +126,24 @@ export class StrategicPanel {
       playerId: PLAYER_ID,
       type: 'BUILD',
       buildingType,
-      targetX: position.x,
-      targetZ: position.z,
+      targetX: placement.targetX,
+      targetZ: placement.targetZ,
+      ...(placement.resourceNodeId ? { resourceNodeId: placement.resourceNodeId } : {}),
     });
     this.pendingBuildType = null;
     this.updatePlacementCursor();
-    this.message = `Queued ${label(buildingType)} in Region ${(placement.regionId ?? 0) + 1}.`;
+    this.message = placement.resourceNodeId
+      ? `Queued ${label(buildingType)} on ${placement.resourceNodeId}.`
+      : `Queued ${label(buildingType)} in Region ${(placement.regionId ?? 0) + 1}.`;
     this.render();
   };
 
   private beginBuild(buildingType: Exclude<BuildingType, 'ELEMENTAL_CORE'>): void {
-    if (buildingType === 'EXTRACTOR') {
-      this.pendingBuildType = null;
-      this.updatePlacementCursor();
-      this.queueExtractor();
-      return;
-    }
     this.pendingBuildType = buildingType;
     this.updatePlacementCursor();
-    this.message = `Place ${label(buildingType)}: left click controlled buildable ground. Right click or Esc cancels.`;
+    this.message = buildingType === 'EXTRACTOR'
+      ? 'Place Extractor: click a visible Material Deposit in controlled supplied territory. Right click or Esc cancels.'
+      : `Place ${label(buildingType)}: left click controlled buildable ground. Right click or Esc cancels.`;
   }
 
   private cancelBuildPlacement(): void {
@@ -153,65 +157,77 @@ export class StrategicPanel {
     this.battlefieldCanvas.classList.toggle('build-placement-active', this.pendingBuildType !== null);
   }
 
-  private queueExtractor(): void {
-    const target = this.findExtractorTarget();
-    if (!target) {
-      this.message = 'No available controlled Material Deposit is ready for an Extractor.';
-      return;
-    }
-    const position = worldCellToSimulationPosition(this.simulation.generatedWorld, target.cell);
-    this.simulation.enqueueStrategicCommand({
-      targetTick: this.simulation.snapshot().tick + 1,
-      playerId: PLAYER_ID,
-      type: 'BUILD',
-      buildingType: 'EXTRACTOR',
-      targetX: position.x,
-      targetZ: position.z,
-      resourceNodeId: target.id,
-    });
-    this.message = `Queued Extractor on ${target.id}.`;
-  }
-
   private checkPlacement(buildingType: Exclude<BuildingType, 'ELEMENTAL_CORE'>, targetX: number, targetZ: number): PlacementCheck {
-    if (buildingType === 'EXTRACTOR') {
-      return { valid: false, regionId: null, reason: 'Extractors must be attached to a Material Deposit.' };
-    }
     const world = this.simulation.generatedWorld;
     const snapshot = this.simulation.strategy.snapshot();
+    if (buildingType === 'EXTRACTOR') {
+      const occupied = new Set(snapshot.buildings.flatMap((building) => building.resourceNodeId ? [building.resourceNodeId] : []));
+      const candidates = world.resources
+        .filter((resource) => (
+          resource.type === 'MATERIAL'
+          && !occupied.has(resource.id)
+          && snapshot.regionOwners[resource.regionId] === PLAYER_ID
+          && snapshot.suppliedRegions[PLAYER_ID]?.includes(resource.regionId)
+          && !snapshot.contestedRegions.includes(resource.regionId)
+        ))
+        .map((resource) => {
+          const position = worldCellToSimulationPosition(world, resource.cell);
+          const dx = position.x - targetX;
+          const dz = position.z - targetZ;
+          return { resource, position, distanceSquared: dx * dx + dz * dz };
+        })
+        .sort((left, right) => left.distanceSquared - right.distanceSquared || left.resource.id.localeCompare(right.resource.id));
+      const chosen = candidates[0];
+      if (!chosen || chosen.distanceSquared > EXTRACTOR_PICK_RADIUS * EXTRACTOR_PICK_RADIUS) {
+        return {
+          valid: false, regionId: null, resourceNodeId: null, targetX, targetZ,
+          reason: 'Click directly on an available Material Deposit marker.',
+        };
+      }
+      return {
+        valid: true,
+        regionId: chosen.resource.regionId,
+        resourceNodeId: chosen.resource.id,
+        targetX: chosen.position.x,
+        targetZ: chosen.position.z,
+        reason: '',
+      };
+    }
+
     const cell = this.simulation.navigation.worldToCell(targetX, targetZ);
     if (cell.column < 0 || cell.row < 0 || cell.column >= world.width || cell.row >= world.height) {
-      return { valid: false, regionId: null, reason: 'That location is outside the battlefield.' };
+      return { valid: false, regionId: null, resourceNodeId: null, targetX, targetZ, reason: 'That location is outside the battlefield.' };
     }
     const index = cell.row * world.width + cell.column;
     if (((world.flags[index] ?? 0) & WorldCellFlag.BUILDABLE) === 0) {
-      return { valid: false, regionId: null, reason: 'Choose buildable ground; water, crossings, and blocked terrain are invalid.' };
+      return { valid: false, regionId: null, resourceNodeId: null, targetX, targetZ, reason: 'Choose buildable ground; water, crossings, and blocked terrain are invalid.' };
     }
     const regionId = world.regionByCell[index];
     if (regionId === undefined || snapshot.regionOwners[regionId] !== PLAYER_ID) {
-      return { valid: false, regionId: regionId ?? null, reason: 'Buildings must be placed in player-controlled territory.' };
+      return { valid: false, regionId: regionId ?? null, resourceNodeId: null, targetX, targetZ, reason: 'Buildings must be placed in player-controlled territory.' };
     }
     if (snapshot.contestedRegions.includes(regionId)) {
-      return { valid: false, regionId, reason: `Region ${regionId + 1} is contested and cannot accept construction.` };
+      return { valid: false, regionId, resourceNodeId: null, targetX, targetZ, reason: `Region ${regionId + 1} is contested and cannot accept construction.` };
     }
     const supplied = snapshot.suppliedRegions[PLAYER_ID]?.includes(regionId) === true;
     if (buildingType === 'OUTPOST') {
       const alreadyHasOutpost = snapshot.buildings.some((building) => (
         building.playerId === PLAYER_ID && building.type === 'OUTPOST' && building.regionId === regionId
       ));
-      if (alreadyHasOutpost) return { valid: false, regionId, reason: `Region ${regionId + 1} already has an Outpost.` };
+      if (alreadyHasOutpost) return { valid: false, regionId, resourceNodeId: null, targetX, targetZ, reason: `Region ${regionId + 1} already has an Outpost.` };
       const neighborSupplied = world.regions[regionId]?.neighbors.some((neighbor) => snapshot.suppliedRegions[PLAYER_ID]?.includes(neighbor)) === true;
       if (!supplied && !neighborSupplied) {
-        return { valid: false, regionId, reason: 'An Outpost must connect to current supplied territory.' };
+        return { valid: false, regionId, resourceNodeId: null, targetX, targetZ, reason: 'An Outpost must connect to current supplied territory.' };
       }
     } else if (!supplied) {
-      return { valid: false, regionId, reason: `Region ${regionId + 1} is controlled but not supplied.` };
+      return { valid: false, regionId, resourceNodeId: null, targetX, targetZ, reason: `Region ${regionId + 1} is controlled but not supplied.` };
     }
     const occupied = snapshot.buildings.some((building) => {
       const buildingCell = this.simulation.navigation.worldToCell(building.x, building.z);
       return buildingCell.column === cell.column && buildingCell.row === cell.row;
     });
-    if (occupied) return { valid: false, regionId, reason: 'Another building already occupies that cell.' };
-    return { valid: true, regionId, reason: '' };
+    if (occupied) return { valid: false, regionId, resourceNodeId: null, targetX, targetZ, reason: 'Another building already occupies that cell.' };
+    return { valid: true, regionId, resourceNodeId: null, targetX, targetZ, reason: '' };
   }
 
   private queueTrain(unitType: UnitArchetype): void {
@@ -301,17 +317,6 @@ export class StrategicPanel {
     this.message = `Queued ${label(specialization)} specialization for Outpost #${outpost.id}.`;
   }
 
-  private findExtractorTarget() {
-    const snapshot = this.simulation.strategy.snapshot();
-    const occupied = new Set(snapshot.buildings.flatMap((building) => building.resourceNodeId ? [building.resourceNodeId] : []));
-    return this.simulation.generatedWorld.resources.find((resource) => (
-      resource.type === 'MATERIAL'
-      && !occupied.has(resource.id)
-      && snapshot.regionOwners[resource.regionId] === PLAYER_ID
-      && snapshot.suppliedRegions[PLAYER_ID]?.includes(resource.regionId)
-    ));
-  }
-
   private selectedRegion(units: readonly EntitySnapshot[]): number | null {
     const unit = units.find((candidate) => candidate.playerId === PLAYER_ID && candidate.alive);
     if (!unit) return null;
@@ -352,7 +357,7 @@ export class StrategicPanel {
     const buildingButtons = BUILD_ORDER.map((buildingType) => {
       const cost = BUILDINGS[buildingType].cost;
       const active = this.pendingBuildType === buildingType ? ' active' : '';
-      const title = buildingType === 'EXTRACTOR' ? 'Build on the next available controlled Material Deposit' : 'Choose this building, then place it on the battlefield';
+      const title = buildingType === 'EXTRACTOR' ? 'Choose Extractor, then click a Material Deposit' : 'Choose this building, then place it on the battlefield';
       return `<button class="${active.trim()}" data-action="build" data-value="${buildingType}" title="${title}">${label(buildingType)}<small>${cost.material}M${cost.mana ? ` · ${cost.mana}A` : ''}${cost.influence ? ` · ${cost.influence}I` : ''}</small></button>`;
     }).join('');
     const trainButtons = TRAIN_ORDER.map((unitType) => {
