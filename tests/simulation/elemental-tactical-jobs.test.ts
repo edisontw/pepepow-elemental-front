@@ -155,10 +155,12 @@ describe('M08 elemental tactical jobs', () => {
     expect(simulation.navigation.findPath(left, right)).toBeNull();
 
     castTerrain(simulation, 'FREEZE', river.column, river.row, 1);
+    castTerrain(simulation, 'FREEZE', river.column, river.row, 1);
     simulation.step();
     expect(simulation.terrain.surfaceAt(river)).toBe(SurfaceType.ICE);
     expect(simulation.navigation.findPath(left, right)).not.toBeNull();
 
+    castTerrain(simulation, 'HEAT', river.column, river.row, 2);
     castTerrain(simulation, 'HEAT', river.column, river.row, 2);
     simulation.step();
     expect(simulation.terrain.surfaceAt(river)).toBe(SurfaceType.WATER);
@@ -170,6 +172,7 @@ describe('M08 elemental tactical jobs', () => {
     const simulation = new Simulation('ice-heavy-risk', arena([
       spawn(0, river.column, river.row, 'GOLEM'),
     ]));
+    castTerrain(simulation, 'FREEZE', river.column, river.row, 1);
     castTerrain(simulation, 'FREEZE', river.column, river.row, 1);
     simulation.step();
     expect(simulation.terrain.surfaceAt(river)).toBe(SurfaceType.ICE);
