@@ -6,6 +6,7 @@ export type AudioCueId =
   | 'sfx.combat.hit'
   | 'sfx.combat.death'
   | 'sfx.element.fire-ignite'
+  | 'sfx.element.water-burst'
   | 'sfx.element.ice-form'
   | 'sfx.element.ice-break'
   | 'sfx.element.lightning-chain';
@@ -68,6 +69,9 @@ export function deriveAudioCues(
     ) visibleHits += 1;
   }
 
+  if (current.lastTerrainEffect === 'WATER' && current.lastTerrainEffectTick === current.tick) {
+    cues.push({ id: 'sfx.element.water-burst', intensity: 2 });
+  }
   if (current.terrain.burning > previous.terrain.burning) {
     cues.push({
       id: 'sfx.element.fire-ignite',
