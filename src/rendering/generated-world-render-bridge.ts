@@ -2,12 +2,15 @@ import * as pc from 'playcanvas';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
 import { SurfaceType, type TerrainState } from '../simulation/terrain-state';
 import { BiomeType, TerrainType, type GeneratedWorld } from '../world/world-definition';
+import { createEnvironmentVisualLayout, type EnvironmentVisualProp } from './environment-visual-layout';
 
 interface RowRun {
   row: number;
   startColumn: number;
   endColumn: number;
 }
+
+type PrimitiveType = 'box' | 'plane' | 'cylinder' | 'capsule' | 'sphere';
 
 function createMaterial(color: pc.Color, emissive?: pc.Color, opacity = 1): pc.StandardMaterial {
   const material = new pc.StandardMaterial();
@@ -26,7 +29,7 @@ function createMaterial(color: pc.Color, emissive?: pc.Color, opacity = 1): pc.S
 
 function addPrimitive(
   app: pc.Application,
-  type: 'box' | 'plane',
+  type: PrimitiveType,
   name: string,
   position: pc.Vec3,
   scale: pc.Vec3,
@@ -37,6 +40,22 @@ function addPrimitive(
   entity.setPosition(position);
   entity.setLocalScale(scale);
   app.root.addChild(entity);
+  return entity;
+}
+
+function addChildPrimitive(
+  parent: pc.Entity,
+  type: Exclude<PrimitiveType, 'plane'>,
+  name: string,
+  position: pc.Vec3,
+  scale: pc.Vec3,
+  material: pc.Material,
+): pc.Entity {
+  const entity = new pc.Entity(name);
+  entity.addComponent('render', { type, material });
+  entity.setLocalPosition(position);
+  entity.setLocalScale(scale);
+  parent.addChild(entity);
   return entity;
 }
 
@@ -67,19 +86,25 @@ function originMetres(cellCount: number): number {
 export class GeneratedWorldRenderBridge {
   private readonly staticEntities: pc.Entity[] = [];
   private readonly iceEntities: pc.Entity[] = [];
-  private readonly groundMaterial = createMaterial(new pc.Color(0.13, 0.23, 0.16));
-  private readonly woodlandMaterial = createMaterial(new pc.Color(0.08, 0.28, 0.11));
-  private readonly highlandMaterial = createMaterial(new pc.Color(0.34, 0.35, 0.30));
+  private readonly groundMaterial = createMaterial(new pc.Color(0.125, 0.215, 0.15));
+  private readonly woodlandMaterial = createMaterial(new pc.Color(0.07, 0.255, 0.095));
+  private readonly highlandMaterial = createMaterial(new pc.Color(0.32, 0.325, 0.285));
   private readonly riverMaterial = createMaterial(
-    new pc.Color(0.055, 0.24, 0.43),
-    new pc.Color(0.01, 0.055, 0.11),
+    new pc.Color(0.048, 0.22, 0.405),
+    new pc.Color(0.008, 0.045, 0.095),
   );
-  private readonly crossingMaterial = createMaterial(new pc.Color(0.46, 0.34, 0.19));
+  private readonly crossingMaterial = createMaterial(new pc.Color(0.43, 0.31, 0.17));
   private readonly iceMaterial = createMaterial(
     new pc.Color(0.58, 0.88, 0.96),
     new pc.Color(0.12, 0.34, 0.42),
     0.86,
   );
+  private readonly trunkMaterial = createMaterial(new pc.Color(0.16, 0.095, 0.05));
+  private readonly canopyMaterial = createMaterial(new pc.Color(0.055, 0.31, 0.105));
+  private readonly canopyLightMaterial = createMaterial(new pc.Color(0.09, 0.38, 0.13));
+  private readonly rockMaterial = createMaterial(new pc.Color(0.37, 0.375, 0.34));
+  private readonly rockLightMaterial = createMaterial(new pc.Color(0.45, 0.445, 0.39));
+  private readonly reedMaterial = createMaterial(new pc.Color(0.32, 0.48, 0.19));
   private lastIceCount = -1;
   private lastNavVersion = -1;
 
@@ -89,6 +114,7 @@ export class GeneratedWorldRenderBridge {
     private readonly terrain: TerrainState,
   ) {
     this.renderStaticTerrain();
+    this.renderVisualProps();
   }
 
   sync(navVersion: number, iceCount: number): void {
@@ -103,6 +129,20 @@ export class GeneratedWorldRenderBridge {
     this.iceEntities.length = 0;
     for (const entity of this.staticEntities) entity.destroy();
     this.staticEntities.length = 0;
+    for (const material of [
+      this.groundMaterial,
+      this.woodlandMaterial,
+      this.highlandMaterial,
+      this.riverMaterial,
+      this.crossingMaterial,
+      this.iceMaterial,
+      this.trunkMaterial,
+      this.canopyMaterial,
+      this.canopyLightMaterial,
+      this.rockMaterial,
+      this.rockLightMaterial,
+      this.reedMaterial,
+    ]) material.destroy();
   }
 
   private renderStaticTerrain(): void {
@@ -172,6 +212,92 @@ export class GeneratedWorldRenderBridge {
         new pc.Vec3(widthCells, 0.08, 1),
         this.crossingMaterial,
       ));
+    }
+  }
+
+  private renderVisualProps(): void {
+    const originX = originMetres(this.world.width);
+    const originZ = originMetres(this.world.height);
+    const layout = createEnvironmentVisualLayout(this.world);
+    for (const prop of layout) {
+      const root = new pc.Entity(`${prop.kind} ${prop.cellX},${prop.cellZ}`);
+      root.setPosition(
+        originX + prop.cellX + 0.5 + prop.offsetX,
+        prop.kind === 'RIVER_REED' ? 0.04 : 0.02,
+        originZ + prop.cellZ + 0.5 + prop.offsetZ,
+      );
+      root.setEulerAngles(0, prop.rotationDegrees, 0);
+      this.app.root.addChild(root);
+      this.staticEntities.push(root);
+      this.populateVisualProp(root, prop);
+    }
+  }
+
+  private populateVisualProp(root: pc.Entity, prop: EnvironmentVisualProp): void {
+    const scale = prop.scale;
+    if (prop.kind === 'WOODLAND_TREE') {
+      addChildPrimitive(
+        root,
+        'cylinder',
+        'Tree Trunk',
+        new pc.Vec3(0, 0.38 * scale, 0),
+        new pc.Vec3(0.13 * scale, 0.74 * scale, 0.13 * scale),
+        this.trunkMaterial,
+      );
+      addChildPrimitive(
+        root,
+        'sphere',
+        'Tree Crown',
+        new pc.Vec3(0, 0.98 * scale, 0),
+        new pc.Vec3(0.55 * scale, 0.68 * scale, 0.55 * scale),
+        prop.variant < 128 ? this.canopyMaterial : this.canopyLightMaterial,
+      );
+      if (prop.variant > 190) {
+        addChildPrimitive(
+          root,
+          'sphere',
+          'Tree Crown Upper',
+          new pc.Vec3(0.14 * scale, 1.34 * scale, -0.08 * scale),
+          new pc.Vec3(0.36 * scale, 0.42 * scale, 0.36 * scale),
+          this.canopyLightMaterial,
+        );
+      }
+      return;
+    }
+
+    if (prop.kind === 'HIGHLAND_ROCK') {
+      addChildPrimitive(
+        root,
+        'box',
+        'Highland Rock',
+        new pc.Vec3(0, 0.2 * scale, 0),
+        new pc.Vec3(0.72 * scale, 0.38 * scale, 0.58 * scale),
+        prop.variant < 128 ? this.rockMaterial : this.rockLightMaterial,
+      );
+      if (prop.variant > 175) {
+        addChildPrimitive(
+          root,
+          'sphere',
+          'Highland Stone',
+          new pc.Vec3(0.34 * scale, 0.12 * scale, -0.22 * scale),
+          new pc.Vec3(0.28 * scale, 0.2 * scale, 0.24 * scale),
+          this.rockMaterial,
+        );
+      }
+      return;
+    }
+
+    for (let index = 0; index < 3; index += 1) {
+      const lateral = (index - 1) * 0.13 * scale;
+      const forward = ((prop.variant + index * 47) % 5 - 2) * 0.035 * scale;
+      addChildPrimitive(
+        root,
+        'cylinder',
+        `River Reed ${index + 1}`,
+        new pc.Vec3(lateral, (0.22 + index * 0.035) * scale, forward),
+        new pc.Vec3(0.035 * scale, (0.42 + index * 0.07) * scale, 0.035 * scale),
+        this.reedMaterial,
+      );
     }
   }
 
