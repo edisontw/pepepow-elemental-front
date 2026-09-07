@@ -83,6 +83,7 @@ function hashEntity(hash: number, entityId: EntityID, entities: EntityStore): nu
   result = hashInteger(result, health.max);
   result = hashInteger(result, health.alive ? 1 : 0);
   result = hashInteger(result, status.wet ? 1 : 0);
+  result = hashInteger(result, status.wetTicks);
   result = hashInteger(result, status.chilledTicks);
   result = hashInteger(result, status.frozenTicks);
   result = hashInteger(result, combat.attackDamage);
