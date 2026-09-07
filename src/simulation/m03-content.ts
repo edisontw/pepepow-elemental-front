@@ -1,8 +1,8 @@
 import { WORLD_UNITS_PER_METER } from './arena';
 import type { UnitArchetype, UnitSpawn } from './components';
 
-export type BuildingType = 'ELEMENTAL_CORE' | 'BARRACKS' | 'ARCANE_TOWER' | 'WORKSHOP' | 'OUTPOST' | 'EXTRACTOR';
-export type ProducerBuildingType = Exclude<BuildingType, 'ELEMENTAL_CORE' | 'OUTPOST' | 'EXTRACTOR'>;
+export type BuildingType = 'ELEMENTAL_CORE' | 'BARRACKS' | 'ARCANE_TOWER' | 'WORKSHOP' | 'OUTPOST' | 'EXTRACTOR' | 'MANA_WELL';
+export type ProducerBuildingType = Exclude<BuildingType, 'ELEMENTAL_CORE' | 'OUTPOST' | 'EXTRACTOR' | 'MANA_WELL'>;
 export type OutpostSpecialization = 'WATCHTOWER' | 'BARRIER_HUB' | 'MANA_BEACON';
 
 export interface ResourceCost {
@@ -92,6 +92,12 @@ export const BUILDINGS: Readonly<Record<BuildingType, BuildingDefinition>> = {
   },
   EXTRACTOR: {
     type: 'EXTRACTOR',
+    cost: { material: 100, mana: 0, influence: 0 },
+    buildTicks: 180,
+    maxHealth: 500,
+  },
+  MANA_WELL: {
+    type: 'MANA_WELL',
     cost: { material: 100, mana: 0, influence: 0 },
     buildTicks: 180,
     maxHealth: 500,
