@@ -41,6 +41,11 @@ function requiredElement<T extends HTMLElement>(id: string): T {
   return element as T;
 }
 
+function requestedDebugUi(): boolean {
+  const raw = new URLSearchParams(window.location.search).get('debug')?.trim().toLowerCase();
+  return raw === '1' || raw === 'true' || raw === 'on';
+}
+
 function requestedFaction(): EnemyFaction | undefined {
   const raw = new URLSearchParams(window.location.search).get('faction')?.trim().toLowerCase();
   if (raw === 'iron' || raw === 'iron_legion') return 'IRON_LEGION';
@@ -90,6 +95,7 @@ function pinResolvedLiveBlock(resolution: BlockResolution): void {
 
 async function boot(): Promise<void> {
   try {
+    document.documentElement.classList.toggle('debug-mode', requestedDebugUi());
     const canvas = requiredElement<HTMLCanvasElement>('game-canvas');
     const bootScreen = requiredElement<HTMLElement>('boot-screen');
     const overlayElement = requiredElement<HTMLElement>('debug-overlay');
