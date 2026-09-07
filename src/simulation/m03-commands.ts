@@ -20,6 +20,13 @@ export interface TrainCommand extends StrategicCommandBase {
   unitType: UnitArchetype;
 }
 
+export interface SetRallyPointCommand extends StrategicCommandBase {
+  type: 'SET_RALLY_POINT';
+  buildingId: number;
+  targetX: number;
+  targetZ: number;
+}
+
 export interface CaptureCommand extends StrategicCommandBase {
   type: 'CAPTURE';
   entityIds: readonly EntityID[];
@@ -33,7 +40,7 @@ export interface SpecializeOutpostCommand extends StrategicCommandBase {
   specialization: OutpostSpecialization;
 }
 
-export type M03Command = BuildCommand | TrainCommand | CaptureCommand | SpecializeOutpostCommand;
+export type M03Command = BuildCommand | TrainCommand | SetRallyPointCommand | CaptureCommand | SpecializeOutpostCommand;
 
 interface QueuedCommand {
   command: M03Command;
@@ -61,6 +68,15 @@ function normalizeCommand(command: M03Command): M03Command {
   if (command.type === 'TRAIN') {
     return { ...base, type: 'TRAIN', buildingId: command.buildingId, unitType: command.unitType };
   }
+  if (command.type === 'SET_RALLY_POINT') {
+    return {
+      ...base,
+      type: 'SET_RALLY_POINT',
+      buildingId: command.buildingId,
+      targetX: Math.round(command.targetX),
+      targetZ: Math.round(command.targetZ),
+    };
+  }
   if (command.type === 'SPECIALIZE_OUTPOST') {
     return { ...base, type: 'SPECIALIZE_OUTPOST', buildingId: command.buildingId, specialization: command.specialization };
   }
@@ -84,7 +100,10 @@ export class M03CommandQueue {
       if (!Number.isSafeInteger(command.targetX) || !Number.isSafeInteger(command.targetZ)) throw new Error('BUILD target coordinates must be safe integers.');
       if (command.resourceNodeId !== undefined && command.resourceNodeId.trim() === '') throw new Error('BUILD resourceNodeId must be non-empty when supplied.');
     }
-    if ((command.type === 'TRAIN' || command.type === 'SPECIALIZE_OUTPOST')
+    if (command.type === 'SET_RALLY_POINT') {
+      if (!Number.isSafeInteger(command.targetX) || !Number.isSafeInteger(command.targetZ)) throw new Error('SET_RALLY_POINT target coordinates must be safe integers.');
+    }
+    if ((command.type === 'TRAIN' || command.type === 'SPECIALIZE_OUTPOST' || command.type === 'SET_RALLY_POINT')
       && (!Number.isSafeInteger(command.buildingId) || command.buildingId <= 0)) {
       throw new Error(`${command.type} buildingId must be a positive safe integer.`);
     }

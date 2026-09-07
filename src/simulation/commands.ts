@@ -46,6 +46,7 @@ export type {
   BuildCommand,
   CaptureCommand,
   M03Command as StrategicCommand,
+  SetRallyPointCommand,
   SpecializeOutpostCommand,
   TrainCommand,
 } from './m03-commands';

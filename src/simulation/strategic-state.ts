@@ -1,6 +1,7 @@
 import type {
   BuildCommand,
   CaptureCommand,
+  SetRallyPointCommand,
   SpecializeOutpostCommand,
   StrategicCommand,
   TrainCommand,
@@ -57,6 +58,8 @@ export interface StrategicBuilding {
   completed: boolean;
   resourceNodeId: string | null;
   specialization: OutpostSpecialization | null;
+  rallyPointX: number | null;
+  rallyPointZ: number | null;
 }
 
 interface ProductionOrder {
@@ -145,6 +148,10 @@ function squaredDistance(left: { x: number; z: number }, right: { x: number; z: 
   return dx * dx + dz * dz;
 }
 
+function isProducer(type: BuildingType): type is ProducerBuildingType {
+  return type === 'BARRACKS' || type === 'ARCANE_TOWER' || type === 'WORKSHOP';
+}
+
 export class StrategicState {
   private readonly stocks = new Map<PlayerID, ResourceStock>();
   private readonly buildings = new Map<number, StrategicBuilding>();
@@ -180,6 +187,7 @@ export class StrategicState {
   processCommand(command: StrategicCommand, tick: number): boolean {
     if (command.type === 'BUILD') return this.processBuild(command, tick);
     if (command.type === 'TRAIN') return this.processTrain(command, tick);
+    if (command.type === 'SET_RALLY_POINT') return this.processSetRallyPoint(command);
     if (command.type === 'CAPTURE') return this.processCapture(command);
     return this.processSpecialization(command);
   }
@@ -328,6 +336,8 @@ export class StrategicState {
       completed: definition.buildTicks === 0,
       resourceNodeId: resourceNode?.id ?? null,
       specialization: null,
+      rallyPointX: null,
+      rallyPointZ: null,
     };
     this.buildings.set(building.id, building);
     this.nextBuildingId += 1;
@@ -358,6 +368,18 @@ export class StrategicState {
       completeTick: startTick + durationTicks,
     });
     this.nextProductionOrderId += 1;
+    return true;
+  }
+
+  private processSetRallyPoint(command: SetRallyPointCommand): boolean {
+    const building = this.buildings.get(command.buildingId);
+    if (!building || !building.completed || building.playerId !== command.playerId || !isProducer(building.type)) return false;
+    const requested = this.navigation.worldToCell(command.targetX, command.targetZ);
+    const resolved = this.navigation.resolveWalkableTarget(requested);
+    if (!resolved) return false;
+    const position = this.navigation.cellToWorld(resolved);
+    building.rallyPointX = position.x;
+    building.rallyPointZ = position.z;
     return true;
   }
 
@@ -400,6 +422,8 @@ export class StrategicState {
       completed: true,
       resourceNodeId: null,
       specialization: null,
+      rallyPointX: null,
+      rallyPointZ: null,
     };
     this.buildings.set(building.id, building);
     this.nextBuildingId += 1;
@@ -445,6 +469,15 @@ export class StrategicState {
 
   private assignProductionExit(entityId: EntityID, building: StrategicBuilding, orderId: number): void {
     const startCell = this.navigation.worldToCell(building.x, building.z);
+    if (building.rallyPointX !== null && building.rallyPointZ !== null) {
+      const rallyCell = this.navigation.worldToCell(building.rallyPointX, building.rallyPointZ);
+      const rallyPath = this.navigation.findPath(startCell, rallyCell);
+      if (rallyPath && rallyPath.length > 0) {
+        this.assignMovementPath(entityId, rallyCell, rallyPath);
+        return;
+      }
+    }
+
     const offsets = [
       { column: 0, row: 3 },
       { column: 3, row: 0 },
@@ -462,16 +495,20 @@ export class StrategicState {
       if (!this.navigation.isWalkable(targetCell)) continue;
       const path = this.navigation.findPath(startCell, targetCell);
       if (!path || path.length === 0) continue;
-      const movement = this.entities.movements.get(entityId);
-      if (!movement) return;
-      const target = this.navigation.cellToWorld(targetCell);
-      movement.targetX = target.x;
-      movement.targetZ = target.z;
-      movement.path = path.map((cell) => this.navigation.cellToWorld(cell));
-      movement.pathIndex = 0;
-      movement.pathNavVersion = this.navigation.navVersion;
+      this.assignMovementPath(entityId, targetCell, path);
       return;
     }
+  }
+
+  private assignMovementPath(entityId: EntityID, targetCell: { column: number; row: number }, path: readonly { column: number; row: number }[]): void {
+    const movement = this.entities.movements.get(entityId);
+    if (!movement) return;
+    const target = this.navigation.cellToWorld(targetCell);
+    movement.targetX = target.x;
+    movement.targetZ = target.z;
+    movement.path = path.map((cell) => this.navigation.cellToWorld(cell));
+    movement.pathIndex = 0;
+    movement.pathNavVersion = this.navigation.navVersion;
   }
 
   private recomputeTerritoryAndSupply(): void {
@@ -632,6 +669,8 @@ export class StrategicState {
       hash = hashInteger(hash, building.completed ? 1 : 0);
       hash = hashString(hash, building.resourceNodeId ?? '');
       hash = hashString(hash, building.specialization ?? '');
+      hash = hashInteger(hash, building.rallyPointX ?? -1);
+      hash = hashInteger(hash, building.rallyPointZ ?? -1);
     }
     for (const order of snapshot.productionQueue) {
       hash = hashInteger(hash, order.id);
