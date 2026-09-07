@@ -10,7 +10,8 @@ interface TransientVisual {
   bornTick: number;
   expiresTick: number;
   baseScale: number;
-  kind: 'LIGHTNING' | 'STEAM';
+  originY: number;
+  kind: 'LIGHTNING_NODE' | 'LIGHTNING_BEAM' | 'STEAM';
 }
 
 function createMaterial(color: pc.Color, emissive: pc.Color, opacity = 1): pc.StandardMaterial {
@@ -143,7 +144,14 @@ export class ElementalRenderBridge {
     entity.setPosition(position);
     entity.setLocalScale(0.44, 0.44, 0.44);
     this.app.root.addChild(entity);
-    this.transient.push({ entity, bornTick: tick, expiresTick: tick + 2, baseScale: 0.44, kind: 'LIGHTNING' });
+    this.transient.push({
+      entity,
+      bornTick: tick,
+      expiresTick: tick + 2,
+      baseScale: 0.44,
+      originY: position.y,
+      kind: 'LIGHTNING_NODE',
+    });
   }
 
   private spawnLightningBeam(start: pc.Vec3, end: pc.Vec3, tick: number): void {
@@ -153,11 +161,19 @@ export class ElementalRenderBridge {
     if (distance <= 0.01) return;
     const entity = new pc.Entity('Lightning Chain');
     entity.addComponent('render', { type: 'box', material: this.lightningMaterial });
-    entity.setPosition((start.x + end.x) / 2, (start.y + end.y) / 2, (start.z + end.z) / 2);
+    const y = (start.y + end.y) / 2;
+    entity.setPosition((start.x + end.x) / 2, y, (start.z + end.z) / 2);
     entity.setEulerAngles(0, Math.atan2(dx, dz) * 180 / Math.PI, 0);
     entity.setLocalScale(0.11, 0.11, distance);
     this.app.root.addChild(entity);
-    this.transient.push({ entity, bornTick: tick, expiresTick: tick + 2, baseScale: 1, kind: 'LIGHTNING' });
+    this.transient.push({
+      entity,
+      bornTick: tick,
+      expiresTick: tick + 2,
+      baseScale: 1,
+      originY: y,
+      kind: 'LIGHTNING_BEAM',
+    });
   }
 
   private processIceTransitions(tick: number): void {
@@ -185,12 +201,20 @@ export class ElementalRenderBridge {
   }
 
   private spawnSteam(x: number, z: number, tick: number): void {
+    const originY = 0.36;
     const entity = new pc.Entity('Ice Melt Steam');
     entity.addComponent('render', { type: 'sphere', material: this.steamMaterial });
-    entity.setPosition(x, 0.36, z);
+    entity.setPosition(x, originY, z);
     entity.setLocalScale(0.48, 0.32, 0.48);
     this.app.root.addChild(entity);
-    this.transient.push({ entity, bornTick: tick, expiresTick: tick + 6, baseScale: 0.48, kind: 'STEAM' });
+    this.transient.push({
+      entity,
+      bornTick: tick,
+      expiresTick: tick + 6,
+      baseScale: 0.48,
+      originY,
+      kind: 'STEAM',
+    });
   }
 
   private updateTransient(tick: number, alpha: number): void {
@@ -205,10 +229,10 @@ export class ElementalRenderBridge {
       const progress = Math.max(0, Math.min(1, (tick - visual.bornTick + alpha) / duration));
       if (visual.kind === 'STEAM') {
         const position = visual.entity.getPosition();
-        visual.entity.setPosition(position.x, 0.36 + progress * 0.85, position.z);
+        visual.entity.setPosition(position.x, visual.originY + progress * 0.85, position.z);
         const scale = visual.baseScale * (1 + progress * 1.15);
         visual.entity.setLocalScale(scale, scale * 0.72, scale);
-      } else if (visual.entity.getLocalScale().z < 2) {
+      } else if (visual.kind === 'LIGHTNING_NODE') {
         const scale = visual.baseScale * (1.15 - progress * 0.35);
         visual.entity.setLocalScale(scale, scale, scale);
       }
