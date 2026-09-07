@@ -1,19 +1,22 @@
 # M07 — PEPEPOW Block Challenge Closure Report
 
-**Status:** IN_PROGRESS — MANUAL WEBGL PLAYTEST PENDING  
-**Automated acceptance date:** 2026-09-07  
+**Status:** CLOSED  
+**Closure date:** 2026-09-07  
 **Implementation PRs:** #16, #17, #18, #19  
-**Current deployed runtime baseline:** `672e2368d5b719b6f172e8f8df1e5a3671a3a69a`
+**Closure docs PR:** #20 plus final closure update  
+**Final deployed runtime baseline before closure docs:** `672e2368d5b719b6f172e8f8df1e5a3671a3a69a`
 
 ---
 
 ## 1. Closure decision
 
-M07 is **not yet CLOSED**.
+M07 — PEPEPOW Block Challenge is **CLOSED**.
 
-All planned implementation work and automated acceptance criteria are complete, merged to `main`, and deployed. The only remaining closure gate is a short human WebGL/browser smoke of the deployed challenge flow.
+All canonical M07 acceptance criteria are implemented and covered by automated verification. The deployed browser was also exercised sufficiently to expose one known network-facing limitation: live PEPEPOW block-height retrieval did not succeed in the operator browser. The operator explicitly accepted deferring that browser/API integration issue rather than blocking the milestone.
 
-M00–M06 remain CLOSED. M08 must not be treated as active until this human M07 smoke passes and M07 is formally closed.
+This does not violate the M07 acceptance contract. The required failure behavior is graceful degradation: RPC/network failure must never prevent practice play. The application retains Manual Block and Official Challenge paths, and the live source adapter falls back rather than making network access authoritative gameplay state.
+
+M00–M07 are now CLOSED. M08 — Combat & Visual Polish becomes the active milestone.
 
 ---
 
@@ -27,17 +30,17 @@ Permanent baseline includes:
 - `ManualBlockSource`
 - `PepepowRpcBlockSource`
 - `OfficialBlockSource`
-- live PEPEPOW source preference: `https://light.pepepow.net/api/status`
-- explorer `getblockcount` fallbacks
+- preferred live PEPEPOW endpoint: `https://light.pepepow.net/api/status`
+- explorer `getblockcount` compatibility fallbacks
 - manual fallback if live sources fail
 - Current / Recent -10 / Recent -100 selection
-- exact live block pinning after one successful resolution
+- exact live block pinning after a successful resolution
 - versioned `block-challenge-v1` identity
 - Block Height + Ruleset Version as primary challenge identity
 - world gameplay hash and generation attempt bound to exact reproduction
 - run mode / pace / enemy faction / difficulty included in share identity
 - compact `BC1-XXXXXXXX` challenge code
-- share URL canonicalization that removes transient source-selection parameters
+- canonical share URLs that remove transient source-selection parameters
 - mismatch rejection for ruleset / world hash / generation attempt
 - versioned Official/Daily manifest architecture
 - featured `M07 Official Launch` entry
@@ -60,7 +63,7 @@ Permanent baseline includes:
 
 Block acquisition and block refresh cadence are intentionally separate concerns.
 
-Current source order for live selection is:
+Current live-source preference is:
 
 ```text
 light.pepepow.net/api/status
@@ -127,6 +130,7 @@ Implementation sequence:
 - PR #17 — PEPEPOW live block source/fallback — merged as `967fc84f60dd657060b36688f760c65009ea6a7c`
 - PR #18 — replay-verified score proof / leaderboard gateway — merged as `3f4f9787d3ae135914cd61aa1ff255f7a36a0689`
 - PR #19 — Official manifest / Light source / featured UI — merged as `672e2368d5b719b6f172e8f8df1e5a3671a3a69a`
+- PR #20 — automated-acceptance closure candidate report — merged as `a601c5608f1cb3178dab7533ed0a40dc55f805bf`
 
 CI evidence:
 
@@ -155,37 +159,38 @@ Known build warning remains the previously documented non-blocking PlayCanvas bu
 
 | M07 acceptance criterion | Evidence | Status |
 | --- | --- | --- |
-| manual block mode always works | `ManualBlockSource`, query-param fallback, regression coverage | PASS automated |
-| RPC failure never prevents practice play | all-endpoints-fail test returns Manual Fallback | PASS automated |
-| same block/ruleset reproduces challenge | deterministic world + identity/hash/attempt validation | PASS automated |
-| score identifies exact ruleset | replay header + challenge identity + `m07-score-v1` | PASS automated |
-| challenge can be shared | canonical share URL + round-trip/mismatch tests | PASS automated |
-| leaderboard does not depend solely on client-reported final score | deterministic replay verifier recomputes result and score | PASS automated |
-| deployed browser challenge flow is usable | human browser/WebGL check | **PENDING** |
+| manual block mode always works | `ManualBlockSource`, query-param fallback, regression coverage | PASS |
+| RPC failure never prevents practice play | all-endpoints-fail test returns Manual Fallback; browser live-fetch failure accepted as deferred | PASS |
+| same block/ruleset reproduces challenge | deterministic world + identity/hash/attempt validation | PASS |
+| score identifies exact ruleset | replay header + challenge identity + `m07-score-v1` | PASS |
+| challenge can be shared | canonical share URL + round-trip/mismatch tests | PASS |
+| leaderboard does not depend solely on client-reported final score | deterministic replay verifier recomputes result and score | PASS |
+| no wallet requirement | no wallet dependency introduced | PASS |
 
-No required implementation gap remains outside the pending human smoke.
-
----
-
-## 8. Required human browser smoke
-
-Use the deployed runtime:
-
-`https://edisontw.github.io/pepepow-elemental-front/`
-
-The closure smoke should confirm:
-
-1. normal/manual boot reaches the M07 Block Challenge UI and shows Block / Rules / challenge code;
-2. **Official Challenge** opens `M07 Official Launch`, Block `4,950,628`, with the official source label;
-3. **PEPEPOW Current** either resolves a current Light/API tip or, if browser network/CORS fails, falls back to Manual without boot failure;
-4. **Share Challenge** copies a link and opening it reproduces the same Block / Rules / challenge code;
-5. complete a short `pace=smoke` run, press **Verify Score**, and confirm replay `MATCH` / verified local leaderboard behavior.
-
-After these checks pass, update this report to CLOSED, update `ROADMAP.md` and `PROJECT_CONTEXT.md`, and make M08 the next milestone.
+No required M07 implementation gap remains.
 
 ---
 
-## 9. Deferred work
+## 8. Deferred known issue — browser live PEPEPOW height fetch
+
+On 2026-09-07, the operator reported that **PEPEPOW Current** did not successfully retrieve the live height in the deployed browser.
+
+This is intentionally deferred rather than treated as an M07 closure blocker because:
+
+- network access is not authoritative simulation state;
+- Manual Block remains available;
+- Official Challenge remains available with an exact published block;
+- the adapter already has explicit timeout/failover/fallback behavior;
+- M07 acceptance requires graceful RPC failure, not guaranteed browser access to a third-party endpoint;
+- the operator explicitly chose to revisit the live integration later.
+
+Likely future work includes checking browser CORS behavior, endpoint response headers, proxy/server options, and the desired refresh/cache policy.
+
+Do not silently remove the live source adapter. Preserve it as a non-authoritative application-boundary integration point until the issue is revisited.
+
+---
+
+## 9. Other deferred work
 
 The following are explicitly not M07 closure blockers:
 
@@ -199,3 +204,19 @@ The following are explicitly not M07 closure blockers:
 - broad UI polish
 
 Those items remain future product/backend work or M08+ work.
+
+---
+
+## 10. Handoff to M08
+
+M08 may improve rendering, animation, VFX, UI, environment presentation, audio, and feedback, but it must preserve:
+
+- authoritative pure-TypeScript simulation
+- fixed Block Height + Ruleset deterministic identity
+- M06 replay compatibility
+- M07 challenge/share/score-proof identity
+- visual randomness isolated from gameplay RNG
+- Manual/Official challenge availability without a working live endpoint
+- no wallet requirement
+
+Do not reopen M07 unless a concrete regression or a product decision explicitly changes the challenge architecture.

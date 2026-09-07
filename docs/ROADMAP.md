@@ -1,7 +1,7 @@
 # PEPEPOW Elemental Front — ROADMAP
 
 **Canonical milestone roadmap**  
-**Current status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 CLOSED → M04 CLOSED → M05 CLOSED → M06 CLOSED → M07 OPEN
+**Current status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 CLOSED → M04 CLOSED → M05 CLOSED → M06 CLOSED → M07 CLOSED → M08 IN_PROGRESS
 
 ---
 
@@ -478,7 +478,7 @@ Closure: `docs/milestones/M06_CLOSURE_REPORT.md`.
 
 # 9. M07 — PEPEPOW Block Challenge
 
-**Status:** OPEN  
+**Status:** CLOSED  
 **Goal:** Turn deterministic world generation into a shareable PEPEPOW challenge system.
 
 ## Scope
@@ -504,6 +504,25 @@ Closure: `docs/milestones/M06_CLOSURE_REPORT.md`.
 - challenge can be shared
 - leaderboard does not depend solely on client-reported final score if verification is implemented
 
+## Closure evidence
+
+- PR #16 — Block Challenge identity foundation — merged
+- PR #17 — PEPEPOW live source and graceful fallback — merged
+- PR #18 — replay-verified scoring and leaderboard gateway — merged
+- PR #19 — Official challenge manifest, Light source preference, and UI — merged as `672e2368d5b719b6f172e8f8df1e5a3671a3a69a`
+- PR #20 — automated acceptance closure candidate — merged as `a601c5608f1cb3178dab7533ed0a40dc55f805bf`
+- PR #19 final suite: **30 test files / 156 tests PASS**
+- M07 focused challenge/source/score/leaderboard suites: PASS
+- M02 2,048-seed regression and M01–M06 regressions: PASS
+- strict TypeScript / production build: PASS
+- post-merge main CI `34097801085`: PASS
+- GitHub Pages `34097800904`: PASS
+- deployed browser live PEPEPOW height fetch did not succeed; operator explicitly accepted deferring that network/CORS integration issue
+- Manual Block and Official Challenge remain non-network-authoritative paths
+- graceful failure/fallback is the required acceptance behavior and remains implemented
+
+Closure: `docs/milestones/M07_CLOSURE_REPORT.md`.
+
 ## Explicit non-goal
 
 No wallet requirement unless later separately approved.
@@ -512,10 +531,10 @@ No wallet requirement unless later separately approved.
 
 # 10. M08 — Combat & Visual Polish
 
-**Status:** OPEN  
+**Status:** IN_PROGRESS  
 **Goal:** Upgrade a proven game into a visually and aurally refined game without destabilizing gameplay.
 
-This milestone starts only after M01–M07 gameplay is sufficiently healthy.
+M01–M07 gameplay is now CLOSED. M08 is the active milestone.
 
 ## Scope
 
@@ -622,14 +641,16 @@ No milestone can close with:
 
 # 14. Current next action
 
-M00–M06 are CLOSED. Begin **M07 — PEPEPOW Block Challenge** without reopening the deterministic M06 run lifecycle.
+M00–M07 are CLOSED. Continue **M08 — Combat & Visual Polish** without changing authoritative gameplay identity.
 
-First establish the block-source/challenge boundary defined in `TECH_ARCHITECTURE.md`:
+First perform a presentation-only gap audit across the deployed battlefield and existing rendering/UI/audio layers, then prioritize the highest-readability improvements:
 
-1. formalize a `BlockSource` interface around the existing manual block-height flow;
-2. keep `ManualBlockSource` as the always-available practice path;
-3. add deterministic challenge identity based primarily on Block Height + Ruleset Version and surface that identity in the browser/results/replay context;
-4. then add the PEPEPOW RPC adapter behind the interface with graceful failure and no simulation-owned network fetches;
-5. only after challenge identity is stable, proceed to sharing, Daily/Official Block, leaderboard/score submission, and replay/state-hash verification interfaces.
+1. define a coherent project-level unit/building visual language using procedural/placeholder geometry first;
+2. improve combat readability with projectiles, hit/death feedback, selection/team distinction, and telegraphs without changing simulation timing or hit logic;
+3. improve elemental VFX and environmental reactions while keeping visual RNG isolated from gameplay RNG;
+4. improve biome materials, lighting, fog/atmosphere, terrain blending, and minimap/HUD readability;
+5. establish explicit asset IDs/statuses and canonical image prompts for any final art that should be manually generated later;
+6. integrate polished SFX/ambient audio only with documented provenance; user-supplied Gemini background music remains a later manual input;
+7. keep the deferred PEPEPOW browser live-height issue outside M08 unless it is deliberately reopened as separate product/backend work.
 
-No wallet requirement is introduced. Do not begin M08 polish as a substitute for M07 challenge-system work.
+Do not change M06/M07 replay/challenge identity as part of visual polish.
