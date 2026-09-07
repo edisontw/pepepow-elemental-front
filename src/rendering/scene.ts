@@ -9,6 +9,7 @@ import { M06Simulation } from '../simulation/m06-simulation';
 import type { EntitySnapshot, Simulation } from '../simulation/simulation';
 import { ElementalRenderBridge } from './elemental-render-bridge';
 import { GeneratedWorldRenderBridge } from './generated-world-render-bridge';
+import { ResourceRenderBridge } from './resource-render-bridge';
 import { RtsCamera } from './rts-camera';
 import { RunRenderBridge } from './run-render-bridge';
 import { StrategicRenderBridge } from './strategic-render-bridge';
@@ -124,6 +125,9 @@ export function createSceneShell(
 
   const generatedWorldBridge = simulation instanceof M03Simulation
     ? new GeneratedWorldRenderBridge(app, simulation.generatedWorld, simulation.terrain)
+    : null;
+  const resourceBridge = simulation instanceof M03Simulation
+    ? new ResourceRenderBridge(app, simulation.generatedWorld)
     : null;
   let freezablePatch: pc.Entity | null = null;
   if (!generatedWorldBridge) {
@@ -246,6 +250,7 @@ export function createSceneShell(
       elementalBridge.destroy();
       strategicBridge?.destroy();
       runBridge?.destroy();
+      resourceBridge?.destroy();
       generatedWorldBridge?.destroy();
       camera.destroy();
       app.destroy();
