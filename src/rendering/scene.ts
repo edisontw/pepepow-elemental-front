@@ -203,7 +203,7 @@ export function createSceneShell(
     ? new MinimapControls(minimapCanvas, simulation.generatedWorld, camera, controls)
     : null;
   const strategicBridge = simulation instanceof M03Simulation ? new StrategicRenderBridge(app) : null;
-  if (simulation instanceof M03Simulation) strategicBridge?.sync(simulation.strategy.snapshot());
+  if (simulation instanceof M03Simulation) strategicBridge?.sync(simulation.strategy.snapshot(), initialSnapshot.tick);
   const runBridge = simulation instanceof M06Simulation ? new RunRenderBridge(app) : null;
   if (simulation instanceof M06Simulation) runBridge?.sync(simulation.run.snapshot());
 
@@ -228,7 +228,7 @@ export function createSceneShell(
       elementalBridge.sync(frame.previousSnapshot, frame.snapshot, frame.interpolationAlpha);
       audioFeedback.sync(frame.previousSnapshot, frame.snapshot);
       controls.syncSelection();
-      if (simulation instanceof M03Simulation) strategicBridge?.sync(simulation.strategy.snapshot());
+      if (simulation instanceof M03Simulation) strategicBridge?.sync(simulation.strategy.snapshot(), frame.snapshot.tick);
       if (simulation instanceof M06Simulation) runBridge?.sync(simulation.run.snapshot());
       generatedWorldBridge?.sync(frame.snapshot.navVersion, frame.snapshot.terrain.ice);
       if (freezablePatch?.render) {
