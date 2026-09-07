@@ -96,7 +96,8 @@ function pinResolvedLiveBlock(resolution: BlockResolution): void {
 
 async function boot(): Promise<void> {
   try {
-    document.documentElement.classList.toggle('debug-mode', requestedDebugUi());
+    const showStrategicDebug = requestedDebugUi();
+    document.documentElement.classList.toggle('debug-mode', showStrategicDebug);
     const canvas = requiredElement<HTMLCanvasElement>('game-canvas');
     const bootScreen = requiredElement<HTMLElement>('boot-screen');
     const overlayElement = requiredElement<HTMLElement>('debug-overlay');
@@ -156,6 +157,7 @@ async function boot(): Promise<void> {
       boss: initialMinimapSnapshot.run.boss,
       surface: simulation.terrain.surface,
       burningCells: initialMinimapSnapshot.burningCells,
+      showStrategicDebug,
     });
     worldSummary.textContent = worldDebugSummary(generatedWorld);
 
@@ -196,6 +198,7 @@ async function boot(): Promise<void> {
           boss: minimapSnapshot.run.boss,
           surface: simulation.terrain.surface,
           burningCells: minimapSnapshot.burningCells,
+          showStrategicDebug,
         });
       }
     });

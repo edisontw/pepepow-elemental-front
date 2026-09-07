@@ -13,6 +13,7 @@ import { ResourceRenderBridge } from './resource-render-bridge';
 import { RtsCamera } from './rts-camera';
 import { RunRenderBridge } from './run-render-bridge';
 import { StrategicRenderBridge } from './strategic-render-bridge';
+import { TerritoryRenderBridge } from './territory-render-bridge';
 import { UnitRenderBridge } from './unit-render-bridge';
 
 function createMaterial(color: pc.Color, emissive?: pc.Color, opacity = 1): pc.StandardMaterial {
@@ -129,6 +130,10 @@ export function createSceneShell(
   const resourceBridge = simulation instanceof M03Simulation
     ? new ResourceRenderBridge(app, simulation.generatedWorld)
     : null;
+  const territoryBridge = simulation instanceof M03Simulation
+    ? new TerritoryRenderBridge(app, simulation.generatedWorld)
+    : null;
+  if (simulation instanceof M03Simulation) territoryBridge?.sync(simulation.strategy.snapshot());
   let freezablePatch: pc.Entity | null = null;
   if (!generatedWorldBridge) {
     for (const zone of simulation.arena.zones) {
@@ -232,7 +237,11 @@ export function createSceneShell(
       elementalBridge.sync(frame.previousSnapshot, frame.snapshot, frame.interpolationAlpha);
       audioFeedback.sync(frame.previousSnapshot, frame.snapshot);
       controls.syncSelection();
-      if (simulation instanceof M03Simulation) strategicBridge?.sync(simulation.strategy.snapshot(), frame.snapshot.tick);
+      if (simulation instanceof M03Simulation) {
+        const strategicSnapshot = simulation.strategy.snapshot();
+        strategicBridge?.sync(strategicSnapshot, frame.snapshot.tick);
+        territoryBridge?.sync(strategicSnapshot);
+      }
       if (simulation instanceof M06Simulation) runBridge?.sync(simulation.run.snapshot());
       generatedWorldBridge?.sync(frame.snapshot.navVersion, frame.snapshot.terrain.ice);
       if (freezablePatch?.render) {
@@ -249,6 +258,7 @@ export function createSceneShell(
       bridge.destroy();
       elementalBridge.destroy();
       strategicBridge?.destroy();
+      territoryBridge?.destroy();
       runBridge?.destroy();
       resourceBridge?.destroy();
       generatedWorldBridge?.destroy();

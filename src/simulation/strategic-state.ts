@@ -16,8 +16,10 @@ import {
   OUTPOST_POPULATION_CAP,
   STARTING_RESOURCES,
   UNITS,
+  productionDurationTicks,
   type BuildingType,
   type OutpostSpecialization,
+  type ProducerBuildingType,
   type ResourceCost,
 } from './m03-content';
 import { WorldCellFlag, type GeneratedWorld, type GridPoint, type PointOfInterest, type ResourceNode } from '../world/world-definition';
@@ -62,6 +64,8 @@ interface ProductionOrder {
   buildingId: number;
   playerId: PlayerID;
   unitType: UnitArchetype;
+  startTick: number;
+  durationTicks: number;
   completeTick: number;
 }
 
@@ -94,6 +98,8 @@ export interface StrategicSnapshot {
     buildingId: number;
     playerId: number;
     unitType: UnitArchetype;
+    startTick: number;
+    durationTicks: number;
     completeTick: number;
   }[];
   captureOrders: readonly {
@@ -295,14 +301,16 @@ export class StrategicState {
       return false;
     }
     const regionId = this.world.regionByCell[cellIndex];
-    if (regionId === undefined || this.ownerOfRegion(regionId) !== command.playerId || this.contestedRegions[regionId] === 1) return false;
+    if (regionId === undefined || this.contestedRegions[regionId] === 1) return false;
+    const owner = this.ownerOfRegion(regionId);
+    const supplied = this.isRegionSupplied(command.playerId, regionId);
+    const neighborSupplied = this.world.regions[regionId]?.neighbors.some((neighbor) => this.isRegionSupplied(command.playerId, neighbor)) === true;
     if (command.buildingType === 'OUTPOST') {
+      if (owner !== null && owner !== command.playerId) return false;
       if (this.sortedBuildings().some((building) => building.playerId === command.playerId && building.type === 'OUTPOST' && building.regionId === regionId)) return false;
-      const supplied = this.isRegionSupplied(command.playerId, regionId);
-      const neighborSupplied = this.world.regions[regionId]?.neighbors.some((neighbor) => this.isRegionSupplied(command.playerId, neighbor)) === true;
       if (!supplied && !neighborSupplied) return false;
-    } else if (!this.isRegionSupplied(command.playerId, regionId)) {
-      return false;
+    } else {
+      if (owner !== command.playerId || !supplied) return false;
     }
     const position = worldCellToSimulationPosition(this.world, cell);
     const occupied = this.sortedBuildings().some((building) => this.navigation.cellKey(this.navigation.worldToCell(building.x, building.z)) === this.navigation.cellKey({ column: cell.x, row: cell.z }));
@@ -337,12 +345,17 @@ export class StrategicState {
     const lastAtBuilding = this.productionOrders
       .filter((order) => order.buildingId === building.id)
       .reduce((latest, order) => Math.max(latest, order.completeTick), tick);
+    const startTick = Math.max(tick, lastAtBuilding);
+    const producerCount = this.completedProducerCount(command.playerId, definition.producer);
+    const durationTicks = productionDurationTicks(definition.trainTicks, producerCount);
     this.productionOrders.push({
       id: this.nextProductionOrderId,
       buildingId: building.id,
       playerId: command.playerId,
       unitType: command.unitType,
-      completeTick: Math.max(tick, lastAtBuilding) + definition.trainTicks,
+      startTick,
+      durationTicks,
+      completeTick: startTick + durationTicks,
     });
     this.nextProductionOrderId += 1;
     return true;
@@ -395,10 +408,12 @@ export class StrategicState {
   private completeBuildings(tick: number): void {
     let changed = false;
     for (const building of this.sortedBuildings()) {
-      if (!building.completed && tick >= building.completeTick) {
-        building.completed = true;
-        changed = true;
+      if (building.completed || tick < building.completeTick) continue;
+      building.completed = true;
+      if (building.type === 'OUTPOST' && this.ownerOfRegion(building.regionId) === null) {
+        this.regionOwners[building.regionId] = building.playerId;
       }
+      changed = true;
     }
     if (changed) this.recomputeTerritoryAndSupply();
   }
@@ -417,14 +432,45 @@ export class StrategicState {
       const building = this.buildings.get(order.buildingId);
       if (!building || !building.completed || building.playerId !== order.playerId) continue;
       const definition = UNITS[order.unitType];
-      const offset = ((order.id % 5) - 2) * 180;
-      this.entities.createUnit({
+      const entityId = this.entities.createUnit({
         archetype: order.unitType,
         playerId: order.playerId,
-        x: building.x + offset,
-        z: building.z + ((order.id % 3) - 1) * 180,
+        x: building.x,
+        z: building.z,
         ...definition.spawn,
       });
+      this.assignProductionExit(entityId, building, order.id);
+    }
+  }
+
+  private assignProductionExit(entityId: EntityID, building: StrategicBuilding, orderId: number): void {
+    const startCell = this.navigation.worldToCell(building.x, building.z);
+    const offsets = [
+      { column: 0, row: 3 },
+      { column: 3, row: 0 },
+      { column: 0, row: -3 },
+      { column: -3, row: 0 },
+      { column: 2, row: 2 },
+      { column: -2, row: 2 },
+      { column: 2, row: -2 },
+      { column: -2, row: -2 },
+    ] as const;
+    const rotation = (building.id + orderId) % offsets.length;
+    for (let step = 0; step < offsets.length; step += 1) {
+      const offset = offsets[(rotation + step) % offsets.length]!;
+      const targetCell = { column: startCell.column + offset.column, row: startCell.row + offset.row };
+      if (!this.navigation.isWalkable(targetCell)) continue;
+      const path = this.navigation.findPath(startCell, targetCell);
+      if (!path || path.length === 0) continue;
+      const movement = this.entities.movements.get(entityId);
+      if (!movement) return;
+      const target = this.navigation.cellToWorld(targetCell);
+      movement.targetX = target.x;
+      movement.targetZ = target.z;
+      movement.path = path.map((cell) => this.navigation.cellToWorld(cell));
+      movement.pathIndex = 0;
+      movement.pathNavVersion = this.navigation.navVersion;
+      return;
     }
   }
 
@@ -460,6 +506,15 @@ export class StrategicState {
       }
       this.suppliedByPlayer.set(playerId, supplied);
     }
+  }
+
+  private completedProducerCount(playerId: PlayerID, type: ProducerBuildingType): number {
+    return this.sortedBuildings().filter((building) => (
+      building.playerId === playerId
+      && building.type === type
+      && building.completed
+      && this.isRegionSupplied(playerId, building.regionId)
+    )).length;
   }
 
   private capturePowerInRegion(order: CaptureOrder, regionId: number): number {
@@ -583,6 +638,8 @@ export class StrategicState {
       hash = hashInteger(hash, order.buildingId);
       hash = hashInteger(hash, order.playerId);
       hash = hashString(hash, order.unitType);
+      hash = hashInteger(hash, order.startTick);
+      hash = hashInteger(hash, order.durationTicks);
       hash = hashInteger(hash, order.completeTick);
     }
     for (const order of snapshot.captureOrders) {

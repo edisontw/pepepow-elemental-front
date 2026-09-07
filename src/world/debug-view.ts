@@ -32,6 +32,7 @@ export interface MinimapLiveState {
   boss?: MinimapBossState;
   surface?: Uint8Array;
   burningCells?: readonly { column: number; row: number }[];
+  showStrategicDebug?: boolean;
 }
 
 function pointCenter(point: GridPoint, scaleX: number, scaleY: number): [number, number] {
@@ -64,6 +65,28 @@ function drawMarker(
   const [x, y] = pointCenter(point, scaleX, scaleY);
   context.beginPath();
   context.arc(x, y, radius, 0, Math.PI * 2);
+  context.fillStyle = fill;
+  context.fill();
+  context.strokeStyle = '#07100f';
+  context.lineWidth = 1;
+  context.stroke();
+}
+
+function drawDiamond(
+  context: CanvasRenderingContext2D,
+  point: GridPoint,
+  scaleX: number,
+  scaleY: number,
+  radius: number,
+  fill: string,
+): void {
+  const [x, y] = pointCenter(point, scaleX, scaleY);
+  context.beginPath();
+  context.moveTo(x, y - radius);
+  context.lineTo(x + radius, y);
+  context.lineTo(x, y + radius);
+  context.lineTo(x - radius, y);
+  context.closePath();
   context.fillStyle = fill;
   context.fill();
   context.strokeStyle = '#07100f';
@@ -120,6 +143,7 @@ export function renderWorldDebug(
   const scaleY = canvas.height / world.height;
   context.clearRect(0, 0, canvas.width, canvas.height);
   const contested = new Set(territory?.contestedRegions ?? []);
+  const showStrategicDebug = live?.showStrategicDebug === true || live === undefined;
 
   for (let z = 0; z < world.height; z += 1) {
     for (let x = 0; x < world.width; x += 1) {
@@ -143,9 +167,9 @@ export function renderWorldDebug(
       if (territory) {
         const regionId = world.regionByCell[index];
         const owner = regionId === undefined ? -1 : territory.regionOwners[regionId] ?? -1;
-        if (regionId !== undefined && contested.has(regionId)) context.fillStyle = 'rgba(255, 209, 82, .28)';
-        else if (owner === 0) context.fillStyle = 'rgba(63, 231, 190, .22)';
-        else if (owner === 1) context.fillStyle = 'rgba(244, 91, 79, .20)';
+        if (regionId !== undefined && contested.has(regionId)) context.fillStyle = 'rgba(255, 209, 82, .34)';
+        else if (owner === 0) context.fillStyle = 'rgba(63, 231, 190, .30)';
+        else if (owner === 1) context.fillStyle = 'rgba(244, 91, 79, .28)';
         else continue;
         context.fillRect(x * scaleX, z * scaleY, Math.ceil(scaleX), Math.ceil(scaleY));
       }
@@ -157,43 +181,46 @@ export function renderWorldDebug(
     context.fillRect(cell.column * scaleX, cell.row * scaleY, Math.ceil(scaleX), Math.ceil(scaleY));
   }
 
-  context.lineWidth = 1.5;
-  context.strokeStyle = 'rgba(245, 210, 112, .88)';
-  for (const route of world.routes) {
-    const first = route.path[0];
-    if (!first) continue;
-    const [startX, startY] = pointCenter(first, scaleX, scaleY);
-    context.beginPath();
-    context.moveTo(startX, startY);
-    for (let index = 1; index < route.path.length; index += 1) {
-      const point = route.path[index];
-      if (!point) continue;
-      const [x, y] = pointCenter(point, scaleX, scaleY);
-      context.lineTo(x, y);
-    }
-    context.stroke();
-  }
-
-  const supplied = new Set(territory?.suppliedRegions?.[0] ?? []);
-  context.font = '9px ui-monospace, monospace';
-  context.textAlign = 'center';
-  context.textBaseline = 'middle';
-  for (const region of world.regions) {
-    drawMarker(context, region.center, scaleX, scaleY, 4, '#f4de7a');
-    const [x, y] = pointCenter(region.center, scaleX, scaleY);
-    if (supplied.has(region.id)) {
+  if (showStrategicDebug) {
+    context.lineWidth = 1.5;
+    context.strokeStyle = 'rgba(245, 210, 112, .88)';
+    for (const route of world.routes) {
+      const first = route.path[0];
+      if (!first) continue;
+      const [startX, startY] = pointCenter(first, scaleX, scaleY);
       context.beginPath();
-      context.arc(x, y, 6.2, 0, Math.PI * 2);
-      context.strokeStyle = '#65d9bd';
-      context.lineWidth = 1.2;
+      context.moveTo(startX, startY);
+      for (let index = 1; index < route.path.length; index += 1) {
+        const point = route.path[index];
+        if (!point) continue;
+        const [x, y] = pointCenter(point, scaleX, scaleY);
+        context.lineTo(x, y);
+      }
       context.stroke();
     }
-    context.fillStyle = '#07100f';
-    context.fillText(String(region.id + 1), x, y + 0.5);
+
+    const supplied = new Set(territory?.suppliedRegions?.[0] ?? []);
+    context.font = '9px ui-monospace, monospace';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    for (const region of world.regions) {
+      drawMarker(context, region.center, scaleX, scaleY, 4, '#f4de7a');
+      const [x, y] = pointCenter(region.center, scaleX, scaleY);
+      if (supplied.has(region.id)) {
+        context.beginPath();
+        context.arc(x, y, 6.2, 0, Math.PI * 2);
+        context.strokeStyle = '#65d9bd';
+        context.lineWidth = 1.2;
+        context.stroke();
+      }
+      context.fillStyle = '#07100f';
+      context.fillText(String(region.id + 1), x, y + 0.5);
+    }
   }
 
   for (const resource of world.resources) {
-    drawMarker(context, resource.cell, scaleX, scaleY, 2.2, resource.type === 'MATERIAL' ? '#dfb66d' : '#9c79e3');
+    if (resource.type === 'MATERIAL') drawDiamond(context, resource.cell, scaleX, scaleY, 2.8, '#e1a64a');
+    else drawMarker(context, resource.cell, scaleX, scaleY, 2.5, '#ad75f0');
   }
   for (const poi of world.pois) drawMarker(context, poi.cell, scaleX, scaleY, 1.8, '#f2f2df');
   drawMarker(context, world.objective.cell, scaleX, scaleY, 4.2, '#fff2a0');

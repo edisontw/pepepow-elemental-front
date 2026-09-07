@@ -2,6 +2,7 @@ import { WORLD_UNITS_PER_METER } from './arena';
 import type { UnitArchetype, UnitSpawn } from './components';
 
 export type BuildingType = 'ELEMENTAL_CORE' | 'BARRACKS' | 'ARCANE_TOWER' | 'WORKSHOP' | 'OUTPOST' | 'EXTRACTOR';
+export type ProducerBuildingType = Exclude<BuildingType, 'ELEMENTAL_CORE' | 'OUTPOST' | 'EXTRACTOR'>;
 export type OutpostSpecialization = 'WATCHTOWER' | 'BARRIER_HUB' | 'MANA_BEACON';
 
 export interface ResourceCost {
@@ -19,7 +20,7 @@ export interface BuildingDefinition {
 
 export interface UnitDefinition {
   archetype: UnitArchetype;
-  producer: Exclude<BuildingType, 'ELEMENTAL_CORE' | 'OUTPOST' | 'EXTRACTOR'>;
+  producer: ProducerBuildingType;
   cost: ResourceCost;
   population: number;
   trainTicks: number;
@@ -37,6 +38,26 @@ export const BASE_POPULATION_CAP = 30;
 export const OUTPOST_POPULATION_CAP = 10;
 export const CAPTURE_BASE_TICKS = 200;
 export const CAPTURE_POWER_CAP_TENTHS = 30;
+export const PRODUCTION_NETWORK_BONUS_PER_EXTRA_PERMILLE = 100;
+export const PRODUCTION_NETWORK_MAX_BONUS_PERMILLE = 300;
+
+export function productionDurationTicks(baseTicks: number, completedProducerCount: number): number {
+  const extras = Math.max(0, completedProducerCount - 1);
+  const bonusPermille = Math.min(
+    PRODUCTION_NETWORK_MAX_BONUS_PERMILLE,
+    extras * PRODUCTION_NETWORK_BONUS_PER_EXTRA_PERMILLE,
+  );
+  return Math.max(1, Math.ceil((baseTicks * (1000 - bonusPermille)) / 1000));
+}
+
+export function productionSpeedPercent(completedProducerCount: number): number {
+  const extras = Math.max(0, completedProducerCount - 1);
+  const bonusPermille = Math.min(
+    PRODUCTION_NETWORK_MAX_BONUS_PERMILLE,
+    extras * PRODUCTION_NETWORK_BONUS_PER_EXTRA_PERMILLE,
+  );
+  return 100 + Math.round((bonusPermille * 100) / (1000 - bonusPermille));
+}
 
 export const BUILDINGS: Readonly<Record<BuildingType, BuildingDefinition>> = {
   ELEMENTAL_CORE: {
