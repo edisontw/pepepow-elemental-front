@@ -1,5 +1,6 @@
 import * as pc from 'playcanvas';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
+import { BUILDINGS } from '../simulation/m03-content';
 import type { StrategicBuilding, StrategicSnapshot } from '../simulation/strategic-state';
 import { buildingVisualProfile, type BuildingVisualMaterialRole } from './building-visual-profile';
 
@@ -27,6 +28,15 @@ function createMaterial(color: pc.Color, emissive?: pc.Color): pc.StandardMateri
   return material;
 }
 
+function constructionScale(building: StrategicBuilding, tick: number): number {
+  if (building.completed) return 1;
+  const duration = BUILDINGS[building.type].buildTicks;
+  if (duration <= 0) return 1;
+  const startTick = building.completeTick - duration;
+  const progress = Math.max(0, Math.min(1, (tick - startTick) / duration));
+  return 0.18 + progress * 0.82;
+}
+
 export class StrategicRenderBridge {
   private readonly entities = new Map<number, BuildingPresentation>();
   private readonly playerMaterial = createMaterial(new pc.Color(0.16, 0.58, 0.5), new pc.Color(0.01, 0.15, 0.1));
@@ -37,7 +47,7 @@ export class StrategicRenderBridge {
 
   constructor(private readonly app: pc.Application) {}
 
-  sync(snapshot: StrategicSnapshot): void {
+  sync(snapshot: StrategicSnapshot, tick = 0): void {
     const active = new Set<number>();
     for (const building of snapshot.buildings) {
       active.add(building.id);
@@ -51,7 +61,7 @@ export class StrategicRenderBridge {
         0,
         building.z / WORLD_UNITS_PER_METER,
       );
-      presentation.root.setLocalScale(1, building.completed ? 1 : 0.48, 1);
+      presentation.root.setLocalScale(1, constructionScale(building, tick), 1);
       for (const part of presentation.parts) {
         if (!part.entity.render) continue;
         part.entity.render.material = building.completed
