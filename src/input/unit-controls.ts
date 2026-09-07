@@ -156,7 +156,7 @@ export class UnitControls {
       return;
     }
     if (!event.repeat && event.code === 'KeyF') {
-      this.castTerrainAtHover('FREEZE', ELEMENTAL_FREEZE_RADIUS);
+      this.castTerrainAtHover('FREEZE', ELEMENTAL_FREEZE_RADIUS, 2);
       return;
     }
     if (!event.repeat && event.code === 'KeyH') {
@@ -188,18 +188,25 @@ export class UnitControls {
     });
   };
 
-  private castTerrainAtHover(effectId: 'FIRE' | 'WATER' | 'FREEZE' | 'HEAT', radius: number): void {
+  private castTerrainAtHover(
+    effectId: 'FIRE' | 'WATER' | 'FREEZE' | 'HEAT',
+    radius: number,
+    repeatCount = 1,
+  ): void {
     const target = this.hoverWorldPoint();
     if (!target) return;
-    this.simulation.enqueueCommand({
-      targetTick: this.simulation.snapshot().tick + 1,
-      playerId: 0,
-      type: 'CAST',
-      effectId,
-      targetX: target.x,
-      targetZ: target.z,
-      radius,
-    });
+    const targetTick = this.simulation.snapshot().tick + 1;
+    for (let index = 0; index < repeatCount; index += 1) {
+      this.simulation.enqueueCommand({
+        targetTick,
+        playerId: 0,
+        type: 'CAST',
+        effectId,
+        targetX: target.x,
+        targetZ: target.z,
+        radius,
+      });
+    }
   }
 
   private renderSelected(): void {
