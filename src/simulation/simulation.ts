@@ -376,7 +376,13 @@ export class Simulation {
           continue;
         }
         if (effect.effectId === 'FIRE') {
-          if (effect.sourcePlayerId === undefined || this.entities.factions.get(entityId)?.playerId !== effect.sourcePlayerId) {
+          const cell = this.navigation.worldToCell(position.x, position.z);
+          const surface = this.terrain.surfaceAt(cell);
+          const fireCanDamage = surface === SurfaceType.GROUND || surface === SurfaceType.NATURAL_CROSSING;
+          if (
+            fireCanDamage
+            && (effect.sourcePlayerId === undefined || this.entities.factions.get(entityId)?.playerId !== effect.sourcePlayerId)
+          ) {
             const health = this.entities.health.get(entityId);
             if (health?.alive) health.current = Math.max(0, health.current - FIRE_IMPACT_DAMAGE);
           }
@@ -442,10 +448,8 @@ export class Simulation {
       const status = this.entities.statuses.get(entityId);
       if (!position || !status) continue;
       const cell = this.navigation.worldToCell(position.x, position.z);
-      if (this.terrain.surfaceAt(cell) === SurfaceType.WATER) {
-        status.wetTicks = Math.max(status.wetTicks, WATER_WET_DURATION_TICKS);
-      }
-      status.wet = status.wetTicks > 0;
+      const environmentalWet = this.terrain.surfaceAt(cell) === SurfaceType.WATER;
+      status.wet = environmentalWet || status.wetTicks > 0;
     }
   }
 
