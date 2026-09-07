@@ -78,6 +78,16 @@ export const BUILDING_VISUAL_PROFILES: Readonly<Record<BuildingType, BuildingVis
       { primitive: 'box', material: 'ACCENT', position: [-0.86, 0.72, 0], scale: [0.82, 0.18, 0.18] },
     ],
   },
+  MANA_WELL: {
+    footprint: 1.8,
+    height: 2.0,
+    parts: [
+      { primitive: 'cylinder', material: 'TEAM', position: [0, 0.34, 0], scale: [1.75, 0.5, 1.75] },
+      { primitive: 'cylinder', material: 'ACCENT', position: [0, 0.78, 0], scale: [1.08, 0.4, 1.08] },
+      { primitive: 'sphere', material: 'ACCENT', position: [0, 1.48, 0], scale: [0.68, 0.68, 0.68] },
+      { primitive: 'box', material: 'TEAM', position: [0, 1.0, 0], scale: [0.24, 1.1, 0.24] },
+    ],
+  },
 };
 
 export function buildingVisualProfile(type: BuildingType): BuildingVisualProfile {
