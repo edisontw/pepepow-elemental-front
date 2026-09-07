@@ -1,5 +1,6 @@
 import './styles.css';
 import './m06.css';
+import './m08.css';
 import {
   assertBlockChallengeWorldMatches,
   readBlockChallengeShareRequest,
@@ -39,6 +40,11 @@ function requiredElement<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id);
   if (!element) throw new Error(`Missing required element: #${id}`);
   return element as T;
+}
+
+function requestedDebugUi(): boolean {
+  const raw = new URLSearchParams(window.location.search).get('debug')?.trim().toLowerCase();
+  return raw === '1' || raw === 'true' || raw === 'on';
 }
 
 function requestedFaction(): EnemyFaction | undefined {
@@ -90,6 +96,7 @@ function pinResolvedLiveBlock(resolution: BlockResolution): void {
 
 async function boot(): Promise<void> {
   try {
+    document.documentElement.classList.toggle('debug-mode', requestedDebugUi());
     const canvas = requiredElement<HTMLCanvasElement>('game-canvas');
     const bootScreen = requiredElement<HTMLElement>('boot-screen');
     const overlayElement = requiredElement<HTMLElement>('debug-overlay');

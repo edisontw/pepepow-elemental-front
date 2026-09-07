@@ -152,7 +152,7 @@ export class RunPanel {
     if (run.result) {
       this.element.classList.add('complete');
       this.element.innerHTML = `
-        <div class="run-title">M07 BLOCK CHALLENGE · ${run.mode.replace('_', ' ')}</div>
+        <div class="run-title">PEPEPOW BLOCK CHALLENGE · ${run.mode.replace('_', ' ')}</div>
         ${replayLine}
         <div class="run-challenge">${challengeMeta}</div>
         <div class="run-source">${sourceMeta}</div>
@@ -192,7 +192,7 @@ export class RunPanel {
         ? 'FINALE: move combat units into the enemy Core assault radius.'
         : `FINALE: defeat ${run.boss.label}. Its attacks alter the battlefield.`;
     this.element.innerHTML = `
-      <div class="run-title">M07 BLOCK CHALLENGE · ${run.mode.replace('_', ' ')}</div>
+      <div class="run-title">PEPEPOW BLOCK CHALLENGE · ${run.mode.replace('_', ' ')}</div>
       ${replayLine}
       <div class="run-challenge">${challengeMeta}</div>
       <div class="run-source">${sourceMeta}</div>
