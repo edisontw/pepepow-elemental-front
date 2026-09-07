@@ -1,4 +1,5 @@
 import * as pc from 'playcanvas';
+import { AudioFeedback } from '../audio/audio-feedback';
 import { UnitControls } from '../input/unit-controls';
 import { WORLD_UNITS_PER_METER, type ArenaZone } from '../simulation/arena';
 import type { TickFrame } from '../simulation/fixed-tick-runner';
@@ -176,6 +177,7 @@ export function createSceneShell(
   const healthMaterial = createMaterial(new pc.Color(0.18, 0.9, 0.25), new pc.Color(0.03, 0.2, 0.04));
   const bridge = new UnitRenderBridge(app, initialSnapshot, unitMaterials, selectionMaterial, healthMaterial);
   const elementalBridge = new ElementalRenderBridge(app, simulation.terrain, initialSnapshot);
+  const audioFeedback = new AudioFeedback();
   const controls = new UnitControls(canvas, cameraComponent, simulation, bridge, selectionBox);
   const strategicBridge = simulation instanceof M03Simulation ? new StrategicRenderBridge(app) : null;
   if (simulation instanceof M03Simulation) strategicBridge?.sync(simulation.strategy.snapshot());
@@ -200,6 +202,7 @@ export function createSceneShell(
     sync(frame: TickFrame): void {
       bridge.sync(frame.previousSnapshot, frame.snapshot, frame.interpolationAlpha);
       elementalBridge.sync(frame.previousSnapshot, frame.snapshot, frame.interpolationAlpha);
+      audioFeedback.sync(frame.previousSnapshot, frame.snapshot);
       controls.syncSelection();
       if (simulation instanceof M03Simulation) strategicBridge?.sync(simulation.strategy.snapshot());
       if (simulation instanceof M06Simulation) runBridge?.sync(simulation.run.snapshot());
@@ -213,6 +216,7 @@ export function createSceneShell(
     destroy(): void {
       window.removeEventListener('resize', onResize);
       controls.destroy();
+      audioFeedback.destroy();
       bridge.destroy();
       elementalBridge.destroy();
       strategicBridge?.destroy();
