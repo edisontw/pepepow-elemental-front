@@ -1,7 +1,7 @@
 import type { SimulationSnapshot } from '../simulation/simulation';
 import { deriveAudioCues, type AudioCue } from './audio-events';
 
-const MASTER_GAIN = 0.22;
+const MASTER_GAIN = 0.48;
 
 export class AudioFeedback {
   private context: AudioContext | null = null;
@@ -55,30 +55,36 @@ export class AudioFeedback {
   }
 
   private playCue(cue: AudioCue): void {
-    const strength = 1 + (cue.intensity - 1) * 0.16;
+    const strength = 1 + (cue.intensity - 1) * 0.18;
     switch (cue.id) {
+      case 'sfx.combat.attack':
+        this.tone(540, 230, 0.11, 'triangle', 0.3 * strength);
+        this.tone(310, 155, 0.08, 'square', 0.13 * strength, 0.018);
+        break;
       case 'sfx.combat.hit':
-        this.tone(160, 85, 0.055, 'triangle', 0.24 * strength);
+        this.tone(210, 78, 0.13, 'triangle', 0.34 * strength);
         break;
       case 'sfx.combat.death':
-        this.tone(118, 44, 0.22, 'sawtooth', 0.32 * strength);
-        this.tone(72, 38, 0.25, 'sine', 0.2 * strength, 0.015);
+        this.tone(155, 42, 0.34, 'sawtooth', 0.42 * strength);
+        this.tone(82, 34, 0.38, 'sine', 0.27 * strength, 0.02);
         break;
       case 'sfx.element.fire-ignite':
-        this.tone(250, 105, 0.12, 'sawtooth', 0.2 * strength);
-        this.tone(430, 170, 0.09, 'triangle', 0.12 * strength, 0.02);
+        this.tone(290, 92, 0.2, 'sawtooth', 0.28 * strength);
+        this.tone(520, 155, 0.16, 'triangle', 0.18 * strength, 0.025);
         break;
       case 'sfx.element.ice-form':
-        this.tone(820, 430, 0.19, 'sine', 0.23 * strength);
-        this.tone(1120, 650, 0.14, 'sine', 0.12 * strength, 0.025);
+        this.tone(980, 360, 0.34, 'sine', 0.36 * strength);
+        this.tone(1460, 620, 0.25, 'triangle', 0.23 * strength, 0.028);
+        this.tone(620, 280, 0.3, 'sine', 0.16 * strength, 0.055);
         break;
       case 'sfx.element.ice-break':
-        this.tone(365, 105, 0.11, 'square', 0.19 * strength);
-        this.tone(185, 72, 0.17, 'triangle', 0.13 * strength, 0.018);
+        this.tone(520, 105, 0.22, 'square', 0.32 * strength);
+        this.tone(240, 58, 0.28, 'triangle', 0.22 * strength, 0.022);
         break;
       case 'sfx.element.lightning-chain':
-        this.tone(1320, 125, 0.095, 'sawtooth', 0.3 * strength);
-        this.tone(690, 185, 0.12, 'square', 0.16 * strength, 0.012);
+        this.tone(1760, 125, 0.19, 'sawtooth', 0.43 * strength);
+        this.tone(920, 160, 0.23, 'square', 0.28 * strength, 0.015);
+        this.tone(2380, 460, 0.12, 'triangle', 0.22 * strength, 0.035);
         break;
     }
   }
@@ -98,7 +104,7 @@ export class AudioFeedback {
     const oscillator = context.createOscillator();
     const envelope = context.createGain();
     const start = context.currentTime + delay;
-    const attackEnd = start + Math.min(0.009, duration * 0.2);
+    const attackEnd = start + Math.min(0.012, duration * 0.2);
     const end = start + duration;
 
     oscillator.type = type;
