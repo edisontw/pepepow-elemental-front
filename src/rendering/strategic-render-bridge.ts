@@ -11,6 +11,8 @@ interface BuildingPartPresentation {
 interface BuildingPresentation {
   root: pc.Entity;
   parts: readonly BuildingPartPresentation[];
+  footprint: pc.Entity;
+  beacon: pc.Entity;
 }
 
 function createMaterial(color: pc.Color, emissive?: pc.Color): pc.StandardMaterial {
@@ -56,6 +58,16 @@ export class StrategicRenderBridge {
           ? this.materialFor(building.playerId, part.role)
           : this.constructionMaterial;
       }
+      if (presentation.footprint.render) {
+        presentation.footprint.render.material = building.completed
+          ? this.materialFor(building.playerId, 'ACCENT')
+          : this.constructionMaterial;
+      }
+      if (presentation.beacon.render) {
+        presentation.beacon.render.material = building.completed
+          ? this.materialFor(building.playerId, 'ACCENT')
+          : this.constructionMaterial;
+      }
     }
     for (const [buildingId, presentation] of [...this.entities]) {
       if (active.has(buildingId)) continue;
@@ -89,8 +101,28 @@ export class StrategicRenderBridge {
       root.addChild(entity);
       parts.push({ entity, role: part.material });
     }
+
+    const footprint = new pc.Entity(`${building.type} ${building.id} Footprint`);
+    footprint.addComponent('render', {
+      type: 'cylinder',
+      material: building.completed ? this.materialFor(building.playerId, 'ACCENT') : this.constructionMaterial,
+    });
+    footprint.setLocalPosition(0, 0.035, 0);
+    footprint.setLocalScale(profile.footprint * 1.18, 0.035, profile.footprint * 1.18);
+    root.addChild(footprint);
+
+    const beacon = new pc.Entity(`${building.type} ${building.id} Beacon`);
+    beacon.addComponent('render', {
+      type: 'sphere',
+      material: building.completed ? this.materialFor(building.playerId, 'ACCENT') : this.constructionMaterial,
+    });
+    beacon.setLocalPosition(0, profile.height + 0.42, 0);
+    beacon.setLocalScale(0.24, 0.24, 0.24);
+    beacon.enabled = building.type !== 'ELEMENTAL_CORE';
+    root.addChild(beacon);
+
     this.app.root.addChild(root);
-    return { root, parts };
+    return { root, parts, footprint, beacon };
   }
 
   private materialFor(playerId: number, role: BuildingVisualMaterialRole): pc.Material {

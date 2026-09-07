@@ -2,6 +2,7 @@ import type { EntityID } from '../simulation/components';
 import type { EntitySnapshot, SimulationSnapshot } from '../simulation/simulation';
 
 export type AudioCueId =
+  | 'sfx.combat.attack'
   | 'sfx.combat.hit'
   | 'sfx.combat.death'
   | 'sfx.element.fire-ignite'
@@ -47,12 +48,18 @@ export function deriveAudioCues(
   const cues: AudioCue[] = [];
   const previousById = snapshotMap(previous);
   const lightningTargets = newlyDamagedLightningTargets(previousById, current);
+  let visibleAttacks = 0;
   let visibleHits = 0;
   let visibleDeaths = 0;
 
   for (const entity of current.entities) {
     const prior = previousById.get(entity.id);
     if (!prior || !prior.visibleToPlayer) continue;
+    if (
+      entity.alive
+      && entity.attackTargetEntityId !== null
+      && entity.nextAttackTick > prior.nextAttackTick
+    ) visibleAttacks += 1;
     if (prior.alive && !entity.alive) visibleDeaths += 1;
     if (
       prior.alive
@@ -83,6 +90,9 @@ export function deriveAudioCues(
       id: 'sfx.element.lightning-chain',
       intensity: intensityFromCount(lightningTargets.size),
     });
+  }
+  if (visibleAttacks > 0) {
+    cues.push({ id: 'sfx.combat.attack', intensity: intensityFromCount(visibleAttacks) });
   }
   if (visibleDeaths > 0) {
     cues.push({ id: 'sfx.combat.death', intensity: intensityFromCount(visibleDeaths) });

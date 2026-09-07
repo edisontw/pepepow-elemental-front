@@ -44,6 +44,23 @@ describe('M08 audio event derivation', () => {
     ]);
   });
 
+  it('derives an attack cue from the same authoritative attack-tick transition used by projectile feedback', () => {
+    const [previous, current] = snapshots();
+    const attacker = current.entities[0]!;
+    const target = current.entities[1]!;
+    const attacking = {
+      ...current,
+      entities: current.entities.map((entity) => entity.id === attacker.id
+        ? {
+          ...entity,
+          attackTargetEntityId: target.id,
+          nextAttackTick: Math.max(entity.nextAttackTick, previous.entities[0]!.nextAttackTick + 1),
+        }
+        : entity),
+    };
+    expect(deriveAudioCues(previous, attacking)).toContainEqual({ id: 'sfx.combat.attack', intensity: 1 });
+  });
+
   it('aggregates visible combat hit and death feedback without changing simulation state', () => {
     const [previous, current] = snapshots();
     const first = current.entities[0]!;
