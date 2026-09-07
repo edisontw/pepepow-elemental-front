@@ -9,11 +9,14 @@ import {
   LocalVerifiedLeaderboard,
   type LeaderboardEntry,
 } from '../challenge/leaderboard';
+import { OFFICIAL_CHALLENGES } from '../challenge/official-challenge';
 import { createChallengeScoreSubmission } from '../challenge/score-proof';
 import type { M06Simulation } from '../simulation/m06-simulation';
 import type { RunSnapshot, ScoreBreakdown } from '../simulation/run-state';
 
 export const M06_REPLAY_STORAGE_KEY = 'pepepow:elemental-front:m06:last-replay';
+
+const FEATURED_OFFICIAL_CHALLENGE = OFFICIAL_CHALLENGES.entries[0] ?? null;
 
 function formatTime(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
@@ -57,6 +60,7 @@ export class RunPanel {
     else if (action === 'mode') this.navigate({ blockDelta: 0, toggleMode: true });
     else if (action === 'share') void this.copyChallengeLink();
     else if (action === 'verify-score') void this.verifyAndStoreScore();
+    else if (action === 'official' && FEATURED_OFFICIAL_CHALLENGE) this.navigateOfficial(FEATURED_OFFICIAL_CHALLENGE.id);
     else if (action === 'pepepow-now') this.navigatePepepow(0);
     else if (action === 'pepepow-10') this.navigatePepepow(10);
     else if (action === 'pepepow-100') this.navigatePepepow(100);
@@ -112,9 +116,11 @@ export class RunPanel {
     const sourceLabel = this.simulation.isReplayPlayback ? 'Replay Packet' : this.blockResolution.label;
     const sourceDetail = this.blockResolution.source === 'PEPEPOW_RPC' && this.blockResolution.networkTipHeight !== undefined
       ? ` · Tip ${this.blockResolution.networkTipHeight.toLocaleString()}`
-      : this.blockResolution.fallbackReason
-        ? ' · RPC unavailable → manual fallback'
-        : '';
+      : this.blockResolution.source === 'OFFICIAL' && this.blockResolution.officialChallengeId
+        ? ` · ${this.blockResolution.officialChallengeId}`
+        : this.blockResolution.fallbackReason
+          ? ' · RPC unavailable → manual fallback'
+          : '';
     const challengeMeta = `Block ${identity.blockHeight.toLocaleString()} · Rules ${identity.rulesetVersion} · ${challengeCode}`;
     const sourceMeta = `${sourceLabel}${sourceDetail}`;
     const shareLabel = this.shareStatus === 'COPIED'
@@ -127,6 +133,12 @@ export class RunPanel {
       : this.proofStatus === 'VERIFIED'
         ? 'Score Verified'
         : 'Verify Score';
+    const officialButton = FEATURED_OFFICIAL_CHALLENGE
+      ? `<button data-run-action="official">${FEATURED_OFFICIAL_CHALLENGE.label}</button>`
+      : '';
+    const officialInlineButton = FEATURED_OFFICIAL_CHALLENGE
+      ? `<button class="run-mode-button" data-run-action="official">Official Challenge</button>`
+      : '';
     const elapsedSeconds = Math.floor(simulation.tick / 10);
     const playerCore = run.playerCore;
     const target = run.mode === 'DESTROY' ? run.enemyCore : run.boss;
@@ -157,6 +169,7 @@ export class RunPanel {
           <button data-run-action="verify-score" ${this.simulation.isReplayPlayback || this.proofStatus === 'VERIFYING' ? 'disabled' : ''}>${verifyLabel}</button>
           <button data-run-action="replay" ${this.hasStoredReplay() ? '' : 'disabled'}>Replay Last</button>
           <button data-run-action="mode">${run.mode === 'DESTROY' ? 'Boss Hunt' : 'Destroy'} Mode</button>
+          ${officialButton}
         </div>
         <div class="run-live-actions">
           <span>PEPEPOW Network</span>
@@ -193,6 +206,7 @@ export class RunPanel {
       <div class="run-pressure">Assault P:${run.pressure.playerCoreAttackers} · E:${run.pressure.enemyCoreAttackers} · Boss:${run.pressure.bossAttackers} · Repair:${run.pressure.repairingEngineers}</div>
       <div class="run-inline-actions">
         <button class="run-mode-button" data-run-action="share">${shareLabel}</button>
+        ${officialInlineButton}
         <button class="run-mode-button" data-run-action="pepepow-now">PEPEPOW Current</button>
         <button class="run-mode-button" data-run-action="pepepow-10">Recent -10</button>
         <button class="run-mode-button" data-run-action="mode">Switch to ${run.mode === 'DESTROY' ? 'Boss Hunt' : 'Destroy'}</button>
@@ -239,6 +253,18 @@ export class RunPanel {
     window.location.assign(url);
   }
 
+  private navigateOfficial(challengeId: string): void {
+    const url = new URL(window.location.href);
+    this.clearChallengeSourceParams(url);
+    url.searchParams.delete('block');
+    url.searchParams.set('official', challengeId);
+    url.searchParams.set('pace', this.simulation.run.pace.toLowerCase());
+    url.searchParams.set('faction', this.simulation.enemyWar.faction.toLowerCase());
+    url.searchParams.set('difficulty', this.simulation.enemyWar.difficulty.toLowerCase());
+    url.searchParams.set('mode', this.simulation.run.mode === 'BOSS_HUNT' ? 'boss' : 'destroy');
+    window.location.assign(url);
+  }
+
   private navigatePepepow(offset: number): void {
     const url = new URL(window.location.href);
     this.clearChallengeSourceParams(url);
@@ -261,6 +287,7 @@ export class RunPanel {
     url.searchParams.delete('live');
     url.searchParams.delete('offset');
     url.searchParams.delete('source');
+    url.searchParams.delete('official');
   }
 
   private replayLast(): void {
