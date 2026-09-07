@@ -1,6 +1,11 @@
 import * as pc from 'playcanvas';
 import type { UnitRenderBridge } from '../rendering/unit-render-bridge';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
+import {
+  ELEMENTAL_FIRE_RADIUS,
+  ELEMENTAL_FREEZE_RADIUS,
+  ELEMENTAL_WATER_RADIUS,
+} from '../simulation/elemental-tactics';
 import type { EntitySnapshot, Simulation } from '../simulation/simulation';
 import { SelectionState } from './selection-state';
 
@@ -142,27 +147,20 @@ export class UnitControls {
       return;
     }
 
-    if ((event.code === 'KeyF' || event.code === 'KeyH' || event.code === 'KeyR' || event.code === 'KeyB') && !event.repeat) {
-      const target = this.hoverWorldPoint();
-      if (!target) return;
-      const effectId = event.code === 'KeyF'
-        ? 'FREEZE'
-        : event.code === 'KeyH'
-          ? 'HEAT'
-          : 'FIRE';
-      const repeatCount = event.code === 'KeyB' ? 1 : 2;
-      const targetTick = this.simulation.snapshot().tick + 1;
-      for (let index = 0; index < repeatCount; index += 1) {
-        this.simulation.enqueueCommand({
-          targetTick,
-          playerId: 0,
-          type: 'CAST',
-          effectId,
-          targetX: target.x,
-          targetZ: target.z,
-          radius: 5 * WORLD_UNITS_PER_METER,
-        });
-      }
+    if (!event.repeat && event.code === 'KeyR') {
+      this.castTerrainAtHover('FIRE', ELEMENTAL_FIRE_RADIUS);
+      return;
+    }
+    if (!event.repeat && event.code === 'KeyQ') {
+      this.castTerrainAtHover('WATER', ELEMENTAL_WATER_RADIUS);
+      return;
+    }
+    if (!event.repeat && event.code === 'KeyF') {
+      this.castTerrainAtHover('FREEZE', ELEMENTAL_FREEZE_RADIUS, 2);
+      return;
+    }
+    if (!event.repeat && event.code === 'KeyH') {
+      this.castTerrainAtHover('HEAT', ELEMENTAL_FIRE_RADIUS);
       return;
     }
 
@@ -189,6 +187,27 @@ export class UnitControls {
       entityIds: this.selection.ids,
     });
   };
+
+  private castTerrainAtHover(
+    effectId: 'FIRE' | 'WATER' | 'FREEZE' | 'HEAT',
+    radius: number,
+    repeatCount = 1,
+  ): void {
+    const target = this.hoverWorldPoint();
+    if (!target) return;
+    const targetTick = this.simulation.snapshot().tick + 1;
+    for (let index = 0; index < repeatCount; index += 1) {
+      this.simulation.enqueueCommand({
+        targetTick,
+        playerId: 0,
+        type: 'CAST',
+        effectId,
+        targetX: target.x,
+        targetZ: target.z,
+        radius,
+      });
+    }
+  }
 
   private renderSelected(): void {
     this.bridge.setSelected(new Set(this.selection.ids));

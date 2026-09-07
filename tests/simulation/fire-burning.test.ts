@@ -4,7 +4,9 @@ import type { UnitSpawn } from '../../src/simulation/components';
 import { FixedTickRunner } from '../../src/simulation/fixed-tick-runner';
 import { Simulation } from '../../src/simulation/simulation';
 import {
+  BURNING_DURATION_TICKS,
   BURNING_HEAT_PER_TICK,
+  FIRE_SPREAD_INTERVAL_TICKS,
   SurfaceType,
   TerrainState,
   VegetationState,
@@ -42,7 +44,7 @@ describe('M01 deterministic Fire and Burning foundation', () => {
     expect(terrain.counts()).toMatchObject({ flammableVegetation: 163, burning: 0, consumedVegetation: 0 });
   });
 
-  it('ignites one eligible cell, produces heat, and spreads locally in canonical row-major state', () => {
+  it('ignites one eligible cell, persists as area denial, and spreads locally at the tactical interval', () => {
     const simulation = new Simulation('forest-spread');
     fire(simulation);
     simulation.step();
@@ -50,7 +52,7 @@ describe('M01 deterministic Fire and Burning foundation', () => {
     expect(simulation.terrain.temperatureAt(FOREST_CELL)).toBe(BURNING_HEAT_PER_TICK);
     expect(simulation.snapshot().terrain.burning).toBe(1);
 
-    simulation.step();
+    for (let tick = 2; tick <= FIRE_SPREAD_INTERVAL_TICKS - 1; tick += 1) simulation.step();
     expect(simulation.snapshot().burningCells).toEqual([
       { column: 9, row: 28 },
       { column: 8, row: 29 },
@@ -60,14 +62,14 @@ describe('M01 deterministic Fire and Burning foundation', () => {
     ]);
   });
 
-  it('consumes vegetation after a fixed burn duration and cannot reignite it', () => {
+  it('consumes vegetation after the fixed tactical burn duration and cannot reignite it', () => {
     const simulation = new Simulation('forest-consumption');
     fire(simulation);
-    for (let tick = 1; tick <= 9; tick += 1) simulation.step();
+    for (let tick = 1; tick <= BURNING_DURATION_TICKS; tick += 1) simulation.step();
     expect(simulation.terrain.vegetationAt(FOREST_CELL)).toBe(VegetationState.CONSUMED);
     expect(simulation.terrain.burningAgeAt(FOREST_CELL)).toBe(0);
 
-    fire(simulation, 10);
+    fire(simulation, BURNING_DURATION_TICKS + 1);
     simulation.step();
     expect(simulation.terrain.burningAgeAt(FOREST_CELL)).toBe(0);
   });

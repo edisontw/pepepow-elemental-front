@@ -72,6 +72,11 @@ export class AudioFeedback {
         this.tone(290, 92, 0.2, 'sawtooth', 0.28 * strength);
         this.tone(520, 155, 0.16, 'triangle', 0.18 * strength, 0.025);
         break;
+      case 'sfx.element.water-burst':
+        this.tone(430, 155, 0.24, 'sine', 0.31 * strength);
+        this.tone(720, 240, 0.18, 'triangle', 0.18 * strength, 0.018);
+        this.tone(190, 92, 0.28, 'sine', 0.16 * strength, 0.035);
+        break;
       case 'sfx.element.ice-form':
         this.tone(980, 360, 0.34, 'sine', 0.36 * strength);
         this.tone(1460, 620, 0.25, 'triangle', 0.23 * strength, 0.028);

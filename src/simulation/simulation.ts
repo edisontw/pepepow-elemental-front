@@ -2,8 +2,16 @@ import { M01_ARENA, type ArenaDefinition } from './arena';
 import type { ChainLightningCommand, GameCommand } from './commands';
 import { CommandQueue } from './commands';
 import type { EntityID, UnitArchetype } from './components';
+import { forestAllowsDetection } from './elemental-battlefield-rules';
+import {
+  FIRE_IMPACT_DAMAGE,
+  HEAVY_ICE_STRESS_PER_TICK,
+  ICE_SPEED_PERMILLE,
+  WATER_PUSH_CELLS,
+  WATER_WET_DURATION_TICKS,
+} from './elemental-tactics';
 import { EntityStore } from './entity-store';
-import { NavigationGrid } from './navigation';
+import { NavigationGrid, type GridCell, type WalkabilityChange } from './navigation';
 import { DeterministicRng } from './random';
 import { computeStateHash } from './state-hash';
 import { buildLightningChain, lightningDamage } from './lightning';
@@ -14,6 +22,8 @@ export const SIMULATION_HZ = 10;
 export const TICK_MS = 1000 / SIMULATION_HZ;
 export const CHILLED_DURATION_TICKS = 20;
 export const FROZEN_DURATION_TICKS = 10;
+
+const HEAVY_ICE_ARCHETYPES: ReadonlySet<UnitArchetype> = new Set(['GOLEM', 'SIEGE_CONSTRUCT']);
 
 export interface SimulationSnapshot {
   tick: number;
@@ -31,6 +41,7 @@ export interface SimulationSnapshot {
   visibility: VisibilityCounts;
   terrain: TerrainCounts;
   lastTerrainEffect: TerrainEffectId | null;
+  lastTerrainEffectTick: number;
   lastLightningChain: readonly EntityID[];
   burningCells: readonly { column: number; row: number }[];
   entities: readonly EntitySnapshot[];
@@ -57,6 +68,7 @@ export interface EntitySnapshot {
   nextAttackTick: number;
   attackTargetEntityId: EntityID | null;
   wet: boolean;
+  wetTicks: number;
   chilledTicks: number;
   frozenTicks: number;
   visibleToPlayer: boolean;
@@ -74,6 +86,7 @@ export class Simulation {
   private pendingTerrainEffects: TerrainEffect[] = [];
   private pendingLightningCasts: ChainLightningCommand[] = [];
   private lastTerrainEffect: TerrainEffectId | null = null;
+  private lastTerrainEffectTick = -1;
   private lastLightningChain: EntityID[] = [];
 
   constructor(readonly seed: string, readonly arena: ArenaDefinition = M01_ARENA) {
@@ -92,6 +105,7 @@ export class Simulation {
     this.advanceTimedStatuses();
     this.processCommands();
     this.updateMovementAndNavigation();
+    this.updateIceStress();
     this.updateCombat();
     this.updateTerrainEffects();
     this.updateBurning();
@@ -122,6 +136,7 @@ export class Simulation {
       visibility: this.visibility.counts(0),
       terrain: this.terrain.counts(),
       lastTerrainEffect: this.lastTerrainEffect,
+      lastTerrainEffectTick: this.lastTerrainEffectTick,
       lastLightningChain: [...this.lastLightningChain],
       burningCells: this.terrain.burningCells(),
       entities,
@@ -148,8 +163,11 @@ export class Simulation {
       alive: health.alive, attackDamage: combat.attackDamage,
       attackIntervalTicks: combat.attackIntervalTicks, attackRange: combat.attackRange,
       nextAttackTick: combat.nextAttackTick, attackTargetEntityId: combat.targetEntityId,
-      wet: status.wet, chilledTicks: status.chilledTicks, frozenTicks: status.frozenTicks,
-      visibleToPlayer: faction.playerId === 0 || this.visibility.isWorldVisible(0, position.x, position.z, this.navigation),
+      wet: status.wet, wetTicks: status.wetTicks, chilledTicks: status.chilledTicks, frozenTicks: status.frozenTicks,
+      visibleToPlayer: faction.playerId === 0 || (
+        this.visibility.isWorldVisible(0, position.x, position.z, this.navigation)
+        && forestAllowsDetection(entityId, 0, this.entities, this.terrain, this.navigation)
+      ),
     };
   }
 
@@ -165,8 +183,10 @@ export class Simulation {
           targetX: command.targetX,
           targetZ: command.targetZ,
           radius: command.radius,
+          sourcePlayerId: command.playerId,
         });
         this.lastTerrainEffect = command.effectId;
+        this.lastTerrainEffectTick = this.tick;
         continue;
       }
       const validIds = command.entityIds.filter((entityId) => (
@@ -267,7 +287,10 @@ export class Simulation {
     const deltaX = waypoint.x - position.x;
     const deltaZ = waypoint.z - position.z;
     const distance = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
-    const speedPerTick = status?.chilledTicks ? Math.max(1, Math.floor(movement.speedPerTick / 2)) : movement.speedPerTick;
+    let speedPerTick = status?.chilledTicks ? Math.max(1, Math.floor(movement.speedPerTick / 2)) : movement.speedPerTick;
+    if (this.terrain.surfaceAt(this.navigation.worldToCell(position.x, position.z)) === SurfaceType.ICE) {
+      speedPerTick = Math.max(1, Math.floor((speedPerTick * ICE_SPEED_PERMILLE) / 1000));
+    }
     if (distance <= speedPerTick) {
       position.x = waypoint.x;
       position.z = waypoint.z;
@@ -277,6 +300,21 @@ export class Simulation {
     }
     position.x += Math.round((deltaX * speedPerTick) / distance);
     position.z += Math.round((deltaZ * speedPerTick) / distance);
+  }
+
+  private updateIceStress(): void {
+    const changes: WalkabilityChange[] = [];
+    for (const entityId of this.entities.entityIds()) {
+      if (!this.entities.hasUnit(entityId)) continue;
+      const archetype = this.entities.archetypes.get(entityId);
+      if (!archetype || !HEAVY_ICE_ARCHETYPES.has(archetype)) continue;
+      const position = this.entities.positions.get(entityId);
+      if (!position) continue;
+      const cell = this.navigation.worldToCell(position.x, position.z);
+      const change = this.terrain.stressIce(cell, HEAVY_ICE_STRESS_PER_TICK);
+      if (change) changes.push(change);
+    }
+    if (changes.length > 0) this.navigation.applyWalkabilityChanges(changes);
   }
 
   private updateCombat(): void {
@@ -306,6 +344,7 @@ export class Simulation {
     for (const entityId of this.entities.entityIds()) {
       const status = this.entities.statuses.get(entityId);
       if (!status) continue;
+      status.wetTicks = Math.max(0, status.wetTicks - 1);
       status.chilledTicks = Math.max(0, status.chilledTicks - 1);
       status.frozenTicks = Math.max(0, status.frozenTicks - 1);
     }
@@ -328,11 +367,66 @@ export class Simulation {
           } else if (status.frozenTicks === 0) {
             status.chilledTicks = CHILLED_DURATION_TICKS;
           }
-        } else {
+          continue;
+        }
+        if (effect.effectId === 'WATER') {
+          status.wetTicks = Math.max(status.wetTicks, WATER_WET_DURATION_TICKS);
+          status.wet = true;
+          this.pushLightUnit(entityId, effect.targetX, effect.targetZ);
+          continue;
+        }
+        if (effect.effectId === 'FIRE') {
+          const cell = this.navigation.worldToCell(position.x, position.z);
+          const surface = this.terrain.surfaceAt(cell);
+          const fireCanDamage = surface === SurfaceType.GROUND || surface === SurfaceType.NATURAL_CROSSING;
+          if (
+            fireCanDamage
+            && (effect.sourcePlayerId === undefined || this.entities.factions.get(entityId)?.playerId !== effect.sourcePlayerId)
+          ) {
+            const health = this.entities.health.get(entityId);
+            if (health?.alive) health.current = Math.max(0, health.current - FIRE_IMPACT_DAMAGE);
+          }
           status.chilledTicks = 0;
           status.frozenTicks = 0;
+          continue;
         }
+        status.chilledTicks = 0;
+        status.frozenTicks = 0;
       }
+    }
+  }
+
+  private pushLightUnit(entityId: EntityID, sourceX: number, sourceZ: number): void {
+    const archetype = this.entities.archetypes.get(entityId);
+    const position = this.entities.positions.get(entityId);
+    const status = this.entities.statuses.get(entityId);
+    if (!archetype || !position || status?.frozenTicks || HEAVY_ICE_ARCHETYPES.has(archetype)) return;
+    const current = this.navigation.worldToCell(position.x, position.z);
+    const deltaX = position.x - sourceX;
+    const deltaZ = position.z - sourceZ;
+    let direction: GridCell;
+    if (Math.abs(deltaX) > Math.abs(deltaZ) && deltaX !== 0) {
+      direction = { column: Math.sign(deltaX), row: 0 };
+    } else if (deltaZ !== 0) {
+      direction = { column: 0, row: Math.sign(deltaZ) };
+    } else {
+      const fallback = entityId % 4;
+      direction = fallback === 0 ? { column: 1, row: 0 }
+        : fallback === 1 ? { column: 0, row: 1 }
+          : fallback === 2 ? { column: -1, row: 0 }
+            : { column: 0, row: -1 };
+    }
+    for (let distance = WATER_PUSH_CELLS; distance >= 1; distance -= 1) {
+      const target = {
+        column: current.column + direction.column * distance,
+        row: current.row + direction.row * distance,
+      };
+      if (!this.navigation.isWalkable(target)) continue;
+      const world = this.navigation.cellToWorld(target);
+      position.x = world.x;
+      position.z = world.z;
+      this.clearMovement(entityId);
+      return;
     }
   }
 
@@ -354,7 +448,8 @@ export class Simulation {
       const status = this.entities.statuses.get(entityId);
       if (!position || !status) continue;
       const cell = this.navigation.worldToCell(position.x, position.z);
-      status.wet = this.terrain.surfaceAt(cell) === SurfaceType.WATER;
+      const environmentalWet = this.terrain.surfaceAt(cell) === SurfaceType.WATER;
+      status.wet = environmentalWet || status.wetTicks > 0;
     }
   }
 

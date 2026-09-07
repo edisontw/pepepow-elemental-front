@@ -7,9 +7,10 @@ export const ICE_DURABILITY_MAX = 100;
 export const FREEZE_TEMPERATURE_DELTA = -40;
 export const HEAT_TEMPERATURE_DELTA = 60;
 export const HEAT_ICE_DAMAGE = 50;
-export const BURNING_DURATION_TICKS = 9;
-export const FIRE_SPREAD_INTERVAL_TICKS = 3;
+export const BURNING_DURATION_TICKS = 50;
+export const FIRE_SPREAD_INTERVAL_TICKS = 15;
 export const BURNING_HEAT_PER_TICK = 10;
+export const WATER_COOLING_DELTA = 40;
 
 export const enum SurfaceType {
   GROUND = 0,
@@ -19,13 +20,14 @@ export const enum SurfaceType {
   NATURAL_CROSSING = 4,
 }
 
-export type TerrainEffectId = 'FREEZE' | 'HEAT' | 'FIRE';
+export type TerrainEffectId = 'FREEZE' | 'HEAT' | 'FIRE' | 'WATER';
 
 export interface TerrainEffect {
   effectId: TerrainEffectId;
   targetX: number;
   targetZ: number;
   radius: number;
+  sourcePlayerId?: number;
 }
 
 export interface TerrainCounts {
@@ -149,7 +151,11 @@ export class TerrainState {
           else if (effect.effectId === 'FIRE') {
             this.applyHeat(index, cell, changed);
             this.ignite(index);
-          } else this.applyHeat(index, cell, changed);
+          } else if (effect.effectId === 'WATER') {
+            this.applyWater(index);
+          } else {
+            this.applyHeat(index, cell, changed);
+          }
         }
       }
     }
@@ -190,6 +196,16 @@ export class TerrainState {
     }
 
     for (const index of spreadCandidates) this.ignite(index);
+  }
+
+  stressIce(cell: GridCell, amount: number): WalkabilityChange | null {
+    if (!this.inBounds(cell)) return null;
+    const index = this.index(cell);
+    if (this.surface[index] !== SurfaceType.ICE || amount <= 0) return null;
+    this.iceDurability[index] = Math.max(0, this.iceDurability[index]! - Math.round(amount));
+    if (this.iceDurability[index] !== 0) return null;
+    this.surface[index] = SurfaceType.WATER;
+    return { cell, walkable: false };
   }
 
   indexOf(cell: GridCell): number | null {
@@ -244,6 +260,13 @@ export class TerrainState {
     if (this.iceDurability[index] !== 0) return;
     this.surface[index] = SurfaceType.WATER;
     changed.set(index, { cell, walkable: false });
+  }
+
+  private applyWater(index: number): void {
+    this.burningAge[index] = 0;
+    if (this.temperature[index]! > NEUTRAL_TEMPERATURE) {
+      this.temperature[index] = Math.max(NEUTRAL_TEMPERATURE, this.temperature[index]! - WATER_COOLING_DELTA);
+    }
   }
 
   private cellToWorld(cell: GridCell): { x: number; z: number } {

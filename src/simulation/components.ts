@@ -37,6 +37,7 @@ export interface HealthComponent {
 
 export interface StatusComponent {
   wet: boolean;
+  wetTicks: number;
   chilledTicks: number;
   frozenTicks: number;
 }
