@@ -8,6 +8,7 @@
       name="description"
       content="PEPEPOW Elemental Front — deterministic browser RTS prototype"
     />
+    <link rel="stylesheet" href="/src/m08-elemental.css" />
     <title>PEPEPOW Elemental Front</title>
   </head>
   <body>
@@ -30,6 +31,14 @@
         <span>Teal / red squares: player / enemy Core</span>
         <span>Yellow / magenta: objective / boss</span>
       </aside>
+      <aside id="elemental-jobs" aria-label="Element tactical roles">
+        <b>ELEMENT TACTICS</b>
+        <span><kbd>R</kbd><strong>Fire</strong><em>Deny / clear cover</em></span>
+        <span><kbd>Q</kbd><strong>Water</strong><em>Set up / displace</em></span>
+        <span><kbd>F</kbd><strong>Ice</strong><em>Control / create route</em></span>
+        <span><kbd>L</kbd><strong>Lightning</strong><em>Punish Wet clumps</em></span>
+        <small>Aim with the battlefield cursor. H = Heat / melt test.</small>
+      </aside>
       <aside id="strategy-panel" aria-label="Economy and territory controls"></aside>
       <aside id="roguelite-panel" aria-label="Shrines, upgrades, and world events"></aside>
       <aside id="arena-legend" aria-label="Generated terrain legend">
@@ -41,7 +50,7 @@
         <span><i class="swatch crossing"></i>Natural crossing</span>
       </aside>
       <div id="selection-box" hidden></div>
-      <div id="camera-help">Select: Left click / drag · Move or attack: Right click · Stop: X · Groups: Ctrl+1–9 / 1–9 · Camera: WASD / arrows, wheel, middle drag · Element tests: F / R / B / L / H · Audio: M mute · Economy lower left · Shrines lower right</div>
+      <div id="camera-help">Select: Left click / drag · Move or attack: Right click · Stop: X · Groups: Ctrl+1–9 / 1–9 · Camera: WASD / arrows, wheel, middle drag · Elements: R Fire / Q Water / F Ice / L Lightning / H Heat · Audio: M mute</div>
       <div id="fatal-error" role="alert" hidden></div>
     </main>
     <script type="module" src="/src/main.ts"></script>
