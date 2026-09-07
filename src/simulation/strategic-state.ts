@@ -152,6 +152,12 @@ function isProducer(type: BuildingType): type is ProducerBuildingType {
   return type === 'BARRACKS' || type === 'ARCANE_TOWER' || type === 'WORKSHOP';
 }
 
+function resourceTypeForBuilding(type: BuildingType): 'MATERIAL' | 'MANA' | null {
+  if (type === 'EXTRACTOR') return 'MATERIAL';
+  if (type === 'MANA_WELL') return 'MANA';
+  return null;
+}
+
 export class StrategicState {
   private readonly stocks = new Map<PlayerID, ResourceStock>();
   private readonly buildings = new Map<number, StrategicBuilding>();
@@ -201,23 +207,20 @@ export class StrategicState {
       stock.manaMilli += CORE_MANA_MILLI_PER_TICK;
     }
     for (const building of this.sortedBuildings()) {
-      if (!building.completed || building.type !== 'EXTRACTOR' || building.resourceNodeId === null) continue;
+      const expectedResourceType = resourceTypeForBuilding(building.type);
+      if (!building.completed || expectedResourceType === null || building.resourceNodeId === null) continue;
       if (this.ownerOfRegion(building.regionId) !== building.playerId) continue;
       const node = this.world.resources.find((candidate) => candidate.id === building.resourceNodeId);
-      if (!node || node.type !== 'MATERIAL') continue;
+      if (!node || node.type !== expectedResourceType) continue;
       const connected = this.isRegionSupplied(building.playerId, building.regionId);
-      const base = node.rich ? MATERIAL_RICH_MILLI_PER_TICK : MATERIAL_NORMAL_MILLI_PER_TICK;
-      const income = connected ? base : Math.floor((base * DISCONNECTED_MATERIAL_PERMILLE) / 1000);
-      this.ensurePlayer(building.playerId).materialMilli += income;
-    }
-    for (const node of this.world.resources) {
-      if (node.type !== 'MANA') continue;
-      const owner = this.ownerOfRegion(node.regionId);
-      if (owner === null) continue;
-      const connected = this.isRegionSupplied(owner, node.regionId);
-      const base = node.rich ? MANA_RICH_MILLI_PER_TICK : MANA_NORMAL_MILLI_PER_TICK;
-      const income = connected ? base : Math.floor((base * DISCONNECTED_MANA_PERMILLE) / 1000);
-      this.ensurePlayer(owner).manaMilli += income;
+      const stock = this.ensurePlayer(building.playerId);
+      if (building.type === 'EXTRACTOR') {
+        const base = node.rich ? MATERIAL_RICH_MILLI_PER_TICK : MATERIAL_NORMAL_MILLI_PER_TICK;
+        stock.materialMilli += connected ? base : Math.floor((base * DISCONNECTED_MATERIAL_PERMILLE) / 1000);
+      } else {
+        const base = node.rich ? MANA_RICH_MILLI_PER_TICK : MANA_NORMAL_MILLI_PER_TICK;
+        stock.manaMilli += connected ? base : Math.floor((base * DISCONNECTED_MANA_PERMILLE) / 1000);
+      }
     }
   }
 
@@ -294,16 +297,19 @@ export class StrategicState {
     if (!this.inWorld(requestedCell.column, requestedCell.row)) return false;
     let cell = { x: requestedCell.column, z: requestedCell.row };
     let resourceNode: ResourceNode | undefined;
-    if (command.buildingType === 'EXTRACTOR') {
+    const expectedResourceType = resourceTypeForBuilding(command.buildingType);
+    if (expectedResourceType !== null) {
       if (command.resourceNodeId === undefined) return false;
-      resourceNode = this.world.resources.find((candidate) => candidate.id === command.resourceNodeId && candidate.type === 'MATERIAL');
+      resourceNode = this.world.resources.find((candidate) => (
+        candidate.id === command.resourceNodeId && candidate.type === expectedResourceType
+      ));
       if (!resourceNode) return false;
       cell = resourceNode.cell;
-      if (this.sortedBuildings().some((building) => building.type === 'EXTRACTOR' && building.resourceNodeId === resourceNode?.id)) return false;
+      if (this.sortedBuildings().some((building) => building.resourceNodeId === resourceNode?.id)) return false;
     }
     const cellIndex = cell.z * this.world.width + cell.x;
     const cellFlags = this.world.flags[cellIndex] ?? 0;
-    if (command.buildingType === 'EXTRACTOR') {
+    if (expectedResourceType !== null) {
       if ((cellFlags & WorldCellFlag.WALKABLE) === 0) return false;
     } else if ((cellFlags & WorldCellFlag.BUILDABLE) === 0) {
       return false;
