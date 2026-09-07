@@ -19,6 +19,13 @@
   display: none;
 }
 
+#world-debug > .minimap-resource-key {
+  display: block;
+  color: #9bb0b6;
+  font-size: .48rem;
+  line-height: 1.2;
+}
+
 .debug-mode #world-debug-summary,
 .debug-mode #world-debug > span {
   display: block;
@@ -56,12 +63,89 @@
 
 .resource-strip {
   grid-template-columns: repeat(2, 1fr);
-  margin-bottom: .38rem;
+  margin-bottom: .28rem;
 }
 
 .resource-strip b {
   padding: .3rem .38rem;
   font-size: .78rem;
+}
+
+.resource-key {
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  color: #839b95;
+  font-size: .48rem;
+  line-height: 1.2;
+}
+
+.resource-key .material-dot,
+.resource-key .mana-dot {
+  width: .42rem;
+  height: .42rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+}
+
+.resource-key .material-dot {
+  border-radius: .08rem;
+  transform: rotate(45deg);
+  background: #e1a64a;
+}
+
+.resource-key .mana-dot {
+  background: #ad75f0;
+}
+
+.army-counts {
+  margin-top: .42rem;
+  padding: .36rem;
+  border: 1px solid rgba(105, 217, 189, .11);
+  border-radius: .28rem;
+  background: rgba(255,255,255,.018);
+}
+
+.army-counts > strong,
+.producer-select > strong {
+  display: block;
+  margin-bottom: .28rem;
+  color: #9eb8b1;
+  font-size: .54rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.army-counts > div {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .18rem;
+}
+
+.army-counts span {
+  display: flex;
+  flex-direction: column;
+  gap: .08rem;
+  min-width: 0;
+  padding: .2rem .22rem;
+  border-radius: .18rem;
+  background: rgba(255,255,255,.035);
+}
+
+.army-counts span b {
+  overflow: hidden;
+  color: #a9c0ba;
+  font-size: .44rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.army-counts span em {
+  color: #e4f3ef;
+  font-size: .62rem;
+  font-style: normal;
+  font-weight: 700;
 }
 
 .strategy-section {
@@ -79,10 +163,61 @@
   font-size: .6rem;
 }
 
-.strategy-buttons button.active {
+.strategy-buttons button.active,
+.producer-select button.active {
   border-color: rgba(121, 244, 203, .88);
   background: rgba(38, 119, 94, .88);
   box-shadow: 0 0 0 1px rgba(121, 244, 203, .18), 0 0 .8rem rgba(88, 225, 193, .18);
+}
+
+.strategy-buttons button:disabled {
+  opacity: .34;
+  cursor: not-allowed;
+}
+
+.producer-select {
+  margin: .28rem 0 .36rem;
+  padding: .32rem;
+  border-radius: .26rem;
+  background: rgba(255,255,255,.025);
+}
+
+.producer-select > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .22rem;
+}
+
+.producer-select button {
+  min-width: 0;
+  padding: .25rem .28rem;
+  border: 1px solid rgba(118, 178, 188, .2);
+  border-radius: .22rem;
+  background: rgba(16, 48, 53, .72);
+  color: #d5e8e2;
+  font: inherit;
+  font-size: .52rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.producer-select button small {
+  display: block;
+  margin-top: .08rem;
+  color: #7f9992;
+  font-size: .44rem;
+}
+
+.producer-select > small,
+.territory-info > small {
+  display: block;
+  color: #7e9690;
+  font-size: .48rem;
+  line-height: 1.35;
+}
+
+.territory-info .strategy-buttons {
+  margin-top: .28rem;
 }
 
 #game-canvas.build-placement-active {
@@ -300,6 +435,7 @@
   #run-panel:not(.complete) { left: 17.6rem; right: 12.6rem; }
   #world-debug { width: 11.5rem; }
   #world-debug-canvas { width: 10.5rem; height: 10.5rem; }
+  .army-counts > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 800px) {
