@@ -54,9 +54,11 @@ interface PlacementCheck {
 
 export class StrategicPanel {
   private elapsed = 0;
-  private message = 'Expand territory by constructing Outposts into adjacent neutral regions.';
+  private message = 'Construction is parallel. Place additional buildings while existing sites are still active.';
   private pendingBuildType: Exclude<BuildingType, 'ELEMENTAL_CORE'> | null = null;
+  private pendingRallyBuildingId: number | null = null;
   private selectedProducerId: number | null = null;
+  private pointerInside = false;
 
   constructor(
     private readonly element: HTMLElement,
@@ -66,6 +68,8 @@ export class StrategicPanel {
     private readonly screenToSimulationPosition: (clientX: number, clientY: number) => { x: number; z: number } | null,
   ) {
     element.addEventListener('click', this.onClick);
+    element.addEventListener('pointerenter', this.onPanelPointerEnter);
+    element.addEventListener('pointerleave', this.onPanelPointerLeave);
     battlefieldCanvas.addEventListener('pointerdown', this.onBattlefieldPointerDown, true);
     window.addEventListener('keydown', this.onKeyDown);
     this.render();
@@ -75,16 +79,30 @@ export class StrategicPanel {
     this.elapsed += deltaSeconds;
     if (this.elapsed < 0.2) return;
     this.elapsed = 0;
+    if (this.pointerInside) return;
     this.render();
   }
 
   destroy(): void {
     this.element.removeEventListener('click', this.onClick);
+    this.element.removeEventListener('pointerenter', this.onPanelPointerEnter);
+    this.element.removeEventListener('pointerleave', this.onPanelPointerLeave);
     this.battlefieldCanvas.removeEventListener('pointerdown', this.onBattlefieldPointerDown, true);
     window.removeEventListener('keydown', this.onKeyDown);
     this.pendingBuildType = null;
+    this.pendingRallyBuildingId = null;
     this.updatePlacementCursor();
   }
+
+  private readonly onPanelPointerEnter = (): void => {
+    this.pointerInside = true;
+  };
+
+  private readonly onPanelPointerLeave = (): void => {
+    this.pointerInside = false;
+    this.elapsed = 0;
+    this.render();
+  };
 
   private readonly onClick = (event: MouseEvent): void => {
     const target = event.target instanceof Element ? event.target.closest<HTMLButtonElement>('button[data-action]') : null;
@@ -93,23 +111,24 @@ export class StrategicPanel {
     if (action === 'build') this.beginBuild(target.dataset.value as Exclude<BuildingType, 'ELEMENTAL_CORE'>);
     else if (action === 'train') this.queueTrain(target.dataset.value as UnitArchetype);
     else if (action === 'select-producer') this.selectProducer(Number(target.dataset.value));
+    else if (action === 'set-rally') this.beginRallyPlacement();
     else if (action === 'capture-poi') this.queueCapturePoi();
     else if (action === 'specialize') this.queueSpecialization(target.dataset.value as OutpostSpecialization);
     this.render();
   };
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
-    if (event.code !== 'Escape' || this.pendingBuildType === null) return;
-    this.cancelBuildPlacement();
+    if (event.code !== 'Escape' || (this.pendingBuildType === null && this.pendingRallyBuildingId === null)) return;
+    this.cancelPlacementMode();
     this.render();
   };
 
   private readonly onBattlefieldPointerDown = (event: PointerEvent): void => {
-    if (this.pendingBuildType === null) return;
+    if (this.pendingBuildType === null && this.pendingRallyBuildingId === null) return;
     if (event.button === 2) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      this.cancelBuildPlacement();
+      this.cancelPlacementMode();
       this.render();
       return;
     }
@@ -122,7 +141,26 @@ export class StrategicPanel {
       this.render();
       return;
     }
+
+    if (this.pendingRallyBuildingId !== null) {
+      const buildingId = this.pendingRallyBuildingId;
+      this.simulation.enqueueStrategicCommand({
+        targetTick: this.simulation.snapshot().tick + 1,
+        playerId: PLAYER_ID,
+        type: 'SET_RALLY_POINT',
+        buildingId,
+        targetX: position.x,
+        targetZ: position.z,
+      });
+      this.pendingRallyBuildingId = null;
+      this.updatePlacementCursor();
+      this.message = `Rally point queued for production building #${buildingId}. New units will move there after spawning.`;
+      this.render();
+      return;
+    }
+
     const buildingType = this.pendingBuildType;
+    if (buildingType === null) return;
     const placement = this.checkPlacement(buildingType, position.x, position.z);
     if (!placement.valid) {
       this.message = placement.reason;
@@ -138,36 +176,63 @@ export class StrategicPanel {
       targetZ: placement.targetZ,
       ...(placement.resourceNodeId ? { resourceNodeId: placement.resourceNodeId } : {}),
     });
-    this.pendingBuildType = null;
+    if (!event.shiftKey) this.pendingBuildType = null;
     this.updatePlacementCursor();
     const owner = placement.regionId === null ? -1 : this.simulation.strategy.snapshot().regionOwners[placement.regionId];
+    const suffix = event.shiftKey ? ' Shift placement remains active for another site.' : ' You can start another building immediately.';
     this.message = placement.resourceNodeId
-      ? `Queued ${label(buildingType)} on ${placement.resourceNodeId}.`
+      ? `Queued ${label(buildingType)} on ${placement.resourceNodeId}.${suffix}`
       : buildingType === 'OUTPOST' && owner !== PLAYER_ID
-        ? `Queued Outpost in neutral Region ${(placement.regionId ?? 0) + 1}; completion will claim the territory.`
-        : `Queued ${label(buildingType)} in Region ${(placement.regionId ?? 0) + 1}.`;
+        ? `Queued Outpost in neutral Region ${(placement.regionId ?? 0) + 1}; completion will claim the territory.${suffix}`
+        : `Queued ${label(buildingType)} in Region ${(placement.regionId ?? 0) + 1}.${suffix}`;
     this.render();
   };
 
   private beginBuild(buildingType: Exclude<BuildingType, 'ELEMENTAL_CORE'>): void {
+    this.pendingRallyBuildingId = null;
     this.pendingBuildType = buildingType;
     this.updatePlacementCursor();
     this.message = buildingType === 'EXTRACTOR'
-      ? 'Place Extractor: click a visible Material Deposit in controlled supplied territory. Right click or Esc cancels.'
+      ? 'Place Extractor: click a visible Material Deposit in controlled supplied territory. Shift-click keeps placement active; right click or Esc cancels.'
       : buildingType === 'OUTPOST'
-        ? 'Place Outpost: click controlled territory or a neutral region directly adjacent to supplied territory. Completion expands your border.'
-        : `Place ${label(buildingType)}: left click controlled supplied ground. Right click or Esc cancels.`;
+        ? 'Place Outpost: click controlled territory or a neutral region directly adjacent to supplied territory. Construction runs in parallel with other sites.'
+        : `Place ${label(buildingType)}: left click controlled supplied ground. Shift-click repeats placement; construction runs in parallel.`;
   }
 
-  private cancelBuildPlacement(): void {
-    const cancelled = this.pendingBuildType;
+  private beginRallyPlacement(): void {
+    const snapshot = this.simulation.strategy.snapshot();
+    const producer = snapshot.buildings.find((building) => (
+      building.id === this.selectedProducerId
+      && building.playerId === PLAYER_ID
+      && building.completed
+      && PRODUCER_TYPES.includes(building.type as ProducerBuildingType)
+    ));
+    if (!producer) {
+      this.message = 'Select a completed production building before setting a Rally Point.';
+      return;
+    }
     this.pendingBuildType = null;
+    this.pendingRallyBuildingId = producer.id;
     this.updatePlacementCursor();
-    if (cancelled) this.message = `${label(cancelled)} placement cancelled.`;
+    this.message = `Set Rally Point for ${label(producer.type)} #${producer.id}: click any reachable battlefield location. Right click or Esc cancels.`;
+  }
+
+  private cancelPlacementMode(): void {
+    if (this.pendingRallyBuildingId !== null) {
+      this.message = `Rally Point placement cancelled for building #${this.pendingRallyBuildingId}.`;
+      this.pendingRallyBuildingId = null;
+    } else if (this.pendingBuildType !== null) {
+      this.message = `${label(this.pendingBuildType)} placement cancelled.`;
+      this.pendingBuildType = null;
+    }
+    this.updatePlacementCursor();
   }
 
   private updatePlacementCursor(): void {
-    this.battlefieldCanvas.classList.toggle('build-placement-active', this.pendingBuildType !== null);
+    this.battlefieldCanvas.classList.toggle(
+      'build-placement-active',
+      this.pendingBuildType !== null || this.pendingRallyBuildingId !== null,
+    );
   }
 
   private checkPlacement(buildingType: Exclude<BuildingType, 'ELEMENTAL_CORE'>, targetX: number, targetZ: number): PlacementCheck {
@@ -379,7 +444,8 @@ export class StrategicPanel {
       const speed = productionSpeedPercent(sameTypeCount);
       const queue = snapshot.productionQueue.filter((order) => order.buildingId === building.id).length;
       const active = building.id === this.selectedProducerId ? ' active' : '';
-      return `<button class="${active.trim()}" data-action="select-producer" data-value="${building.id}">${label(building.type)} #${building.id}<small>${speed}% speed · Q${queue}</small></button>`;
+      const rally = building.rallyPointX === null ? 'Auto exit' : 'Rally set';
+      return `<button class="${active.trim()}" data-action="select-producer" data-value="${building.id}">${label(building.type)} #${building.id}<small>${speed}% speed · Q${queue} · ${rally}</small></button>`;
     }).join('');
     return `<div class="producer-select"><strong>Produce at</strong><div>${buttons}</div></div>`;
   }
@@ -403,7 +469,7 @@ export class StrategicPanel {
       });
     const hiddenOrders = Math.max(0, snapshot.productionQueue.filter((order) => order.playerId === PLAYER_ID).length - production.length);
     if (construction.length === 0 && production.length === 0) return '';
-    return `<div class="strategy-progress"><strong>Active Queue</strong>${construction.join('')}${production.join('')}${hiddenOrders > 0 ? `<small>+${hiddenOrders} more queued</small>` : ''}</div>`;
+    return `<div class="strategy-progress"><strong>Active Parallel Work</strong>${construction.join('')}${production.join('')}${hiddenOrders > 0 ? `<small>+${hiddenOrders} more queued</small>` : ''}</div>`;
   }
 
   private render(): void {
@@ -433,6 +499,7 @@ export class StrategicPanel {
     const specializationButtons = SPECIALIZATIONS.map((specialization) => (
       `<button data-action="specialize" data-value="${specialization}">${label(specialization)}</button>`
     )).join('');
+    const rallyActive = this.pendingRallyBuildingId !== null ? ' active' : '';
     this.element.innerHTML = `
       <div class="strategy-title">ECONOMY & COMMAND</div>
       <div class="resource-strip">
@@ -445,8 +512,8 @@ export class StrategicPanel {
       <div class="strategy-meta">Territory ${owned}/${snapshot.regionOwners.length} · Supplied ${supplied} · Contested ${snapshot.contestedRegions.length}</div>
       ${this.armyMarkup(simulationSnapshot)}
       ${this.queueMarkup(simulationSnapshot.tick, snapshot)}
-      <div class="strategy-section"><strong>Build</strong><div class="strategy-buttons">${buildingButtons}</div></div>
-      <div class="strategy-section"><strong>Produce</strong>${this.producerMarkup(snapshot)}<div class="strategy-buttons compact">${trainButtons}</div></div>
+      <div class="strategy-section"><strong>Build — parallel</strong><div class="strategy-buttons">${buildingButtons}</div><small>Each site progresses independently. Shift-click the battlefield to place another building of the same type.</small></div>
+      <div class="strategy-section"><strong>Produce</strong>${this.producerMarkup(snapshot)}<div class="strategy-buttons compact">${trainButtons}</div><div class="strategy-buttons"><button class="${rallyActive.trim()}" data-action="set-rally" ${selectedProducer ? '' : 'disabled'}>Set Rally Point</button></div></div>
       <div class="strategy-section territory-info"><strong>Expansion</strong><small>Core claims the starting region. Complete an Outpost in an adjacent neutral region to extend controlled and supplied territory.</small><div class="strategy-buttons">
         <button data-action="capture-poi">Capture POI (+10 Influence)</button>
       </div></div>
