@@ -1,5 +1,6 @@
 import * as pc from 'playcanvas';
 import { AudioFeedback } from '../audio/audio-feedback';
+import { MinimapControls } from '../input/minimap-controls';
 import { UnitControls } from '../input/unit-controls';
 import { WORLD_UNITS_PER_METER, type ArenaZone } from '../simulation/arena';
 import type { TickFrame } from '../simulation/fixed-tick-runner';
@@ -179,6 +180,10 @@ export function createSceneShell(
   const elementalBridge = new ElementalRenderBridge(app, simulation.terrain, initialSnapshot);
   const audioFeedback = new AudioFeedback();
   const controls = new UnitControls(canvas, cameraComponent, simulation, bridge, selectionBox);
+  const minimapCanvas = document.getElementById('world-debug-canvas');
+  const minimapControls = simulation instanceof M03Simulation && minimapCanvas instanceof HTMLCanvasElement
+    ? new MinimapControls(minimapCanvas, simulation.generatedWorld, camera, controls)
+    : null;
   const strategicBridge = simulation instanceof M03Simulation ? new StrategicRenderBridge(app) : null;
   if (simulation instanceof M03Simulation) strategicBridge?.sync(simulation.strategy.snapshot());
   const runBridge = simulation instanceof M06Simulation ? new RunRenderBridge(app) : null;
@@ -215,6 +220,7 @@ export function createSceneShell(
     },
     destroy(): void {
       window.removeEventListener('resize', onResize);
+      minimapControls?.destroy();
       controls.destroy();
       audioFeedback.destroy();
       bridge.destroy();
