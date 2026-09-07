@@ -1,3 +1,4 @@
+import { applyBurningUnitDamage } from './elemental-battlefield-rules';
 import type { M03Command } from './m03-commands';
 import { M03CommandQueue } from './m03-commands';
 import { Simulation, type SimulationSnapshot } from './simulation';
@@ -31,6 +32,7 @@ export class M03Simulation extends Simulation {
       this.strategy.processCommand(command, nextTick);
     }
     super.step();
+    applyBurningUnitDamage(this.entities, this.terrain, this.navigation, nextTick);
     this.strategy.advanceEconomy(nextTick);
     this.strategy.advanceTerritory();
     this.visibility.update(this.entities, this.navigation);

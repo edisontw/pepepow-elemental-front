@@ -79,6 +79,76 @@
   font-size: .6rem;
 }
 
+.strategy-buttons button.active {
+  border-color: rgba(121, 244, 203, .88);
+  background: rgba(38, 119, 94, .88);
+  box-shadow: 0 0 0 1px rgba(121, 244, 203, .18), 0 0 .8rem rgba(88, 225, 193, .18);
+}
+
+#game-canvas.build-placement-active {
+  cursor: crosshair;
+}
+
+.strategy-progress {
+  display: grid;
+  gap: .28rem;
+  margin: .4rem 0 .5rem;
+  padding: .42rem;
+  border: 1px solid rgba(105, 217, 189, .13);
+  border-radius: .3rem;
+  background: rgba(255,255,255,.025);
+}
+
+.strategy-progress > strong {
+  color: #9eb8b1;
+  font-size: .56rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.strategy-progress > small {
+  color: #738b85;
+  font-size: .52rem;
+}
+
+.strategy-progress-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: .14rem .35rem;
+  align-items: center;
+  color: #d5e8e2;
+  font-size: .55rem;
+}
+
+.strategy-progress-row > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.strategy-progress-row > em {
+  color: #839b95;
+  font-size: .49rem;
+  font-style: normal;
+}
+
+.strategy-progress-row > i {
+  grid-column: 1 / -1;
+  display: block;
+  height: .3rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+}
+
+.strategy-progress-row > i > b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #65d9bd;
+  transition: width 120ms linear;
+}
+
 .strategy-message {
   margin-top: .45rem;
   padding-top: .4rem;

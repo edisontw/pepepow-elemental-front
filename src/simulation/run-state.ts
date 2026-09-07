@@ -252,7 +252,7 @@ export class RunState {
       this.pressure = { ...this.pressure, repairingEngineers: 0 };
     }
 
-    if (this.mode === 'DESTROY' && this.finaleUnlocked) {
+    if (this.mode === 'DESTROY') {
       const enemyCoreAssault = this.objectiveAssault(
         entities,
         0,

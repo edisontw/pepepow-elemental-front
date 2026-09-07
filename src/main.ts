@@ -166,7 +166,13 @@ async function boot(): Promise<void> {
       () => simulation.strategy.snapshot(),
       () => simulation.enemyWar.snapshot(),
     );
-    const strategyPanel = new StrategicPanel(strategyElement, simulation, () => scene.selectedUnits);
+    const strategyPanel = new StrategicPanel(
+      strategyElement,
+      simulation,
+      () => scene.selectedUnits,
+      canvas,
+      (clientX, clientY) => scene.screenToSimulationPosition(clientX, clientY),
+    );
     const roguelitePanel = new RoguelitePanel(rogueliteElement, simulation);
     const runPanel = new RunPanel(runElement, simulation, blockResolution);
     let territoryDebugElapsed = 0;

@@ -9,6 +9,7 @@ import { M06Simulation } from '../simulation/m06-simulation';
 import type { EntitySnapshot, Simulation } from '../simulation/simulation';
 import { ElementalRenderBridge } from './elemental-render-bridge';
 import { GeneratedWorldRenderBridge } from './generated-world-render-bridge';
+import { ResourceRenderBridge } from './resource-render-bridge';
 import { RtsCamera } from './rts-camera';
 import { RunRenderBridge } from './run-render-bridge';
 import { StrategicRenderBridge } from './strategic-render-bridge';
@@ -89,6 +90,7 @@ export interface SceneShell {
   camera: RtsCamera;
   get selectedCount(): number;
   get selectedUnits(): readonly EntitySnapshot[];
+  screenToSimulationPosition(clientX: number, clientY: number): { x: number; z: number } | null;
   sync(frame: TickFrame): void;
   destroy(): void;
 }
@@ -123,6 +125,9 @@ export function createSceneShell(
 
   const generatedWorldBridge = simulation instanceof M03Simulation
     ? new GeneratedWorldRenderBridge(app, simulation.generatedWorld, simulation.terrain)
+    : null;
+  const resourceBridge = simulation instanceof M03Simulation
+    ? new ResourceRenderBridge(app, simulation.generatedWorld)
     : null;
   let freezablePatch: pc.Entity | null = null;
   if (!generatedWorldBridge) {
@@ -169,6 +174,23 @@ export function createSceneShell(
   const cameraComponent = cameraEntity.camera;
   if (!cameraComponent) throw new Error('RTS camera component failed to initialize.');
 
+  const screenToSimulationPosition = (clientX: number, clientY: number): { x: number; z: number } | null => {
+    const bounds = canvas.getBoundingClientRect();
+    if (bounds.width <= 0 || bounds.height <= 0) return null;
+    const screenX = ((clientX - bounds.left) / bounds.width) * canvas.width;
+    const screenY = ((clientY - bounds.top) / bounds.height) * canvas.height;
+    const near = cameraComponent.screenToWorld(screenX, screenY, cameraComponent.nearClip);
+    const far = cameraComponent.screenToWorld(screenX, screenY, cameraComponent.farClip);
+    const verticalDelta = far.y - near.y;
+    if (Math.abs(verticalDelta) < 0.000_001) return null;
+    const distance = -near.y / verticalDelta;
+    if (distance < 0 || distance > 1) return null;
+    return {
+      x: Math.round((near.x + (far.x - near.x) * distance) * WORLD_UNITS_PER_METER),
+      z: Math.round((near.z + (far.z - near.z) * distance) * WORLD_UNITS_PER_METER),
+    };
+  };
+
   const unitMaterials = {
     player: createMaterial(new pc.Color(0.18, 0.68, 0.61), new pc.Color(0.02, 0.2, 0.16)),
     enemyMelee: createMaterial(new pc.Color(0.78, 0.18, 0.15), new pc.Color(0.24, 0.02, 0.01)),
@@ -185,7 +207,7 @@ export function createSceneShell(
     ? new MinimapControls(minimapCanvas, simulation.generatedWorld, camera, controls)
     : null;
   const strategicBridge = simulation instanceof M03Simulation ? new StrategicRenderBridge(app) : null;
-  if (simulation instanceof M03Simulation) strategicBridge?.sync(simulation.strategy.snapshot());
+  if (simulation instanceof M03Simulation) strategicBridge?.sync(simulation.strategy.snapshot(), initialSnapshot.tick);
   const runBridge = simulation instanceof M06Simulation ? new RunRenderBridge(app) : null;
   if (simulation instanceof M06Simulation) runBridge?.sync(simulation.run.snapshot());
 
@@ -204,12 +226,13 @@ export function createSceneShell(
     get selectedUnits(): readonly EntitySnapshot[] {
       return controls.selectedUnits;
     },
+    screenToSimulationPosition,
     sync(frame: TickFrame): void {
       bridge.sync(frame.previousSnapshot, frame.snapshot, frame.interpolationAlpha);
       elementalBridge.sync(frame.previousSnapshot, frame.snapshot, frame.interpolationAlpha);
       audioFeedback.sync(frame.previousSnapshot, frame.snapshot);
       controls.syncSelection();
-      if (simulation instanceof M03Simulation) strategicBridge?.sync(simulation.strategy.snapshot());
+      if (simulation instanceof M03Simulation) strategicBridge?.sync(simulation.strategy.snapshot(), frame.snapshot.tick);
       if (simulation instanceof M06Simulation) runBridge?.sync(simulation.run.snapshot());
       generatedWorldBridge?.sync(frame.snapshot.navVersion, frame.snapshot.terrain.ice);
       if (freezablePatch?.render) {
@@ -227,6 +250,7 @@ export function createSceneShell(
       elementalBridge.destroy();
       strategicBridge?.destroy();
       runBridge?.destroy();
+      resourceBridge?.destroy();
       generatedWorldBridge?.destroy();
       camera.destroy();
       app.destroy();

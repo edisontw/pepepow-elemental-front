@@ -13,6 +13,8 @@ export class UnitControls {
   private startClientY = 0;
   private currentClientX = 0;
   private currentClientY = 0;
+  private hoverClientX: number | null = null;
+  private hoverClientY: number | null = null;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -64,6 +66,8 @@ export class UnitControls {
   }
 
   private readonly onPointerDown = (event: PointerEvent): void => {
+    this.hoverClientX = event.clientX;
+    this.hoverClientY = event.clientY;
     if (event.button === 2) {
       event.preventDefault();
       this.enqueueContextOrder(event.clientX, event.clientY);
@@ -79,6 +83,16 @@ export class UnitControls {
   };
 
   private readonly onPointerMove = (event: PointerEvent): void => {
+    const bounds = this.canvas.getBoundingClientRect();
+    if (
+      event.clientX >= bounds.left
+      && event.clientX <= bounds.right
+      && event.clientY >= bounds.top
+      && event.clientY <= bounds.bottom
+    ) {
+      this.hoverClientX = event.clientX;
+      this.hoverClientY = event.clientY;
+    }
     if (event.pointerId !== this.pointerId) return;
     this.currentClientX = event.clientX;
     this.currentClientY = event.clientY;
@@ -129,12 +143,8 @@ export class UnitControls {
     }
 
     if ((event.code === 'KeyF' || event.code === 'KeyH' || event.code === 'KeyR' || event.code === 'KeyB') && !event.repeat) {
-      const targetsForest = event.code === 'KeyB';
-      const targetZone = this.simulation.arena.zones.find((zone) => (
-        targetsForest ? zone.kind === 'FOREST' : zone.kind === 'FREEZABLE_CROSSING'
-      ));
-      if (!targetZone) return;
-
+      const target = this.hoverWorldPoint();
+      if (!target) return;
       const effectId = event.code === 'KeyF'
         ? 'FREEZE'
         : event.code === 'KeyH'
@@ -142,15 +152,14 @@ export class UnitControls {
           : 'FIRE';
       const repeatCount = event.code === 'KeyB' ? 1 : 2;
       const targetTick = this.simulation.snapshot().tick + 1;
-
       for (let index = 0; index < repeatCount; index += 1) {
         this.simulation.enqueueCommand({
           targetTick,
           playerId: 0,
           type: 'CAST',
           effectId,
-          targetX: targetZone.centerX,
-          targetZ: targetZone.centerZ,
+          targetX: target.x,
+          targetZ: target.z,
           radius: 5 * WORLD_UNITS_PER_METER,
         });
       }
@@ -158,14 +167,16 @@ export class UnitControls {
     }
 
     if (event.code === 'KeyL' && !event.repeat) {
-      const target = this.simulation.snapshot().entities.find((entity) => entity.alive && entity.playerId !== 0);
-      if (!target) return;
+      if (this.hoverClientX === null || this.hoverClientY === null) return;
+      const screen = this.toCanvasCoordinates(this.hoverClientX, this.hoverClientY);
+      const targetId = this.bridge.pickSingle(this.camera, screen.x, screen.y, 54);
+      if (targetId === null || !this.bridge.isEnemy(targetId)) return;
       this.simulation.enqueueCommand({
         targetTick: this.simulation.snapshot().tick + 1,
         playerId: 0,
         type: 'CAST',
         effectId: 'CHAIN_LIGHTNING',
-        targetEntityId: target.id,
+        targetEntityId: targetId,
       });
       return;
     }
@@ -199,18 +210,30 @@ export class UnitControls {
       });
       return;
     }
+    const target = this.worldPointFromClient(clientX, clientY);
+    if (!target) return;
+    this.moveSelectionTo(target.x, target.z);
+  }
+
+  private hoverWorldPoint(): { x: number; z: number } | null {
+    if (this.hoverClientX === null || this.hoverClientY === null) return null;
+    return this.worldPointFromClient(this.hoverClientX, this.hoverClientY);
+  }
+
+  private worldPointFromClient(clientX: number, clientY: number): { x: number; z: number } | null {
+    const screen = this.toCanvasCoordinates(clientX, clientY);
     const near = this.camera.screenToWorld(screen.x, screen.y, this.camera.nearClip);
     const far = this.camera.screenToWorld(screen.x, screen.y, this.camera.farClip);
     const verticalDelta = far.y - near.y;
-    if (Math.abs(verticalDelta) < 0.000_001) return;
+    if (Math.abs(verticalDelta) < 0.000_001) return null;
     const distance = -near.y / verticalDelta;
-    if (distance < 0 || distance > 1) return;
+    if (distance < 0 || distance > 1) return null;
     const worldX = near.x + (far.x - near.x) * distance;
     const worldZ = near.z + (far.z - near.z) * distance;
-    this.moveSelectionTo(
-      Math.round(worldX * WORLD_UNITS_PER_METER),
-      Math.round(worldZ * WORLD_UNITS_PER_METER),
-    );
+    return {
+      x: Math.round(worldX * WORLD_UNITS_PER_METER),
+      z: Math.round(worldZ * WORLD_UNITS_PER_METER),
+    };
   }
 
   private toCanvasCoordinates(clientX: number, clientY: number): { x: number; y: number } {
