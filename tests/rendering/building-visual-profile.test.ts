@@ -9,6 +9,7 @@ const BUILDING_TYPES: readonly BuildingType[] = [
   'WORKSHOP',
   'OUTPOST',
   'EXTRACTOR',
+  'MANA_WELL',
 ];
 
 describe('M08 building visual profiles', () => {

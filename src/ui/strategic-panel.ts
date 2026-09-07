@@ -5,7 +5,6 @@ import {
   UNITS,
   productionSpeedPercent,
   type BuildingType,
-  type OutpostSpecialization,
   type ProducerBuildingType,
 } from '../simulation/m03-content';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
@@ -15,14 +14,13 @@ import { worldCellToSimulationPosition } from '../world/world-arena';
 
 const PLAYER_ID = 0;
 const TICKS_PER_SECOND = 10;
-const EXTRACTOR_PICK_RADIUS = 2.5 * WORLD_UNITS_PER_METER;
+const RESOURCE_PICK_RADIUS = 2.5 * WORLD_UNITS_PER_METER;
 const BUILD_ORDER: readonly Exclude<BuildingType, 'ELEMENTAL_CORE'>[] = [
-  'BARRACKS', 'ARCANE_TOWER', 'WORKSHOP', 'OUTPOST', 'EXTRACTOR',
+  'BARRACKS', 'ARCANE_TOWER', 'WORKSHOP', 'OUTPOST', 'EXTRACTOR', 'MANA_WELL',
 ];
 const TRAIN_ORDER: readonly UnitArchetype[] = [
   'VANGUARD', 'SPEAR_GUARD', 'RANGER', 'SCOUT', 'ELEMENTALIST', 'ENGINEER', 'GOLEM', 'SIEGE_CONSTRUCT',
 ];
-const SPECIALIZATIONS: readonly OutpostSpecialization[] = ['WATCHTOWER', 'BARRIER_HUB', 'MANA_BEACON'];
 const PRODUCER_TYPES: readonly ProducerBuildingType[] = ['BARRACKS', 'ARCANE_TOWER', 'WORKSHOP'];
 
 function formatResource(milli: number): string {
@@ -43,6 +41,12 @@ function remainingSeconds(tick: number, completeTick: number): string {
   return `${Math.max(0, Math.ceil((completeTick - tick) / TICKS_PER_SECOND))}s`;
 }
 
+function resourceTypeForBuilding(buildingType: BuildingType): 'MATERIAL' | 'MANA' | null {
+  if (buildingType === 'EXTRACTOR') return 'MATERIAL';
+  if (buildingType === 'MANA_WELL') return 'MANA';
+  return null;
+}
+
 interface PlacementCheck {
   valid: boolean;
   regionId: number | null;
@@ -54,7 +58,7 @@ interface PlacementCheck {
 
 export class StrategicPanel {
   private elapsed = 0;
-  private message = 'Construction is parallel. Place additional buildings while existing sites are still active.';
+  private message = 'Construction is parallel. Outposts need 10 Influence; capture POIs to fund continued expansion.';
   private pendingBuildType: Exclude<BuildingType, 'ELEMENTAL_CORE'> | null = null;
   private pendingRallyBuildingId: number | null = null;
   private selectedProducerId: number | null = null;
@@ -113,7 +117,6 @@ export class StrategicPanel {
     else if (action === 'select-producer') this.selectProducer(Number(target.dataset.value));
     else if (action === 'set-rally') this.beginRallyPlacement();
     else if (action === 'capture-poi') this.queueCapturePoi();
-    else if (action === 'specialize') this.queueSpecialization(target.dataset.value as OutpostSpecialization);
     this.render();
   };
 
@@ -189,14 +192,39 @@ export class StrategicPanel {
   };
 
   private beginBuild(buildingType: Exclude<BuildingType, 'ELEMENTAL_CORE'>): void {
+    const affordability = this.affordabilityMessage(buildingType);
+    if (affordability !== null) {
+      this.pendingBuildType = null;
+      this.pendingRallyBuildingId = null;
+      this.updatePlacementCursor();
+      this.message = affordability;
+      return;
+    }
     this.pendingRallyBuildingId = null;
     this.pendingBuildType = buildingType;
     this.updatePlacementCursor();
     this.message = buildingType === 'EXTRACTOR'
-      ? 'Place Extractor: click a visible Material Deposit in controlled supplied territory. Shift-click keeps placement active; right click or Esc cancels.'
-      : buildingType === 'OUTPOST'
-        ? 'Place Outpost: click controlled territory or a neutral region directly adjacent to supplied territory. Construction runs in parallel with other sites.'
-        : `Place ${label(buildingType)}: left click controlled supplied ground. Shift-click repeats placement; construction runs in parallel.`;
+      ? 'Place Extractor: click a visible amber Material Deposit in controlled supplied territory. Shift-click keeps placement active; right click or Esc cancels.'
+      : buildingType === 'MANA_WELL'
+        ? 'Place Mana Well: click a visible violet Mana Spring in controlled supplied territory. Shift-click keeps placement active; right click or Esc cancels.'
+        : buildingType === 'OUTPOST'
+          ? 'Place Outpost: click controlled territory or a neutral region directly adjacent to supplied territory. Each Outpost costs 10 Influence.'
+          : `Place ${label(buildingType)}: left click controlled supplied ground. Shift-click repeats placement; construction runs in parallel.`;
+  }
+
+  private affordabilityMessage(buildingType: Exclude<BuildingType, 'ELEMENTAL_CORE'>): string | null {
+    const stock = this.simulation.strategy.snapshot().resources[PLAYER_ID];
+    if (!stock) return 'Player resource stock is unavailable.';
+    const cost = BUILDINGS[buildingType].cost;
+    const missing: string[] = [];
+    if (stock.materialMilli < cost.material * 1000) missing.push(`${cost.material - Math.floor(stock.materialMilli / 1000)} Material`);
+    if (stock.manaMilli < cost.mana * 1000) missing.push(`${cost.mana - Math.floor(stock.manaMilli / 1000)} Mana`);
+    if (stock.influenceMilli < cost.influence * 1000) missing.push(`${cost.influence - Math.floor(stock.influenceMilli / 1000)} Influence`);
+    if (missing.length === 0) return null;
+    if (buildingType === 'OUTPOST' && stock.influenceMilli < cost.influence * 1000) {
+      return `Cannot place Outpost: need ${missing.join(', ')}. Capture a POI to gain +10 Influence, then expand into the next adjacent neutral region.`;
+    }
+    return `Cannot place ${label(buildingType)}: need ${missing.join(', ')}.`;
   }
 
   private beginRallyPlacement(): void {
@@ -238,11 +266,17 @@ export class StrategicPanel {
   private checkPlacement(buildingType: Exclude<BuildingType, 'ELEMENTAL_CORE'>, targetX: number, targetZ: number): PlacementCheck {
     const world = this.simulation.generatedWorld;
     const snapshot = this.simulation.strategy.snapshot();
-    if (buildingType === 'EXTRACTOR') {
+    const affordability = this.affordabilityMessage(buildingType);
+    if (affordability !== null) {
+      return { valid: false, regionId: null, resourceNodeId: null, targetX, targetZ, reason: affordability };
+    }
+
+    const resourceType = resourceTypeForBuilding(buildingType);
+    if (resourceType !== null) {
       const occupied = new Set(snapshot.buildings.flatMap((building) => building.resourceNodeId ? [building.resourceNodeId] : []));
       const candidates = world.resources
         .filter((resource) => (
-          resource.type === 'MATERIAL'
+          resource.type === resourceType
           && !occupied.has(resource.id)
           && snapshot.regionOwners[resource.regionId] === PLAYER_ID
           && snapshot.suppliedRegions[PLAYER_ID]?.includes(resource.regionId)
@@ -256,10 +290,11 @@ export class StrategicPanel {
         })
         .sort((left, right) => left.distanceSquared - right.distanceSquared || left.resource.id.localeCompare(right.resource.id));
       const chosen = candidates[0];
-      if (!chosen || chosen.distanceSquared > EXTRACTOR_PICK_RADIUS * EXTRACTOR_PICK_RADIUS) {
+      if (!chosen || chosen.distanceSquared > RESOURCE_PICK_RADIUS * RESOURCE_PICK_RADIUS) {
+        const marker = resourceType === 'MATERIAL' ? 'amber Material Deposit' : 'violet Mana Spring';
         return {
           valid: false, regionId: null, resourceNodeId: null, targetX, targetZ,
-          reason: 'Click directly on an available amber Material Deposit marker.',
+          reason: `Click directly on an available ${marker} marker in controlled supplied territory.`,
         };
       }
       return {
@@ -299,7 +334,7 @@ export class StrategicPanel {
       ));
       if (alreadyHasOutpost) return { valid: false, regionId, resourceNodeId: null, targetX, targetZ, reason: `Region ${regionId + 1} already has an Outpost.` };
       if (!supplied && !neighborSupplied) {
-        return { valid: false, regionId, resourceNodeId: null, targetX, targetZ, reason: 'Outposts expand only into territory adjacent to your supplied network.' };
+        return { valid: false, regionId, resourceNodeId: null, targetX, targetZ, reason: 'Outposts expand one step at a time: choose a neutral region directly adjacent to your supplied territory.' };
       }
     } else {
       if (owner !== PLAYER_ID) {
@@ -360,7 +395,7 @@ export class StrategicPanel {
     const units = this.selectedUnits().filter((unit) => unit.playerId === PLAYER_ID && unit.alive);
     const regionId = this.selectedRegion(units);
     if (units.length === 0 || regionId === null) {
-      this.message = 'Select player units inside a region containing a POI.';
+      this.message = 'Select player units inside a region containing a POI, then press Capture POI.';
       return;
     }
     const snapshot = this.simulation.strategy.snapshot();
@@ -378,25 +413,7 @@ export class StrategicPanel {
       entityIds: units.map((unit) => unit.id),
       targetPoiId: poi.id,
     });
-    this.message = `Capturing ${label(poi.type)} ${poi.id}; reward is +10 Influence.`;
-  }
-
-  private queueSpecialization(specialization: OutpostSpecialization): void {
-    const outpost = this.simulation.strategy.snapshot().buildings.find((building) => (
-      building.playerId === PLAYER_ID && building.type === 'OUTPOST' && building.completed && building.specialization === null
-    ));
-    if (!outpost) {
-      this.message = 'No completed unspecialized Outpost is available.';
-      return;
-    }
-    this.simulation.enqueueStrategicCommand({
-      targetTick: this.simulation.snapshot().tick + 1,
-      playerId: PLAYER_ID,
-      type: 'SPECIALIZE_OUTPOST',
-      buildingId: outpost.id,
-      specialization,
-    });
-    this.message = `Queued ${label(specialization)} specialization for Outpost #${outpost.id}.`;
+    this.message = `Capturing ${label(poi.type)} ${poi.id}; completion grants +10 Influence for another Outpost.`;
   }
 
   private selectedRegion(units: readonly EntitySnapshot[]): number | null {
@@ -484,10 +501,12 @@ export class StrategicPanel {
       const cost = BUILDINGS[buildingType].cost;
       const active = this.pendingBuildType === buildingType ? ' active' : '';
       const title = buildingType === 'EXTRACTOR'
-        ? 'Choose Extractor, then click an amber Material Deposit'
-        : buildingType === 'OUTPOST'
-          ? 'Outposts claim adjacent neutral territory when construction completes'
-          : 'Choose this building, then place it inside controlled supplied territory';
+        ? 'Extractor harvests an amber Material Deposit'
+        : buildingType === 'MANA_WELL'
+          ? 'Mana Well harvests a violet Mana Spring'
+          : buildingType === 'OUTPOST'
+            ? 'Outpost costs 10 Influence and claims an adjacent neutral region when construction completes'
+            : 'Choose this building, then place it inside controlled supplied territory';
       return `<button class="${active.trim()}" data-action="build" data-value="${buildingType}" title="${title}">${label(buildingType)}<small>${cost.material}M${cost.mana ? ` · ${cost.mana}A` : ''}${cost.influence ? ` · ${cost.influence}I` : ''}</small></button>`;
     }).join('');
     const selectedProducer = snapshot.buildings.find((building) => building.id === this.selectedProducerId);
@@ -496,10 +515,12 @@ export class StrategicPanel {
       const enabled = selectedProducer?.type === definition.producer;
       return `<button data-action="train" data-value="${unitType}" ${enabled ? '' : 'disabled'}>${label(unitType)}<small>${definition.cost.material}M${definition.cost.mana ? ` · ${definition.cost.mana}A` : ''} · P${definition.population}</small></button>`;
     }).join('');
-    const specializationButtons = SPECIALIZATIONS.map((specialization) => (
-      `<button data-action="specialize" data-value="${specialization}">${label(specialization)}</button>`
-    )).join('');
     const rallyActive = this.pendingRallyBuildingId !== null ? ' active' : '';
+    const canFundOutpost = stock.materialMilli >= BUILDINGS.OUTPOST.cost.material * 1000
+      && stock.influenceMilli >= BUILDINGS.OUTPOST.cost.influence * 1000;
+    const expansionHint = canFundOutpost
+      ? 'Outpost funded: choose a neutral region directly adjacent to supplied territory.'
+      : `Next Outpost needs 180 Material + 10 Influence. Current Influence: ${formatResource(stock.influenceMilli)}. Capture a POI for +10 Influence.`;
     this.element.innerHTML = `
       <div class="strategy-title">ECONOMY & COMMAND</div>
       <div class="resource-strip">
@@ -508,16 +529,15 @@ export class StrategicPanel {
         <b>${formatResource(stock.influenceMilli)} <span>Influence</span></b>
         <b>${snapshot.populationUsed[PLAYER_ID] ?? 0}/${snapshot.populationCap[PLAYER_ID] ?? 0} <span>Population</span></b>
       </div>
-      <div class="resource-key"><span class="material-dot"></span>Amber = Material Deposit <span class="mana-dot"></span>Violet = Mana Spring</div>
+      <div class="resource-key"><span class="material-dot"></span>Amber Deposit → Extractor <span class="mana-dot"></span>Violet Mana Spring → Mana Well</div>
       <div class="strategy-meta">Territory ${owned}/${snapshot.regionOwners.length} · Supplied ${supplied} · Contested ${snapshot.contestedRegions.length}</div>
       ${this.armyMarkup(simulationSnapshot)}
       ${this.queueMarkup(simulationSnapshot.tick, snapshot)}
       <div class="strategy-section"><strong>Build — parallel</strong><div class="strategy-buttons">${buildingButtons}</div><small>Each site progresses independently. Shift-click the battlefield to place another building of the same type.</small></div>
       <div class="strategy-section"><strong>Produce</strong>${this.producerMarkup(snapshot)}<div class="strategy-buttons compact">${trainButtons}</div><div class="strategy-buttons"><button class="${rallyActive.trim()}" data-action="set-rally" ${selectedProducer ? '' : 'disabled'}>Set Rally Point</button></div></div>
-      <div class="strategy-section territory-info"><strong>Expansion</strong><small>Core claims the starting region. Complete an Outpost in an adjacent neutral region to extend controlled and supplied territory.</small><div class="strategy-buttons">
+      <div class="strategy-section territory-info"><strong>Expansion</strong><small>${expansionHint}</small><div class="strategy-buttons">
         <button data-action="capture-poi">Capture POI (+10 Influence)</button>
       </div></div>
-      <div class="strategy-section"><strong>Outpost</strong><div class="strategy-buttons compact">${specializationButtons}</div></div>
       <div class="strategy-message">${this.message}</div>
     `;
   }
