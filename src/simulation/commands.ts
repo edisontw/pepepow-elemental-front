@@ -27,7 +27,7 @@ export interface AttackCommand extends EntityCommandBase {
 export interface TerrainCastCommand extends CommandBase {
   type: 'CAST';
   entityIds?: never;
-  effectId: 'FREEZE' | 'HEAT' | 'FIRE';
+  effectId: 'FREEZE' | 'HEAT' | 'FIRE' | 'WATER';
   targetX: number;
   targetZ: number;
   radius: number;
