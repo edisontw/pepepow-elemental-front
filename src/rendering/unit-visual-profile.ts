@@ -51,7 +51,7 @@ export const UNIT_VISUAL_PROFILES: Readonly<Record<UnitArchetype, UnitVisualProf
   SCOUT: {
     height: 1.24,
     selectionScale: 1.0,
-    projectile: 'NONE',
+    projectile: 'BOLT',
     parts: [
       { primitive: 'capsule', material: 'TEAM', position: [0, 0.6, 0], scale: [0.54, 0.82, 0.54] },
       { primitive: 'box', material: 'ACCENT', position: [-0.42, 0.66, -0.18], scale: [0.48, 0.08, 0.64] },
