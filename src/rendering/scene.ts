@@ -89,6 +89,7 @@ export interface SceneShell {
   camera: RtsCamera;
   get selectedCount(): number;
   get selectedUnits(): readonly EntitySnapshot[];
+  screenToSimulationPosition(clientX: number, clientY: number): { x: number; z: number } | null;
   sync(frame: TickFrame): void;
   destroy(): void;
 }
@@ -169,6 +170,23 @@ export function createSceneShell(
   const cameraComponent = cameraEntity.camera;
   if (!cameraComponent) throw new Error('RTS camera component failed to initialize.');
 
+  const screenToSimulationPosition = (clientX: number, clientY: number): { x: number; z: number } | null => {
+    const bounds = canvas.getBoundingClientRect();
+    if (bounds.width <= 0 || bounds.height <= 0) return null;
+    const screenX = ((clientX - bounds.left) / bounds.width) * canvas.width;
+    const screenY = ((clientY - bounds.top) / bounds.height) * canvas.height;
+    const near = cameraComponent.screenToWorld(screenX, screenY, cameraComponent.nearClip);
+    const far = cameraComponent.screenToWorld(screenX, screenY, cameraComponent.farClip);
+    const verticalDelta = far.y - near.y;
+    if (Math.abs(verticalDelta) < 0.000_001) return null;
+    const distance = -near.y / verticalDelta;
+    if (distance < 0 || distance > 1) return null;
+    return {
+      x: Math.round((near.x + (far.x - near.x) * distance) * WORLD_UNITS_PER_METER),
+      z: Math.round((near.z + (far.z - near.z) * distance) * WORLD_UNITS_PER_METER),
+    };
+  };
+
   const unitMaterials = {
     player: createMaterial(new pc.Color(0.18, 0.68, 0.61), new pc.Color(0.02, 0.2, 0.16)),
     enemyMelee: createMaterial(new pc.Color(0.78, 0.18, 0.15), new pc.Color(0.24, 0.02, 0.01)),
@@ -204,6 +222,7 @@ export function createSceneShell(
     get selectedUnits(): readonly EntitySnapshot[] {
       return controls.selectedUnits;
     },
+    screenToSimulationPosition,
     sync(frame: TickFrame): void {
       bridge.sync(frame.previousSnapshot, frame.snapshot, frame.interpolationAlpha);
       elementalBridge.sync(frame.previousSnapshot, frame.snapshot, frame.interpolationAlpha);
