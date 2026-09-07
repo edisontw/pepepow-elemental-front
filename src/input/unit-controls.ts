@@ -37,6 +37,18 @@ export class UnitControls {
     return this.simulation.snapshot().entities.filter((entity) => selected.has(entity.id));
   }
 
+  moveSelectionTo(targetX: number, targetZ: number): void {
+    if (this.selection.ids.length === 0) return;
+    this.simulation.enqueueCommand({
+      targetTick: this.simulation.snapshot().tick + 1,
+      playerId: 0,
+      type: 'MOVE',
+      entityIds: this.selection.ids,
+      targetX,
+      targetZ,
+    });
+  }
+
   syncSelection(): void {
     if (this.selection.prune((entityId) => this.bridge.isControllable(entityId))) {
       this.renderSelected();
@@ -195,14 +207,10 @@ export class UnitControls {
     if (distance < 0 || distance > 1) return;
     const worldX = near.x + (far.x - near.x) * distance;
     const worldZ = near.z + (far.z - near.z) * distance;
-    this.simulation.enqueueCommand({
-      targetTick: this.simulation.snapshot().tick + 1,
-      playerId: 0,
-      type: 'MOVE',
-      entityIds: this.selection.ids,
-      targetX: Math.round(worldX * WORLD_UNITS_PER_METER),
-      targetZ: Math.round(worldZ * WORLD_UNITS_PER_METER),
-    });
+    this.moveSelectionTo(
+      Math.round(worldX * WORLD_UNITS_PER_METER),
+      Math.round(worldZ * WORLD_UNITS_PER_METER),
+    );
   }
 
   private toCanvasCoordinates(clientX: number, clientY: number): { x: number; y: number } {
