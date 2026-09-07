@@ -172,7 +172,10 @@ export class StrategicPanel {
     this.message = `Queued Extractor on ${target.id}.`;
   }
 
-  private checkPlacement(buildingType: Exclude<BuildingType, 'ELEMENTAL_CORE' | 'EXTRACTOR'>, targetX: number, targetZ: number): PlacementCheck {
+  private checkPlacement(buildingType: Exclude<BuildingType, 'ELEMENTAL_CORE'>, targetX: number, targetZ: number): PlacementCheck {
+    if (buildingType === 'EXTRACTOR') {
+      return { valid: false, regionId: null, reason: 'Extractors must be attached to a Material Deposit.' };
+    }
     const world = this.simulation.generatedWorld;
     const snapshot = this.simulation.strategy.snapshot();
     const cell = this.simulation.navigation.worldToCell(targetX, targetZ);
