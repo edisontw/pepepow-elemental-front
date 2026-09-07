@@ -71,6 +71,7 @@ export function blockChallengeCode(identity: BlockChallengeIdentity): string {
 
 export function createBlockChallengeShareUrl(baseUrl: string | URL, identity: BlockChallengeIdentity): URL {
   const url = new URL(baseUrl.toString());
+  for (const transient of ['replay', 'live', 'offset', 'source', 'official']) url.searchParams.delete(transient);
   url.searchParams.set('challenge', BLOCK_CHALLENGE_QUERY_VALUE);
   url.searchParams.set('block', String(identity.blockHeight));
   url.searchParams.set('ruleset', identity.rulesetVersion);
@@ -80,7 +81,6 @@ export function createBlockChallengeShareUrl(baseUrl: string | URL, identity: Bl
   url.searchParams.set('pace', identity.pace.toLowerCase());
   url.searchParams.set('faction', identity.faction.toLowerCase());
   url.searchParams.set('difficulty', identity.difficulty.toLowerCase());
-  url.searchParams.delete('replay');
   return url;
 }
 

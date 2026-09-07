@@ -5,7 +5,8 @@ import {
   type BlockSource,
 } from './block-source';
 
-export const PEPEPOW_EXPLORER_BLOCKCOUNT_ENDPOINTS = [
+export const PEPEPOW_BLOCK_HEIGHT_ENDPOINTS = [
+  'https://light.pepepow.net/api/status',
   'https://explorer.pepepow.org/api/getblockcount',
   'https://explorer.pepepow.net/api/getblockcount',
 ] as const;
@@ -18,28 +19,45 @@ export interface PepepowRpcBlockSourceOptions {
   timeoutMs?: number;
 }
 
+function parseHeightCandidate(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const numeric = Number(value);
+    if (Number.isSafeInteger(numeric) && numeric >= 0) return numeric;
+  }
+  return null;
+}
+
 function parseBlockCount(payload: string): number {
   const trimmed = payload.trim();
-  const direct = Number(trimmed);
-  if (Number.isSafeInteger(direct) && direct >= 0) return direct;
+  const direct = parseHeightCandidate(trimmed);
+  if (direct !== null) return direct;
 
   try {
     const parsed: unknown = JSON.parse(trimmed);
-    if (typeof parsed === 'number' && Number.isSafeInteger(parsed) && parsed >= 0) return parsed;
+    const scalar = parseHeightCandidate(parsed);
+    if (scalar !== null) return scalar;
     if (typeof parsed === 'object' && parsed !== null) {
       const record = parsed as Record<string, unknown>;
-      const candidate = record.blockcount ?? record.blockHeight ?? record.height;
-      if (typeof candidate === 'number' && Number.isSafeInteger(candidate) && candidate >= 0) return candidate;
-      if (typeof candidate === 'string') {
-        const numeric = Number(candidate);
-        if (Number.isSafeInteger(numeric) && numeric >= 0) return numeric;
+      const preferredKeys = [
+        'height',
+        'block_height',
+        'blockHeight',
+        'tip_height',
+        'blockcount',
+        'daemon_height',
+        'electrum_height',
+      ] as const;
+      for (const key of preferredKeys) {
+        const candidate = parseHeightCandidate(record[key]);
+        if (candidate !== null) return candidate;
       }
     }
   } catch {
     // Fall through to the explicit invalid-response error below.
   }
 
-  throw new Error('PEPEPOW block-count response did not contain a valid height.');
+  throw new Error('PEPEPOW block-height response did not contain a valid height.');
 }
 
 export class PepepowRpcBlockSource implements BlockSource {
@@ -55,8 +73,8 @@ export class PepepowRpcBlockSource implements BlockSource {
       throw new Error('PEPEPOW recent-block offset must be a non-negative safe integer.');
     }
     assertValidBlockHeight(options.fallbackBlockHeight);
-    this.endpoints = options.endpoints ?? PEPEPOW_EXPLORER_BLOCKCOUNT_ENDPOINTS;
-    if (this.endpoints.length === 0) throw new Error('At least one PEPEPOW block-count endpoint is required.');
+    this.endpoints = options.endpoints ?? PEPEPOW_BLOCK_HEIGHT_ENDPOINTS;
+    if (this.endpoints.length === 0) throw new Error('At least one PEPEPOW block-height endpoint is required.');
     this.fetcher = options.fetcher ?? fetch;
     this.timeoutMs = options.timeoutMs ?? 3_500;
     if (!Number.isFinite(this.timeoutMs) || this.timeoutMs <= 0) throw new Error('PEPEPOW RPC timeout must be positive.');
@@ -84,7 +102,7 @@ export class PepepowRpcBlockSource implements BlockSource {
     return {
       ...fallback,
       label: 'Manual Fallback',
-      fallbackReason: errors.join(' | ') || 'PEPEPOW RPC unavailable.',
+      fallbackReason: errors.join(' | ') || 'PEPEPOW block-height source unavailable.',
     };
   }
 
@@ -98,7 +116,7 @@ export class PepepowRpcBlockSource implements BlockSource {
         credentials: 'omit',
         cache: 'no-store',
         signal: controller.signal,
-        headers: { Accept: 'text/plain, application/json;q=0.9, */*;q=0.8' },
+        headers: { Accept: 'application/json, text/plain;q=0.9, */*;q=0.8' },
       });
       if (!response.ok) throw new Error(`PEPEPOW endpoint returned HTTP ${response.status}.`);
       return parseBlockCount(await response.text());
