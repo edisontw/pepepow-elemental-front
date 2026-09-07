@@ -2,6 +2,7 @@ import { M01_ARENA, type ArenaDefinition } from './arena';
 import type { ChainLightningCommand, GameCommand } from './commands';
 import { CommandQueue } from './commands';
 import type { EntityID, UnitArchetype } from './components';
+import { forestAllowsDetection } from './elemental-battlefield-rules';
 import {
   FIRE_IMPACT_DAMAGE,
   HEAVY_ICE_STRESS_PER_TICK,
@@ -163,7 +164,10 @@ export class Simulation {
       attackIntervalTicks: combat.attackIntervalTicks, attackRange: combat.attackRange,
       nextAttackTick: combat.nextAttackTick, attackTargetEntityId: combat.targetEntityId,
       wet: status.wet, wetTicks: status.wetTicks, chilledTicks: status.chilledTicks, frozenTicks: status.frozenTicks,
-      visibleToPlayer: faction.playerId === 0 || this.visibility.isWorldVisible(0, position.x, position.z, this.navigation),
+      visibleToPlayer: faction.playerId === 0 || (
+        this.visibility.isWorldVisible(0, position.x, position.z, this.navigation)
+        && forestAllowsDetection(entityId, 0, this.entities, this.terrain, this.navigation)
+      ),
     };
   }
 
@@ -341,7 +345,6 @@ export class Simulation {
       const status = this.entities.statuses.get(entityId);
       if (!status) continue;
       status.wetTicks = Math.max(0, status.wetTicks - 1);
-      status.wet = status.wetTicks > 0;
       status.chilledTicks = Math.max(0, status.chilledTicks - 1);
       status.frozenTicks = Math.max(0, status.frozenTicks - 1);
     }
