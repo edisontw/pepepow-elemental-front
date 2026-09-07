@@ -14,6 +14,7 @@ interface BuildingPresentation {
   parts: readonly BuildingPartPresentation[];
   footprint: pc.Entity;
   beacon: pc.Entity;
+  rally: pc.Entity;
 }
 
 function createMaterial(color: pc.Color, emissive?: pc.Color): pc.StandardMaterial {
@@ -78,6 +79,18 @@ export class StrategicRenderBridge {
           ? this.materialFor(building.playerId, 'ACCENT')
           : this.constructionMaterial;
       }
+      const showRally = building.playerId === 0
+        && building.completed
+        && building.rallyPointX !== null
+        && building.rallyPointZ !== null;
+      presentation.rally.enabled = showRally;
+      if (showRally && building.rallyPointX !== null && building.rallyPointZ !== null) {
+        presentation.rally.setLocalPosition(
+          (building.rallyPointX - building.x) / WORLD_UNITS_PER_METER,
+          0.055,
+          (building.rallyPointZ - building.z) / WORLD_UNITS_PER_METER,
+        );
+      }
     }
     for (const [buildingId, presentation] of [...this.entities]) {
       if (active.has(buildingId)) continue;
@@ -131,8 +144,17 @@ export class StrategicRenderBridge {
     beacon.enabled = building.type !== 'ELEMENTAL_CORE';
     root.addChild(beacon);
 
+    const rally = new pc.Entity(`${building.type} ${building.id} Rally Point`);
+    rally.addComponent('render', {
+      type: 'cylinder',
+      material: this.materialFor(building.playerId, 'ACCENT'),
+    });
+    rally.setLocalScale(0.72, 0.035, 0.72);
+    rally.enabled = false;
+    root.addChild(rally);
+
     this.app.root.addChild(root);
-    return { root, parts, footprint, beacon };
+    return { root, parts, footprint, beacon, rally };
   }
 
   private materialFor(playerId: number, role: BuildingVisualMaterialRole): pc.Material {
