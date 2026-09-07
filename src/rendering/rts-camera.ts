@@ -61,6 +61,12 @@ export class RtsCamera {
     if (localX !== 0 || localZ !== 0) this.pan(localX, localZ);
   }
 
+  focusAt(worldXMetres: number, worldZMetres: number): void {
+    this.target.x = pc.math.clamp(worldXMetres, -this.halfWidth, this.halfWidth);
+    this.target.z = pc.math.clamp(worldZMetres, -this.halfDepth, this.halfDepth);
+    this.applyTransform();
+  }
+
   destroy(): void {
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup', this.onKeyUp);
