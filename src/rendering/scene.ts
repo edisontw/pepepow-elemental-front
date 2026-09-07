@@ -5,6 +5,7 @@ import type { TickFrame } from '../simulation/fixed-tick-runner';
 import { M03Simulation } from '../simulation/m03-simulation';
 import { M06Simulation } from '../simulation/m06-simulation';
 import type { EntitySnapshot, Simulation } from '../simulation/simulation';
+import { ElementalRenderBridge } from './elemental-render-bridge';
 import { GeneratedWorldRenderBridge } from './generated-world-render-bridge';
 import { RtsCamera } from './rts-camera';
 import { RunRenderBridge } from './run-render-bridge';
@@ -115,7 +116,6 @@ export function createSceneShell(
     forest: createMaterial(new pc.Color(0.08, 0.24, 0.10)),
     trunk: createMaterial(new pc.Color(0.22, 0.13, 0.07)),
     canopy: createMaterial(new pc.Color(0.08, 0.34, 0.13)),
-    burning: createMaterial(new pc.Color(1, 0.28, 0.02), new pc.Color(0.85, 0.08, 0.01)),
     rock: createMaterial(new pc.Color(0.27, 0.29, 0.27)),
   };
 
@@ -129,25 +129,6 @@ export function createSceneShell(
       if (zone.kind === 'FREEZABLE_CROSSING') freezablePatch = rendered;
     }
     if (freezablePatch) freezablePatch.enabled = false;
-  }
-
-  const burningMarkers = new Map<string, pc.Entity>();
-  const flammableCells = simulation.terrain.flammableCells();
-  const markerStride = Math.max(1, Math.ceil(flammableCells.length / 512));
-  for (let index = 0; index < flammableCells.length; index += markerStride) {
-    const cell = flammableCells[index];
-    if (!cell) continue;
-    const center = simulation.terrain.cellCenter(cell);
-    const marker = addPrimitive(
-      app,
-      'box',
-      `Burning ${cell.column},${cell.row}`,
-      new pc.Vec3(metres(center.x), 0.18, metres(center.z)),
-      new pc.Vec3(0.78, 0.18, 0.78),
-      materials.burning!,
-    );
-    marker.enabled = false;
-    burningMarkers.set(`${cell.column},${cell.row}`, marker);
   }
 
   const light = new pc.Entity('Sun');
@@ -194,6 +175,7 @@ export function createSceneShell(
   const selectionMaterial = createMaterial(new pc.Color(0.96, 0.78, 0.2), new pc.Color(0.55, 0.32, 0.03));
   const healthMaterial = createMaterial(new pc.Color(0.18, 0.9, 0.25), new pc.Color(0.03, 0.2, 0.04));
   const bridge = new UnitRenderBridge(app, initialSnapshot, unitMaterials, selectionMaterial, healthMaterial);
+  const elementalBridge = new ElementalRenderBridge(app, simulation.terrain, initialSnapshot);
   const controls = new UnitControls(canvas, cameraComponent, simulation, bridge, selectionBox);
   const strategicBridge = simulation instanceof M03Simulation ? new StrategicRenderBridge(app) : null;
   if (simulation instanceof M03Simulation) strategicBridge?.sync(simulation.strategy.snapshot());
@@ -217,6 +199,7 @@ export function createSceneShell(
     },
     sync(frame: TickFrame): void {
       bridge.sync(frame.previousSnapshot, frame.snapshot, frame.interpolationAlpha);
+      elementalBridge.sync(frame.previousSnapshot, frame.snapshot, frame.interpolationAlpha);
       controls.syncSelection();
       if (simulation instanceof M03Simulation) strategicBridge?.sync(simulation.strategy.snapshot());
       if (simulation instanceof M06Simulation) runBridge?.sync(simulation.run.snapshot());
@@ -226,13 +209,12 @@ export function createSceneShell(
         freezablePatch.enabled = frozen;
         if (frozen) freezablePatch.render.material = materials.ice!;
       }
-      const burningKeys = new Set(frame.snapshot.burningCells.map((cell) => `${cell.column},${cell.row}`));
-      for (const [key, marker] of burningMarkers) marker.enabled = burningKeys.has(key);
     },
     destroy(): void {
       window.removeEventListener('resize', onResize);
       controls.destroy();
       bridge.destroy();
+      elementalBridge.destroy();
       strategicBridge?.destroy();
       runBridge?.destroy();
       generatedWorldBridge?.destroy();
