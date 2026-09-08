@@ -1,5 +1,97 @@
 {
   "$schemaVersion": 1,
-  "entries": [],
-  "notes": "M00 intentionally ships without audio. Add stable IDs before sourcing or generating files."
+  "entries": [
+    {
+      "id": "sfx.combat.attack",
+      "kind": "sfx",
+      "status": "PLACEHOLDER",
+      "path": "webaudio://procedural/combat-attack",
+      "canonicalFilename": "sfx-combat-attack.ogg",
+      "license": "N/A — runtime synthesized placeholder",
+      "notes": "Event-driven placeholder. Replace only with redistribution-safe final audio."
+    },
+    {
+      "id": "sfx.combat.hit",
+      "kind": "sfx",
+      "status": "PLACEHOLDER",
+      "path": "webaudio://procedural/combat-hit",
+      "canonicalFilename": "sfx-combat-hit.ogg",
+      "license": "N/A — runtime synthesized placeholder",
+      "notes": "Event-driven placeholder. Replace only with redistribution-safe final audio."
+    },
+    {
+      "id": "sfx.combat.death",
+      "kind": "sfx",
+      "status": "PLACEHOLDER",
+      "path": "webaudio://procedural/combat-death",
+      "canonicalFilename": "sfx-combat-death.ogg",
+      "license": "N/A — runtime synthesized placeholder",
+      "notes": "Event-driven placeholder. Replace only with redistribution-safe final audio."
+    },
+    {
+      "id": "sfx.element.fire-ignite",
+      "kind": "sfx",
+      "status": "PLACEHOLDER",
+      "path": "webaudio://procedural/fire-ignite",
+      "canonicalFilename": "sfx-fire-ignite.ogg",
+      "license": "N/A — runtime synthesized placeholder",
+      "notes": "Event-driven placeholder."
+    },
+    {
+      "id": "sfx.element.water-burst",
+      "kind": "sfx",
+      "status": "PLACEHOLDER",
+      "path": "webaudio://procedural/water-burst",
+      "canonicalFilename": "sfx-water-burst.ogg",
+      "license": "N/A — runtime synthesized placeholder",
+      "notes": "Event-driven placeholder."
+    },
+    {
+      "id": "sfx.element.ice-form",
+      "kind": "sfx",
+      "status": "PLACEHOLDER",
+      "path": "webaudio://procedural/ice-form",
+      "canonicalFilename": "sfx-ice-form.ogg",
+      "license": "N/A — runtime synthesized placeholder",
+      "notes": "Event-driven placeholder."
+    },
+    {
+      "id": "sfx.element.ice-break",
+      "kind": "sfx",
+      "status": "PLACEHOLDER",
+      "path": "webaudio://procedural/ice-break",
+      "canonicalFilename": "sfx-ice-break.ogg",
+      "license": "N/A — runtime synthesized placeholder",
+      "notes": "Event-driven placeholder."
+    },
+    {
+      "id": "sfx.element.lightning-chain",
+      "kind": "sfx",
+      "status": "PLACEHOLDER",
+      "path": "webaudio://procedural/lightning-chain",
+      "canonicalFilename": "sfx-lightning-chain.ogg",
+      "license": "N/A — runtime synthesized placeholder",
+      "notes": "Event-driven placeholder."
+    },
+    {
+      "id": "ambience.battlefield.low",
+      "kind": "ambient",
+      "status": "PLACEHOLDER",
+      "path": "webaudio://procedural/battlefield-low",
+      "canonicalFilename": "ambience-battlefield-low.ogg",
+      "license": "N/A — runtime synthesized placeholder",
+      "loop": true,
+      "notes": "Very low-volume procedural ambience starts only after browser audio unlock."
+    },
+    {
+      "id": "music.run.main",
+      "kind": "music",
+      "status": "NEEDS_MANUAL_GENERATION",
+      "path": "manual://pending-gemini-upload",
+      "canonicalFilename": "music-elemental-front-main.ogg",
+      "loop": true,
+      "notes": "User-supplied Gemini background music. Keep absent until manually approved and uploaded; integration must not affect simulation."
+    }
+  ],
+  "notes": "M08 uses license-free runtime synthesis for development placeholders. No external audio is treated as FINAL."
 }

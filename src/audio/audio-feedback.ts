@@ -2,10 +2,13 @@ import type { SimulationSnapshot } from '../simulation/simulation';
 import { deriveAudioCues, type AudioCue } from './audio-events';
 
 const MASTER_GAIN = 0.48;
+const AMBIENT_GAIN = 0.018;
 
 export class AudioFeedback {
   private context: AudioContext | null = null;
   private masterGain: GainNode | null = null;
+  private ambientGain: GainNode | null = null;
+  private readonly ambientOscillators: OscillatorNode[] = [];
   private muted = false;
   private lastTick = -1;
   private readonly onPointerDown = (): void => { void this.unlock(); };
@@ -32,6 +35,13 @@ export class AudioFeedback {
   destroy(): void {
     window.removeEventListener('pointerdown', this.onPointerDown);
     window.removeEventListener('keydown', this.onKeyDown);
+    for (const oscillator of this.ambientOscillators) {
+      try { oscillator.stop(); } catch { /* already stopped */ }
+      oscillator.disconnect();
+    }
+    this.ambientOscillators.length = 0;
+    this.ambientGain?.disconnect();
+    this.ambientGain = null;
     const context = this.context;
     this.context = null;
     this.masterGain = null;
@@ -46,6 +56,25 @@ export class AudioFeedback {
       this.updateMasterGain();
     }
     if (this.context.state === 'suspended') await this.context.resume();
+    this.startAmbient();
+  }
+
+  private startAmbient(): void {
+    const context = this.context;
+    const master = this.masterGain;
+    if (!context || !master || this.ambientOscillators.length > 0) return;
+    this.ambientGain = context.createGain();
+    this.ambientGain.gain.setValueAtTime(AMBIENT_GAIN, context.currentTime);
+    this.ambientGain.connect(master);
+    for (const [frequency, detune] of [[55, -4], [82.5, 5]] as const) {
+      const oscillator = context.createOscillator();
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(frequency, context.currentTime);
+      oscillator.detune.setValueAtTime(detune, context.currentTime);
+      oscillator.connect(this.ambientGain);
+      oscillator.start();
+      this.ambientOscillators.push(oscillator);
+    }
   }
 
   private updateMasterGain(): void {
