@@ -40,7 +40,18 @@ export interface SpecializeOutpostCommand extends StrategicCommandBase {
   specialization: OutpostSpecialization;
 }
 
-export type M03Command = BuildCommand | TrainCommand | SetRallyPointCommand | CaptureCommand | SpecializeOutpostCommand;
+export interface UpgradeResourceDefenseCommand extends StrategicCommandBase {
+  type: 'UPGRADE_RESOURCE_DEFENSE';
+  buildingId: number;
+}
+
+export type M03Command =
+  | BuildCommand
+  | TrainCommand
+  | SetRallyPointCommand
+  | CaptureCommand
+  | SpecializeOutpostCommand
+  | UpgradeResourceDefenseCommand;
 
 interface QueuedCommand {
   command: M03Command;
@@ -80,6 +91,9 @@ function normalizeCommand(command: M03Command): M03Command {
   if (command.type === 'SPECIALIZE_OUTPOST') {
     return { ...base, type: 'SPECIALIZE_OUTPOST', buildingId: command.buildingId, specialization: command.specialization };
   }
+  if (command.type === 'UPGRADE_RESOURCE_DEFENSE') {
+    return { ...base, type: 'UPGRADE_RESOURCE_DEFENSE', buildingId: command.buildingId };
+  }
   return {
     ...base,
     type: 'CAPTURE',
@@ -103,8 +117,13 @@ export class M03CommandQueue {
     if (command.type === 'SET_RALLY_POINT') {
       if (!Number.isSafeInteger(command.targetX) || !Number.isSafeInteger(command.targetZ)) throw new Error('SET_RALLY_POINT target coordinates must be safe integers.');
     }
-    if ((command.type === 'TRAIN' || command.type === 'SPECIALIZE_OUTPOST' || command.type === 'SET_RALLY_POINT')
-      && (!Number.isSafeInteger(command.buildingId) || command.buildingId <= 0)) {
+    if (
+      (command.type === 'TRAIN'
+        || command.type === 'SPECIALIZE_OUTPOST'
+        || command.type === 'SET_RALLY_POINT'
+        || command.type === 'UPGRADE_RESOURCE_DEFENSE')
+      && (!Number.isSafeInteger(command.buildingId) || command.buildingId <= 0)
+    ) {
       throw new Error(`${command.type} buildingId must be a positive safe integer.`);
     }
     if (command.type === 'CAPTURE') {
