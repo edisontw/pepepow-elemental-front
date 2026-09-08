@@ -49,6 +49,7 @@ export type {
   SetRallyPointCommand,
   SpecializeOutpostCommand,
   TrainCommand,
+  UpgradeResourceDefenseCommand,
 } from './m03-commands';
 
 interface QueuedCommand {

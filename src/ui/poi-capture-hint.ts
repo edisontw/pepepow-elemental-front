@@ -39,6 +39,8 @@ export class PoiCaptureHint {
   private elapsed = 0;
   private lastOwnedCount: number;
   private toastSeconds = 0;
+  private rendering = false;
+  private readonly observer: MutationObserver;
 
   constructor(
     private readonly strategyElement: HTMLElement,
@@ -46,6 +48,10 @@ export class PoiCaptureHint {
     private readonly selectedUnits: () => readonly EntitySnapshot[],
   ) {
     this.lastOwnedCount = this.playerOwnedPoiCount();
+    this.observer = new MutationObserver(() => {
+      if (!this.rendering) this.render();
+    });
+    this.observer.observe(strategyElement, { childList: true });
     this.render();
   }
 
@@ -61,67 +67,74 @@ export class PoiCaptureHint {
   }
 
   destroy(): void {
+    this.observer.disconnect();
     this.strategyElement.querySelector('.poi-capture-hint')?.remove();
     this.strategyElement.querySelector('.poi-capture-toast')?.remove();
   }
 
   private render(): void {
-    const territory = this.strategyElement.querySelector<HTMLElement>('.territory-info');
-    const captureButton = territory?.querySelector<HTMLButtonElement>('button[data-action="capture-poi"]');
-    if (!territory || !captureButton) return;
+    if (this.rendering) return;
+    this.rendering = true;
+    try {
+      const territory = this.strategyElement.querySelector<HTMLElement>('.territory-info');
+      const captureButton = territory?.querySelector<HTMLButtonElement>('button[data-action="capture-poi"]');
+      if (!territory || !captureButton) return;
 
-    let hint = territory.querySelector<HTMLElement>('.poi-capture-hint');
-    if (!hint) {
-      hint = document.createElement('small');
-      hint.className = 'poi-capture-hint';
-      territory.appendChild(hint);
-    }
+      let hint = territory.querySelector<HTMLElement>('.poi-capture-hint');
+      if (!hint) {
+        hint = document.createElement('small');
+        hint.className = 'poi-capture-hint';
+        territory.appendChild(hint);
+      }
 
-    const units = this.selectedUnits().filter((unit) => unit.playerId === PLAYER_ID && unit.alive);
-    const context = selectedPoiContext(this.simulation, units);
-    const snapshot = this.simulation.strategy.snapshot();
-    const active = context.poi
-      ? snapshot.captureOrders.find((order) => order.playerId === PLAYER_ID && order.targetPoiId === context.poi?.id)
-      : undefined;
+      const units = this.selectedUnits().filter((unit) => unit.playerId === PLAYER_ID && unit.alive);
+      const context = selectedPoiContext(this.simulation, units);
+      const snapshot = this.simulation.strategy.snapshot();
+      const active = context.poi
+        ? snapshot.captureOrders.find((order) => order.playerId === PLAYER_ID && order.targetPoiId === context.poi?.id)
+        : undefined;
 
-    if (units.length === 0 || context.regionId === null) {
-      captureButton.disabled = true;
-      captureButton.textContent = 'Capture POI (+10 Influence)';
-      hint.textContent = 'POI: move any player unit into a marked POI region. Any unit type can capture; multiple units capture faster.';
-    } else if (context.poi) {
-      const label = poiVisualProfile(context.poi.type).label;
-      if (active) {
-        const percent = Math.max(0, Math.min(100, Math.round((active.progressTenths * 100) / CAPTURE_THRESHOLD_TENTHS)));
+      if (units.length === 0 || context.regionId === null) {
         captureButton.disabled = true;
-        captureButton.textContent = `Capturing ${label} · ${percent}%`;
-        hint.textContent = `${label} · Region ${context.regionId + 1} · capture in progress · +10 Influence on completion.`;
+        captureButton.textContent = 'Capture POI (+10 Influence)';
+        hint.textContent = 'POI: move any player unit into a marked POI region. Any unit type can capture; multiple units capture faster.';
+      } else if (context.poi) {
+        const poiLabel = poiVisualProfile(context.poi.type).label;
+        if (active) {
+          const percent = Math.max(0, Math.min(100, Math.round((active.progressTenths * 100) / CAPTURE_THRESHOLD_TENTHS)));
+          captureButton.disabled = true;
+          captureButton.textContent = `Capturing ${poiLabel} · ${percent}%`;
+          hint.textContent = `${poiLabel} · Region ${context.regionId + 1} · capture in progress · +10 Influence on completion.`;
+        } else {
+          const owner = snapshot.poiOwners[context.poi.id];
+          captureButton.disabled = false;
+          captureButton.textContent = `Capture ${poiLabel} (+10 Influence)`;
+          hint.textContent = `${poiLabel} · Region ${context.regionId + 1} · ${owner === undefined ? 'Unclaimed' : 'Enemy controlled'} · selected units can capture now.`;
+        }
+      } else if (context.alreadyControlled) {
+        const poiLabel = poiVisualProfile(context.alreadyControlled.type).label;
+        captureButton.disabled = true;
+        captureButton.textContent = 'POI already controlled';
+        hint.textContent = `${poiLabel} · Region ${context.regionId + 1} · controlled. Move to another white/red POI marker for more Influence.`;
       } else {
-        const owner = snapshot.poiOwners[context.poi.id];
-        captureButton.disabled = false;
-        captureButton.textContent = `Capture ${label} (+10 Influence)`;
-        hint.textContent = `${label} · Region ${context.regionId + 1} · ${owner === undefined ? 'Unclaimed' : 'Enemy controlled'} · selected units can capture now.`;
+        captureButton.disabled = true;
+        captureButton.textContent = 'Capture POI (+10 Influence)';
+        hint.textContent = `Region ${context.regionId + 1} has no POI. Use the main-map landmarks or minimap POI symbols to find one.`;
       }
-    } else if (context.alreadyControlled) {
-      const label = poiVisualProfile(context.alreadyControlled.type).label;
-      captureButton.disabled = true;
-      captureButton.textContent = 'POI already controlled';
-      hint.textContent = `${label} · Region ${context.regionId + 1} · controlled. Move to another white/red POI marker for more Influence.`;
-    } else {
-      captureButton.disabled = true;
-      captureButton.textContent = 'Capture POI (+10 Influence)';
-      hint.textContent = `Region ${context.regionId + 1} has no POI. Use the main-map landmarks or minimap POI symbols to find one.`;
-    }
 
-    let toast = this.strategyElement.querySelector<HTMLElement>('.poi-capture-toast');
-    if (this.toastSeconds > 0) {
-      if (!toast) {
-        toast = document.createElement('div');
-        toast.className = 'poi-capture-toast';
-        this.strategyElement.prepend(toast);
+      let toast = this.strategyElement.querySelector<HTMLElement>('.poi-capture-toast');
+      if (this.toastSeconds > 0) {
+        if (!toast) {
+          toast = document.createElement('div');
+          toast.className = 'poi-capture-toast';
+          this.strategyElement.prepend(toast);
+        }
+        toast.textContent = 'POI SECURED · +10 INFLUENCE · NEXT OUTPOST FUNDED';
+      } else {
+        toast?.remove();
       }
-      toast.textContent = 'POI SECURED · +10 INFLUENCE · NEXT OUTPOST FUNDED';
-    } else {
-      toast?.remove();
+    } finally {
+      this.rendering = false;
     }
   }
 

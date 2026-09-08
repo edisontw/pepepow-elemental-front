@@ -4,6 +4,7 @@ import type { UnitArchetype, UnitSpawn } from './components';
 export type BuildingType = 'ELEMENTAL_CORE' | 'BARRACKS' | 'ARCANE_TOWER' | 'WORKSHOP' | 'OUTPOST' | 'EXTRACTOR' | 'MANA_WELL';
 export type ProducerBuildingType = Exclude<BuildingType, 'ELEMENTAL_CORE' | 'OUTPOST' | 'EXTRACTOR' | 'MANA_WELL'>;
 export type OutpostSpecialization = 'WATCHTOWER' | 'BARRIER_HUB' | 'MANA_BEACON';
+export type ResourceBuildingType = 'EXTRACTOR' | 'MANA_WELL';
 
 export interface ResourceCost {
   material: number;
@@ -40,6 +41,17 @@ export const CAPTURE_BASE_TICKS = 200;
 export const CAPTURE_POWER_CAP_TENTHS = 30;
 export const PRODUCTION_NETWORK_BONUS_PER_EXTRA_PERMILLE = 100;
 export const PRODUCTION_NETWORK_MAX_BONUS_PERMILLE = 300;
+
+const M = WORLD_UNITS_PER_METER;
+
+export const RESOURCE_DEFENSE_UPGRADE = {
+  cost: { material: 90, mana: 30, influence: 0 },
+  bonusHealth: 300,
+  attackDamage: 16,
+  attackIntervalTicks: 12,
+  attackRange: 8 * M,
+  structureRadius: 1.2 * M,
+} as const;
 
 export function productionDurationTicks(baseTicks: number, completedProducerCount: number): number {
   const extras = Math.max(0, completedProducerCount - 1);
@@ -104,7 +116,6 @@ export const BUILDINGS: Readonly<Record<BuildingType, BuildingDefinition>> = {
   },
 };
 
-const M = WORLD_UNITS_PER_METER;
 const selectionRadius = 700;
 
 export const UNITS: Readonly<Record<UnitArchetype, UnitDefinition>> = {

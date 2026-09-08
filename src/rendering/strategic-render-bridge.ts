@@ -15,6 +15,10 @@ interface BuildingPresentation {
   footprint: pc.Entity;
   beacon: pc.Entity;
   rally: pc.Entity;
+  healthBack: pc.Entity;
+  healthBar: pc.Entity;
+  defenseStem: pc.Entity;
+  defenseHead: pc.Entity;
 }
 
 function createMaterial(color: pc.Color, emissive?: pc.Color): pc.StandardMaterial {
@@ -30,12 +34,17 @@ function createMaterial(color: pc.Color, emissive?: pc.Color): pc.StandardMateri
 }
 
 function constructionScale(building: StrategicBuilding, tick: number): number {
+  if (building.destroyed) return 0.3;
   if (building.completed) return 1;
   const duration = BUILDINGS[building.type].buildTicks;
   if (duration <= 0) return 1;
   const startTick = building.completeTick - duration;
   const progress = Math.max(0, Math.min(1, (tick - startTick) / duration));
   return 0.18 + progress * 0.82;
+}
+
+function isResourceSite(building: StrategicBuilding): boolean {
+  return building.type === 'EXTRACTOR' || building.type === 'MANA_WELL';
 }
 
 export class StrategicRenderBridge {
@@ -45,6 +54,8 @@ export class StrategicRenderBridge {
   private readonly enemyMaterial = createMaterial(new pc.Color(0.64, 0.14, 0.12), new pc.Color(0.16, 0.01, 0.01));
   private readonly enemyAccentMaterial = createMaterial(new pc.Color(1, 0.45, 0.16), new pc.Color(0.62, 0.08, 0.01));
   private readonly constructionMaterial = createMaterial(new pc.Color(0.46, 0.43, 0.3), new pc.Color(0.08, 0.07, 0.03));
+  private readonly destroyedMaterial = createMaterial(new pc.Color(0.12, 0.13, 0.13), new pc.Color(0.018, 0.018, 0.018));
+  private readonly healthBackMaterial = createMaterial(new pc.Color(0.035, 0.045, 0.045));
 
   constructor(private readonly app: pc.Application) {}
 
@@ -65,22 +76,59 @@ export class StrategicRenderBridge {
       presentation.root.setLocalScale(1, constructionScale(building, tick), 1);
       for (const part of presentation.parts) {
         if (!part.entity.render) continue;
-        part.entity.render.material = building.completed
-          ? this.materialFor(building.playerId, part.role)
-          : this.constructionMaterial;
+        part.entity.render.material = building.destroyed
+          ? this.destroyedMaterial
+          : building.completed
+            ? this.materialFor(building.playerId, part.role)
+            : this.constructionMaterial;
       }
       if (presentation.footprint.render) {
-        presentation.footprint.render.material = building.completed
-          ? this.materialFor(building.playerId, 'ACCENT')
-          : this.constructionMaterial;
+        presentation.footprint.render.material = building.destroyed
+          ? this.destroyedMaterial
+          : building.completed
+            ? this.materialFor(building.playerId, 'ACCENT')
+            : this.constructionMaterial;
       }
       if (presentation.beacon.render) {
         presentation.beacon.render.material = building.completed
           ? this.materialFor(building.playerId, 'ACCENT')
           : this.constructionMaterial;
       }
+      presentation.beacon.enabled = building.type !== 'ELEMENTAL_CORE' && !building.destroyed;
+
+      const profile = buildingVisualProfile(building.type);
+      const showHealth = isResourceSite(building) && building.completed && !building.destroyed;
+      presentation.healthBack.enabled = showHealth;
+      presentation.healthBar.enabled = showHealth;
+      if (showHealth) {
+        const ratio = Math.max(0, Math.min(1, building.currentHealth / Math.max(1, building.maxHealth)));
+        const width = Math.max(1.25, profile.footprint * 1.15);
+        const y = profile.height + 0.72;
+        presentation.healthBack.setLocalPosition(0, y, 0);
+        presentation.healthBack.setLocalScale(width, 0.095, 0.13);
+        presentation.healthBar.setLocalPosition(-(1 - ratio) * width * 0.5, y + 0.012, 0);
+        presentation.healthBar.setLocalScale(width * ratio, 0.062, 0.09);
+        if (presentation.healthBar.render) {
+          presentation.healthBar.render.material = this.materialFor(building.playerId, 'ACCENT');
+        }
+      }
+
+      const fortified = isResourceSite(building)
+        && building.completed
+        && !building.destroyed
+        && building.resourceDefenseLevel > 0;
+      presentation.defenseStem.enabled = fortified;
+      presentation.defenseHead.enabled = fortified;
+      if (fortified) {
+        presentation.defenseStem.setLocalPosition(0, profile.height + 0.38, 0);
+        presentation.defenseHead.setLocalPosition(0, profile.height + 0.82, 0);
+        if (presentation.defenseStem.render) presentation.defenseStem.render.material = this.materialFor(building.playerId, 'BASE');
+        if (presentation.defenseHead.render) presentation.defenseHead.render.material = this.materialFor(building.playerId, 'ACCENT');
+      }
+
       const showRally = building.playerId === 0
         && building.completed
+        && !building.destroyed
         && building.rallyPointX !== null
         && building.rallyPointZ !== null;
       presentation.rally.enabled = showRally;
@@ -107,6 +155,8 @@ export class StrategicRenderBridge {
     this.enemyMaterial.destroy();
     this.enemyAccentMaterial.destroy();
     this.constructionMaterial.destroy();
+    this.destroyedMaterial.destroy();
+    this.healthBackMaterial.destroy();
   }
 
   private createBuilding(building: StrategicBuilding): BuildingPresentation {
@@ -153,8 +203,30 @@ export class StrategicRenderBridge {
     rally.enabled = false;
     root.addChild(rally);
 
+    const healthBack = new pc.Entity(`${building.type} ${building.id} Health Back`);
+    healthBack.addComponent('render', { type: 'box', material: this.healthBackMaterial });
+    healthBack.enabled = false;
+    root.addChild(healthBack);
+
+    const healthBar = new pc.Entity(`${building.type} ${building.id} Health`);
+    healthBar.addComponent('render', { type: 'box', material: this.materialFor(building.playerId, 'ACCENT') });
+    healthBar.enabled = false;
+    root.addChild(healthBar);
+
+    const defenseStem = new pc.Entity(`${building.type} ${building.id} Guard Tower Stem`);
+    defenseStem.addComponent('render', { type: 'cylinder', material: this.materialFor(building.playerId, 'BASE') });
+    defenseStem.setLocalScale(0.16, 0.55, 0.16);
+    defenseStem.enabled = false;
+    root.addChild(defenseStem);
+
+    const defenseHead = new pc.Entity(`${building.type} ${building.id} Guard Tower Head`);
+    defenseHead.addComponent('render', { type: 'box', material: this.materialFor(building.playerId, 'ACCENT') });
+    defenseHead.setLocalScale(0.62, 0.18, 0.2);
+    defenseHead.enabled = false;
+    root.addChild(defenseHead);
+
     this.app.root.addChild(root);
-    return { root, parts, footprint, beacon, rally };
+    return { root, parts, footprint, beacon, rally, healthBack, healthBar, defenseStem, defenseHead };
   }
 
   private materialFor(playerId: number, role: BuildingVisualMaterialRole): pc.Material {

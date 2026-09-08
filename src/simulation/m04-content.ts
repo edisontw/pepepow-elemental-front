@@ -1,4 +1,5 @@
 import { BiomeType } from '../world/world-definition';
+import type { CastCommand } from './commands';
 
 export type ElementTag = 'FIRE' | 'WATER' | 'ICE' | 'LIGHTNING' | 'MIXED';
 
@@ -10,6 +11,7 @@ export type ModifierStat =
 
 export type TriggerId = 'CAST_CHAIN_LIGHTNING' | 'CAST_CHAIN_LIGHTNING_ON_WET_TARGET';
 export type TriggerAction = 'EXTRA_LIGHTNING_CAST';
+export type ElementalCastEffectId = CastCommand['effectId'];
 
 export interface ModifierEffect {
   kind: 'MODIFIER';
@@ -43,8 +45,29 @@ export interface WorldEventDefinition {
   effects: readonly ModifierEffect[];
 }
 
+export interface ElementalSpellDefinition {
+  effectId: ElementalCastEffectId;
+  label: string;
+  manaCostMilli: number;
+  cooldownTicks: number;
+}
+
 export const BASE_MAX_MANA_MILLI = 250_000;
 export const SHRINE_MAX_MANA_BONUS_MILLI = 20_000;
+
+/**
+ * M08 gameplay correction: Mana is the shared strategic + spell resource.
+ * Costs are intentionally low enough that Mana Wells matter without turning
+ * every tactical cast into a long wait. Cooldowns prevent key-spam while
+ * preserving the fast RTS response loop at 10 Hz.
+ */
+export const ELEMENTAL_SPELLS: Readonly<Record<ElementalCastEffectId, ElementalSpellDefinition>> = {
+  FIRE: { effectId: 'FIRE', label: 'Fire', manaCostMilli: 25_000, cooldownTicks: 12 },
+  WATER: { effectId: 'WATER', label: 'Water', manaCostMilli: 20_000, cooldownTicks: 8 },
+  FREEZE: { effectId: 'FREEZE', label: 'Ice', manaCostMilli: 30_000, cooldownTicks: 15 },
+  CHAIN_LIGHTNING: { effectId: 'CHAIN_LIGHTNING', label: 'Lightning', manaCostMilli: 40_000, cooldownTicks: 20 },
+  HEAT: { effectId: 'HEAT', label: 'Heat', manaCostMilli: 15_000, cooldownTicks: 10 },
+} as const;
 
 export const UPGRADES: readonly UpgradeDefinition[] = [
   {
@@ -227,6 +250,10 @@ export function biomeAffinity(biome: BiomeType): readonly ElementTag[] {
 
 export function validateM04Content(): readonly string[] {
   const errors: string[] = [];
+  for (const spell of Object.values(ELEMENTAL_SPELLS)) {
+    if (!Number.isSafeInteger(spell.manaCostMilli) || spell.manaCostMilli < 0) errors.push(`Spell ${spell.effectId} has invalid Mana cost.`);
+    if (!Number.isSafeInteger(spell.cooldownTicks) || spell.cooldownTicks < 0) errors.push(`Spell ${spell.effectId} has invalid cooldown.`);
+  }
   const ids = new Set<string>();
   for (const upgrade of UPGRADES) {
     if (ids.has(upgrade.id)) errors.push(`Duplicate upgrade id: ${upgrade.id}`);

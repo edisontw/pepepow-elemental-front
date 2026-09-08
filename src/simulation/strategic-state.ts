@@ -5,6 +5,7 @@ import type {
   SpecializeOutpostCommand,
   StrategicCommand,
   TrainCommand,
+  UpgradeResourceDefenseCommand,
 } from './commands';
 import type { EntityID, PlayerID, UnitArchetype } from './components';
 import type { EntityStore } from './entity-store';
@@ -15,12 +16,14 @@ import {
   CAPTURE_BASE_TICKS,
   CAPTURE_POWER_CAP_TENTHS,
   OUTPOST_POPULATION_CAP,
+  RESOURCE_DEFENSE_UPGRADE,
   STARTING_RESOURCES,
   UNITS,
   productionDurationTicks,
   type BuildingType,
   type OutpostSpecialization,
   type ProducerBuildingType,
+  type ResourceBuildingType,
   type ResourceCost,
 } from './m03-content';
 import { WorldCellFlag, type GeneratedWorld, type GridPoint, type PointOfInterest, type ResourceNode } from '../world/world-definition';
@@ -60,6 +63,11 @@ export interface StrategicBuilding {
   specialization: OutpostSpecialization | null;
   rallyPointX: number | null;
   rallyPointZ: number | null;
+  currentHealth: number;
+  maxHealth: number;
+  destroyed: boolean;
+  resourceDefenseLevel: 0 | 1;
+  nextDefenseAttackTick: number;
 }
 
 interface ProductionOrder {
@@ -152,6 +160,10 @@ function isProducer(type: BuildingType): type is ProducerBuildingType {
   return type === 'BARRACKS' || type === 'ARCANE_TOWER' || type === 'WORKSHOP';
 }
 
+function isResourceBuilding(type: BuildingType): type is ResourceBuildingType {
+  return type === 'EXTRACTOR' || type === 'MANA_WELL';
+}
+
 function resourceTypeForBuilding(type: BuildingType): 'MATERIAL' | 'MANA' | null {
   if (type === 'EXTRACTOR') return 'MATERIAL';
   if (type === 'MANA_WELL') return 'MANA';
@@ -195,7 +207,24 @@ export class StrategicState {
     if (command.type === 'TRAIN') return this.processTrain(command, tick);
     if (command.type === 'SET_RALLY_POINT') return this.processSetRallyPoint(command);
     if (command.type === 'CAPTURE') return this.processCapture(command);
-    return this.processSpecialization(command);
+    if (command.type === 'SPECIALIZE_OUTPOST') return this.processSpecialization(command);
+    return this.processResourceDefenseUpgrade(command, tick);
+  }
+
+  /** Spend current shared Mana for an authoritative higher-layer action. */
+  spendManaMilli(playerId: PlayerID, amountMilli: number): boolean {
+    if (!Number.isSafeInteger(amountMilli) || amountMilli < 0) return false;
+    const stock = this.ensurePlayer(playerId);
+    if (stock.manaMilli < amountMilli) return false;
+    stock.manaMilli -= amountMilli;
+    return true;
+  }
+
+  /** Clamp shared Mana to the roguelite-derived current maximum. */
+  clampManaMilli(playerId: PlayerID, maxManaMilli: number): void {
+    if (!Number.isSafeInteger(maxManaMilli) || maxManaMilli < 0) return;
+    const stock = this.ensurePlayer(playerId);
+    stock.manaMilli = Math.min(stock.manaMilli, maxManaMilli);
   }
 
   advanceEconomy(tick: number): void {
@@ -208,7 +237,7 @@ export class StrategicState {
     }
     for (const building of this.sortedBuildings()) {
       const expectedResourceType = resourceTypeForBuilding(building.type);
-      if (!building.completed || expectedResourceType === null || building.resourceNodeId === null) continue;
+      if (!building.completed || building.destroyed || expectedResourceType === null || building.resourceNodeId === null) continue;
       if (this.ownerOfRegion(building.regionId) !== building.playerId) continue;
       const node = this.world.resources.find((candidate) => candidate.id === building.resourceNodeId);
       if (!node || node.type !== expectedResourceType) continue;
@@ -221,6 +250,65 @@ export class StrategicState {
         const base = node.rich ? MANA_RICH_MILLI_PER_TICK : MANA_NORMAL_MILLI_PER_TICK;
         stock.manaMilli += connected ? base : Math.floor((base * DISCONNECTED_MANA_PERMILLE) / 1000);
       }
+    }
+  }
+
+  /**
+   * Resource sites are strategic combat objects without turning every building
+   * into a second unit ECS. Nearby units can damage enemy harvesters, while a
+   * fortified harvester returns fire at the nearest hostile in range.
+   */
+  advanceResourceCombat(tick: number): void {
+    const resourceBuildings = this.sortedBuildings().filter((building) => (
+      isResourceBuilding(building.type) && building.completed && !building.destroyed
+    ));
+
+    for (const entityId of this.entities.entityIds()) {
+      if (!this.entities.hasUnit(entityId)) continue;
+      const faction = this.entities.factions.get(entityId);
+      const position = this.entities.positions.get(entityId);
+      const combat = this.entities.combat.get(entityId);
+      if (!faction || !position || !combat || combat.targetEntityId !== null || tick < combat.nextAttackTick) continue;
+      let target: StrategicBuilding | null = null;
+      let bestDistance = Number.POSITIVE_INFINITY;
+      for (const building of resourceBuildings) {
+        if (building.playerId === faction.playerId) continue;
+        const distance = squaredDistance(position, building);
+        const range = combat.attackRange + RESOURCE_DEFENSE_UPGRADE.structureRadius;
+        if (distance > range * range) continue;
+        if (distance < bestDistance || (distance === bestDistance && building.id < (target?.id ?? Number.MAX_SAFE_INTEGER))) {
+          bestDistance = distance;
+          target = building;
+        }
+      }
+      if (!target) continue;
+      target.currentHealth = Math.max(0, target.currentHealth - combat.attackDamage);
+      combat.nextAttackTick = tick + combat.attackIntervalTicks;
+      if (target.currentHealth === 0) this.destroyResourceBuilding(target);
+    }
+
+    for (const building of resourceBuildings) {
+      if (building.destroyed || building.resourceDefenseLevel === 0 || tick < building.nextDefenseAttackTick) continue;
+      let targetId: EntityID | null = null;
+      let bestDistance = Number.POSITIVE_INFINITY;
+      const rangeSquared = RESOURCE_DEFENSE_UPGRADE.attackRange * RESOURCE_DEFENSE_UPGRADE.attackRange;
+      for (const entityId of this.entities.entityIds()) {
+        if (!this.entities.hasUnit(entityId) || this.entities.factions.get(entityId)?.playerId === building.playerId) continue;
+        const position = this.entities.positions.get(entityId);
+        if (!position) continue;
+        const distance = squaredDistance(building, position);
+        if (distance > rangeSquared) continue;
+        if (distance < bestDistance || (distance === bestDistance && entityId < (targetId ?? Number.MAX_SAFE_INTEGER))) {
+          bestDistance = distance;
+          targetId = entityId;
+        }
+      }
+      if (targetId === null) continue;
+      const health = this.entities.health.get(targetId);
+      if (!health?.alive) continue;
+      health.current = Math.max(0, health.current - RESOURCE_DEFENSE_UPGRADE.attackDamage);
+      building.nextDefenseAttackTick = tick + RESOURCE_DEFENSE_UPGRADE.attackIntervalTicks;
+      if (health.current === 0) this.killUnit(targetId);
     }
   }
 
@@ -297,6 +385,7 @@ export class StrategicState {
     if (!this.inWorld(requestedCell.column, requestedCell.row)) return false;
     let cell = { x: requestedCell.column, z: requestedCell.row };
     let resourceNode: ResourceNode | undefined;
+    let destroyedAtNode: StrategicBuilding | undefined;
     const expectedResourceType = resourceTypeForBuilding(command.buildingType);
     if (expectedResourceType !== null) {
       if (command.resourceNodeId === undefined) return false;
@@ -305,7 +394,9 @@ export class StrategicState {
       ));
       if (!resourceNode) return false;
       cell = resourceNode.cell;
-      if (this.sortedBuildings().some((building) => building.resourceNodeId === resourceNode?.id)) return false;
+      const occupying = this.sortedBuildings().find((building) => building.resourceNodeId === resourceNode?.id);
+      if (occupying && !occupying.destroyed) return false;
+      destroyedAtNode = occupying?.destroyed ? occupying : undefined;
     }
     const cellIndex = cell.z * this.world.width + cell.x;
     const cellFlags = this.world.flags[cellIndex] ?? 0;
@@ -321,16 +412,20 @@ export class StrategicState {
     const neighborSupplied = this.world.regions[regionId]?.neighbors.some((neighbor) => this.isRegionSupplied(command.playerId, neighbor)) === true;
     if (command.buildingType === 'OUTPOST') {
       if (owner !== null && owner !== command.playerId) return false;
-      if (this.sortedBuildings().some((building) => building.playerId === command.playerId && building.type === 'OUTPOST' && building.regionId === regionId)) return false;
+      if (this.sortedBuildings().some((building) => building.playerId === command.playerId && building.type === 'OUTPOST' && building.regionId === regionId && !building.destroyed)) return false;
       if (!supplied && !neighborSupplied) return false;
     } else {
       if (owner !== command.playerId || !supplied) return false;
     }
     const position = worldCellToSimulationPosition(this.world, cell);
-    const occupied = this.sortedBuildings().some((building) => this.navigation.cellKey(this.navigation.worldToCell(building.x, building.z)) === this.navigation.cellKey({ column: cell.x, row: cell.z }));
+    const occupied = this.sortedBuildings().some((building) => (
+      !building.destroyed
+      && this.navigation.cellKey(this.navigation.worldToCell(building.x, building.z)) === this.navigation.cellKey({ column: cell.x, row: cell.z })
+    ));
     if (occupied) return false;
     const definition = BUILDINGS[command.buildingType];
     if (!this.spend(command.playerId, definition.cost)) return false;
+    if (destroyedAtNode) this.buildings.delete(destroyedAtNode.id);
     const building: StrategicBuilding = {
       id: this.nextBuildingId,
       playerId: command.playerId,
@@ -344,6 +439,11 @@ export class StrategicState {
       specialization: null,
       rallyPointX: null,
       rallyPointZ: null,
+      currentHealth: definition.maxHealth,
+      maxHealth: definition.maxHealth,
+      destroyed: false,
+      resourceDefenseLevel: 0,
+      nextDefenseAttackTick: tick,
     };
     this.buildings.set(building.id, building);
     this.nextBuildingId += 1;
@@ -353,7 +453,7 @@ export class StrategicState {
   private processTrain(command: TrainCommand, tick: number): boolean {
     const building = this.buildings.get(command.buildingId);
     const definition = UNITS[command.unitType];
-    if (!building || !building.completed || building.playerId !== command.playerId || building.type !== definition.producer) return false;
+    if (!building || building.destroyed || !building.completed || building.playerId !== command.playerId || building.type !== definition.producer) return false;
     if (!this.isRegionSupplied(command.playerId, building.regionId)) return false;
     const committedPopulation = this.populationUsed(command.playerId) + this.queuedPopulation(command.playerId);
     if (committedPopulation + definition.population > this.populationCap(command.playerId)) return false;
@@ -379,7 +479,7 @@ export class StrategicState {
 
   private processSetRallyPoint(command: SetRallyPointCommand): boolean {
     const building = this.buildings.get(command.buildingId);
-    if (!building || !building.completed || building.playerId !== command.playerId || !isProducer(building.type)) return false;
+    if (!building || building.destroyed || !building.completed || building.playerId !== command.playerId || !isProducer(building.type)) return false;
     const requested = this.navigation.worldToCell(command.targetX, command.targetZ);
     const resolved = this.navigation.resolveWalkableTarget(requested);
     if (!resolved) return false;
@@ -409,14 +509,34 @@ export class StrategicState {
 
   private processSpecialization(command: SpecializeOutpostCommand): boolean {
     const building = this.buildings.get(command.buildingId);
-    if (!building || !building.completed || building.type !== 'OUTPOST' || building.playerId !== command.playerId) return false;
+    if (!building || building.destroyed || !building.completed || building.type !== 'OUTPOST' || building.playerId !== command.playerId) return false;
     if (building.specialization !== null) return false;
     building.specialization = command.specialization;
     return true;
   }
 
+  private processResourceDefenseUpgrade(command: UpgradeResourceDefenseCommand, tick: number): boolean {
+    const building = this.buildings.get(command.buildingId);
+    if (
+      !building
+      || building.destroyed
+      || !building.completed
+      || building.playerId !== command.playerId
+      || !isResourceBuilding(building.type)
+      || building.resourceDefenseLevel !== 0
+      || !this.isRegionSupplied(command.playerId, building.regionId)
+    ) return false;
+    if (!this.spend(command.playerId, RESOURCE_DEFENSE_UPGRADE.cost)) return false;
+    building.resourceDefenseLevel = 1;
+    building.maxHealth += RESOURCE_DEFENSE_UPGRADE.bonusHealth;
+    building.currentHealth += RESOURCE_DEFENSE_UPGRADE.bonusHealth;
+    building.nextDefenseAttackTick = tick;
+    return true;
+  }
+
   private createCore(playerId: PlayerID, cell: GridPoint, regionId: number): void {
     const position = worldCellToSimulationPosition(this.world, cell);
+    const definition = BUILDINGS.ELEMENTAL_CORE;
     const building: StrategicBuilding = {
       id: this.nextBuildingId,
       playerId,
@@ -430,6 +550,11 @@ export class StrategicState {
       specialization: null,
       rallyPointX: null,
       rallyPointZ: null,
+      currentHealth: definition.maxHealth,
+      maxHealth: definition.maxHealth,
+      destroyed: false,
+      resourceDefenseLevel: 0,
+      nextDefenseAttackTick: 0,
     };
     this.buildings.set(building.id, building);
     this.nextBuildingId += 1;
@@ -438,7 +563,7 @@ export class StrategicState {
   private completeBuildings(tick: number): void {
     let changed = false;
     for (const building of this.sortedBuildings()) {
-      if (building.completed || tick < building.completeTick) continue;
+      if (building.destroyed || building.completed || tick < building.completeTick) continue;
       building.completed = true;
       if (building.type === 'OUTPOST' && this.ownerOfRegion(building.regionId) === null) {
         this.regionOwners[building.regionId] = building.playerId;
@@ -460,7 +585,7 @@ export class StrategicState {
     }
     for (const order of due) {
       const building = this.buildings.get(order.buildingId);
-      if (!building || !building.completed || building.playerId !== order.playerId) continue;
+      if (!building || building.destroyed || !building.completed || building.playerId !== order.playerId) continue;
       const definition = UNITS[order.unitType];
       const entityId = this.entities.createUnit({
         archetype: order.unitType,
@@ -517,13 +642,39 @@ export class StrategicState {
     movement.pathNavVersion = this.navigation.navVersion;
   }
 
+  private destroyResourceBuilding(building: StrategicBuilding): void {
+    building.currentHealth = 0;
+    building.destroyed = true;
+    building.nextDefenseAttackTick = 0;
+  }
+
+  private killUnit(entityId: EntityID): void {
+    const health = this.entities.health.get(entityId);
+    if (!health) return;
+    health.current = 0;
+    health.alive = false;
+    const combat = this.entities.combat.get(entityId);
+    if (combat) {
+      combat.targetEntityId = null;
+      combat.pursuitTargetCellKey = null;
+    }
+    const movement = this.entities.movements.get(entityId);
+    if (movement) {
+      movement.targetX = null;
+      movement.targetZ = null;
+      movement.path = [];
+      movement.pathIndex = 0;
+      movement.pathNavVersion = this.navigation.navVersion;
+    }
+  }
+
   private recomputeTerritoryAndSupply(): void {
     this.contestedRegions.fill(0);
     for (const region of this.world.regions) {
       const center = worldCellToSimulationPosition(this.world, region.center);
       const influencers = new Set<PlayerID>();
       for (const building of this.sortedBuildings()) {
-        if (!building.completed || (building.type !== 'ELEMENTAL_CORE' && building.type !== 'OUTPOST')) continue;
+        if (building.destroyed || !building.completed || (building.type !== 'ELEMENTAL_CORE' && building.type !== 'OUTPOST')) continue;
         const radius = building.type === 'ELEMENTAL_CORE' ? 24_000 : 18_000;
         if (squaredDistance(center, building) <= radius * radius) influencers.add(building.playerId);
       }
@@ -531,7 +682,9 @@ export class StrategicState {
     }
     this.suppliedByPlayer.clear();
     for (const playerId of this.playerIds()) {
-      const core = this.sortedBuildings().find((building) => building.playerId === playerId && building.type === 'ELEMENTAL_CORE' && building.completed);
+      const core = this.sortedBuildings().find((building) => (
+        building.playerId === playerId && building.type === 'ELEMENTAL_CORE' && building.completed && !building.destroyed
+      ));
       const supplied = new Set<number>();
       if (core && this.ownerOfRegion(core.regionId) === playerId) {
         const frontier = [core.regionId];
@@ -556,6 +709,7 @@ export class StrategicState {
       building.playerId === playerId
       && building.type === type
       && building.completed
+      && !building.destroyed
       && this.isRegionSupplied(playerId, building.regionId)
     )).length;
   }
@@ -590,6 +744,7 @@ export class StrategicState {
       building.playerId === playerId
       && building.type === 'OUTPOST'
       && building.completed
+      && !building.destroyed
       && this.ownerOfRegion(building.regionId) === playerId
       && this.isRegionSupplied(playerId, building.regionId)
     )).length;
@@ -677,6 +832,11 @@ export class StrategicState {
       hash = hashString(hash, building.specialization ?? '');
       hash = hashInteger(hash, building.rallyPointX ?? -1);
       hash = hashInteger(hash, building.rallyPointZ ?? -1);
+      hash = hashInteger(hash, building.currentHealth);
+      hash = hashInteger(hash, building.maxHealth);
+      hash = hashInteger(hash, building.destroyed ? 1 : 0);
+      hash = hashInteger(hash, building.resourceDefenseLevel);
+      hash = hashInteger(hash, building.nextDefenseAttackTick);
     }
     for (const order of snapshot.productionQueue) {
       hash = hashInteger(hash, order.id);
