@@ -33,6 +33,7 @@ export class M03Simulation extends Simulation {
     }
     super.step();
     applyBurningUnitDamage(this.entities, this.terrain, this.navigation, nextTick);
+    this.strategy.advanceResourceCombat(nextTick);
     this.strategy.advanceEconomy(nextTick);
     this.strategy.advanceTerritory();
     this.visibility.update(this.entities, this.navigation);
