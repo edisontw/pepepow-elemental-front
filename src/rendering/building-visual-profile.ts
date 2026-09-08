@@ -1,7 +1,7 @@
 import type { BuildingType } from '../simulation/m03-content';
 
 export type BuildingVisualPrimitive = 'box' | 'cylinder' | 'sphere';
-export type BuildingVisualMaterialRole = 'TEAM' | 'ACCENT';
+export type BuildingVisualMaterialRole = 'TEAM' | 'BASE' | 'ACCENT';
 
 export interface BuildingVisualPart {
   primitive: BuildingVisualPrimitive;
