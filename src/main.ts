@@ -1,6 +1,5 @@
 import './styles.css';
-import './m06.css';
-import './m08.css';
+import './layout.css';
 import {
   assertBlockChallengeWorldMatches,
   readBlockChallengeShareRequest,
