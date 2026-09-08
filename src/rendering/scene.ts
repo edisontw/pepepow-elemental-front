@@ -7,6 +7,7 @@ import type { TickFrame } from '../simulation/fixed-tick-runner';
 import { M03Simulation } from '../simulation/m03-simulation';
 import { M06Simulation } from '../simulation/m06-simulation';
 import type { EntitySnapshot, Simulation } from '../simulation/simulation';
+import { CameraFeedback } from './camera-feedback';
 import { ElementalRenderBridge } from './elemental-render-bridge';
 import { GeneratedWorldRenderBridge } from './generated-world-render-bridge';
 import { PoiRenderBridge } from './poi-render-bridge';
@@ -179,6 +180,7 @@ export function createSceneShell(
   });
   const cameraComponent = cameraEntity.camera;
   if (!cameraComponent) throw new Error('RTS camera component failed to initialize.');
+  const cameraFeedback = new CameraFeedback(cameraComponent, 48);
 
   const screenToSimulationPosition = (clientX: number, clientY: number): { x: number; z: number } | null => {
     const bounds = canvas.getBoundingClientRect();
@@ -219,7 +221,7 @@ export function createSceneShell(
   const strategicBridge = simulation instanceof M03Simulation ? new StrategicRenderBridge(app) : null;
   if (simulation instanceof M03Simulation) strategicBridge?.sync(simulation.strategy.snapshot(), initialSnapshot.tick);
   const runBridge = simulation instanceof M06Simulation ? new RunRenderBridge(app) : null;
-  if (simulation instanceof M06Simulation) runBridge?.sync(simulation.run.snapshot());
+  if (simulation instanceof M06Simulation) runBridge?.sync(simulation.run.snapshot(), initialSnapshot.tick, 0);
 
   const onResize = (): void => {
     app.resizeCanvas();
@@ -240,6 +242,7 @@ export function createSceneShell(
     sync(frame: TickFrame): void {
       bridge.sync(frame.previousSnapshot, frame.snapshot, frame.interpolationAlpha);
       elementalBridge.sync(frame.previousSnapshot, frame.snapshot, frame.interpolationAlpha);
+      cameraFeedback.sync(frame.previousSnapshot, frame.snapshot, frame.interpolationAlpha);
       audioFeedback.sync(frame.previousSnapshot, frame.snapshot);
       controls.syncSelection();
       if (simulation instanceof M03Simulation) {
@@ -248,7 +251,22 @@ export function createSceneShell(
         territoryBridge?.sync(strategicSnapshot);
         poiBridge?.sync(strategicSnapshot);
       }
-      if (simulation instanceof M06Simulation) runBridge?.sync(simulation.run.snapshot());
+      if (simulation instanceof M06Simulation) {
+        runBridge?.sync(simulation.run.snapshot(), frame.snapshot.tick, frame.interpolationAlpha);
+        const phase = simulation.run.snapshot().phase;
+        const finale = phase === 'FINALE';
+        app.scene.ambientLight = finale
+          ? new pc.Color(0.17, 0.19, 0.24)
+          : phase === 'ESCALATION'
+            ? new pc.Color(0.19, 0.22, 0.23)
+            : new pc.Color(0.2, 0.25, 0.23);
+        if (light.light) {
+          light.light.intensity = finale ? 1.2 : phase === 'ESCALATION' ? 1.34 : 1.45;
+          light.light.color = finale
+            ? new pc.Color(0.78, 0.84, 0.96)
+            : new pc.Color(0.9, 0.94, 0.84);
+        }
+      }
       generatedWorldBridge?.sync(frame.snapshot.navVersion, frame.snapshot.terrain.ice);
       if (freezablePatch?.render) {
         const frozen = frame.snapshot.terrain.ice > 0;
@@ -262,6 +280,7 @@ export function createSceneShell(
       controls.destroy();
       poiBridge?.destroy();
       audioFeedback.destroy();
+      cameraFeedback.destroy();
       bridge.destroy();
       elementalBridge.destroy();
       strategicBridge?.destroy();
