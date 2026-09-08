@@ -16,8 +16,33 @@ export function lightningDamageChain(
   return damaged.length > 0 ? [...current.lastLightningChain] : [];
 }
 
+export function addedVisualCells(previous: ReadonlySet<string>, current: ReadonlySet<string>): readonly string[] {
+  const added: string[] = [];
+  for (const key of current) if (!previous.has(key)) added.push(key);
+  return added.sort();
+}
+
 export function removedVisualCells(previous: ReadonlySet<string>, current: ReadonlySet<string>): readonly string[] {
   const removed: string[] = [];
   for (const key of previous) if (!current.has(key)) removed.push(key);
   return removed.sort();
+}
+
+export function newlyWetVisibleEntities(
+  previous: SimulationSnapshot,
+  current: SimulationSnapshot,
+): readonly EntityID[] {
+  if (current.lastTerrainEffect !== 'WATER' || current.lastTerrainEffectTick !== current.tick) return [];
+  const previousById = new Map(previous.entities.map((entity) => [entity.id, entity]));
+  return current.entities
+    .filter((entity) => {
+      const prior = previousById.get(entity.id);
+      return entity.alive
+        && (entity.playerId === 0 || entity.visibleToPlayer)
+        && entity.wet
+        && prior !== undefined
+        && !prior.wet;
+    })
+    .map((entity) => entity.id)
+    .sort((left, right) => left - right);
 }
