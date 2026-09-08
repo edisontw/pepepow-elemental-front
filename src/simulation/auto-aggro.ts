@@ -1,5 +1,5 @@
 import { WORLD_UNITS_PER_METER } from './arena';
-import type { EntityID, PlayerID } from './components';
+import type { EntityID } from './components';
 import type { EntityStore } from './entity-store';
 import { forestAllowsDetection } from './elemental-battlefield-rules';
 import type { NavigationGrid } from './navigation';
@@ -22,19 +22,6 @@ function squaredDistance(
   const dx = left.x - right.x;
   const dz = left.z - right.z;
   return dx * dx + dz * dz;
-}
-
-function canDetect(
-  observerPlayerId: PlayerID,
-  targetEntityId: EntityID,
-  entities: EntityStore,
-  navigation: NavigationGrid,
-  visibility: VisibilityState,
-): boolean {
-  const position = entities.positions.get(targetEntityId);
-  if (!position) return false;
-  if (!visibility.isWorldVisible(observerPlayerId, position.x, position.z, navigation)) return false;
-  return forestAllowsDetection(targetEntityId, observerPlayerId, entities, (navigation as NavigationGrid & { terrain?: never }) as never, navigation);
 }
 
 /**
