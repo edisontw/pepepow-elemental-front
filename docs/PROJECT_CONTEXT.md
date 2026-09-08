@@ -4,8 +4,8 @@
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Current milestone:** M08 — Combat & Visual Polish  
-**Latest M07 gameplay runtime baseline:** `672e2368d5b719b6f172e8f8df1e5a3671a3a69a`  
-**M07 closure report:** `docs/milestones/M07_CLOSURE_REPORT.md`
+**Latest merged main baseline:** `18e9ccba42b57e4262508093ee650aa2117d907c`  
+**M08 pre-closure report:** `docs/milestones/M08_CLOSURE_REPORT.md`
 
 ---
 
@@ -28,244 +28,144 @@ All repository content and current in-game/debug UI remain English-only for now.
 
 ## 2. Locked architecture
 
-Do not change these without a demonstrated technical or playtest need:
+Preserve unless a demonstrated technical requirement explicitly changes it:
 
 - browser-first, desktop-first RTS
 - authoritative pure-TypeScript simulation independent from PlayCanvas presentation
 - fixed simulation target: 10 Hz / 100 ms tick
 - ECS-style integer entity IDs and composition
 - deterministic gameplay RNG only; no uncontrolled `Math.random()` in authoritative paths
-- logically independent deterministic RNG streams; visual RNG must not perturb gameplay
+- independent deterministic RNG streams; visual RNG must not perturb gameplay
 - command-stream replay and deterministic state hashes
-- integer/fixed-point arithmetic where replay-critical
-- typed-array/grid-oriented world data where practical
 - deterministic system ordering
-- renderer/UI consume simulation state but never own gameplay truth
-- block height is a deterministic seed input, not an online dependency
+- renderer/UI consume authoritative state but never own gameplay truth
+- Block Height remains deterministic input rather than an online dependency
 - local/practice play must not require blockchain RPC
-- data-driven content with validated authoring structures where practical
-- generic tags/modifiers/triggers are preferred over deep inheritance or one-off effect logic
+- stable challenge/replay identity must change when authoritative gameplay semantics change
 
-Preferred deterministic modifier order:
-
-```text
-base
-→ unit modifier
-→ upgrade/shrine modifier
-→ terrain modifier
-→ status modifier
-→ final value
-```
-
-M08 presentation work must not alter gameplay hashes, replay command semantics, world generation, combat timing, AI decisions, challenge identity, or score verification.
+M02 world generation retains its own stable `m02-standard-v1` world-generation ruleset. The current complete Challenge/replay/score-proof gameplay ruleset is being corrected at M08 pre-closure to `m08-standard-v1` so post-M07 gameplay changes cannot silently reuse an older competitive identity.
 
 ---
 
-## 3. CLOSED permanent gameplay baseline
+## 3. CLOSED milestone baseline
 
 ### M00 — Repository Bootstrap
 Tooling, PlayCanvas/Vite, CI, tests, fixed-tick shell, deterministic RNG smoke, debug foundation, and asset conventions.
 
 ### M01 — Systemic Combat Foundation
-Selection/control groups, MOVE / ATTACK / STOP, navigation, combat, fog, Fire / Water / Ice / Lightning, Wet / Burning / Chilled / Frozen, dynamic navigation, replay, and tactical state hashes.
+Selection/control groups, commands, navigation, combat, fog, elemental state/interactions, replay, and tactical hashes.
 
 ### M02 — Procedural Battlefield
-Deterministic Block Height + Ruleset identity, isolated RNG streams, 128×128 typed-array world data, elevation/hydrology/biomes, regions/routes, resources, POIs/Shrines, spawns, objective/boss sites, validation/retries, Golden Blocks, and 2,048-seed regression coverage.
+128×128 deterministic battlefield, isolated RNG streams, elevation/hydrology/biomes, regions/routes, resources, POIs, spawns, boss/objective sites, validation/retries, Golden Blocks, and 2,048-seed regression.
 
 ### M03 — Economy & Territory
-Material / Mana / Influence, buildings, construction/production, population, capture, territory, supply, penalties, Outpost specialization, strategic commands/hashes, and economy/build UI.
+Material / Mana / Influence, buildings, construction/production, population, territory, supply, capture, strategic commands/hashes, and economy UI.
 
 ### M04 — Roguelite Layer
-Shrines, deterministic three-choice upgrades, generic modifiers/triggers, elemental/mixed paths, run Mana progression, synergies, deterministic world events, hashing, and Shrine/upgrade/event UI.
+Shrines, deterministic upgrades, modifiers/triggers, elemental/mixed paths, run Mana progression, synergies, events, hashing, and UI.
 
 ### M05 — Enemy War
-Fog-bounded last-known-information AI, Utility actions, faction behaviors, Casual / Standard / Hard profiles, Director pressure/recovery/anti-turtle behavior, fair logistics, hashing, and AI debug presentation.
+Fog-bounded AI knowledge, Utility actions, factions/difficulty, Director behavior, logistics, hashing, and debug presentation.
 
 ### M06 — Full Run
-Discovery → Finale lifecycle, Destroy/Boss Hunt, bosses, Core Critical, deterministic score/result, replay packet/playback verification, Retry/Next, terrain presentation, and live minimap.
+Discovery → Finale lifecycle, Destroy/Boss Hunt, bosses, Core Critical, score/result, replay packet/playback verification, retry/next, terrain presentation, and live minimap.
 
 ### M07 — PEPEPOW Block Challenge
-CLOSED on 2026-09-07. Permanent baseline includes:
+BlockSource boundary, Manual/RPC/Official sources, shareable Block Challenge identity/code, Official manifest, replay-backed score proof, deterministic verification, local verified leaderboard, and graceful network failure. M07 browser live-height/CORS issue remains explicitly deferred.
 
-- `BlockSource` application boundary
-- Manual, PEPEPOW RPC, and Official sources
-- deterministic `block-challenge-v1` identity
-- Block Height + Ruleset Version identity surfaced in UI
-- `BC1-XXXXXXXX` challenge code
-- canonical share links
-- Official/Daily manifest architecture
-- featured `M07 Official Launch` at block `4,950,628`
-- Current / Recent block-source controls
-- replay-backed `m07-score-v1` score proof
-- deterministic score verification by world regeneration + replay
-- local verified leaderboard behind `ChallengeLeaderboardGateway`
-- no wallet requirement
+Do not reopen M00–M07 unless a concrete regression is demonstrated or a later product decision explicitly changes their architecture.
 
-M07 final automated verification:
+---
 
-- PR #16–#19 merged
-- PR #19 final suite: 30 test files / 156 tests PASS
+## 4. M08 implementation state
+
+**Status:** IN_PROGRESS — FINAL HUMAN WEBGL PRESENTATION SMOKE PENDING after the pre-closure identity correction merges and deploys.
+
+Operator direction on 2026-09-08:
+
+> Finish the original roadmap first. Broader game-design and gameplay adjustments will be handled later.
+
+Therefore do not start another broad gameplay redesign during M08 closure.
+
+M08 implementation PRs #22–#35 now cover:
+
+- all eight unit archetype silhouettes and strategic building silhouettes
+- selection/team/health/facing readability
+- ranged projectiles, attack/hit/death feedback
+- deterministic visual-only environment props
+- Fire, Water, Ice, steam, Lightning and boss elemental feedback
+- compact player-facing HUD hierarchy
+- interactive minimap and central battlefield usability
+- economy/production/POI/resource-site player-facing clarity accumulated during correction passes
+- procedural event-driven combat/elemental SFX
+- low-volume procedural ambient bed
+- boss/finale telegraphs and phase-dependent lighting
+- stable manual HUD icon asset IDs and canonical prompts
+- future Gemini background music slot marked for manual generation/upload
+
+PR #35 (`M08: finish roadmap presentation pass`) merged as `18e9ccba42b57e4262508093ee650aa2117d907c`.
+
+Automated evidence at that baseline:
+
+- 44 test files / 197 tests PASS
 - M02 2,048-seed regression PASS
-- M01–M06 regressions PASS
-- strict TypeScript / production build PASS
-- post-merge main CI `34097801085` PASS
-- GitHub Pages `34097800904` PASS
-
-Do not reopen M00–M07 unless a concrete regression is demonstrated or a product decision explicitly changes their architecture.
+- strict TypeScript PASS
+- production build PASS
+- main CI #156 PASS
+- GitHub Pages #56 PASS
 
 ---
 
-## 4. Deferred M07 known issue
+## 5. M08 pre-closure technical identity correction
 
-The deployed browser did not successfully retrieve **PEPEPOW Current** from the external live block-height endpoints during operator testing on 2026-09-07.
+M08 correction PRs introduced deterministic authoritative gameplay changes after M07. The old system reused the M02 world-generation version string as the competitive Challenge/replay ruleset, which is no longer semantically sufficient.
 
-This was explicitly accepted as deferred and does not block M07 closure because:
+The pre-closure correction must remain narrow:
 
-- network access is not authoritative simulation state;
-- Manual Block remains available;
-- Official Challenge remains available;
-- RPC/network failure is required to degrade gracefully rather than block play;
-- the adapter already contains timeout, failover, parser, and manual-fallback logic.
+- keep M02 world-generation identity and Golden Blocks unchanged;
+- define current complete gameplay Challenge ruleset as `m08-standard-v1`;
+- use it in Block Challenge identity, replay packets, official challenge support, and score-proof verification;
+- continue binding exact world with block height + world gameplay hash + generation attempt;
+- reject obsolete/unsupported competitive rulesets rather than silently replaying them under changed gameplay semantics;
+- rerun full challenge/replay/score-proof regression, TypeScript, production build, main CI and Pages.
 
-Likely future investigation:
-
-- browser CORS behavior / response headers
-- endpoint/proxy options
-- whether live height should refresh per run, periodically, daily, or by another policy
-
-Do not spend M08 visual-polish work on this issue unless it is deliberately reopened separately.
+This is a deterministic identity/versioning fix, not gameplay tuning.
 
 ---
 
-## 5. Current milestone — M08 Combat & Visual Polish
+## 6. Explicitly deferred post-roadmap work
 
-**Status: IN_PROGRESS**
+Do not treat these as M08 closure blockers unless a concrete runtime regression makes the game unusable:
 
-Goal:
-
-> Upgrade the proven deterministic game into a visually and aurally coherent project-level experience without destabilizing gameplay.
-
-M08 scope from `ROADMAP.md`:
-
-Combat presentation:
-- project-level unit visual language
-- animation
-- attacks
-- hit reactions
-- deaths
-- projectiles
-- camera feedback
-- readable telegraphs
-
-Elemental VFX:
-- fire
-- steam
-- freezing
-- ice cracking
-- water impact
-- lightning chaining
-- storm
-- meteor
-- smoke
-- environmental reaction
-
-Environment:
-- biome materials
-- props
-- terrain blending
-- weather
-- lighting
-- post-processing
-- fog/atmosphere
-
-UI:
-- final HUD direction
-- iconography
-- minimap polish
-- results/challenge presentation
-
-Audio:
-- polished SFX
-- ambient loops
+- deeper elemental role/counterplay redesign
+- forest / river / bridge / crossing strategic-value tuning
+- broader combat target/structure-assault redesign
+- economy, territory, AI, progression and balance tuning
+- final manual art replacement
+- final licensed/approved SFX replacement
 - user-supplied Gemini background music
-- mixing/transitions
+- PEPEPOW browser live-height/CORS integration
+
+These become a post-roadmap tuning backlog after M08 closes.
 
 ---
 
-## 6. M08 production rules
+## 7. Exact next action
 
-Presentation first; simulation changes require separate justification.
+Complete and merge the narrow M08 competitive identity correction, with all automated checks green.
 
-Required boundaries:
+Then request exactly one concise human WebGL presentation smoke:
 
-- visual effects must consume simulation events/state rather than create gameplay outcomes
-- use visual-only RNG or deterministic visual derivation; never consume authoritative gameplay RNG
-- preserve existing replay/state-hash results for identical command streams
-- never make final art asset availability a gameplay dependency
-- placeholder/procedural geometry is acceptable while mechanics/readability are validated
-- any manually generated final image asset gets a stable asset ID/filename and canonical prompt under `media/prompts/images/`
-- mark manual-art placeholders `NEEDS_MANUAL_GENERATION`; never mark placeholder art `FINAL`
-- user will generate background music separately in Gemini and upload it later
-- external SFX must have documented provenance/license before being treated as final
-- keep bundle-size debt visible; do not solve it by destabilizing the runtime during early M08 polish
+1. page boots and battlefield interaction works;
+2. Fire / Water / Ice / Lightning effects remain readable;
+3. camera impact pulse is restrained and non-disorienting;
+4. Boss Hunt boss/orbit/ability telegraph is visible;
+5. audio unlock, combat/element cues, faint ambience, and `M` mute work;
+6. HUD/minimap/results remain readable without blocking central play.
 
----
+If the operator reports PASS:
 
-## 7. M08 first-pass priority
-
-Begin with a presentation-only gap audit of current main and prioritize improvements with the highest gameplay readability per implementation cost.
-
-Recommended order:
-
-1. **Unit/building silhouette + team readability**
-   - clearer role silhouettes and scale hierarchy
-   - player/enemy/neutral distinction
-   - selection/health/target feedback
-
-2. **Combat feedback foundation**
-   - projectile presentation where attacks currently read as instant
-   - impact flashes/hit reactions
-   - death/dissolve or destruction feedback
-   - readable attack/ability telegraphs
-   - restrained camera feedback
-
-3. **Elemental VFX readability**
-   - Fire/Burning
-   - Wet/Water
-   - Freeze/Ice cracking/melt
-   - Lightning chains/conductivity
-   - boss storm/meteor effects
-
-4. **Environment pass**
-   - biome materials and terrain blending
-   - props with non-gameplay visual placement
-   - lighting/fog/atmosphere
-   - weather only if it remains presentation-only
-
-5. **HUD/minimap/results polish**
-   - reduce debug feel
-   - improve information hierarchy
-   - preserve all challenge/replay verification information
-
-6. **Audio foundation**
-   - event-driven SFX interface
-   - placeholder/licensed SFX with provenance
-   - ambient/mixing hooks
-   - background music integration only after user-provided files exist
-
----
-
-## 8. Exact next action
-
-Audit current `src/rendering/`, `src/ui/`, existing CSS, asset manifests, and simulation event/state surfaces.
-
-Then implement the first M08 presentation slice as a coherent browser-visible pass rather than isolated microchanges. Prefer procedural/material/UI improvements that do not require final image assets.
-
-For any final-art need discovered during that pass, create stable asset IDs + canonical prompts and continue using placeholders; do not stop implementation waiting for manual generation.
-
-After the first coherent visual pass:
-
-- run full tests + TypeScript + build
-- deploy to Pages
-- request one concise human WebGL readability check
-- continue autonomously through the remaining M08 categories unless a real gameplay/design decision requires operator input.
+- finalize `docs/milestones/M08_CLOSURE_REPORT.md` as CLOSED;
+- update `docs/ROADMAP.md` to M08 CLOSED;
+- update this file to roadmap-complete/post-roadmap-tuning status;
+- do not automatically begin redesign work until the next explicit direction.

@@ -2,6 +2,7 @@ import type { EnemyDifficulty, EnemyFaction } from '../simulation/m05-content';
 import type { RunMode, RunPace } from '../simulation/m06-content';
 import { hashString } from '../simulation/random';
 import type { GeneratedWorld } from '../world/world-definition';
+import { CURRENT_CHALLENGE_RULESET_VERSION, isSupportedChallengeRuleset } from './ruleset';
 
 export const BLOCK_CHALLENGE_VERSION = 'block-challenge-v1' as const;
 export const BLOCK_CHALLENGE_QUERY_VALUE = 'bc1';
@@ -55,7 +56,7 @@ export function createBlockChallengeIdentity(
   return {
     version: BLOCK_CHALLENGE_VERSION,
     blockHeight: world.identity.blockHeight,
-    rulesetVersion: world.identity.rulesetVersion,
+    rulesetVersion: CURRENT_CHALLENGE_RULESET_VERSION,
     worldGameplayHash: world.gameplayHash,
     generationAttempt: world.generationAttempt,
     mode: options.mode,
@@ -127,7 +128,7 @@ export function assertBlockChallengeWorldMatches(
   world: GeneratedWorld,
 ): void {
   if (request.blockHeight !== world.identity.blockHeight) throw new Error('Challenge block height mismatch.');
-  if (request.rulesetVersion !== world.identity.rulesetVersion) throw new Error('Challenge ruleset mismatch.');
+  if (!isSupportedChallengeRuleset(request.rulesetVersion)) throw new Error('Challenge ruleset mismatch.');
   if (request.expectedWorldGameplayHash !== null && request.expectedWorldGameplayHash !== world.gameplayHash) {
     throw new Error('Challenge world hash mismatch.');
   }

@@ -11,33 +11,34 @@ import {
   createBlockChallengeIdentity,
   createBlockChallengeShareUrl,
 } from '../../src/challenge/block-challenge';
+import { CURRENT_CHALLENGE_RULESET_VERSION } from '../../src/challenge/ruleset';
 import { generateWorld } from '../../src/world/generator';
 
 describe('M07 official challenge manifest', () => {
-  it('loads the canonical featured official challenge with an exact block and ruleset', () => {
+  it('loads the canonical featured official challenge with an exact block and current gameplay ruleset', () => {
     const featured = OFFICIAL_CHALLENGES.entries[0];
     expect(featured).toBeDefined();
     expect(featured).toMatchObject({
-      id: 'm07-launch',
-      label: 'M07 Official Launch',
+      id: 'm08-roadmap',
+      label: 'M08 Roadmap Challenge',
       blockHeight: 4_950_628,
-      rulesetVersion: 'm02-standard-v1',
+      rulesetVersion: CURRENT_CHALLENGE_RULESET_VERSION,
       dayKey: null,
     });
-    expect(officialChallengeById('m07-launch')).toEqual(featured);
+    expect(officialChallengeById('m08-roadmap')).toEqual(featured);
     expect(officialChallengeById('missing')).toBeNull();
   });
 
   it('resolves an official entry through BlockSource without network access', async () => {
-    const challenge = officialChallengeById('m07-launch');
+    const challenge = officialChallengeById('m08-roadmap');
     expect(challenge).not.toBeNull();
     if (!challenge) return;
 
     await expect(new OfficialBlockSource(challenge).resolve()).resolves.toMatchObject({
       blockHeight: 4_950_628,
       source: 'OFFICIAL',
-      label: 'M07 Official Launch',
-      officialChallengeId: 'm07-launch',
+      label: 'M08 Roadmap Challenge',
+      officialChallengeId: 'm08-roadmap',
     });
   });
 
@@ -49,7 +50,7 @@ describe('M07 official challenge manifest', () => {
           id: 'daily-2026-09-07',
           label: 'Daily Challenge 2026-09-07',
           blockHeight: 4_950_700,
-          rulesetVersion: 'm02-standard-v1',
+          rulesetVersion: CURRENT_CHALLENGE_RULESET_VERSION,
           dayKey: '2026-09-07',
           source: 'test fixture',
           sourceBlockHash: null,
@@ -86,7 +87,7 @@ describe('M07 official challenge manifest', () => {
   });
 
   it('parses the official query and canonicalizes sharing away from source-selection parameters', () => {
-    expect(officialChallengeIdFromSearch('?official=m07-launch')).toBe('m07-launch');
+    expect(officialChallengeIdFromSearch('?official=m08-roadmap')).toBe('m08-roadmap');
     expect(officialChallengeIdFromSearch('?block=123')).toBeNull();
 
     const world = generateWorld(4_950_628);
@@ -97,11 +98,12 @@ describe('M07 official challenge manifest', () => {
       difficulty: 'STANDARD',
     });
     const url = createBlockChallengeShareUrl(
-      'https://example.test/game?official=m07-launch&live=pepepow&offset=10&source=pepepow',
+      'https://example.test/game?official=m08-roadmap&live=pepepow&offset=10&source=pepepow',
       identity,
     );
     expect(url.searchParams.get('challenge')).toBe('bc1');
     expect(url.searchParams.get('block')).toBe('4950628');
+    expect(url.searchParams.get('ruleset')).toBe(CURRENT_CHALLENGE_RULESET_VERSION);
     expect(url.searchParams.has('official')).toBe(false);
     expect(url.searchParams.has('live')).toBe(false);
     expect(url.searchParams.has('offset')).toBe(false);

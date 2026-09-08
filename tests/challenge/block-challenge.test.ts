@@ -11,6 +11,7 @@ import {
   ManualBlockSource,
   manualBlockHeightFromSearch,
 } from '../../src/challenge/block-source';
+import { CURRENT_CHALLENGE_RULESET_VERSION } from '../../src/challenge/ruleset';
 import { generateWorld } from '../../src/world/generator';
 
 const RUN_OPTIONS = {
@@ -40,7 +41,8 @@ describe('M07 Block Challenge foundation', () => {
 
     expect(second).toEqual(first);
     expect(blockChallengeCode(second)).toBe(blockChallengeCode(first));
-    expect(first.rulesetVersion).toBe(firstWorld.identity.rulesetVersion);
+    expect(first.rulesetVersion).toBe(CURRENT_CHALLENGE_RULESET_VERSION);
+    expect(first.rulesetVersion).not.toBe(firstWorld.identity.rulesetVersion);
     expect(first.worldGameplayHash).toBe(firstWorld.gameplayHash);
   });
 
@@ -70,13 +72,18 @@ describe('M07 Block Challenge foundation', () => {
     expect(() => assertBlockChallengeWorldMatches(request!, world)).not.toThrow();
   });
 
-  it('rejects a shared identity when the generated world does not match', () => {
+  it('rejects a shared identity when the gameplay ruleset or generated world does not match', () => {
     const world = generateWorld(3_000_001);
     const identity = createBlockChallengeIdentity(world, RUN_OPTIONS);
     const shareUrl = createBlockChallengeShareUrl('https://example.test/game/', identity);
+
+    const wrongRuleset = new URL(shareUrl);
+    wrongRuleset.searchParams.set('ruleset', 'obsolete-ruleset');
+    expect(() => assertBlockChallengeWorldMatches(readBlockChallengeShareRequest(wrongRuleset.search)!, world))
+      .toThrow('Challenge ruleset mismatch.');
+
     shareUrl.searchParams.set('world', 'tampered-world-hash');
     const request = readBlockChallengeShareRequest(shareUrl.search);
-
     expect(request).not.toBeNull();
     expect(() => assertBlockChallengeWorldMatches(request!, world)).toThrow('Challenge world hash mismatch.');
   });

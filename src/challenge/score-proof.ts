@@ -3,12 +3,12 @@ import {
   blockChallengeCode,
   type BlockChallengeIdentity,
 } from './block-challenge';
+import { isSupportedChallengeRuleset } from './ruleset';
 import {
   M06Simulation,
   type M06ReplayPacket,
 } from '../simulation/m06-simulation';
 import { generateWorld } from '../world/generator';
-import { M02_STANDARD_RULES } from '../world/world-definition';
 
 export const SCORE_SUBMISSION_VERSION = 'm07-score-v1' as const;
 export const MAX_COMPETITIVE_REPLAY_TICKS = 36_000;
@@ -99,7 +99,7 @@ export function createChallengeScoreSubmission(packet: M06ReplayPacket): Challen
 }
 
 export function verifyReplayPacketDeterministically(packet: M06ReplayPacket): ReplayProofResult {
-  if (packet.header.rulesetVersion !== M02_STANDARD_RULES.rulesetVersion) {
+  if (!isSupportedChallengeRuleset(packet.header.rulesetVersion)) {
     return { status: 'REJECTED', reason: 'UNSUPPORTED_RULESET' };
   }
   if (!competitiveCommandStreamIsAllowed(packet)) return { status: 'REJECTED', reason: 'FORBIDDEN_COMMAND' };
@@ -113,8 +113,7 @@ export function verifyReplayPacketDeterministically(packet: M06ReplayPacket): Re
   } catch {
     return { status: 'REJECTED', reason: 'WORLD_MISMATCH' };
   }
-  if (world.identity.rulesetVersion !== packet.header.rulesetVersion
-    || world.gameplayHash !== packet.header.worldGameplayHash
+  if (world.gameplayHash !== packet.header.worldGameplayHash
     || world.generationAttempt !== packet.header.generationAttempt) {
     return { status: 'REJECTED', reason: 'WORLD_MISMATCH' };
   }
