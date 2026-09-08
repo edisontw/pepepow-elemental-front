@@ -16,6 +16,86 @@
       "path": "playcanvas://primitive/cylinder",
       "canonicalFilename": "building-elemental-core.glb",
       "notes": "Replace through this manifest ID; gameplay must not reference the filename."
+    },
+    {
+      "id": "ui.icon.material",
+      "kind": "image",
+      "status": "NEEDS_MANUAL_GENERATION",
+      "path": "css://hud/resource-symbols/material",
+      "canonicalFilename": "ui-icon-material.webp",
+      "prompt": "media/prompts/images/M08_UI_ICON_PROMPTS.md#uiiconmaterial",
+      "aspectRatio": "1:1",
+      "notes": "Current CSS symbol remains authoritative presentation until a manually approved icon is uploaded."
+    },
+    {
+      "id": "ui.icon.mana",
+      "kind": "image",
+      "status": "NEEDS_MANUAL_GENERATION",
+      "path": "css://hud/resource-symbols/mana",
+      "canonicalFilename": "ui-icon-mana.webp",
+      "prompt": "media/prompts/images/M08_UI_ICON_PROMPTS.md#uiiconmana",
+      "aspectRatio": "1:1",
+      "notes": "Current CSS symbol remains authoritative presentation until a manually approved icon is uploaded."
+    },
+    {
+      "id": "ui.icon.influence",
+      "kind": "image",
+      "status": "NEEDS_MANUAL_GENERATION",
+      "path": "css://hud/resource-symbols/influence",
+      "canonicalFilename": "ui-icon-influence.webp",
+      "prompt": "media/prompts/images/M08_UI_ICON_PROMPTS.md#uiiconinfluence",
+      "aspectRatio": "1:1",
+      "notes": "Optional final HUD art; not a gameplay dependency."
+    },
+    {
+      "id": "ui.icon.population",
+      "kind": "image",
+      "status": "NEEDS_MANUAL_GENERATION",
+      "path": "css://hud/resource-symbols/population",
+      "canonicalFilename": "ui-icon-population.webp",
+      "prompt": "media/prompts/images/M08_UI_ICON_PROMPTS.md#uiiconpopulation",
+      "aspectRatio": "1:1",
+      "notes": "Optional final HUD art; not a gameplay dependency."
+    },
+    {
+      "id": "ui.icon.fire",
+      "kind": "image",
+      "status": "NEEDS_MANUAL_GENERATION",
+      "path": "css://hud/elemental-symbols/fire",
+      "canonicalFilename": "ui-icon-fire.webp",
+      "prompt": "media/prompts/images/M08_UI_ICON_PROMPTS.md#uiiconfire",
+      "aspectRatio": "1:1",
+      "notes": "Optional final elemental icon; current text/key HUD remains functional."
+    },
+    {
+      "id": "ui.icon.water",
+      "kind": "image",
+      "status": "NEEDS_MANUAL_GENERATION",
+      "path": "css://hud/elemental-symbols/water",
+      "canonicalFilename": "ui-icon-water.webp",
+      "prompt": "media/prompts/images/M08_UI_ICON_PROMPTS.md#uiiconwater",
+      "aspectRatio": "1:1",
+      "notes": "Optional final elemental icon; current text/key HUD remains functional."
+    },
+    {
+      "id": "ui.icon.ice",
+      "kind": "image",
+      "status": "NEEDS_MANUAL_GENERATION",
+      "path": "css://hud/elemental-symbols/ice",
+      "canonicalFilename": "ui-icon-ice.webp",
+      "prompt": "media/prompts/images/M08_UI_ICON_PROMPTS.md#uiiconice",
+      "aspectRatio": "1:1",
+      "notes": "Optional final elemental icon; current text/key HUD remains functional."
+    },
+    {
+      "id": "ui.icon.lightning",
+      "kind": "image",
+      "status": "NEEDS_MANUAL_GENERATION",
+      "path": "css://hud/elemental-symbols/lightning",
+      "canonicalFilename": "ui-icon-lightning.webp",
+      "prompt": "media/prompts/images/M08_UI_ICON_PROMPTS.md#uiiconlightning",
+      "aspectRatio": "1:1",
+      "notes": "Optional final elemental icon; current text/key HUD remains functional."
     }
   ]
 }
