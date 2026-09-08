@@ -1,15 +1,13 @@
 # PEPEPOW Elemental Front — ROADMAP
 
 **Canonical milestone roadmap**  
-**Current status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 CLOSED → M04 CLOSED → M05 CLOSED → M06 CLOSED → M07 CLOSED → M08 IN_PROGRESS
+**Current status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 CLOSED → M04 CLOSED → M05 CLOSED → M06 CLOSED → M07 CLOSED → M08 CLOSED
 
 ---
 
 # 1. Roadmap rule
 
-Milestones are completed in order unless a documented dependency requires a small exception.
-
-Normal flow:
+The original project roadmap was completed in milestone order:
 
 ```text
 M00 Repository Bootstrap
@@ -23,7 +21,7 @@ M00 Repository Bootstrap
 → M08 Combat & Visual Polish
 ```
 
-Each milestone follows:
+Milestone lifecycle:
 
 ```text
 Implement
@@ -41,6 +39,8 @@ Status vocabulary:
 - BLOCKED
 - CLOSED
 
+The M00–M08 roadmap is now complete. Future work is post-roadmap product/design development unless a new milestone plan is explicitly approved.
+
 ---
 
 # 2. M00 — Repository Bootstrap
@@ -48,34 +48,11 @@ Status vocabulary:
 **Status:** CLOSED  
 **Goal:** Create the permanent development foundation with minimal overhead.
 
-## Scope
-
-- create GitHub repository
-- add canonical docs
-- TypeScript
-- PlayCanvas integration
-- Vite
-- basic test framework
-- CI
-- minimal page/scene
-- initial directory layout
-- blank RTS-camera shell
-- simulation module shell separated from renderer
-- debug overlay shell
-- asset/audio manifest conventions
-- placeholder asset convention
-
-## Acceptance criteria
-
-- repository builds locally/in target environment
-- CI passes
-- browser page/scene loads
-- PlayCanvas renderer boots
-- TypeScript simulation module boots independently
-- one deterministic RNG smoke test exists
-- canonical docs committed
-- asset status convention documented
-- `main` is runnable
+Delivered:
+- TypeScript + PlayCanvas + Vite browser foundation
+- fixed-tick simulation shell separated from rendering
+- deterministic RNG smoke coverage
+- RTS camera shell, debug foundation, tests, CI, asset/audio conventions
 
 Closure: `docs/milestones/M00_CLOSURE_REPORT.md`.
 
@@ -84,74 +61,16 @@ Closure: `docs/milestones/M00_CLOSURE_REPORT.md`.
 # 3. M01 — Systemic Combat Foundation
 
 **Status:** CLOSED  
-**Goal:** Prove that controlling units plus changing elemental terrain is enjoyable and technically reliable.
+**Goal:** Prove unit control plus elemental terrain interactions on a deterministic simulation core.
 
-## Scope
-
-Controls:
-- pan/zoom
-- click and drag selection
-- control groups
-- move
-- attack
-- stop
-
-Initial units:
-- Vanguard
-- Ranger
-- Elementalist
-- Golem
-
-Fixed test arena:
-- ground
-- forest
-- river/water
-- chokepoint
-- ice-capable crossing area
-
-Core systems:
-- fixed 10 Hz simulation
-- movement/pathfinding
-- combat
-- statuses
+Delivered:
+- selection, control groups, MOVE / ATTACK / STOP
+- movement, pathfinding, combat, fog
 - Fire / Water / Ice / Lightning
-- Wet / Burning / Frozen / Chilled
-- conductivity
-- dynamic navigation
-- fog-of-war baseline
-- deterministic RNG, command queue, state hash, replay smoke
-- debug overlay
-
-## Signature test
-
-```text
-River blocked
-→ Freeze river
-→ units cross
-→ enemy follows
-→ heat/fire weakens ice
-→ ice breaks/melts
-→ enemy becomes Wet
-→ lightning chains through conductive targets
-```
-
-## Acceptance criteria
-
-- 40 units stable in arena
-- selection and orders usable
-- no severe pathing deadlocks
-- Fire spreads under defined rules
-- Water applies Wet
-- Water can freeze into walkable ice
-- Fire/heat can reverse the ice state
-- nav updates locally
-- Lightning chaining reflects conductivity
-- signature interaction is readable
-- same command replay produces matching state hashes
-- performance is acceptable
-- no gameplay dependency on final visuals
-
-Human WebGL playtest on 2026-09-06: **PASS**.
+- Wet / Burning / Chilled / Frozen
+- conductivity and dynamic navigation
+- deterministic command replay and state hashing
+- 40-unit stability and human WebGL acceptance
 
 Closure: `docs/milestones/M01_CLOSURE_REPORT.md`.
 
@@ -160,54 +79,15 @@ Closure: `docs/milestones/M01_CLOSURE_REPORT.md`.
 # 4. M02 — Procedural Battlefield
 
 **Status:** CLOSED  
-**Goal:** Any valid Block Height can generate a deterministic, strategically playable battlefield.
+**Goal:** Generate a deterministic, strategically playable battlefield from Block Height + world-generation ruleset identity.
 
-## Scope
-
-- master seed / ruleset identity
-- independent RNG streams
-- elevation
-- hydrology
-- biome
-- strategic regions
-- route graph
-- river/chokepoint generation
-- resources
-- POIs
-- player spawn
-- enemy spawn
-- boss/objective area
-- validator
-- quality score
-- deterministic retry
-- Golden Block regression set
-- large seed-batch tests
-- minimal generated-world debug visualization
-
-## Acceptance criteria
-
-- same block + ruleset → same world
-- visual RNG changes do not change gameplay placement
-- player always has viable expansion
-- objectives reachable
-- resources valid
-- no illegal overlaps
-- deterministic retries reproduce
-- large seed batch passes hard invariants
-- generated regions/routes are strategically legible
-- debug visualization can show generated region/route/world structure
-- required TypeScript, tests, build, and CI pass
-
-## Closure evidence
-
-- implementation merged to main: `c26eecf5b324bd3e9ac4a09ca571a5522450ce21`
-- PR CI: **17 files / 88 tests PASS**
-- M02 large batch: **2,048 deterministic seeds PASS** with zero hard-invariant failures
-- strict TypeScript: PASS
-- production build: PASS
-- existing M01 regression suite: PASS
-- Golden Block fixed-hash regression set exists
-- generated-world browser debug map exists
+Delivered:
+- isolated deterministic RNG streams
+- elevation, hydrology, biome, regions, route graph, crossings/chokepoints
+- resources, POIs, Shrines, spawns, boss/objective sites
+- validation, deterministic retry, Golden Blocks
+- 2,048-seed hard-invariant regression
+- stable world-generation ruleset: `m02-standard-v1`
 
 Closure: `docs/milestones/M02_CLOSURE_REPORT.md`.
 
@@ -216,63 +96,15 @@ Closure: `docs/milestones/M02_CLOSURE_REPORT.md`.
 # 5. M03 — Economy & Territory
 
 **Status:** CLOSED  
-**Goal:** Turn the systemic battlefield into a functioning RTS economy and territorial war.
+**Goal:** Turn the battlefield into a functioning RTS economy and territorial war.
 
-## Scope
+Delivered:
+- Material / Mana / Influence economy
+- Elemental Core, Barracks, Arcane Tower, Workshop, Outpost, resource buildings
+- population, construction, production, territory, supply, capture
+- strategic commands / hashes and browser economy UI
 
-Resources:
-- Material
-- Mana
-- Influence
-
-Buildings:
-- Elemental Core
-- Barracks
-- Arcane Tower
-- Workshop
-- Outpost
-- Extractor
-
-Systems:
-- population
-- production queues
-- capture
-- territory
-- supply graph
-- connected/disconnected penalties
-- outpost specialization
-- resource UI
-- basic build UI
-
-Units:
-- expand toward the full initial eight-role roster where needed
-
-## Acceptance criteria
-
-- player can build a working economy without worker spam
-- expansion is strategically valuable
-- supply cuts matter
-- disconnected penalties work
-- enemy/neutral territory can be contested
-- no infinite/free resource bugs
-- resource pacing reaches intended timing targets
-- 25–35 minute run economy appears plausible in simulation/playtest
-- economy/territory state preserves determinism and replay compatibility
-
-## Closure evidence
-
-- implementation and browser integration completed in PR #2
-- final acceptance head: `95b107e2fce0dd609a58eaf4b594a35c33f04f7e`
-- PR CI: **18 files / 93 tests PASS**
-- M03 economy/territory suite: **5 / 5 PASS**
-- M02 2,048-seed hard-invariant regression: PASS
-- M01 regression suite: PASS
-- strict TypeScript: PASS
-- production build: PASS
-- generated battlefield boots through M03 runtime
-- resource/build/production/capture UI exists
-- territory/supply state and combined deterministic hash are exposed in debug presentation
-- 30-minute passive-economy acceptance is bounded and supports the intended 25–35 minute run envelope
+Later M08 corrections improved player-facing expansion, Mana Wells, parallel construction, Rally Points, resource-site defense, and related UX without reopening M03.
 
 Closure: `docs/milestones/M03_CLOSURE_REPORT.md`.
 
@@ -281,51 +113,15 @@ Closure: `docs/milestones/M03_CLOSURE_REPORT.md`.
 # 6. M04 — Roguelite Layer
 
 **Status:** CLOSED  
-**Goal:** Make different generated runs produce different builds and meaningful adaptation.
+**Goal:** Make generated runs produce different builds and meaningful adaptation.
 
-## Scope
-
-- Shrines
-- three-choice upgrade UI
-- tags/modifiers/triggers
-- Fire upgrade set
-- Water upgrade set
-- Ice upgrade set
-- Lightning upgrade set
-- mixed-element upgrades
-- world-event framework
-- run-level max Mana progression
-- early synergy detection
-
-Target content envelope:
-- approximately 24 shrine types/locations
-- approximately 60–80 upgrade effects eventually
-
-Do not implement all content before the generic system works.
-
-## Acceptance criteria
-
-- upgrades can be authored mostly as data
-- three-choice decisions alter play
-- at least several distinct build paths emerge
-- different seeds encourage different choices
-- no dominant mandatory upgrade path
-- upgrades do not break determinism/replays
-
-## Closure evidence
-
-- implementation PR #5 merged to `main`: `95ad699f96a29d6461ed337ff8c1120a8b8876c8`
-- playtest-readability PR #6 merged to `main`: `7547469bb773d9edbb777bf83e879fca91c03e31`
-- authoritative pure-TypeScript roguelite state extends the M03 runtime without replacing CLOSED systems
-- existing M02 Shrine POIs drive the interaction flow
-- deterministic three-choice Shrine offers use an isolated Shrine RNG identity
-- representative Fire / Water / Ice / Lightning / mixed upgrade catalog is data-authored through generic modifier/trigger descriptors
-- run-level maximum Mana progression, synergy detection, deterministic world events, M04 command ordering, and M04 state hashing are implemented
-- upgrade effects are connected to current elemental mechanics through Fire / Heat / Freeze radius modifiers and Lightning trigger behavior
-- Shrine/upgrade/event browser UI exists, including generated Shrine region locator
-- main CI run `34033548041`: **PASS**
-- GitHub Pages run `34033548064`: **PASS**
-- human WebGL Shrine three-choice smoke on 2026-09-06: **PASS**
+Delivered:
+- Shrines and deterministic three-choice upgrade flow
+- data-authored modifiers / triggers
+- Fire / Water / Ice / Lightning / mixed upgrade paths
+- run-level Mana progression
+- synergy detection and deterministic world events
+- Shrine / upgrade / event UI
 
 Closure: `docs/milestones/M04_CLOSURE_REPORT.md`.
 
@@ -334,62 +130,15 @@ Closure: `docs/milestones/M04_CLOSURE_REPORT.md`.
 # 7. M05 — Enemy War
 
 **Status:** CLOSED  
-**Goal:** Create a fair but strategically active opponent that produces pressure without cheating.
+**Goal:** Create a fair but strategically active opponent without omniscient cheating.
 
-## Scope
-
-- tactical AI
-- strategic Utility AI
-- AI blackboard
-- AI fog/imperfect information
-- scouting
-- expansion
-- raid
-- defend
-- attack
-- regroup
-- POI contest
-- territory/supply awareness
-- Director pressure curve
-- recovery windows
-- anti-turtle response
-
-Enemy archetypes:
-- Iron Legion
-- Flame Cult
-- Wild Horde
-
-## Acceptance criteria
-
-- AI cannot see hidden current player state
-- AI uses last-known information
-- AI can make imperfect but plausible decisions
-- AI can raid supply
-- AI can retreat/regroup
-- factions feel behaviorally distinct
-- difficulty changes intelligence/tempo more than raw stat cheating
-- no arbitrary unit spawning beside player base
-
-## Closure evidence
-
-- PR #8 — deterministic imperfect-information Enemy War core
-- PR #9 — end-to-end RAID / REGROUP acceptance hardening
-- PR #10 — fair enemy production through existing M03 resources, BUILD / TRAIN queues, population, and timing
-- PR #11 — pre-closure documentation
-- PR #12 — M05 WebGL debug-readability follow-up
-- automated gameplay baseline: `144a93b8e73f1885f266a0981166056d9d8f8aaf`
-- gameplay baseline main CI run `34036742615`: **PASS**
-- gameplay baseline GitHub Pages run `34036742620`: **PASS**
-- final automated suite: **24 files / 121 tests PASS**
-- M02 2,048-seed hard-invariant regression: PASS
-- M01–M04 regression suite: PASS
-- strict TypeScript / production build: PASS
-- final runtime after readability follow-up: `7e0e5082d1e0c1ed44d8546f0031d45f4a3899a6`
-- final runtime main CI run `34037645488`: **PASS**
-- final runtime GitHub Pages run `34037645465`: **PASS**
-- human WebGL enemy-behavior/readability acceptance on 2026-09-06: **PASS**
-
-Acceptance confirms legal fog-bounded knowledge, last-known memory, hidden-target pursuit cutoff, RAID, REGROUP, structurally and perceptibly distinct faction behavior, difficulty without raw combat-stat cheating, deterministic replay/hash compatibility, and legitimate producer-based enemy reinforcements without arbitrary beside-base spawning.
+Delivered:
+- fog-bounded AI knowledge and last-known information
+- scouting, expansion, raid, defend, attack, regroup, POI contest
+- supply-aware logistics and fair production
+- Iron Legion / Flame Cult / Wild Horde behavioral differences
+- difficulty and Director pressure/recovery behavior
+- deterministic AI state / hashes
 
 Closure: `docs/milestones/M05_CLOSURE_REPORT.md`.
 
@@ -400,32 +149,7 @@ Closure: `docs/milestones/M05_CLOSURE_REPORT.md`.
 **Status:** CLOSED  
 **Goal:** Complete the first start-to-finish game loop.
 
-## Scope
-
-- final objective framework
-- boss framework
-- victory
-- defeat
-- Core Critical State
-- score
-- results screen
-- replay playback
-- next-block/retry flow
-- event pacing integration
-
-Bosses:
-- Frost Titan
-- Storm Colossus
-- Infernal Behemoth
-
-Initial victory families:
-- Destroy
-- Boss Hunt
-- one additional objective mode if ready
-
-## Acceptance criteria
-
-A player can:
+Delivered:
 
 ```text
 Start
@@ -441,36 +165,7 @@ Start
 → Replay/try another block
 ```
 
-Target standard duration:
-- approximately 25–35 minutes
-
-Playtest should answer:
-- Were there meaningful decisions throughout?
-- Could the player explain the loss?
-- Did the run produce a memorable systemic event?
-- Did the next seed feel worth trying?
-
-## Closure evidence
-
-- implementation PR #14 merged to `main`
-- presentation correction PR #15 merged to `main`
-- final deployed runtime baseline: `fb2a0fb1129287413803aa9cee3e2906a5ef22a3`
-- PR #14 CI `34041915124`: **PASS**
-- PR #14 final suite: **25 test files / 130 tests PASS**
-- M06 focused suite: **9 / 9 PASS**
-- M02 2,048-seed hard-invariant regression: PASS
-- strict TypeScript / production build: PASS
-- PR #15 CI `34044796173`: **PASS**
-- post-merge main CI `34044869076`: **PASS**
-- GitHub Pages `34044869041`: **PASS**
-- human Destroy smoke: PASS
-- human Boss Hunt smoke: PASS
-- human Replay Last → `REPLAY MATCH`: PASS
-- human Retry Block / Next Block: PASS
-- corrected terrain / river / live minimap re-acceptance: PASS
-- final human normal-pace start-to-finish checklist: PASS
-
-Optional Objective Control was not required for closure and remains deferred.
+Includes Destroy / Boss Hunt, bosses, Core Critical, score/results, replay packet/playback verification, retry / next-block flow, terrain presentation, and live minimap.
 
 Closure: `docs/milestones/M06_CLOSURE_REPORT.md`.
 
@@ -481,176 +176,138 @@ Closure: `docs/milestones/M06_CLOSURE_REPORT.md`.
 **Status:** CLOSED  
 **Goal:** Turn deterministic world generation into a shareable PEPEPOW challenge system.
 
-## Scope
+Delivered:
+- Manual / PEPEPOW RPC / Official BlockSource boundary
+- deterministic Block Challenge identity and challenge code
+- share links and Official/Daily manifest architecture
+- replay-backed score proof and deterministic verification
+- local verified leaderboard gateway
+- graceful network failure with no wallet requirement
 
-- ManualBlockSource polished
-- PEPEPOW block fetch adapter
-- current/recent block selection as designed
-- deterministic Block Challenge identity
-- Ruleset Version display
-- shareable block challenge
-- Daily/Official Block concept
-- leaderboard interface
-- score submission architecture
-- replay/state-hash verification framework
-- graceful RPC failure
-
-## Acceptance criteria
-
-- manual block mode always works
-- RPC failure never prevents practice play
-- same block/ruleset reproduces challenge
-- score identifies exact ruleset
-- challenge can be shared
-- leaderboard does not depend solely on client-reported final score if verification is implemented
-
-## Closure evidence
-
-- PR #16 — Block Challenge identity foundation — merged
-- PR #17 — PEPEPOW live source and graceful fallback — merged
-- PR #18 — replay-verified scoring and leaderboard gateway — merged
-- PR #19 — Official challenge manifest, Light source preference, and UI — merged as `672e2368d5b719b6f172e8f8df1e5a3671a3a69a`
-- PR #20 — automated acceptance closure candidate — merged as `a601c5608f1cb3178dab7533ed0a40dc55f805bf`
-- PR #19 final suite: **30 test files / 156 tests PASS**
-- M07 focused challenge/source/score/leaderboard suites: PASS
-- M02 2,048-seed regression and M01–M06 regressions: PASS
-- strict TypeScript / production build: PASS
-- post-merge main CI `34097801085`: PASS
-- GitHub Pages `34097800904`: PASS
-- deployed browser live PEPEPOW height fetch did not succeed; operator explicitly accepted deferring that network/CORS integration issue
-- Manual Block and Official Challenge remain non-network-authoritative paths
-- graceful failure/fallback is the required acceptance behavior and remains implemented
+Known deferred issue:
+- deployed browser live-height retrieval may fail because of external endpoint / CORS behavior; Manual and Official paths remain available.
 
 Closure: `docs/milestones/M07_CLOSURE_REPORT.md`.
-
-## Explicit non-goal
-
-No wallet requirement unless later separately approved.
 
 ---
 
 # 10. M08 — Combat & Visual Polish
 
-**Status:** IN_PROGRESS  
-**Goal:** Upgrade a proven game into a visually and aurally refined game without destabilizing gameplay.
+**Status:** CLOSED  
+**Goal:** Upgrade the proven deterministic game into a coherent browser RTS presentation while preserving replay/verification integrity.
 
-M01–M07 gameplay is now CLOSED. M08 is the active milestone.
-
-## Scope
+Delivered:
 
 Combat presentation:
-- final/project-level unit visual language
-- animation
-- attacks
-- hit reactions
-- deaths
-- projectiles
-- camera feedback
-- readable telegraphs
+- eight project-level procedural unit silhouettes
+- strategic building silhouettes
+- selection/team/health/facing readability
+- attacks, projectiles, hit/death/destruction feedback
+- restrained camera impact feedback
+- boss/finale telegraphs
 
 Elemental VFX:
-- fire
-- steam
-- freezing
-- ice cracking
-- water impact
-- lightning chaining
-- storm
-- meteor
-- smoke
-- environmental reaction
+- Fire / Burning
+- Water impact
+- Freeze / ice cracking / melt / steam
+- Lightning chaining
+- boss elemental effects and environmental reactions
 
 Environment:
-- biome materials
-- props
-- terrain blending
-- weather
-- lighting
-- post-processing
-- fog/atmosphere
+- deterministic visual-only biome props
+- terrain materials and dynamic ice presentation
+- lighting / atmosphere progression
 
 UI:
-- final HUD direction
-- iconography
-- minimap polish
-- results/challenge presentation
+- player-facing HUD hierarchy
+- interactive minimap
+- POI/resource-site readability
+- challenge / replay / results information retained
 
 Audio:
-- final/polished SFX set
-- ambient loops
-- user-supplied Gemini background music
-- mixing
-- transitions
+- event-driven procedural combat and elemental SFX placeholders
+- ambient bed
+- browser audio unlock and `M` mute
+- final external SFX / user-supplied Gemini BGM remain later asset work
+
+Gameplay/UX correction passes performed during M08 also added or corrected:
+- building placement and parallel construction
+- explicit production-building selection and Rally Points
+- building-driven territory expansion
+- Mana Wells and clearer resource roles
+- visible/actionable POIs
+- shared Mana costs/cooldowns
+- encounter auto-aggro
+- destructible/fortifiable Extractor and Mana Well sites
+- clearer elemental tactical jobs
+
+Competitive identity:
+- world generation remains `m02-standard-v1`
+- current Challenge / replay / score-proof gameplay ruleset is `m08-standard-v1`
+
+Final closure evidence:
+- final runtime baseline: `e12011b379555cde733a1c815594067185fd3024`
+- **45 test files / 198 tests PASS**
+- M02 **2,048-seed hard-invariant regression PASS**
+- strict TypeScript PASS
+- production build PASS
+- main CI `34251355341` / CI #158 PASS
+- GitHub Pages `34251355381` / Pages #57 PASS
+- final operator WebGL presentation smoke: **PASS**
+
+Closure: `docs/milestones/M08_CLOSURE_REPORT.md`.
 
 ---
 
 # 11. Visual and audio production policy
 
-AI/agents may create development assets, but final art can be produced manually.
+AI/agents may create development assets, while manually approved final assets can replace them later.
 
-For any asset that is not worth refining in Work:
+For final-art needs:
 
 1. assign stable asset ID and filename
-2. keep functional placeholder
-3. create canonical prompt under `media/prompts/images/`
+2. keep a functional placeholder
+3. keep canonical prompt under `media/prompts/images/`
 4. mark `NEEDS_MANUAL_GENERATION`
-5. continue development
-6. user manually generates final asset
-7. user uploads to GitHub
-8. change status to `FINAL`
+5. continue development without blocking on manual art
+6. user generates and uploads approved final asset
+7. change status to `FINAL`
 
-Background music is generated separately by the user in Gemini. SFX may use suitable public/licensed sources with documented provenance.
-
----
-
-# 12. Agent and token discipline
-
-Use multiple agents only when work is genuinely separable.
-
-Prefer:
-- exact task scopes
-- test-driven handoffs
-- concise agent summaries
-- reading only relevant canonical sections
-- targeted code inspection
-- one full regression pass at milestone closure
-
-Avoid:
-- broad redundant audits
-- long narrative reports when tests suffice
-- excessive screenshot/image iteration
-- rewriting stable docs without new decisions
-- multiple agents modifying the same simulation core
-- parallel redesign of locked architecture
-
-Token efficiency is not permission to skip verification.
+Background music is generated separately by the user in Gemini. External SFX intended for release require documented provenance/license.
 
 ---
 
-# 13. Cross-milestone quality gates
+# 12. Locked cross-roadmap architecture
 
-No milestone can close with:
-- failing required tests
-- known determinism break
-- corrupted canonical docs
-- broken main build
-- placeholder accidentally marked final
-- unclear licensed external media provenance once intended for release
+Preserve unless a later approved redesign explicitly requires change:
+
+- browser-first, desktop-first RTS
+- authoritative pure-TypeScript simulation independent from PlayCanvas presentation
+- fixed 10 Hz simulation
+- deterministic gameplay RNG and independent RNG streams
+- deterministic command replay / state hashes / system ordering
+- renderer and UI consume authoritative state rather than owning gameplay truth
+- Block Height remains deterministic input rather than a network dependency
+- local/practice play must not require blockchain RPC
+- challenge/replay identity must change when authoritative gameplay semantics change
 
 ---
 
-# 14. Current next action
+# 13. Post-roadmap backlog
 
-M00–M07 are CLOSED. Continue **M08 — Combat & Visual Polish** without changing authoritative gameplay identity.
+The original roadmap is CLOSED. The next phase is not automatically another implementation milestone.
 
-First perform a presentation-only gap audit across the deployed battlefield and existing rendering/UI/audio layers, then prioritize the highest-readability improvements:
+Known product/design areas for later deliberate work include:
+- deeper Fire / Water / Ice / Lightning role and counterplay redesign
+- forest / river / bridge / crossing strategic-value tuning
+- combat targeting and structure-assault redesign
+- economy and territory pacing
+- Mana-system design and tuning
+- AI behavior and balance
+- progression / reward balance
+- final art replacement
+- final approved/licensed SFX and Gemini background music
+- PEPEPOW browser live-height / CORS integration
+- client bundle code-splitting / size optimization
 
-1. define a coherent project-level unit/building visual language using procedural/placeholder geometry first;
-2. improve combat readability with projectiles, hit/death feedback, selection/team distinction, and telegraphs without changing simulation timing or hit logic;
-3. improve elemental VFX and environmental reactions while keeping visual RNG isolated from gameplay RNG;
-4. improve biome materials, lighting, fog/atmosphere, terrain blending, and minimap/HUD readability;
-5. establish explicit asset IDs/statuses and canonical image prompts for any final art that should be manually generated later;
-6. integrate polished SFX/ambient audio only with documented provenance; user-supplied Gemini background music remains a later manual input;
-7. keep the deferred PEPEPOW browser live-height issue outside M08 unless it is deliberately reopened as separate product/backend work.
-
-Do not change M06/M07 replay/challenge identity as part of visual polish.
+Do not automatically reopen M00–M08 implementation history. Start future work from current `main`, define the intended product/design goal first, and bump gameplay ruleset identity whenever authoritative semantics change.
