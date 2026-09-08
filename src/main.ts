@@ -29,6 +29,7 @@ import {
 } from './simulation/m06-simulation';
 import type { RunMode, RunPace } from './simulation/m06-content';
 import { DebugOverlay } from './ui/debug-overlay';
+import { PoiCaptureHint } from './ui/poi-capture-hint';
 import { RoguelitePanel } from './ui/roguelite-panel';
 import { M06_REPLAY_STORAGE_KEY, RunPanel } from './ui/run-panel';
 import { StrategicPanel } from './ui/strategic-panel';
@@ -175,6 +176,7 @@ async function boot(): Promise<void> {
       canvas,
       (clientX, clientY) => scene.screenToSimulationPosition(clientX, clientY),
     );
+    const poiCaptureHint = new PoiCaptureHint(strategyElement, simulation, () => scene.selectedUnits);
     const roguelitePanel = new RoguelitePanel(rogueliteElement, simulation);
     const runPanel = new RunPanel(runElement, simulation, blockResolution);
     let territoryDebugElapsed = 0;
@@ -185,6 +187,7 @@ async function boot(): Promise<void> {
       scene.sync(frame);
       overlay.update(deltaSeconds, frame, scene.selectedUnits);
       strategyPanel.update(deltaSeconds);
+      poiCaptureHint.update(deltaSeconds);
       roguelitePanel.update(deltaSeconds);
       runPanel.update(deltaSeconds);
       territoryDebugElapsed += deltaSeconds;
@@ -207,6 +210,7 @@ async function boot(): Promise<void> {
     window.addEventListener('pagehide', () => {
       runPanel.destroy();
       roguelitePanel.destroy();
+      poiCaptureHint.destroy();
       strategyPanel.destroy();
       scene.destroy();
     }, { once: true });

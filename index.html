@@ -9,6 +9,7 @@
       content="PEPEPOW Elemental Front — deterministic browser RTS prototype"
     />
     <link rel="stylesheet" href="/src/m08-elemental.css" />
+    <link rel="stylesheet" href="/src/m08-poi.css" />
     <title>PEPEPOW Elemental Front</title>
   </head>
   <body>
@@ -25,6 +26,8 @@
         <b>BATTLEFIELD MAP</b>
         <canvas id="world-debug-canvas" width="256" height="256" aria-label="Live generated battlefield minimap"></canvas>
         <span class="minimap-resource-key">◆ Amber: Material · ● Violet: Mana</span>
+        <span class="minimap-poi-key">POI: ★ Shrine · ▲ Camp · ■ Village · ◆ Ruin</span>
+        <span class="minimap-poi-key">POI ring: white unclaimed · teal controlled · red enemy</span>
         <pre id="world-debug-summary"></pre>
         <span>Gold lines / numbered dots: debug routes / regions</span>
         <span>Teal / red dots: live player / visible enemy units</span>

@@ -1,11 +1,12 @@
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
 import { SurfaceType } from '../simulation/terrain-state';
-import { BiomeType, TerrainType, type GeneratedWorld, type GridPoint } from './world-definition';
+import { BiomeType, TerrainType, type GeneratedWorld, type GridPoint, type PointOfInterest } from './world-definition';
 
 export interface TerritoryDebugState {
   regionOwners: readonly number[];
   contestedRegions: readonly number[];
   suppliedRegions?: Readonly<Record<number, readonly number[]>>;
+  poiOwners?: Readonly<Record<string, number>>;
 }
 
 export interface MinimapEntityState {
@@ -92,6 +93,67 @@ function drawDiamond(
   context.strokeStyle = '#07100f';
   context.lineWidth = 1;
   context.stroke();
+}
+
+function poiFill(poi: PointOfInterest): string {
+  if (poi.type === 'SHRINE') return '#b58af6';
+  if (poi.type === 'NEUTRAL_CAMP') return '#e5a15a';
+  if (poi.type === 'VILLAGE') return '#e9d69b';
+  return '#b9bbb5';
+}
+
+function poiOwnerStroke(owner: number | undefined): string {
+  if (owner === 0) return '#58e1c1';
+  if (owner !== undefined && owner >= 0 && owner !== 255) return '#f07062';
+  return '#f5f6ea';
+}
+
+function drawPoiMarker(
+  context: CanvasRenderingContext2D,
+  poi: PointOfInterest,
+  owner: number | undefined,
+  scaleX: number,
+  scaleY: number,
+): void {
+  const [x, y] = pointCenter(poi.cell, scaleX, scaleY);
+  const radius = 4.2;
+  context.beginPath();
+  if (poi.type === 'SHRINE') {
+    for (let index = 0; index < 10; index += 1) {
+      const angle = -Math.PI / 2 + index * Math.PI / 5;
+      const spoke = index % 2 === 0 ? radius : radius * 0.46;
+      const px = x + Math.cos(angle) * spoke;
+      const py = y + Math.sin(angle) * spoke;
+      if (index === 0) context.moveTo(px, py);
+      else context.lineTo(px, py);
+    }
+    context.closePath();
+  } else if (poi.type === 'NEUTRAL_CAMP') {
+    context.moveTo(x, y - radius);
+    context.lineTo(x + radius, y + radius * 0.78);
+    context.lineTo(x - radius, y + radius * 0.78);
+    context.closePath();
+  } else if (poi.type === 'VILLAGE') {
+    context.rect(x - radius * 0.78, y - radius * 0.78, radius * 1.56, radius * 1.56);
+  } else {
+    context.moveTo(x, y - radius);
+    context.lineTo(x + radius, y);
+    context.lineTo(x, y + radius);
+    context.lineTo(x - radius, y);
+    context.closePath();
+  }
+  context.fillStyle = poiFill(poi);
+  context.fill();
+  context.strokeStyle = poiOwnerStroke(owner);
+  context.lineWidth = owner === undefined ? 1.5 : 2.2;
+  context.stroke();
+  context.beginPath();
+  context.arc(x, y, radius + 2.1, 0, Math.PI * 2);
+  context.strokeStyle = poiOwnerStroke(owner);
+  context.globalAlpha = 0.72;
+  context.lineWidth = 1.1;
+  context.stroke();
+  context.globalAlpha = 1;
 }
 
 function drawSimulationMarker(
@@ -222,7 +284,7 @@ export function renderWorldDebug(
     if (resource.type === 'MATERIAL') drawDiamond(context, resource.cell, scaleX, scaleY, 2.8, '#e1a64a');
     else drawMarker(context, resource.cell, scaleX, scaleY, 2.5, '#ad75f0');
   }
-  for (const poi of world.pois) drawMarker(context, poi.cell, scaleX, scaleY, 1.8, '#f2f2df');
+  for (const poi of world.pois) drawPoiMarker(context, poi, territory?.poiOwners?.[poi.id], scaleX, scaleY);
   drawMarker(context, world.objective.cell, scaleX, scaleY, 4.2, '#fff2a0');
   drawMarker(context, world.boss.cell, scaleX, scaleY, 5, '#e458d2');
 

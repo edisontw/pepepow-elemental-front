@@ -9,6 +9,7 @@ import { M06Simulation } from '../simulation/m06-simulation';
 import type { EntitySnapshot, Simulation } from '../simulation/simulation';
 import { ElementalRenderBridge } from './elemental-render-bridge';
 import { GeneratedWorldRenderBridge } from './generated-world-render-bridge';
+import { PoiRenderBridge } from './poi-render-bridge';
 import { ResourceRenderBridge } from './resource-render-bridge';
 import { RtsCamera } from './rts-camera';
 import { RunRenderBridge } from './run-render-bridge';
@@ -206,6 +207,10 @@ export function createSceneShell(
   const bridge = new UnitRenderBridge(app, initialSnapshot, unitMaterials, selectionMaterial, healthMaterial);
   const elementalBridge = new ElementalRenderBridge(app, simulation.terrain, initialSnapshot);
   const audioFeedback = new AudioFeedback();
+  const poiBridge = simulation instanceof M03Simulation
+    ? new PoiRenderBridge(app, simulation.generatedWorld, cameraComponent, camera, canvas)
+    : null;
+  if (simulation instanceof M03Simulation) poiBridge?.sync(simulation.strategy.snapshot());
   const controls = new UnitControls(canvas, cameraComponent, simulation, bridge, selectionBox);
   const minimapCanvas = document.getElementById('world-debug-canvas');
   const minimapControls = simulation instanceof M03Simulation && minimapCanvas instanceof HTMLCanvasElement
@@ -241,6 +246,7 @@ export function createSceneShell(
         const strategicSnapshot = simulation.strategy.snapshot();
         strategicBridge?.sync(strategicSnapshot, frame.snapshot.tick);
         territoryBridge?.sync(strategicSnapshot);
+        poiBridge?.sync(strategicSnapshot);
       }
       if (simulation instanceof M06Simulation) runBridge?.sync(simulation.run.snapshot());
       generatedWorldBridge?.sync(frame.snapshot.navVersion, frame.snapshot.terrain.ice);
@@ -254,6 +260,7 @@ export function createSceneShell(
       window.removeEventListener('resize', onResize);
       minimapControls?.destroy();
       controls.destroy();
+      poiBridge?.destroy();
       audioFeedback.destroy();
       bridge.destroy();
       elementalBridge.destroy();
