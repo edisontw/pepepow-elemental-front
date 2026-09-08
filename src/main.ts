@@ -19,6 +19,7 @@ import {
   PepepowRpcBlockSource,
   pepepowLiveOffsetFromSearch,
 } from './challenge/pepepow-rpc-block-source';
+import { isSupportedChallengeRuleset } from './challenge/ruleset';
 import { createSceneShell } from './rendering/scene';
 import { FixedTickRunner } from './simulation/fixed-tick-runner';
 import type { EnemyDifficulty, EnemyFaction } from './simulation/m05-content';
@@ -37,7 +38,6 @@ import { M06_REPLAY_STORAGE_KEY, RunPanel } from './ui/run-panel';
 import { StrategicPanel } from './ui/strategic-panel';
 import { renderWorldDebug, worldDebugSummary } from './world/debug-view';
 import { generateWorld } from './world/generator';
-import { M02_STANDARD_RULES } from './world/world-definition';
 
 function requiredElement<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id);
@@ -116,10 +116,10 @@ async function boot(): Promise<void> {
     const officialChallenge = officialId === null ? null : officialChallengeById(officialId);
 
     if (officialId !== null && officialChallenge === null) throw new Error(`Unknown official challenge: ${officialId}.`);
-    if (sharedChallenge && sharedChallenge.rulesetVersion !== M02_STANDARD_RULES.rulesetVersion) {
+    if (sharedChallenge && !isSupportedChallengeRuleset(sharedChallenge.rulesetVersion)) {
       throw new Error(`Unsupported challenge ruleset: ${sharedChallenge.rulesetVersion}.`);
     }
-    if (officialChallenge && officialChallenge.rulesetVersion !== M02_STANDARD_RULES.rulesetVersion) {
+    if (officialChallenge && !isSupportedChallengeRuleset(officialChallenge.rulesetVersion)) {
       throw new Error(`Unsupported official challenge ruleset: ${officialChallenge.rulesetVersion}.`);
     }
 
