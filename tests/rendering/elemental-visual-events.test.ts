@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { lightningDamageChain, removedVisualCells } from '../../src/rendering/elemental-visual-events';
+import {
+  addedVisualCells,
+  lightningDamageChain,
+  newlyWetVisibleEntities,
+  removedVisualCells,
+} from '../../src/rendering/elemental-visual-events';
 import { Simulation } from '../../src/simulation/simulation';
 
 function snapshots(): [ReturnType<Simulation['snapshot']>, ReturnType<Simulation['snapshot']>] {
@@ -29,7 +34,25 @@ describe('M08 elemental visual event derivation', () => {
     expect(lightningDamageChain(previous, damaged)).toEqual(damaged.lastLightningChain);
   });
 
-  it('derives removed visual cells deterministically', () => {
-    expect(removedVisualCells(new Set(['2,3', '1,1', '4,4']), new Set(['4,4']))).toEqual(['1,1', '2,3']);
+  it('derives added and removed visual cells deterministically', () => {
+    const previous = new Set(['2,3', '1,1', '4,4']);
+    const current = new Set(['4,4', '6,2', '0,7']);
+    expect(addedVisualCells(previous, current)).toEqual(['0,7', '6,2']);
+    expect(removedVisualCells(previous, current)).toEqual(['1,1', '2,3']);
+  });
+
+  it('derives visible newly-wet Water Burst targets only on the authoritative cast tick', () => {
+    const [previous, current] = snapshots();
+    const target = current.entities[0]!;
+    const waterFrame = {
+      ...current,
+      lastTerrainEffect: 'WATER' as const,
+      lastTerrainEffectTick: current.tick,
+      entities: current.entities.map((entity) => entity.id === target.id
+        ? { ...entity, wet: true, wetTicks: 10, visibleToPlayer: true }
+        : entity),
+    };
+    expect(newlyWetVisibleEntities(previous, waterFrame)).toEqual([target.id]);
+    expect(newlyWetVisibleEntities(previous, { ...waterFrame, lastTerrainEffectTick: current.tick - 1 })).toEqual([]);
   });
 });
