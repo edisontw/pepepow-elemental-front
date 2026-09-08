@@ -20,7 +20,7 @@ export class M05Simulation extends M04Simulation {
   readonly enemyLogistics: EnemyLogisticsState;
 
   constructor(generatedWorld: GeneratedWorld, options: M05SimulationOptions = {}) {
-    super(generatedWorld, options);
+    super(generatedWorld, { ...options, playerManaRules: options.playerManaRules ?? true });
     this.enemyWar = new EnemyWarState(
       generatedWorld,
       this.entities,
