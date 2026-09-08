@@ -1,3 +1,4 @@
+import { CURRENT_CHALLENGE_RULESET_VERSION, isSupportedChallengeRuleset } from '../challenge/ruleset';
 import type { GameCommand } from './commands';
 import type { M03Command } from './m03-commands';
 import type { M04Command } from './m04-commands';
@@ -196,7 +197,7 @@ export class M06Simulation extends M05Simulation {
       header: {
         version: 'm06-replay-v1',
         blockHeight: this.generatedWorld.identity.blockHeight,
-        rulesetVersion: this.generatedWorld.identity.rulesetVersion,
+        rulesetVersion: CURRENT_CHALLENGE_RULESET_VERSION,
         worldGameplayHash: this.generatedWorld.gameplayHash,
         generationAttempt: this.generatedWorld.generationAttempt,
         mode: snapshot.run.mode,
@@ -270,7 +271,7 @@ export class M06Simulation extends M05Simulation {
   private assertReplayIdentity(packet: M06ReplayPacket): void {
     const header = packet.header;
     if (header.blockHeight !== this.generatedWorld.identity.blockHeight) throw new Error('Replay block height mismatch.');
-    if (header.rulesetVersion !== this.generatedWorld.identity.rulesetVersion) throw new Error('Replay ruleset mismatch.');
+    if (!isSupportedChallengeRuleset(header.rulesetVersion)) throw new Error('Replay ruleset mismatch.');
     if (header.worldGameplayHash !== this.generatedWorld.gameplayHash) throw new Error('Replay world hash mismatch.');
     if (header.generationAttempt !== this.generatedWorld.generationAttempt) throw new Error('Replay generation attempt mismatch.');
     if (header.mode !== this.run.mode || header.pace !== this.run.pace) throw new Error('Replay run options mismatch.');
