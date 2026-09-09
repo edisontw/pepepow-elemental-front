@@ -29,7 +29,7 @@ function primitive(
 }
 
 export class ResourceRenderBridge {
-  private readonly entities: pc.Entity[] = [];
+  private readonly entities: { root: pc.Entity; marker: pc.Entity; rich: boolean }[] = [];
   private readonly materialDeposit = material(new pc.Color(0.72, 0.48, 0.18), new pc.Color(0.28, 0.11, 0.015));
   private readonly materialAccent = material(new pc.Color(0.98, 0.76, 0.3), new pc.Color(0.52, 0.25, 0.03));
   private readonly manaDeposit = material(new pc.Color(0.35, 0.25, 0.68), new pc.Color(0.16, 0.07, 0.42));
@@ -49,13 +49,25 @@ export class ResourceRenderBridge {
         primitive(root, 'box', 'Mana Crystal', 0.68 * scale, [0.28 * scale, 0.9 * scale, 0.28 * scale], this.manaAccent);
         root.setEulerAngles(0, 45, 0);
       }
+      const marker = new pc.Entity('Resource Pulse');
+      marker.addComponent('render', { type: 'cylinder', material: resource.type === 'MATERIAL' ? this.materialAccent : this.manaAccent });
+      marker.setLocalPosition(0, 0.035, 0);
+      marker.setLocalScale(0.78 * scale, 0.018, 0.78 * scale);
+      root.addChild(marker);
       app.root.addChild(root);
-      this.entities.push(root);
+      this.entities.push({ root, marker, rich: resource.rich });
+    }
+  }
+
+  sync(tick: number): void {
+    for (const [index, presentation] of this.entities.entries()) {
+      const pulse = 1 + Math.sin(tick * 0.14 + index * 1.7) * (presentation.rich ? 0.1 : 0.055);
+      presentation.marker.setLocalScale(pulse, 1, pulse);
     }
   }
 
   destroy(): void {
-    for (const entity of this.entities) entity.destroy();
+    for (const entity of this.entities) entity.root.destroy();
     this.entities.length = 0;
     this.materialDeposit.destroy();
     this.materialAccent.destroy();

@@ -107,10 +107,17 @@ export class UnitRenderBridge {
       const alignment = this.alignments.get(unit.id);
       const modelId = unit.archetype === 'VANGUARD' ? 'unit.vanguard'
         : unit.archetype === 'ELEMENTALIST' && alignment ? `unit.elementalist.${alignment.toLowerCase()}` : '';
-      if (modelId && presentation.modelId !== modelId) {
+      const specialistModelId: Readonly<Record<string, string>> = {
+        SPEAR_GUARD: 'unit.spear-guard',
+        RANGER: 'unit.ranger',
+        SCOUT: 'unit.scout',
+        ENGINEER: 'unit.engineer',
+      };
+      const resolvedModelId = modelId || specialistModelId[unit.archetype] || '';
+      if (resolvedModelId && presentation.modelId !== resolvedModelId) {
         this.visualAssets.release(presentation.model);
-        presentation.model = this.visualAssets.attach(presentation.root, presentation.primitives, modelId, unit.playerId);
-        presentation.modelId = modelId;
+        presentation.model = this.visualAssets.attach(presentation.root, presentation.primitives, resolvedModelId, unit.playerId);
+        presentation.modelId = resolvedModelId;
       }
       const cast = authority?.lastCastResult;
       if (cast?.status === 'CAST' && cast.casterEntityId === unit.id && cast.tick === current.tick) presentation.actionTick = current.tick;

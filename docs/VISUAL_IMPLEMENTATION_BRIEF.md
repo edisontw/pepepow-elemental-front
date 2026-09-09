@@ -309,3 +309,10 @@ Do not produce a long milestone narrative for routine visual-production work.
 - Optional motion nodes: `LegL`, `LegR`, `Weapon`, `Reactor`, `Orbit`. Missing nodes safely omit that motion; the manifest loader retains primitive fallback on load failure.
 - Unit models have 470–832 triangles / 5–6 primitives; Core has 1,136 triangles / 4 primitives. Geometry and materials are shared across instances. Ordinary-unit draw-count/LOD reduction remains Priority C.
 - Validation: build/typecheck, 10 targeted rendering tests, six GLB structural checks. Browser smoke blocked by unavailable WebGL. Actual appearance, animation and target-device FPS still need manual acceptance.
+
+## 14. Priority B implementation notes
+
+- Added original faceted GLBs for Spear Guard, Ranger, Scout, Engineer, Barracks, Arcane Tower, Workshop, Outpost, Extractor, and Mana Well.
+- Stable manifest IDs drive runtime replacement with primitive fallback. The model language keeps team-color surfaces separate from elemental materials.
+- Resource sites now have a restrained deterministic pulse marker to improve Material Deposit and Mana Spring recognition without adding gameplay state.
+- The model generator remains the single reproducible source for this baseline; final artist-approved topology, textures, rigging, and LOD are still later production work.

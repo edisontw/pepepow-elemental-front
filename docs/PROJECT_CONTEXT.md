@@ -216,7 +216,8 @@ Priority A is implemented; manual WebGL acceptance remains pending.
 - Gunmetal/brass HUD, construction/army categories, selected-army health, selected-caster Tactical readiness, and in-world work progress.
 - Hollow selection/Wet rings, freeze shell, Water ripples, segmented Lightning, and pooled single-draw combat sparks; 192-spark/64-projectile/96-transient caps.
 - TypeScript/build and 10 targeted rendering tests pass; GLB structure checks pass. Work browser cannot boot WebGL (`WebGL not supported`); no visual or 100-unit FPS pass is claimed.
-- Next: manual Priority A acceptance, then Priority B/C assets, terrain/environment, Strategic network/footprint presentation and LOD. Do not reopen gameplay authority.
+- Priority B is now implemented in the current working branch: four additional unit models, six building models, and pulsing resource-site markers. Manual WebGL acceptance remains pending.
+- Next: manual Priority A/B acceptance, then Strategic network/footprint presentation, terrain material polish, and LOD. Do not reopen gameplay authority.
 
 ### Token-efficient validation policy
 

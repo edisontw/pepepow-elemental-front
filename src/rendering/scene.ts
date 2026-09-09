@@ -273,6 +273,7 @@ export function createSceneShell(
         }
       }
       battleVfx.sync(frame.snapshot.tick, frame.interpolationAlpha);
+      resourceBridge?.sync(frame.snapshot.tick);
       generatedWorldBridge?.sync(frame.snapshot.navVersion, frame.snapshot.terrain.ice);
       if (freezablePatch?.render) {
         const frozen = frame.snapshot.terrain.ice > 0;
