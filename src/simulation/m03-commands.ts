@@ -1,4 +1,5 @@
 import type { EntityID, PlayerID, UnitArchetype } from './components';
+import { isElementId, type ElementId } from './element-types';
 import type { BuildingType, OutpostSpecialization } from './m03-content';
 
 interface StrategicCommandBase {
@@ -18,6 +19,7 @@ export interface TrainCommand extends StrategicCommandBase {
   type: 'TRAIN';
   buildingId: number;
   unitType: UnitArchetype;
+  elementalistAlignment?: ElementId;
 }
 
 export interface SetRallyPointCommand extends StrategicCommandBase {
@@ -77,7 +79,13 @@ function normalizeCommand(command: M03Command): M03Command {
     };
   }
   if (command.type === 'TRAIN') {
-    return { ...base, type: 'TRAIN', buildingId: command.buildingId, unitType: command.unitType };
+    return {
+      ...base,
+      type: 'TRAIN',
+      buildingId: command.buildingId,
+      unitType: command.unitType,
+      ...(command.elementalistAlignment === undefined ? {} : { elementalistAlignment: command.elementalistAlignment }),
+    };
   }
   if (command.type === 'SET_RALLY_POINT') {
     return {
@@ -113,6 +121,9 @@ export class M03CommandQueue {
     if (command.type === 'BUILD') {
       if (!Number.isSafeInteger(command.targetX) || !Number.isSafeInteger(command.targetZ)) throw new Error('BUILD target coordinates must be safe integers.');
       if (command.resourceNodeId !== undefined && command.resourceNodeId.trim() === '') throw new Error('BUILD resourceNodeId must be non-empty when supplied.');
+    }
+    if (command.type === 'TRAIN' && command.elementalistAlignment !== undefined && !isElementId(command.elementalistAlignment)) {
+      throw new Error('TRAIN elementalistAlignment must be a valid element.');
     }
     if (command.type === 'SET_RALLY_POINT') {
       if (!Number.isSafeInteger(command.targetX) || !Number.isSafeInteger(command.targetZ)) throw new Error('SET_RALLY_POINT target coordinates must be safe integers.');
