@@ -1,9 +1,12 @@
 # PEPEPOW Elemental Front — Post-Roadmap Gameplay Redesign Spec
 
-**Status:** DESIGN BASELINE / NOT YET AUTHORITATIVE RUNTIME RULES  
+**Status:** HISTORICAL REDESIGN BASELINE — PARTIALLY ADOPTED  
 **Scope:** post-M08 gameplay redesign direction  
-**Runtime authority:** none until explicitly adopted into `GAME_DESIGN_SPEC.md`, runtime data, and a new gameplay ruleset version  
-**Visual companion:** `media/prompts/images/POST_ROADMAP_UNIT_BUILDING_ART_PROMPTS.md`
+**Runtime authority:** current authoritative runtime is defined by `docs/PROJECT_CONTEXT.md` plus the adopted post-roadmap implementation contracts; Phase 2 and the Phase 3 formation slice have already superseded parts of this proposal  
+**Visual companion:** `media/prompts/images/POST_ROADMAP_UNIT_BUILDING_ART_PROMPTS.md`  
+**Current visual-production constraint:** `docs/VISUAL_IMPLEMENTATION_BRIEF.md`
+
+> **Current-state note:** Do not treat future-tense or pre-adoption wording in this document as current runtime truth. The active gameplay/replay identities and adopted behavior are listed in `docs/PROJECT_CONTEXT.md`. Section 19's **Arcane-Industrial Frontier** art direction remains active for the current visual-production pass.
 
 ---
 
@@ -926,4 +929,4 @@ The current proposed post-roadmap direction is:
 9. Use spatial formation behavior instead of relying on hidden stat bonuses.
 10. Introduce a new gameplay Ruleset Version before any authoritative implementation is merged.
 
-This document is the design baseline for the next implementation-planning step, not yet the authoritative live ruleset.
+This document is the historical design baseline that initiated the post-roadmap redesign. For current adopted runtime behavior and current work priority, use `docs/PROJECT_CONTEXT.md`.
