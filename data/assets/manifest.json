@@ -12,10 +12,10 @@
     {
       "id": "building.elemental-core.debug",
       "kind": "model",
-      "status": "PLACEHOLDER",
-      "path": "playcanvas://primitive/cylinder",
+      "status": "PRODUCTION_BASELINE",
+      "path": "assets/models/building-elemental-core.glb",
       "canonicalFilename": "building-elemental-core.glb",
-      "notes": "Replace through this manifest ID; gameplay must not reference the filename."
+      "notes": "Original faceted GLB, shared materials and named Reactor/Orbit nodes. Legacy ID preserved."
     },
     {
       "id": "ui.icon.material",
@@ -96,6 +96,46 @@
       "prompt": "media/prompts/images/M08_UI_ICON_PROMPTS.md#uiiconlightning",
       "aspectRatio": "1:1",
       "notes": "Optional final elemental icon; current text/key HUD remains functional."
+    },
+    {
+      "id": "unit.vanguard",
+      "kind": "model",
+      "status": "PRODUCTION_BASELINE",
+      "path": "assets/models/unit-vanguard.glb",
+      "canonicalFilename": "unit-vanguard.glb",
+      "notes": "Original faceted model. Y up, +Z forward; TEAM independent of ELEMENT. Rebuild: python scripts/art/build_frontier_models.py"
+    },
+    {
+      "id": "unit.elementalist.fire",
+      "kind": "model",
+      "status": "PRODUCTION_BASELINE",
+      "path": "assets/models/unit-elementalist-fire.glb",
+      "canonicalFilename": "unit-elementalist-fire.glb",
+      "notes": "Original faceted model. Y up, +Z forward; TEAM independent of ELEMENT. Rebuild: python scripts/art/build_frontier_models.py"
+    },
+    {
+      "id": "unit.elementalist.water",
+      "kind": "model",
+      "status": "PRODUCTION_BASELINE",
+      "path": "assets/models/unit-elementalist-water.glb",
+      "canonicalFilename": "unit-elementalist-water.glb",
+      "notes": "Original faceted model. Y up, +Z forward; TEAM independent of ELEMENT. Rebuild: python scripts/art/build_frontier_models.py"
+    },
+    {
+      "id": "unit.elementalist.ice",
+      "kind": "model",
+      "status": "PRODUCTION_BASELINE",
+      "path": "assets/models/unit-elementalist-ice.glb",
+      "canonicalFilename": "unit-elementalist-ice.glb",
+      "notes": "Original faceted model. Y up, +Z forward; TEAM independent of ELEMENT. Rebuild: python scripts/art/build_frontier_models.py"
+    },
+    {
+      "id": "unit.elementalist.lightning",
+      "kind": "model",
+      "status": "PRODUCTION_BASELINE",
+      "path": "assets/models/unit-elementalist-lightning.glb",
+      "canonicalFilename": "unit-elementalist-lightning.glb",
+      "notes": "Original faceted model. Y up, +Z forward; TEAM independent of ELEMENT. Rebuild: python scripts/art/build_frontier_models.py"
     }
   ]
 }

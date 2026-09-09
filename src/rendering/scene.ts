@@ -1,4 +1,6 @@
 import * as pc from 'playcanvas';
+import { BattleVfx } from './battle-vfx';
+import { VisualAssetLibrary } from './visual-asset-library';
 import { AudioFeedback } from '../audio/audio-feedback';
 import { MinimapControls } from '../input/minimap-controls';
 import { UnitControls } from '../input/unit-controls';
@@ -207,8 +209,10 @@ export function createSceneShell(
   };
   const selectionMaterial = createMaterial(new pc.Color(0.96, 0.78, 0.2), new pc.Color(0.55, 0.32, 0.03));
   const healthMaterial = createMaterial(new pc.Color(0.18, 0.9, 0.25), new pc.Color(0.03, 0.2, 0.04));
-  const bridge = new UnitRenderBridge(app, initialSnapshot, unitMaterials, selectionMaterial, healthMaterial);
-  const elementalBridge = new ElementalRenderBridge(app, simulation.terrain, initialSnapshot);
+  const battleVfx = new BattleVfx(app);
+  const visualAssets = new VisualAssetLibrary(app);
+  const bridge = new UnitRenderBridge(app, initialSnapshot, unitMaterials, selectionMaterial, healthMaterial, visualAssets, battleVfx);
+  const elementalBridge = new ElementalRenderBridge(app, simulation.terrain, initialSnapshot, battleVfx);
   const audioFeedback = new AudioFeedback();
   const poiBridge = simulation instanceof M03Simulation
     ? new PoiRenderBridge(app, simulation.generatedWorld, cameraComponent, camera, canvas)
@@ -219,7 +223,7 @@ export function createSceneShell(
   const minimapControls = simulation instanceof M03Simulation && minimapCanvas instanceof HTMLCanvasElement
     ? new MinimapControls(minimapCanvas, simulation.generatedWorld, camera, controls)
     : null;
-  const strategicBridge = simulation instanceof M03Simulation ? new StrategicRenderBridge(app) : null;
+  const strategicBridge = simulation instanceof M03Simulation ? new StrategicRenderBridge(app, visualAssets) : null;
   if (simulation instanceof M03Simulation) strategicBridge?.sync(simulation.strategy.snapshot(), initialSnapshot.tick);
   const runBridge = simulation instanceof M06Simulation ? new RunRenderBridge(app) : null;
   if (simulation instanceof M06Simulation) runBridge?.sync(simulation.run.snapshot(), initialSnapshot.tick, 0);
@@ -268,6 +272,7 @@ export function createSceneShell(
             : new pc.Color(0.9, 0.94, 0.84);
         }
       }
+      battleVfx.sync(frame.snapshot.tick, frame.interpolationAlpha);
       generatedWorldBridge?.sync(frame.snapshot.navVersion, frame.snapshot.terrain.ice);
       if (freezablePatch?.render) {
         const frozen = frame.snapshot.terrain.ice > 0;
@@ -290,6 +295,8 @@ export function createSceneShell(
       resourceBridge?.destroy();
       generatedWorldBridge?.destroy();
       camera.destroy();
+      battleVfx.destroy();
+      visualAssets.destroy();
       app.destroy();
     },
   };

@@ -1,4 +1,5 @@
 import * as pc from 'playcanvas';
+import { BattleVfx, ELEMENT_TINTS, ringMesh } from './battle-vfx';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
 import type { TerrainState } from '../simulation/terrain-state';
 import { SurfaceType } from '../simulation/terrain-state';
@@ -26,7 +27,7 @@ function createMaterial(color: pc.Color, emissive: pc.Color, opacity = 1): pc.St
   material.emissiveIntensity = 2;
   material.gloss = 0.45;
   material.opacity = opacity;
-  if (opacity < 1) material.blendType = pc.BLEND_NORMAL;
+  if (opacity < 1) { material.blendType = pc.BLEND_NORMAL; material.depthWrite = false; }
   material.update();
   return material;
 }
@@ -54,12 +55,15 @@ export class ElementalRenderBridge {
   private readonly steamMaterial = createMaterial(new pc.Color(0.72, 0.86, 0.9), new pc.Color(0.12, 0.22, 0.24), 0.32);
   private lastIceCells: Set<string>;
   private lastProcessedTick = -1;
+  private readonly rippleMesh: pc.Mesh;
 
   constructor(
     private readonly app: pc.Application,
     private readonly terrain: TerrainState,
     initialSnapshot: SimulationSnapshot,
+    private readonly effects: BattleVfx,
   ) {
+    this.rippleMesh = ringMesh(app.graphicsDevice);
     this.lastIceCells = this.currentIceCells();
     this.syncBurning(initialSnapshot, 0);
   }
@@ -80,6 +84,7 @@ export class ElementalRenderBridge {
     this.burning.clear();
     for (const visual of this.transient) visual.entity.destroy();
     this.transient.length = 0;
+    this.rippleMesh.destroy();
     this.flameMaterial.destroy();
     this.flameCoreMaterial.destroy();
     this.waterMaterial.destroy();
@@ -96,12 +101,14 @@ export class ElementalRenderBridge {
       if (!root) {
         root = this.createFire(cell.column, cell.row);
         this.burning.set(key, root);
+        const center = this.terrain.cellCenter(cell);
+        this.effects.burst(center.x / WORLD_UNITS_PER_METER, .3, center.z / WORLD_UNITS_PER_METER, ELEMENT_TINTS.FIRE, snapshot.tick, 4, .65);
       }
       const center = this.terrain.cellCenter(cell);
       root.setPosition(center.x / WORLD_UNITS_PER_METER, 0.09, center.z / WORLD_UNITS_PER_METER);
       const phase = ((snapshot.tick + cell.column * 3 + cell.row * 5) % 11 + alpha) / 11;
       const pulse = 0.9 + Math.sin(phase * Math.PI * 2) * 0.1;
-      root.setLocalScale(pulse, pulse, pulse);
+      root.setLocalScale(pulse, 1 + Math.sin(phase * 18) * .2, pulse);
     }
     for (const [key, root] of [...this.burning]) {
       if (active.has(key)) continue;
@@ -113,12 +120,12 @@ export class ElementalRenderBridge {
   private createFire(column: number, row: number): pc.Entity {
     const root = new pc.Entity(`Burning Cell ${column},${row}`);
     const lower = new pc.Entity('Flame Outer');
-    lower.addComponent('render', { type: 'capsule', material: this.flameMaterial });
+    lower.addComponent('render', { type: 'cone', material: this.flameMaterial });
     lower.setLocalPosition(-0.12, 0.34, 0.08);
     lower.setLocalScale(0.28, 0.64, 0.28);
     root.addChild(lower);
     const core = new pc.Entity('Flame Core');
-    core.addComponent('render', { type: 'capsule', material: this.flameCoreMaterial });
+    core.addComponent('render', { type: 'cone', material: this.flameCoreMaterial });
     core.setLocalPosition(0.11, 0.28, -0.06);
     core.setLocalScale(0.2, 0.46, 0.2);
     root.addChild(core);
@@ -176,25 +183,7 @@ export class ElementalRenderBridge {
   }
 
   private spawnLightningBeam(start: pc.Vec3, end: pc.Vec3, tick: number): void {
-    const dx = end.x - start.x;
-    const dz = end.z - start.z;
-    const distance = Math.sqrt(dx * dx + dz * dz);
-    if (distance <= 0.01) return;
-    const entity = new pc.Entity('Lightning Chain');
-    entity.addComponent('render', { type: 'box', material: this.lightningMaterial });
-    const y = (start.y + end.y) / 2;
-    entity.setPosition((start.x + end.x) / 2, y, (start.z + end.z) / 2);
-    entity.setEulerAngles(0, Math.atan2(dx, dz) * 180 / Math.PI, 0);
-    entity.setLocalScale(0.11, 0.11, distance);
-    this.app.root.addChild(entity);
-    this.transient.push({
-      entity,
-      bornTick: tick,
-      expiresTick: tick + 2,
-      baseScale: 1,
-      originY: y,
-      kind: 'LIGHTNING_BEAM',
-    });
+    this.effects.bolt(start, end, tick);
   }
 
   private processIceTransitions(tick: number): void {
@@ -233,9 +222,10 @@ export class ElementalRenderBridge {
   private spawnWaterRing(x: number, z: number, tick: number): void {
     const originY = 0.12;
     const entity = new pc.Entity('Water Burst Impact');
-    entity.addComponent('render', { type: 'cylinder', material: this.waterMaterial });
+    entity.addComponent('render', { meshInstances: [new pc.MeshInstance(this.rippleMesh, this.waterMaterial)], castShadows: false });
+    this.effects.burst(x, .2, z, ELEMENT_TINTS.WATER, tick, 8, .7);
     entity.setPosition(x, originY, z);
-    entity.setLocalScale(0.45, 0.035, 0.45);
+    entity.setLocalScale(0.45, 1, 0.45);
     this.app.root.addChild(entity);
     this.transient.push({
       entity,
@@ -249,6 +239,7 @@ export class ElementalRenderBridge {
 
   private spawnIceSpark(x: number, z: number, tick: number): void {
     const originY = 0.16;
+    this.effects.burst(x, .18, z, ELEMENT_TINTS.ICE, tick, 4, .6);
     const root = new pc.Entity('Ice Formation Spark');
     root.setPosition(x, originY, z);
     const slashA = new pc.Entity('Ice Crack A');
@@ -290,6 +281,7 @@ export class ElementalRenderBridge {
   }
 
   private updateTransient(tick: number, alpha: number): void {
+    while (this.transient.length > 96) this.transient.shift()!.entity.destroy();
     for (let index = this.transient.length - 1; index >= 0; index -= 1) {
       const visual = this.transient[index]!;
       if (tick > visual.expiresTick) {
@@ -306,7 +298,7 @@ export class ElementalRenderBridge {
         visual.entity.setLocalScale(scale, scale * 0.72, scale);
       } else if (visual.kind === 'WATER_RING') {
         const scale = visual.baseScale * (1 + progress * 2.6);
-        visual.entity.setLocalScale(scale, 0.035, scale);
+        visual.entity.setLocalScale(scale, 1 - progress * .9, scale);
       } else if (visual.kind === 'ICE_SPARK') {
         const scale = 0.72 + Math.sin(progress * Math.PI) * 0.48;
         visual.entity.setLocalScale(scale, scale, scale);

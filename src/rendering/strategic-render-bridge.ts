@@ -1,4 +1,5 @@
 import * as pc from 'playcanvas';
+import { VisualAssetLibrary, type VisualModel } from './visual-asset-library';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
 import { BUILDINGS } from '../simulation/m03-content';
 import type { StrategicBuilding, StrategicSnapshot } from '../simulation/strategic-state';
@@ -11,6 +12,7 @@ interface BuildingPartPresentation {
 
 interface BuildingPresentation {
   root: pc.Entity;
+  model: VisualModel | null;
   parts: readonly BuildingPartPresentation[];
   footprint: pc.Entity;
   beacon: pc.Entity;
@@ -55,9 +57,10 @@ export class StrategicRenderBridge {
   private readonly enemyAccentMaterial = createMaterial(new pc.Color(1, 0.45, 0.16), new pc.Color(0.62, 0.08, 0.01));
   private readonly constructionMaterial = createMaterial(new pc.Color(0.46, 0.43, 0.3), new pc.Color(0.08, 0.07, 0.03));
   private readonly destroyedMaterial = createMaterial(new pc.Color(0.12, 0.13, 0.13), new pc.Color(0.018, 0.018, 0.018));
+  private readonly workMaterial = createMaterial(new pc.Color(.94, .66, .22), new pc.Color(.25, .12, .02));
   private readonly healthBackMaterial = createMaterial(new pc.Color(0.035, 0.045, 0.045));
 
-  constructor(private readonly app: pc.Application) {}
+  constructor(private readonly app: pc.Application, private readonly visualAssets: VisualAssetLibrary) {}
 
   sync(snapshot: StrategicSnapshot, tick = 0): void {
     const active = new Set<number>();
@@ -97,11 +100,24 @@ export class StrategicRenderBridge {
       presentation.beacon.enabled = building.type !== 'ELEMENTAL_CORE' && !building.destroyed;
 
       const profile = buildingVisualProfile(building.type);
-      const showHealth = isResourceSite(building) && building.completed && !building.destroyed;
+      const model = presentation.model;
+      if (model?.entity) {
+        model.reactor?.setLocalEulerAngles(0, tick * 2.5, 0);
+        model.orbit?.setLocalEulerAngles(22, -tick * 1.5, 15);
+        for (const render of model.entity.findComponents('render') as pc.RenderComponent[]) {
+          if (building.destroyed) for (const mesh of render.meshInstances) mesh.material = this.destroyedMaterial;
+        }
+      }
+      const order = snapshot.productionQueue.find((entry) => entry.buildingId === building.id && entry.startTick <= tick && entry.completeTick > tick);
+      const working = !building.completed || order !== undefined;
+      const showHealth = !building.destroyed && (working || isResourceSite(building) || building.currentHealth < building.maxHealth);
       presentation.healthBack.enabled = showHealth;
       presentation.healthBar.enabled = showHealth;
       if (showHealth) {
-        const ratio = Math.max(0, Math.min(1, building.currentHealth / Math.max(1, building.maxHealth)));
+        const ratio = !building.completed
+          ? Math.max(0, Math.min(1, (tick - building.completeTick + BUILDINGS[building.type].buildTicks) / Math.max(1, BUILDINGS[building.type].buildTicks)))
+          : order ? Math.max(0, Math.min(1, (tick - order.startTick) / Math.max(1, order.durationTicks)))
+          : Math.max(0, Math.min(1, building.currentHealth / Math.max(1, building.maxHealth)));
         const width = Math.max(1.25, profile.footprint * 1.15);
         const y = profile.height + 0.72;
         presentation.healthBack.setLocalPosition(0, y, 0);
@@ -109,7 +125,7 @@ export class StrategicRenderBridge {
         presentation.healthBar.setLocalPosition(-(1 - ratio) * width * 0.5, y + 0.012, 0);
         presentation.healthBar.setLocalScale(width * ratio, 0.062, 0.09);
         if (presentation.healthBar.render) {
-          presentation.healthBar.render.material = this.materialFor(building.playerId, 'ACCENT');
+          presentation.healthBar.render.material = working ? this.workMaterial : this.materialFor(building.playerId, 'ACCENT');
         }
       }
 
@@ -142,13 +158,15 @@ export class StrategicRenderBridge {
     }
     for (const [buildingId, presentation] of [...this.entities]) {
       if (active.has(buildingId)) continue;
+      this.visualAssets.release(presentation.model);
       presentation.root.destroy();
       this.entities.delete(buildingId);
     }
   }
 
   destroy(): void {
-    for (const presentation of this.entities.values()) presentation.root.destroy();
+    for (const presentation of this.entities.values()) { this.visualAssets.release(presentation.model); presentation.root.destroy(); }
+    this.workMaterial.destroy();
     this.entities.clear();
     this.playerMaterial.destroy();
     this.playerAccentMaterial.destroy();
@@ -226,7 +244,9 @@ export class StrategicRenderBridge {
     root.addChild(defenseHead);
 
     this.app.root.addChild(root);
-    return { root, parts, footprint, beacon, rally, healthBack, healthBar, defenseStem, defenseHead };
+    const model = building.type === 'ELEMENTAL_CORE'
+      ? this.visualAssets.attach(root, parts.map((part) => part.entity), 'building.elemental-core.debug', building.playerId) : null;
+    return { root, model, parts, footprint, beacon, rally, healthBack, healthBar, defenseStem, defenseHead };
   }
 
   private materialFor(playerId: number, role: BuildingVisualMaterialRole): pc.Material {

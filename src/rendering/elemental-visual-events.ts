@@ -1,3 +1,4 @@
+import type { M04SimulationSnapshot } from '../simulation/m04-simulation';
 import type { EntityID } from '../simulation/components';
 import type { SimulationSnapshot } from '../simulation/simulation';
 
@@ -32,7 +33,10 @@ export function newlyWetVisibleEntities(
   previous: SimulationSnapshot,
   current: SimulationSnapshot,
 ): readonly EntityID[] {
-  if (current.lastTerrainEffect !== 'WATER' || current.lastTerrainEffectTick !== current.tick) return [];
+  const cast = (current as Partial<M04SimulationSnapshot>).elementalAuthority?.lastCastResult;
+  const v3Water = cast?.status === 'CAST' && cast.spellId === 'WATER_BURST' && cast.tick === current.tick;
+  const legacyWater = current.lastTerrainEffect === 'WATER' && current.lastTerrainEffectTick === current.tick;
+  if (!v3Water && !legacyWater) return [];
   const previousById = new Map(previous.entities.map((entity) => [entity.id, entity]));
   return current.entities
     .filter((entity) => {

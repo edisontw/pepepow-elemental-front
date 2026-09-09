@@ -58,6 +58,7 @@ interface PlacementCheck {
 
 export class StrategicPanel {
   private elapsed = 0;
+  private commandView: 'build' | 'army' = 'build';
   private message = 'Construction is parallel. Outposts need 10 Influence; capture POIs to fund continued expansion.';
   private pendingBuildType: Exclude<BuildingType, 'ELEMENTAL_CORE'> | null = null;
   private pendingRallyBuildingId: number | null = null;
@@ -112,7 +113,8 @@ export class StrategicPanel {
     const target = event.target instanceof Element ? event.target.closest<HTMLButtonElement>('button[data-action]') : null;
     if (!target || target.disabled) return;
     const action = target.dataset.action;
-    if (action === 'build') this.beginBuild(target.dataset.value as Exclude<BuildingType, 'ELEMENTAL_CORE'>);
+    if (action === 'command-view' && (target.dataset.value === 'build' || target.dataset.value === 'army')) this.commandView = target.dataset.value;
+    else if (action === 'build') this.beginBuild(target.dataset.value as Exclude<BuildingType, 'ELEMENTAL_CORE'>);
     else if (action === 'train') this.queueTrain(target.dataset.value as UnitArchetype);
     else if (action === 'select-producer') this.selectProducer(Number(target.dataset.value));
     else if (action === 'set-rally') this.beginRallyPlacement();
@@ -486,7 +488,7 @@ export class StrategicPanel {
       });
     const hiddenOrders = Math.max(0, snapshot.productionQueue.filter((order) => order.playerId === PLAYER_ID).length - production.length);
     if (construction.length === 0 && production.length === 0) return '';
-    return `<div class="strategy-progress"><strong>Active Parallel Work</strong>${construction.join('')}${production.join('')}${hiddenOrders > 0 ? `<small>+${hiddenOrders} more queued</small>` : ''}</div>`;
+    return `<div class="strategy-progress"><strong>Work in progress</strong>${construction.join('')}${production.join('')}${hiddenOrders > 0 ? `<small>+${hiddenOrders} more queued</small>` : ''}</div>`;
   }
 
   private render(): void {
@@ -521,8 +523,14 @@ export class StrategicPanel {
     const expansionHint = canFundOutpost
       ? 'Outpost funded: choose a neutral region directly adjacent to supplied territory.'
       : `Next Outpost needs 180 Material + 10 Influence. Current Influence: ${formatResource(stock.influenceMilli)}. Capture a POI for +10 Influence.`;
+    const selected = this.selectedUnits().filter((unit) => unit.alive && unit.playerId === PLAYER_ID);
+    const hp = selected.reduce((sum, unit) => sum + unit.currentHealth, 0);
+    const maxHp = selected.reduce((sum, unit) => sum + unit.maxHealth, 0);
+    const roles = [...new Set(selected.map((unit) => label(unit.archetype)))];
+    const selectedMarkup = `<div class="selection-card"><small>SELECTION</small><strong>${selected.length ? `${selected.length} ${selected.length === 1 ? 'unit' : 'units'}` : 'No units selected'}</strong><span>${selected.length ? roles.join(' · ') : 'Click a unit or drag a selection box.'}</span>${maxHp ? `<div class="selection-health" role="meter" aria-label="Selected army health" aria-valuemin="0" aria-valuemax="${maxHp}" aria-valuenow="${hp}"><i style="width:${100 * hp / maxHp}%"></i></div><small>${hp} / ${maxHp} HP</small>` : ''}</div>`;
+    this.element.dataset.view = this.commandView;
     this.element.innerHTML = `
-      <div class="strategy-title">ECONOMY & COMMAND</div>
+      <div class="strategy-title">FIELD COMMAND</div>
       <div class="resource-strip">
         <b>${formatResource(stock.materialMilli)} <span>Material</span></b>
         <b>${formatResource(stock.manaMilli)} <span>Mana</span></b>
@@ -531,10 +539,12 @@ export class StrategicPanel {
       </div>
       <div class="resource-key"><span class="material-dot"></span>Amber Deposit → Extractor <span class="mana-dot"></span>Violet Mana Spring → Mana Well</div>
       <div class="strategy-meta">Territory ${owned}/${snapshot.regionOwners.length} · Supplied ${supplied} · Contested ${snapshot.contestedRegions.length}</div>
-      ${this.armyMarkup(simulationSnapshot)}
+      ${selectedMarkup}
+      <nav class="command-tabs" aria-label="Command category"><button data-action="command-view" data-value="build" aria-pressed="${this.commandView === 'build'}">Construction</button><button data-action="command-view" data-value="army" aria-pressed="${this.commandView === 'army'}">Army & Production</button></nav>
+      <div class="army-view">${this.armyMarkup(simulationSnapshot)}</div>
       ${this.queueMarkup(simulationSnapshot.tick, snapshot)}
-      <div class="strategy-section"><strong>Build — parallel</strong><div class="strategy-buttons">${buildingButtons}</div><small>Each site progresses independently. Shift-click the battlefield to place another building of the same type.</small></div>
-      <div class="strategy-section"><strong>Produce</strong>${this.producerMarkup(snapshot)}<div class="strategy-buttons compact">${trainButtons}</div><div class="strategy-buttons"><button class="${rallyActive.trim()}" data-action="set-rally" ${selectedProducer ? '' : 'disabled'}>Set Rally Point</button></div></div>
+      <div class="strategy-section build-view"><strong>Construct</strong><div class="strategy-buttons">${buildingButtons}</div><small>Each site progresses independently. Shift-click the battlefield to place another building of the same type.</small></div>
+      <div class="strategy-section army-view"><strong>Recruit</strong>${this.producerMarkup(snapshot)}<div class="strategy-buttons compact">${trainButtons}</div><div class="strategy-buttons"><button class="${rallyActive.trim()}" data-action="set-rally" ${selectedProducer ? '' : 'disabled'}>Set Rally Point</button></div></div>
       <div class="strategy-section territory-info"><strong>Expansion</strong><small>${expansionHint}</small><div class="strategy-buttons">
         <button data-action="capture-poi">Capture POI (+10 Influence)</button>
       </div></div>

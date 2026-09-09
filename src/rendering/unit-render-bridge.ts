@@ -1,4 +1,7 @@
 import * as pc from 'playcanvas';
+import { BattleVfx, ELEMENT_TINTS, ringMesh } from './battle-vfx';
+import type { M04SimulationSnapshot } from '../simulation/m04-simulation';
+import { VisualAssetLibrary, type VisualModel } from './visual-asset-library';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
 import type { EntityID } from '../simulation/components';
 import type { EntitySnapshot, SimulationSnapshot } from '../simulation/simulation';
@@ -6,6 +9,10 @@ import { unitVisualProfile, type UnitProjectileStyle } from './unit-visual-profi
 
 interface UnitPresentation {
   root: pc.Entity;
+  model: VisualModel | null;
+  modelId: string;
+  primitives: pc.Entity[];
+  actionTick: number;
   selection: pc.Entity;
   healthBack: pc.Entity;
   healthBar: pc.Entity;
@@ -36,7 +43,7 @@ function createMaterial(color: pc.Color, emissive?: pc.Color, opacity = 1): pc.S
   material.diffuse = color;
   material.gloss = 0.42;
   material.opacity = opacity;
-  if (opacity < 1) material.blendType = pc.BLEND_NORMAL;
+  if (opacity < 1) { material.blendType = pc.BLEND_NORMAL; material.depthWrite = false; }
   if (emissive) {
     material.emissive = emissive;
     material.emissiveIntensity = 1.7;
@@ -64,7 +71,10 @@ export class UnitRenderBridge {
   private readonly deathMaterial = createMaterial(new pc.Color(0.38, 0.4, 0.42), new pc.Color(0.12, 0.12, 0.12), 0.58);
   private readonly playerProjectileMaterial = createMaterial(new pc.Color(0.56, 1, 0.94), new pc.Color(0.06, 0.72, 0.6));
   private readonly enemyProjectileMaterial = createMaterial(new pc.Color(1, 0.52, 0.18), new pc.Color(0.82, 0.1, 0.02));
+  private readonly alignmentMaterials = Object.fromEntries(Object.entries(ELEMENT_TINTS).map(([element, color]) => [element, createMaterial(new pc.Color(...color), new pc.Color(...color))])) as Record<keyof typeof ELEMENT_TINTS, pc.StandardMaterial>;
   private lastFeedbackTick = -1;
+  private readonly ring: pc.Mesh;
+  private alignments = new Map<number, keyof typeof ELEMENT_TINTS>();
 
   constructor(
     private readonly app: pc.Application,
@@ -72,13 +82,18 @@ export class UnitRenderBridge {
     private readonly unitMaterials: { player: pc.Material; enemyMelee: pc.Material; enemyRanged: pc.Material },
     private readonly selectionMaterial: pc.Material,
     private readonly healthMaterial: pc.Material,
+    private readonly visualAssets: VisualAssetLibrary,
+    private readonly effects: BattleVfx,
   ) {
+    this.ring = ringMesh(app.graphicsDevice);
     for (const unit of initialSnapshot.entities) this.createPresentation(unit);
     this.sync(initialSnapshot, initialSnapshot, 1);
   }
 
   sync(previous: SimulationSnapshot, current: SimulationSnapshot, alpha: number): void {
     this.latest = snapshotMap(current);
+    const authority = (current as Partial<M04SimulationSnapshot>).elementalAuthority;
+    this.alignments = new Map(authority?.alignedElementalists.map((entry) => [entry.entityId, entry.element]));
     const previousById = snapshotMap(previous);
     if (current.tick !== this.lastFeedbackTick) {
       this.detectCombatFeedback(previousById, current);
@@ -89,8 +104,19 @@ export class UnitRenderBridge {
       let presentation = this.units.get(unit.id);
       if (!presentation) presentation = this.createPresentation(unit);
       const profile = unitVisualProfile(unit.archetype);
+      const alignment = this.alignments.get(unit.id);
+      const modelId = unit.archetype === 'VANGUARD' ? 'unit.vanguard'
+        : unit.archetype === 'ELEMENTALIST' && alignment ? `unit.elementalist.${alignment.toLowerCase()}` : '';
+      if (modelId && presentation.modelId !== modelId) {
+        this.visualAssets.release(presentation.model);
+        presentation.model = this.visualAssets.attach(presentation.root, presentation.primitives, modelId, unit.playerId);
+        presentation.modelId = modelId;
+      }
+      const cast = authority?.lastCastResult;
+      if (cast?.status === 'CAST' && cast.casterEntityId === unit.id && cast.tick === current.tick) presentation.actionTick = current.tick;
       const presented = unit.alive && unit.visibleToPlayer;
-      presentation.root.enabled = presented;
+      const dying = !unit.alive && current.tick <= presentation.deathUntilTick && unit.visibleToPlayer;
+      presentation.root.enabled = presented || dying;
       presentation.selection.enabled = presented && presentation.selection.enabled;
       presentation.healthBack.enabled = presented;
       presentation.healthBar.enabled = presented;
@@ -98,7 +124,7 @@ export class UnitRenderBridge {
       presentation.wetBeacon.enabled = presented && unit.wet;
       presentation.coldMarker.enabled = presented && (unit.chilledTicks > 0 || unit.frozenTicks > 0);
       presentation.hitFlash.enabled = presented && current.tick <= presentation.hitFlashUntilTick;
-      presentation.deathMarker.enabled = !unit.alive && current.tick <= presentation.deathUntilTick;
+      presentation.deathMarker.enabled = dying;
       if (presentation.coldMarker.render) {
         presentation.coldMarker.render.material = unit.frozenTicks > 0 ? this.frozenMaterial : this.chilledMaterial;
       }
@@ -107,7 +133,16 @@ export class UnitRenderBridge {
       const x = pc.math.lerp(prior.x, unit.x, alpha) / WORLD_UNITS_PER_METER;
       const z = pc.math.lerp(prior.z, unit.z, alpha) / WORLD_UNITS_PER_METER;
       if (presented) {
-        presentation.root.setPosition(x, 0, z);
+        const moving = unit.frozenTicks === 0 && (unit.x !== prior.x || unit.z !== prior.z);
+        const gait = (current.tick + alpha) * 1.15 + unit.id * .7;
+        const action = Math.max(0, 1 - (current.tick + alpha - presentation.actionTick) / 3);
+        const hit = current.tick <= presentation.hitFlashUntilTick;
+        presentation.root.setPosition(x, moving ? Math.abs(Math.sin(gait)) * .055 : Math.sin(gait * .23) * .012, z);
+        const model = presentation.model;
+        model?.entity?.setLocalEulerAngles(hit ? -9 : action * 9, 0, 0);
+        model?.legL?.setLocalEulerAngles(moving ? Math.sin(gait) * 25 : 0, 0, 0);
+        model?.legR?.setLocalEulerAngles(moving ? -Math.sin(gait) * 25 : 0, 0, 0);
+        model?.weapon?.setLocalEulerAngles(-Math.sin(action * Math.PI) * 65, 0, 0);
         const deltaX = unit.x - prior.x;
         const deltaZ = unit.z - prior.z;
         if (deltaX !== 0 || deltaZ !== 0) {
@@ -115,11 +150,18 @@ export class UnitRenderBridge {
         }
       }
 
+      if (dying) {
+        const fall = Math.min(1, (current.tick + alpha - presentation.deathUntilTick + 6) / 4);
+        presentation.model?.entity?.setLocalEulerAngles(0, 0, fall * 82);
+        presentation.root.setPosition(x, -.15 * fall, z);
+      }
       const statusY = Math.max(0.18, profile.height * 0.08);
       presentation.selection.setPosition(x, 0.055, z);
       presentation.wetMarker.setPosition(x, statusY, z);
       presentation.wetBeacon.setPosition(x, profile.height + 0.52, z);
-      presentation.coldMarker.setPosition(x, profile.height * 0.72, z);
+      presentation.coldMarker.setPosition(x, unit.frozenTicks > 0 ? profile.height * .5 : .16, z);
+      presentation.coldMarker.setLocalScale(profile.selectionScale * .85, unit.frozenTicks > 0 ? profile.height * .95 : .08, profile.selectionScale * .85);
+      presentation.coldMarker.setEulerAngles(0, 45, 0);
       presentation.hitFlash.setPosition(x, profile.height * 0.52, z);
       if (presentation.deathMarker.enabled) {
         presentation.deathMarker.setPosition(metres(prior.x), 0.18, metres(prior.z));
@@ -200,6 +242,8 @@ export class UnitRenderBridge {
     this.units.clear();
     for (const projectile of this.projectiles) projectile.entity.destroy();
     this.projectiles.length = 0;
+    for (const material of Object.values(this.alignmentMaterials)) material.destroy();
+    this.ring.destroy();
     this.wetMaterial.destroy();
     this.chilledMaterial.destroy();
     this.frozenMaterial.destroy();
@@ -222,6 +266,7 @@ export class UnitRenderBridge {
         : this.unitMaterials.enemyMelee;
     const accentMaterial = unit.playerId === 0 ? this.playerAccentMaterial : this.enemyAccentMaterial;
 
+    const primitives: pc.Entity[] = [];
     for (const [index, part] of profile.parts.entries()) {
       const child = new pc.Entity(`${unit.archetype} ${unit.id} Part ${index + 1}`);
       child.addComponent('render', {
@@ -231,12 +276,13 @@ export class UnitRenderBridge {
       child.setLocalPosition(part.position[0], part.position[1], part.position[2]);
       child.setLocalScale(part.scale[0], part.scale[1], part.scale[2]);
       root.addChild(child);
+      primitives.push(child);
     }
     this.app.root.addChild(root);
 
     const selection = new pc.Entity(`Selection ${unit.id}`);
-    selection.addComponent('render', { type: 'cylinder', material: this.selectionMaterial });
-    selection.setLocalScale(profile.selectionScale, 0.035, profile.selectionScale);
+    selection.addComponent('render', { meshInstances: [new pc.MeshInstance(this.ring, this.selectionMaterial)], castShadows: false });
+    selection.setLocalScale(profile.selectionScale, 1, profile.selectionScale);
     selection.enabled = false;
     this.app.root.addChild(selection);
 
@@ -248,8 +294,8 @@ export class UnitRenderBridge {
     this.app.root.addChild(healthBar);
 
     const wetMarker = new pc.Entity(`Wet Halo ${unit.id}`);
-    wetMarker.addComponent('render', { type: 'cylinder', material: this.wetMaterial });
-    wetMarker.setLocalScale(profile.selectionScale * 1.1, 0.045, profile.selectionScale * 1.1);
+    wetMarker.addComponent('render', { meshInstances: [new pc.MeshInstance(this.ring, this.wetMaterial)], castShadows: false });
+    wetMarker.setLocalScale(profile.selectionScale * 1.1, 1, profile.selectionScale * 1.1);
     wetMarker.enabled = false;
     this.app.root.addChild(wetMarker);
     const wetBeacon = new pc.Entity(`Wet Beacon ${unit.id}`);
@@ -277,6 +323,10 @@ export class UnitRenderBridge {
 
     const presentation: UnitPresentation = {
       root,
+      model: null,
+      modelId: '',
+      primitives,
+      actionTick: -100,
       selection,
       healthBack,
       healthBar,
@@ -294,16 +344,22 @@ export class UnitRenderBridge {
 
   private detectCombatFeedback(previousById: Map<EntityID, EntitySnapshot>, current: SimulationSnapshot): void {
     const currentById = snapshotMap(current);
+    const cast = (current as Partial<M04SimulationSnapshot>).elementalAuthority?.lastCastResult;
     for (const unit of current.entities) {
       const prior = previousById.get(unit.id);
       const presentation = this.units.get(unit.id) ?? this.createPresentation(unit);
       if (!prior) continue;
+      if (unit.visibleToPlayer && cast?.status === 'CAST' && cast.casterEntityId === unit.id && cast.tick === current.tick) {
+        this.effects.burst(metres(unit.x), 1.8, metres(unit.z), ELEMENT_TINTS[this.alignments.get(unit.id) ?? 'WATER'], current.tick, 10, .6);
+      }
 
       if (prior.alive && prior.currentHealth > unit.currentHealth && prior.visibleToPlayer) {
         presentation.hitFlashUntilTick = current.tick + 1;
+        this.effects.burst(metres(unit.x), .95, metres(unit.z), [1, .72, .30], current.tick, 7, .65);
       }
       if (prior.alive && !unit.alive && prior.visibleToPlayer) {
         presentation.deathUntilTick = current.tick + 6;
+        this.effects.burst(metres(prior.x), .4, metres(prior.z), [.52, .44, .31], current.tick, 10, .9);
       }
 
       if (
@@ -313,6 +369,10 @@ export class UnitRenderBridge {
         || unit.nextAttackTick <= prior.nextAttackTick
       ) continue;
       const profile = unitVisualProfile(unit.archetype);
+      presentation.actionTick = current.tick;
+      if (unit.archetype === 'ELEMENTALIST') this.effects.burst(metres(unit.x), 1.65, metres(unit.z), ELEMENT_TINTS[this.alignments.get(unit.id) ?? 'WATER'], current.tick, 5, .4);
+      const facing = currentById.get(unit.attackTargetEntityId);
+      if (facing?.visibleToPlayer) presentation.root.setEulerAngles(0, Math.atan2(facing.x - unit.x, facing.z - unit.z) * 180 / Math.PI, 0);
       if (profile.projectile === 'NONE') continue;
       const target = currentById.get(unit.attackTargetEntityId);
       if (!target || (!target.visibleToPlayer && target.playerId !== 0)) continue;
@@ -326,10 +386,12 @@ export class UnitRenderBridge {
     style: UnitProjectileStyle,
     tick: number,
   ): void {
+    if (this.projectiles.length >= 64) return;
     const entity = new pc.Entity(`${style} ${attacker.id} → ${target.id}`);
     entity.addComponent('render', {
       type: style === 'BOLT' ? 'box' : 'sphere',
-      material: attacker.playerId === 0 ? this.playerProjectileMaterial : this.enemyProjectileMaterial,
+      material: this.alignments.has(attacker.id) ? this.alignmentMaterials[this.alignments.get(attacker.id)!]
+        : attacker.playerId === 0 ? this.playerProjectileMaterial : this.enemyProjectileMaterial,
     });
     if (style === 'BOLT') entity.setLocalScale(0.12, 0.12, 0.52);
     else if (style === 'SHELL') entity.setLocalScale(0.3, 0.3, 0.3);
@@ -373,6 +435,7 @@ export class UnitRenderBridge {
   }
 
   private destroyPresentation(presentation: UnitPresentation): void {
+    this.visualAssets.release(presentation.model);
     presentation.root.destroy();
     presentation.selection.destroy();
     presentation.healthBack.destroy();
