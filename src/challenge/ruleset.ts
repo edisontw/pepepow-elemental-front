@@ -8,7 +8,7 @@ import { M02_STANDARD_RULES, type WorldGenerationRules } from '../world/world-de
  * the two explicit prevents gameplay redesigns from silently changing established M02
  * battlefield generation or Golden Block world hashes.
  */
-export const CURRENT_CHALLENGE_RULESET_VERSION = 'ef-standard-v2' as const;
+export const CURRENT_CHALLENGE_RULESET_VERSION = 'ef-standard-v3' as const;
 
 export interface ChallengeRulesetDefinition {
   version: string;
