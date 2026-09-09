@@ -24,11 +24,15 @@ Active post-roadmap design baseline:
 
 - `docs/POST_ROADMAP_GAMEPLAY_REDESIGN_SPEC.md`
 
+Frozen Phase 1 implementation contract:
+
+- `docs/POST_ROADMAP_PHASE1_IMPLEMENTATION_CONTRACT.md`
+
 Final-art prompt reference:
 
 - `media/prompts/images/POST_ROADMAP_UNIT_BUILDING_ART_PROMPTS.md`
 
-The post-roadmap redesign document is an approved design direction / implementation-planning baseline, but it does **not** replace live authoritative gameplay semantics until changes are explicitly adopted into the canonical gameplay spec, runtime data/code, tests, and a new gameplay Ruleset Version.
+The post-roadmap redesign document defines the approved design direction. The Phase 1 implementation contract freezes the data model and implementation decisions required for the first authoritative redesign slice. Neither document changes the currently deployed runtime by itself: live authoritative gameplay semantics change only when the contract is adopted into runtime data/code, tests, replay/challenge identity, and the canonical gameplay specification where applicable.
 
 Historical milestone detail belongs under `docs/milestones/`. Do not reconstruct or redo CLOSED milestones from chat history.
 
@@ -53,12 +57,13 @@ Preserve unless a demonstrated technical or later product requirement explicitly
 - local/practice play must not require blockchain RPC
 - challenge/replay identity must change whenever authoritative gameplay semantics change
 
-Ruleset separation is now explicit:
+Ruleset separation is explicit:
 
 - world generation: `m02-standard-v1`
-- current complete Challenge/replay/score-proof gameplay ruleset: `m08-standard-v1`
+- current deployed Challenge/replay/score-proof gameplay ruleset: `m08-standard-v1`
+- first post-roadmap gameplay ruleset reserved by the frozen Phase 1 contract: `ef-standard-v2`
 
-M02 Golden Blocks and established world generation remain unchanged by the M08 gameplay ruleset bump.
+`ef-standard-v2` is **not active yet**. It becomes current only when Phase 2 authoritative semantics, replay/hash support, and required regression tests land together. M02 Golden Blocks and established world generation remain unchanged.
 
 ---
 
@@ -120,33 +125,42 @@ Do not reopen M00–M08 unless a concrete regression is demonstrated or a later 
 
 ## 4. Post-roadmap status
 
-The original roadmap is complete. Product development has now entered deliberate post-roadmap redesign.
+The original roadmap is complete. Product development is now in deliberate post-roadmap redesign.
 
 The active gameplay design direction is defined in:
 
 - `docs/POST_ROADMAP_GAMEPLAY_REDESIGN_SPEC.md`
 
-Current proposed decisions include:
+Phase 1 is now **FROZEN** in:
+
+- `docs/POST_ROADMAP_PHASE1_IMPLEMENTATION_CONTRACT.md`
+
+Frozen Phase 1 decisions include:
 
 - retain Material / Mana / Influence rather than adding four elemental stockpile resources;
-- choose two starting Elemental Attunements per run;
-- use aligned Elementalists as the main Tactical spellcasters;
-- use Core / Arcane Tower / upgraded connected Outposts as Strategic spell infrastructure;
-- sharpen Fire / Water / Ice / Lightning into distinct battlefield jobs with setup, targets, and counterplay;
-- keep environmental consequences strategically meaningful to both factions;
-- sharpen the current eight-unit roster before expanding unit count;
-- reduce unnecessary caster micro through deterministic caster selection and clearer targeting previews;
-- emphasize spatial formation behavior over hidden percentage-stat formation bonuses;
-- assign a new gameplay Ruleset Version before merging authoritative redesign semantics.
+- require exactly two distinct starting Elemental Attunements per standard run;
+- store Attunement as authoritative per-player run state;
+- keep one `ELEMENTALIST` archetype with one immutable Fire / Water / Ice / Lightning alignment chosen at training time;
+- use aligned Elementalists as the local authority for Tactical spells;
+- use Elemental Core / Arcane Tower / connected `MANA_BEACON` Outposts as Strategic spell infrastructure;
+- use semantic Tactical / Strategic spell metadata rather than player commands supplying raw gameplay radius/cost/cooldown values;
+- separate static combat-role tags from dynamic elemental/status tags;
+- use deterministic caster and Strategic-anchor selection;
+- keep direct Tactical damage/control ally-safe while persistent environmental consequences remain faction-agnostic;
+- reserve `ef-standard-v2` as the first authoritative post-roadmap gameplay ruleset;
+- keep world generation on `m02-standard-v1`;
+- preserve legacy M08 `CAST` semantics only as an internal migration/regression path while player-facing v2 spell authority is introduced.
 
-These decisions are a design and implementation-planning baseline. The current deployed runtime still uses `m08-standard-v1` gameplay semantics until a later implementation explicitly replaces them.
+The current deployed runtime still uses `m08-standard-v1`. Do not change challenge/replay identity to `ef-standard-v2` until Phase 2 authoritative semantics and tests land together.
 
 Other remaining post-roadmap work includes:
 
+- formation and army-control redesign
+- unit-role and balance tuning after the new elemental authority layer is stable
 - forest / river / bridge / crossing strategic-value tuning
 - economy and territorial pacing
-- AI behavior and balance
-- progression / reward tuning
+- AI elemental decision behavior and balance
+- progression / reward tuning, including later third-Attunement paths
 - final manually approved art replacement
 - final approved/licensed SFX replacement
 - user-supplied Gemini background music
@@ -162,12 +176,14 @@ Do not reopen the original M00–M08 milestones.
 For the next gameplay implementation phase:
 
 1. start from latest GitHub `main`;
-2. read `docs/POST_ROADMAP_GAMEPLAY_REDESIGN_SPEC.md` before planning gameplay changes;
-3. convert the redesign into a concrete implementation contract before changing authoritative behavior;
-4. first finalize Attunement state, Elementalist alignment, Tactical / Strategic spell ownership, required target tags, and the new gameplay Ruleset Version;
-5. preserve deterministic architecture and existing CLOSED-system tests unless an explicit redesign requires a documented change;
-6. update replay / challenge identity whenever authoritative gameplay semantics change;
-7. keep final-art/audio replacement separable from gameplay correctness;
-8. implement in reviewable phases, with automated determinism/regression tests and later human WebGL acceptance.
+2. read `docs/POST_ROADMAP_GAMEPLAY_REDESIGN_SPEC.md` and then `docs/POST_ROADMAP_PHASE1_IMPLEMENTATION_CONTRACT.md`;
+3. treat the frozen Phase 1 contract as authoritative for the first redesign implementation slice;
+4. implement run-start Attunement state, aligned Elementalist training, deterministic Tactical caster selection, Tactical spell legality, and Strategic spell-network validation;
+5. add the target-tag helpers and shared Tactical / Strategic spell metadata defined by the contract;
+6. preserve deterministic architecture and existing CLOSED-system tests unless an explicit redesign requires a documented assertion change;
+7. bump replay format and gameplay challenge identity to `ef-standard-v2` only when the new authoritative semantics are fully connected to state hashes and replay verification;
+8. keep `m02-standard-v1` world generation and Golden Blocks unchanged;
+9. keep final-art/audio replacement separable from gameplay correctness;
+10. require automated determinism/regression tests before later WebGL acceptance.
 
-The immediate next formal work point is **post-roadmap gameplay implementation planning — Phase 1: redesign contract and data model**.
+The immediate next formal work point is **post-roadmap gameplay implementation — Phase 2: element access and caster authority**.
