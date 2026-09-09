@@ -169,7 +169,7 @@ describe('M06 full run', () => {
     expect(packet).not.toBeNull();
     expect(isM06ReplayPacket(packet)).toBe(true);
     expect(packet?.header).toMatchObject({
-      version: 'm06-replay-v1',
+      version: 'ef-replay-v2',
       blockHeight: 1_000_005,
       mode: 'DESTROY',
       pace: 'SMOKE',

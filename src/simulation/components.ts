@@ -1,3 +1,5 @@
+import type { ElementId } from './element-types';
+
 export type EntityID = number;
 export type PlayerID = number;
 export type UnitArchetype =
@@ -57,6 +59,10 @@ export interface FactionComponent {
 
 export interface SelectableComponent {
   radius: number;
+}
+
+export interface ElementalAlignmentComponent {
+  element: ElementId;
 }
 
 export interface UnitSpawn {

@@ -1,12 +1,9 @@
 import * as pc from 'playcanvas';
 import type { UnitRenderBridge } from '../rendering/unit-render-bridge';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
-import {
-  ELEMENTAL_FIRE_RADIUS,
-  ELEMENTAL_FREEZE_RADIUS,
-  ELEMENTAL_WATER_RADIUS,
-} from '../simulation/elemental-tactics';
-import type { EntitySnapshot, Simulation } from '../simulation/simulation';
+import type { TacticalSpellId } from '../simulation/element-types';
+import type { M04Simulation } from '../simulation/m04-simulation';
+import type { EntitySnapshot } from '../simulation/simulation';
 import { SelectionState } from './selection-state';
 
 const DRAG_THRESHOLD = 6;
@@ -24,7 +21,7 @@ export class UnitControls {
   constructor(
     private readonly canvas: HTMLCanvasElement,
     private readonly camera: pc.CameraComponent,
-    private readonly simulation: Simulation,
+    private readonly simulation: M04Simulation,
     private readonly bridge: UnitRenderBridge,
     private readonly selectionBox: HTMLElement,
   ) {
@@ -148,19 +145,15 @@ export class UnitControls {
     }
 
     if (!event.repeat && event.code === 'KeyR') {
-      this.castTerrainAtHover('FIRE', ELEMENTAL_FIRE_RADIUS);
+      this.castTacticalAtHover('FIREBOLT');
       return;
     }
     if (!event.repeat && event.code === 'KeyQ') {
-      this.castTerrainAtHover('WATER', ELEMENTAL_WATER_RADIUS);
+      this.castTacticalAtHover('WATER_BURST');
       return;
     }
     if (!event.repeat && event.code === 'KeyF') {
-      this.castTerrainAtHover('FREEZE', ELEMENTAL_FREEZE_RADIUS, 2);
-      return;
-    }
-    if (!event.repeat && event.code === 'KeyH') {
-      this.castTerrainAtHover('HEAT', ELEMENTAL_FIRE_RADIUS);
+      this.castTacticalAtHover('FREEZE');
       return;
     }
 
@@ -172,9 +165,10 @@ export class UnitControls {
       this.simulation.enqueueCommand({
         targetTick: this.simulation.snapshot().tick + 1,
         playerId: 0,
-        type: 'CAST',
-        effectId: 'CHAIN_LIGHTNING',
-        targetEntityId: targetId,
+        type: 'CAST_TACTICAL',
+        spellId: 'CHAIN_LIGHTNING',
+        candidateCasterIds: this.selection.ids,
+        target: { kind: 'ENTITY', entityId: targetId },
       });
       return;
     }
@@ -188,25 +182,17 @@ export class UnitControls {
     });
   };
 
-  private castTerrainAtHover(
-    effectId: 'FIRE' | 'WATER' | 'FREEZE' | 'HEAT',
-    radius: number,
-    repeatCount = 1,
-  ): void {
+  private castTacticalAtHover(spellId: Exclude<TacticalSpellId, 'CHAIN_LIGHTNING'>): void {
     const target = this.hoverWorldPoint();
     if (!target) return;
-    const targetTick = this.simulation.snapshot().tick + 1;
-    for (let index = 0; index < repeatCount; index += 1) {
-      this.simulation.enqueueCommand({
-        targetTick,
-        playerId: 0,
-        type: 'CAST',
-        effectId,
-        targetX: target.x,
-        targetZ: target.z,
-        radius,
-      });
-    }
+    this.simulation.enqueueCommand({
+      targetTick: this.simulation.snapshot().tick + 1,
+      playerId: 0,
+      type: 'CAST_TACTICAL',
+      spellId,
+      candidateCasterIds: this.selection.ids,
+      target: { kind: 'POINT', x: target.x, z: target.z },
+    });
   }
 
   private renderSelected(): void {

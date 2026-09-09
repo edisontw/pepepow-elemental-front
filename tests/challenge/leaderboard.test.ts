@@ -24,7 +24,7 @@ function submission(score: number, finalTick: number, finalStateHash: string): C
   const challenge = {
     version: BLOCK_CHALLENGE_VERSION,
     blockHeight: 1_000_000,
-    rulesetVersion: 'm02-standard-v1',
+    rulesetVersion: 'ef-standard-v2',
     worldGameplayHash: 'world-hash',
     generationAttempt: 0,
     mode: 'DESTROY' as const,
@@ -38,11 +38,12 @@ function submission(score: number, finalTick: number, finalStateHash: string): C
     challengeCode: 'BC1-TEST0001',
     replay: {
       header: {
-        version: 'm06-replay-v1',
+        version: 'ef-replay-v2',
         blockHeight: challenge.blockHeight,
         rulesetVersion: challenge.rulesetVersion,
         worldGameplayHash: challenge.worldGameplayHash,
         generationAttempt: challenge.generationAttempt,
+        startingAttunements: ['FIRE', 'WATER'],
         mode: challenge.mode,
         pace: challenge.pace,
         faction: challenge.faction,

@@ -1,19 +1,30 @@
-import { ELEMENTAL_SPELLS, type ElementalCastEffectId } from '../simulation/m04-content';
+import type { ElementId, TacticalSpellId } from '../simulation/element-types';
+import { UNITS } from '../simulation/m03-content';
 import type { M04Simulation } from '../simulation/m04-simulation';
+import { TACTICAL_SPELLS } from '../simulation/spell-content';
 
 const PLAYER_ID = 0;
-const SPELL_ORDER: readonly ElementalCastEffectId[] = ['FIRE', 'WATER', 'FREEZE', 'CHAIN_LIGHTNING'];
-const KEY_BY_SPELL: Readonly<Record<ElementalCastEffectId, string>> = {
-  FIRE: 'R',
-  WATER: 'Q',
+const SPELL_ORDER: readonly TacticalSpellId[] = ['FIREBOLT', 'WATER_BURST', 'FREEZE', 'CHAIN_LIGHTNING'];
+const KEY_BY_SPELL: Readonly<Record<TacticalSpellId, string>> = {
+  FIREBOLT: 'R',
+  WATER_BURST: 'Q',
   FREEZE: 'F',
   CHAIN_LIGHTNING: 'L',
-  HEAT: 'H',
+};
+const SPELL_LABELS: Readonly<Record<TacticalSpellId, string>> = {
+  FIREBOLT: 'Firebolt',
+  WATER_BURST: 'Water Burst',
+  FREEZE: 'Freeze',
+  CHAIN_LIGHTNING: 'Chain Lightning',
 };
 
 function value(milli: number): string {
   const raw = milli / 1000;
   return Number.isInteger(raw) ? String(raw) : raw.toFixed(1);
+}
+
+function elementLabel(element: ElementId): string {
+  return `${element[0]}${element.slice(1).toLowerCase()}`;
 }
 
 export class ManaSystemHud {
@@ -31,6 +42,7 @@ export class ManaSystemHud {
       if (!this.rendering) this.render();
     });
     this.observer.observe(strategyElement, { childList: true });
+    strategyElement.addEventListener('click', this.onClick, true);
     this.render();
   }
 
@@ -44,7 +56,58 @@ export class ManaSystemHud {
 
   destroy(): void {
     this.observer.disconnect();
+    this.strategyElement.removeEventListener('click', this.onClick, true);
     this.strategyElement.querySelector('.mana-system-hint')?.remove();
+  }
+
+  private readonly onClick = (event: MouseEvent): void => {
+    const target = event.target instanceof Element
+      ? event.target.closest<HTMLButtonElement>('button[data-action="train-elementalist-v2"]')
+      : null;
+    if (!target || target.disabled) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    const element = target.dataset.element as ElementId | undefined;
+    if (!element || !this.simulation.attunements.has(PLAYER_ID, element)) return;
+    const producer = this.strategyElement.querySelector<HTMLButtonElement>(
+      '.producer-select button.active[data-action="select-producer"]',
+    );
+    const buildingId = Number(producer?.dataset.value);
+    const message = this.strategyElement.querySelector<HTMLElement>('.strategy-message');
+    if (!Number.isSafeInteger(buildingId) || buildingId <= 0) {
+      if (message) message.textContent = 'Select a completed Arcane Tower before training an Elementalist.';
+      return;
+    }
+
+    this.simulation.enqueueStrategicCommand({
+      targetTick: this.simulation.snapshot().tick + 1,
+      playerId: PLAYER_ID,
+      type: 'TRAIN',
+      buildingId,
+      unitType: 'ELEMENTALIST',
+      elementalistAlignment: element,
+    });
+    if (message) message.textContent = `Queued ${elementLabel(element)} Elementalist at Arcane Tower #${buildingId}.`;
+  };
+
+  private renderElementalistTrainingControls(attuned: ReadonlySet<ElementId>): void {
+    const generic = this.strategyElement.querySelector<HTMLButtonElement>(
+      'button[data-action="train"][data-value="ELEMENTALIST"]',
+    );
+    if (!generic) return;
+
+    const definition = UNITS.ELEMENTALIST;
+    const replacements = [...attuned].map((element) => {
+      const button = document.createElement('button');
+      button.dataset.action = 'train-elementalist-v2';
+      button.dataset.element = element;
+      button.disabled = generic.disabled;
+      button.title = `${elementLabel(element)} alignment is immutable for this Elementalist.`;
+      button.innerHTML = `${elementLabel(element)} Elementalist<small>${definition.cost.material}M${definition.cost.mana ? ` · ${definition.cost.mana}A` : ''} · P${definition.population}</small>`;
+      return button;
+    });
+    generic.replaceWith(...replacements);
   }
 
   private render(): void {
@@ -53,13 +116,14 @@ export class ManaSystemHud {
     try {
       const snapshot = this.simulation.snapshot();
       const mana = snapshot.elementalMana.players[PLAYER_ID];
+      const authority = snapshot.elementalAuthority;
       if (!mana) return;
       const manaCell = this.strategyElement.querySelector<HTMLElement>('.resource-strip b:nth-child(2)');
       const resourceKey = this.strategyElement.querySelector<HTMLElement>('.resource-key');
       if (!manaCell || !resourceKey) return;
 
       manaCell.innerHTML = `${value(mana.currentManaMilli)}/${value(mana.maxManaMilli)} <span>Mana</span>`;
-      manaCell.title = 'Shared Mana: used by elemental spells, Arcane buildings, and Mana-cost units. Mana Wells recharge it.';
+      manaCell.title = 'Shared Mana funds Elementalist Tactical spells, Strategic spells, Arcane buildings, and Mana-cost units.';
 
       let hint = this.strategyElement.querySelector<HTMLElement>('.mana-system-hint');
       if (!hint) {
@@ -68,26 +132,49 @@ export class ManaSystemHud {
         resourceKey.insertAdjacentElement('afterend', hint);
       }
 
-      const spells = SPELL_ORDER.map((effectId) => {
-        const spell = ELEMENTAL_SPELLS[effectId];
-        const cooldown = mana.cooldownTicks[effectId] ?? 0;
-        const cooldownLabel = cooldown > 0 ? ` · ${(cooldown / 10).toFixed(1)}s` : '';
-        return `<span><kbd>${KEY_BY_SPELL[effectId]}</kbd>${spell.label} ${value(spell.manaCostMilli)}${cooldownLabel}</span>`;
+      const attuned = new Set(authority.attunements.players[PLAYER_ID]?.unlocked ?? []);
+      this.renderElementalistTrainingControls(attuned);
+      const playerEntityIds = new Set(snapshot.entities.filter((entity) => entity.playerId === PLAYER_ID && entity.alive).map((entity) => entity.id));
+      const aligned = authority.alignedElementalists.filter((entry) => playerEntityIds.has(entry.entityId));
+      const cooldownByCasterSpell = new Map(
+        authority.spells.tacticalCooldowns.map((cooldown) => [`${cooldown.casterEntityId}:${cooldown.spellId}`, cooldown.readyTick]),
+      );
+
+      const spells = SPELL_ORDER.filter((spellId) => attuned.has(TACTICAL_SPELLS[spellId].element)).map((spellId) => {
+        const spell = TACTICAL_SPELLS[spellId];
+        const casters = aligned.filter((entry) => entry.element === spell.element);
+        const remaining = casters.length === 0
+          ? null
+          : Math.min(...casters.map((caster) => Math.max(0, (cooldownByCasterSpell.get(`${caster.entityId}:${spellId}`) ?? 0) - snapshot.tick)));
+        const state = remaining === null
+          ? ' · no caster'
+          : remaining > 0
+            ? ` · ${(remaining / 10).toFixed(1)}s`
+            : '';
+        return `<span><kbd>${KEY_BY_SPELL[spellId]}</kbd>${SPELL_LABELS[spellId]} ${value(spell.manaCostMilli)}${state}</span>`;
       }).join('');
 
-      const result = snapshot.elementalMana.lastCastResult;
-      const feedbackKey = result ? `${result.tick}:${result.effectId}:${result.status}` : '';
+      const result = authority.lastCastResult;
+      const feedbackKey = result ? `${result.tick}:${result.layer}:${result.spellId}:${result.status}` : '';
       if (result && result.status !== 'CAST' && feedbackKey !== this.lastFeedbackKey) {
         this.lastFeedbackKey = feedbackKey;
         this.feedbackSeconds = 2.5;
       }
+      const resultLabel = result?.layer === 'TACTICAL'
+        ? SPELL_LABELS[result.spellId as TacticalSpellId] ?? result.spellId
+        : result?.spellId ?? '';
       const feedback = this.feedbackSeconds > 0 && result
-        ? `<strong>${result.status === 'NO_MANA' ? `Not enough Mana for ${ELEMENTAL_SPELLS[result.effectId].label}.` : `${ELEMENTAL_SPELLS[result.effectId].label} is cooling down.`}</strong>`
+        ? `<strong>${result.status === 'NO_MANA'
+          ? `Not enough Mana for ${resultLabel}.`
+          : result.status === 'COOLDOWN'
+            ? `${resultLabel} is cooling down.`
+            : `No valid caster, target, or spell-network path for ${resultLabel}.`}</strong>`
         : '';
+      const attunementLabel = [...attuned].map(elementLabel).join(' + ');
 
       hint.innerHTML = snapshot.elementalMana.enabled
-        ? `<div>${spells}</div><small>Mana Well +2/s · Rich +3/s · Core +0.5/s · Shrines/upgrades raise Max Mana.</small>${feedback}`
-        : '<small>Mana economy active. Full spell Mana rules activate in Enemy War / full runs.</small>';
+        ? `<small>Attunements: <b>${attunementLabel || 'None'}</b></small><div>${spells || '<span>Train an aligned Elementalist to use Tactical spells.</span>'}</div><small>Train Elementalists with an Attuned alignment. Select aligned Elementalists, hover a target, then use R / Q / F / L. Cooldowns belong to the caster.</small>${feedback}`
+        : '<small>Mana economy active. Full spell authority activates in Enemy War / full runs.</small>';
     } finally {
       this.rendering = false;
     }

@@ -5,10 +5,10 @@ import { M02_STANDARD_RULES, type WorldGenerationRules } from '../world/world-de
  * replay verification, and score proofs.
  *
  * World generation has its own version (`M02_STANDARD_RULES.rulesetVersion`). Keeping
- * the two explicit prevents presentation/gameplay milestones from silently reusing an
- * older competitive identity while still preserving the established M02 battlefield.
+ * the two explicit prevents gameplay redesigns from silently changing established M02
+ * battlefield generation or Golden Block world hashes.
  */
-export const CURRENT_CHALLENGE_RULESET_VERSION = 'm08-standard-v1' as const;
+export const CURRENT_CHALLENGE_RULESET_VERSION = 'ef-standard-v2' as const;
 
 export interface ChallengeRulesetDefinition {
   version: string;

@@ -5,8 +5,9 @@ import { UnitControls } from '../input/unit-controls';
 import { WORLD_UNITS_PER_METER, type ArenaZone } from '../simulation/arena';
 import type { TickFrame } from '../simulation/fixed-tick-runner';
 import { M03Simulation } from '../simulation/m03-simulation';
+import type { M04Simulation } from '../simulation/m04-simulation';
 import { M06Simulation } from '../simulation/m06-simulation';
-import type { EntitySnapshot, Simulation } from '../simulation/simulation';
+import type { EntitySnapshot } from '../simulation/simulation';
 import { CameraFeedback } from './camera-feedback';
 import { ElementalRenderBridge } from './elemental-render-bridge';
 import { GeneratedWorldRenderBridge } from './generated-world-render-bridge';
@@ -100,7 +101,7 @@ export interface SceneShell {
 
 export function createSceneShell(
   canvas: HTMLCanvasElement,
-  simulation: Simulation,
+  simulation: M04Simulation,
   selectionBox: HTMLElement,
 ): SceneShell {
   const app = new pc.Application(canvas, {

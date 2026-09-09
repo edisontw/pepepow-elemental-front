@@ -1,3 +1,4 @@
+import type { AttunementState } from './attunement-state';
 import type { StrategicSnapshot } from './strategic-state';
 import { DeterministicRng } from './random';
 import type { M04Command } from './m04-commands';
@@ -123,7 +124,10 @@ export class RogueliteState {
   private readonly schedule: ScheduledWorldEvent[];
   private currentTick = 0;
 
-  constructor(readonly world: GeneratedWorld) {
+  constructor(
+    readonly world: GeneratedWorld,
+    private readonly attunements?: AttunementState,
+  ) {
     this.ensurePlayer(0);
     this.ensurePlayer(1);
     this.schedule = this.createEventSchedule();
@@ -233,7 +237,10 @@ export class RogueliteState {
 
   private generateChoices(playerId: number, shrine: PointOfInterest, player: PlayerRogueliteState): UpgradeDefinition[] {
     const acquired = new Set(player.acquiredUpgradeIds);
-    const eligible = UPGRADES.filter((upgrade) => !acquired.has(upgrade.id));
+    const eligible = UPGRADES.filter((upgrade) => (
+      !acquired.has(upgrade.id)
+      && (this.attunements === undefined || this.attunements.isUpgradeEligible(playerId, upgrade.tags))
+    ));
     if (eligible.length < 3) return [];
     const seed = [
       this.world.identity.namespace,

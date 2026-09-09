@@ -1,5 +1,7 @@
 import { CURRENT_CHALLENGE_RULESET_VERSION, isSupportedChallengeRuleset } from '../challenge/ruleset';
-import type { GameCommand } from './commands';
+import type { StartingAttunements } from './attunement-state';
+import type { M04GameCommand } from './commands';
+import { isElementId } from './element-types';
 import type { M03Command } from './m03-commands';
 import type { M04Command } from './m04-commands';
 import type { EnemyDifficulty, EnemyFaction } from './m05-content';
@@ -10,16 +12,17 @@ import type { GeneratedWorld } from '../world/world-definition';
 
 export type ReplayVerification = 'NONE' | 'PENDING' | 'MATCH' | 'DIVERGED';
 export type M06ReplayEntry =
-  | { channel: 'GAME'; command: GameCommand }
+  | { channel: 'GAME'; command: M04GameCommand }
   | { channel: 'STRATEGIC'; command: M03Command }
   | { channel: 'ROGUELITE'; command: M04Command };
 
 export interface M06ReplayHeader {
-  version: 'm06-replay-v1';
+  version: 'ef-replay-v2';
   blockHeight: number;
   rulesetVersion: string;
   worldGameplayHash: string;
   generationAttempt: number;
+  startingAttunements: StartingAttunements;
   mode: RunMode;
   pace: RunPace;
   faction: EnemyFaction;
@@ -46,8 +49,20 @@ export interface M06SimulationSnapshot extends M05SimulationSnapshot {
   recordedCommandCount: number;
 }
 
-function cloneGameCommand(command: GameCommand): GameCommand {
+function cloneGameCommand(command: M04GameCommand): M04GameCommand {
   if (command.type === 'CAST') return { ...command };
+  if (command.type === 'CAST_TACTICAL') {
+    return {
+      ...command,
+      candidateCasterIds: [...command.candidateCasterIds],
+      target: command.target.kind === 'ENTITY'
+        ? { kind: 'ENTITY', entityId: command.target.entityId }
+        : { kind: 'POINT', x: command.target.x, z: command.target.z },
+    };
+  }
+  if (command.type === 'CAST_STRATEGIC') {
+    return { ...command, target: { kind: 'POINT', x: command.target.x, z: command.target.z } };
+  }
   return { ...command, entityIds: [...command.entityIds] };
 }
 
@@ -60,13 +75,22 @@ function cloneRogueliteCommand(command: M04Command): M04Command {
   return { ...command };
 }
 
+function validStartingAttunements(value: unknown): value is StartingAttunements {
+  return Array.isArray(value)
+    && value.length === 2
+    && isElementId(value[0])
+    && isElementId(value[1])
+    && value[0] !== value[1];
+}
+
 export function isM06ReplayPacket(value: unknown): value is M06ReplayPacket {
   if (typeof value !== 'object' || value === null) return false;
   const packet = value as Partial<M06ReplayPacket>;
   const header = packet.header as Partial<M06ReplayHeader> | undefined;
-  if (!header || header.version !== 'm06-replay-v1') return false;
+  if (!header || header.version !== 'ef-replay-v2') return false;
   if (!Number.isSafeInteger(header.blockHeight) || !Number.isSafeInteger(header.generationAttempt)) return false;
   if (typeof header.rulesetVersion !== 'string' || typeof header.worldGameplayHash !== 'string') return false;
+  if (!validStartingAttunements(header.startingAttunements)) return false;
   if (header.mode !== 'DESTROY' && header.mode !== 'BOSS_HUNT') return false;
   if (header.pace !== 'STANDARD' && header.pace !== 'SMOKE') return false;
   if (!['IRON_LEGION', 'FLAME_CULT', 'WILD_HORDE'].includes(header.faction ?? '')) return false;
@@ -101,7 +125,7 @@ export class M06Simulation extends M05Simulation {
     this.run = new RunState(generatedWorld, options.mode ?? 'DESTROY', options.pace ?? 'STANDARD');
   }
 
-  override enqueueCommand(command: GameCommand): void {
+  override enqueueCommand(command: M04GameCommand): void {
     if (this.playback && !this.internalCommand) return;
     super.enqueueCommand(command);
     if (!this.internalCommand) {
@@ -195,11 +219,12 @@ export class M06Simulation extends M05Simulation {
   private buildReplayPacket(snapshot: M06SimulationSnapshot): M06ReplayPacket {
     return {
       header: {
-        version: 'm06-replay-v1',
+        version: 'ef-replay-v2',
         blockHeight: this.generatedWorld.identity.blockHeight,
         rulesetVersion: CURRENT_CHALLENGE_RULESET_VERSION,
         worldGameplayHash: this.generatedWorld.gameplayHash,
         generationAttempt: this.generatedWorld.generationAttempt,
+        startingAttunements: this.attunements.starting(0),
         mode: snapshot.run.mode,
         pace: snapshot.run.pace,
         faction: this.enemyWar.faction,
@@ -274,6 +299,10 @@ export class M06Simulation extends M05Simulation {
     if (!isSupportedChallengeRuleset(header.rulesetVersion)) throw new Error('Replay ruleset mismatch.');
     if (header.worldGameplayHash !== this.generatedWorld.gameplayHash) throw new Error('Replay world hash mismatch.');
     if (header.generationAttempt !== this.generatedWorld.generationAttempt) throw new Error('Replay generation attempt mismatch.');
+    const localStarting = this.attunements.starting(0);
+    if (header.startingAttunements[0] !== localStarting[0] || header.startingAttunements[1] !== localStarting[1]) {
+      throw new Error('Replay starting Attunements mismatch.');
+    }
     if (header.mode !== this.run.mode || header.pace !== this.run.pace) throw new Error('Replay run options mismatch.');
     if (header.faction !== this.enemyWar.faction || header.difficulty !== this.enemyWar.difficulty) {
       throw new Error('Replay enemy configuration mismatch.');

@@ -1,5 +1,6 @@
 import { WORLD_UNITS_PER_METER } from './arena';
 import type { UnitArchetype, UnitSpawn } from './components';
+import type { StaticTargetTag } from './element-types';
 
 export type BuildingType = 'ELEMENTAL_CORE' | 'BARRACKS' | 'ARCANE_TOWER' | 'WORKSHOP' | 'OUTPOST' | 'EXTRACTOR' | 'MANA_WELL';
 export type ProducerBuildingType = Exclude<BuildingType, 'ELEMENTAL_CORE' | 'OUTPOST' | 'EXTRACTOR' | 'MANA_WELL'>;
@@ -17,6 +18,7 @@ export interface BuildingDefinition {
   cost: ResourceCost;
   buildTicks: number;
   maxHealth: number;
+  tags: readonly StaticTargetTag[];
 }
 
 export interface UnitDefinition {
@@ -26,6 +28,7 @@ export interface UnitDefinition {
   population: number;
   trainTicks: number;
   capturePowerTenths: number;
+  tags: readonly StaticTargetTag[];
   spawn: Omit<UnitSpawn, 'archetype' | 'playerId' | 'x' | 'z'>;
 }
 
@@ -77,42 +80,49 @@ export const BUILDINGS: Readonly<Record<BuildingType, BuildingDefinition>> = {
     cost: { material: 0, mana: 0, influence: 0 },
     buildTicks: 0,
     maxHealth: 5000,
+    tags: ['BUILDING', 'FORTIFIED', 'ARCANE'],
   },
   BARRACKS: {
     type: 'BARRACKS',
     cost: { material: 250, mana: 0, influence: 0 },
     buildTicks: 350,
     maxHealth: 1200,
+    tags: ['BUILDING'],
   },
   ARCANE_TOWER: {
     type: 'ARCANE_TOWER',
     cost: { material: 220, mana: 40, influence: 0 },
     buildTicks: 350,
     maxHealth: 900,
+    tags: ['BUILDING', 'ARCANE'],
   },
   WORKSHOP: {
     type: 'WORKSHOP',
     cost: { material: 350, mana: 0, influence: 0 },
     buildTicks: 500,
     maxHealth: 1300,
+    tags: ['BUILDING'],
   },
   OUTPOST: {
     type: 'OUTPOST',
     cost: { material: 180, mana: 0, influence: 10 },
     buildTicks: 300,
     maxHealth: 1000,
+    tags: ['BUILDING'],
   },
   EXTRACTOR: {
     type: 'EXTRACTOR',
     cost: { material: 100, mana: 0, influence: 0 },
     buildTicks: 180,
     maxHealth: 500,
+    tags: ['BUILDING'],
   },
   MANA_WELL: {
     type: 'MANA_WELL',
     cost: { material: 100, mana: 0, influence: 0 },
     buildTicks: 180,
     maxHealth: 500,
+    tags: ['BUILDING', 'ARCANE'],
   },
 };
 
@@ -121,42 +131,42 @@ const selectionRadius = 700;
 export const UNITS: Readonly<Record<UnitArchetype, UnitDefinition>> = {
   VANGUARD: {
     archetype: 'VANGUARD', producer: 'BARRACKS', cost: { material: 45, mana: 0, influence: 0 },
-    population: 1, trainTicks: 120, capturePowerTenths: 15,
+    population: 1, trainTicks: 120, capturePowerTenths: 15, tags: ['LIGHT'],
     spawn: { speedPerTick: 360, selectionRadius, maxHealth: 180, attackDamage: 18, attackIntervalTicks: 11, attackRange: 1.25 * M },
   },
   SPEAR_GUARD: {
     archetype: 'SPEAR_GUARD', producer: 'BARRACKS', cost: { material: 75, mana: 0, influence: 0 },
-    population: 2, trainTicks: 180, capturePowerTenths: 10,
+    population: 2, trainTicks: 180, capturePowerTenths: 10, tags: ['LIGHT'],
     spawn: { speedPerTick: 310, selectionRadius, maxHealth: 220, attackDamage: 20, attackIntervalTicks: 14, attackRange: 2.2 * M },
   },
   RANGER: {
     archetype: 'RANGER', producer: 'BARRACKS', cost: { material: 65, mana: 0, influence: 0 },
-    population: 1, trainTicks: 160, capturePowerTenths: 10,
+    population: 1, trainTicks: 160, capturePowerTenths: 10, tags: ['LIGHT', 'RANGED'],
     spawn: { speedPerTick: 350, selectionRadius, maxHealth: 110, attackDamage: 17, attackIntervalTicks: 14, attackRange: 10 * M },
   },
   SCOUT: {
     archetype: 'SCOUT', producer: 'BARRACKS', cost: { material: 40, mana: 0, influence: 0 },
-    population: 1, trainTicks: 90, capturePowerTenths: 5,
+    population: 1, trainTicks: 90, capturePowerTenths: 5, tags: ['LIGHT', 'RANGED', 'SUPPORT'],
     spawn: { speedPerTick: 550, selectionRadius: 600, maxHealth: 80, attackDamage: 8, attackIntervalTicks: 12, attackRange: 6 * M },
   },
   ELEMENTALIST: {
     archetype: 'ELEMENTALIST', producer: 'ARCANE_TOWER', cost: { material: 70, mana: 25, influence: 0 },
-    population: 2, trainTicks: 220, capturePowerTenths: 10,
+    population: 2, trainTicks: 220, capturePowerTenths: 10, tags: ['LIGHT', 'RANGED', 'ELEMENTAL', 'ARCANE', 'SUPPORT'],
     spawn: { speedPerTick: 320, selectionRadius, maxHealth: 100, attackDamage: 14, attackIntervalTicks: 15, attackRange: 9 * M },
   },
   ENGINEER: {
     archetype: 'ENGINEER', producer: 'WORKSHOP', cost: { material: 65, mana: 0, influence: 0 },
-    population: 1, trainTicks: 180, capturePowerTenths: 10,
+    population: 1, trainTicks: 180, capturePowerTenths: 10, tags: ['LIGHT', 'SUPPORT'],
     spawn: { speedPerTick: 330, selectionRadius, maxHealth: 120, attackDamage: 9, attackIntervalTicks: 15, attackRange: 1.25 * M },
   },
   GOLEM: {
     archetype: 'GOLEM', producer: 'WORKSHOP', cost: { material: 220, mana: 60, influence: 0 },
-    population: 5, trainTicks: 400, capturePowerTenths: 10,
+    population: 5, trainTicks: 400, capturePowerTenths: 10, tags: ['HEAVY', 'METAL'],
     spawn: { speedPerTick: 230, selectionRadius: 900, maxHealth: 600, attackDamage: 42, attackIntervalTicks: 18, attackRange: 1.25 * M },
   },
   SIEGE_CONSTRUCT: {
     archetype: 'SIEGE_CONSTRUCT', producer: 'WORKSHOP', cost: { material: 260, mana: 20, influence: 0 },
-    population: 5, trainTicks: 450, capturePowerTenths: 10,
+    population: 5, trainTicks: 450, capturePowerTenths: 10, tags: ['HEAVY', 'METAL', 'RANGED', 'SIEGE'],
     spawn: { speedPerTick: 180, selectionRadius: 900, maxHealth: 320, attackDamage: 25, attackIntervalTicks: 30, attackRange: 14 * M },
   },
 };
