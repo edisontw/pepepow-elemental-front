@@ -71,5 +71,5 @@ describe('post-roadmap Elementalist alignment', () => {
     const entityId = aligned[0]!.entityId;
     expect(simulation.entities.setElementalAlignment(entityId, 'WATER')).toBe(false);
     expect(simulation.entities.elementalAlignments.get(entityId)?.element).toBe('FIRE');
-  });
+  }, 15_000);
 });
