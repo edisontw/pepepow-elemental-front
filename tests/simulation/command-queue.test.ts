@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CommandQueue, type GameCommand } from '../../src/simulation/commands';
+import { CommandQueue, type GameCommand, type MoveCommand } from '../../src/simulation/commands';
 
 describe('CommandQueue', () => {
   it('orders commands by target tick, player, then stable enqueue order', () => {
@@ -21,6 +21,37 @@ describe('CommandQueue', () => {
     const queue = new CommandQueue();
     queue.enqueue({ targetTick: 1, playerId: 0, type: 'STOP', entityIds: [4, 2, 4, 3] });
     expect(queue.drainForTick(1)[0]?.entityIds).toEqual([2, 3, 4]);
+  });
+
+  it('normalizes and preserves semantic MOVE formation metadata', () => {
+    const queue = new CommandQueue();
+    queue.enqueue({
+      targetTick: 2,
+      playerId: 0,
+      type: 'MOVE',
+      entityIds: [5, 2, 5, 3],
+      targetX: 101,
+      targetZ: 202,
+      formation: 'COLUMN',
+    });
+    expect(queue.drainForTick(2)[0]).toEqual({
+      targetTick: 2,
+      playerId: 0,
+      type: 'MOVE',
+      entityIds: [2, 3, 5],
+      targetX: 101,
+      targetZ: 202,
+      formation: 'COLUMN',
+    });
+    expect(() => queue.enqueue({
+      targetTick: 3,
+      playerId: 0,
+      type: 'MOVE',
+      entityIds: [1],
+      targetX: 0,
+      targetZ: 0,
+      formation: 'WEDGE' as MoveCommand['formation'],
+    })).toThrow('MOVE formation');
   });
 
   it('applies same-tick commands in deterministic enqueue order', () => {

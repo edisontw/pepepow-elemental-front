@@ -11,6 +11,7 @@ import {
   WATER_WET_DURATION_TICKS,
 } from './elemental-tactics';
 import { EntityStore } from './entity-store';
+import { formationDestinations } from './formation';
 import { NavigationGrid, type GridCell, type WalkabilityChange } from './navigation';
 import { DeterministicRng } from './random';
 import { computeStateHash } from './state-hash';
@@ -195,15 +196,36 @@ export class Simulation {
       if (command.type === 'STOP') {
         for (const entityId of validIds) this.clearOrders(entityId);
       } else if (command.type === 'MOVE') {
-        const offsets = formationOffsets(validIds.length);
-        validIds.forEach((entityId, index) => {
-          const offset = offsets[index];
-          if (!offset) return;
-          const combat = this.entities.combat.get(entityId)!;
-          combat.targetEntityId = null;
-          combat.pursuitTargetCellKey = null;
-          this.assignPath(entityId, command.targetX + offset.x, command.targetZ + offset.z);
-        });
+        if (command.formation !== undefined) {
+          const planned = formationDestinations(
+            validIds,
+            command.formation,
+            command.targetX,
+            command.targetZ,
+            this.entities,
+            this.navigation,
+          );
+          const plannedIds = new Set(planned.map((destination) => destination.entityId));
+          for (const entityId of validIds) {
+            const combat = this.entities.combat.get(entityId)!;
+            combat.targetEntityId = null;
+            combat.pursuitTargetCellKey = null;
+            if (!plannedIds.has(entityId)) this.clearMovement(entityId);
+          }
+          for (const destination of planned) {
+            this.assignPath(destination.entityId, destination.x, destination.z);
+          }
+        } else {
+          const offsets = formationOffsets(validIds.length);
+          validIds.forEach((entityId, index) => {
+            const offset = offsets[index];
+            if (!offset) return;
+            const combat = this.entities.combat.get(entityId)!;
+            combat.targetEntityId = null;
+            combat.pursuitTargetCellKey = null;
+            this.assignPath(entityId, command.targetX + offset.x, command.targetZ + offset.z);
+          });
+        }
       } else if (this.isValidAttackTarget(command.targetEntityId, command.playerId)) {
         for (const entityId of validIds) {
           const combat = this.entities.combat.get(entityId)!;

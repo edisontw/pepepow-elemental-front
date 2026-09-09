@@ -2,11 +2,13 @@ import * as pc from 'playcanvas';
 import type { UnitRenderBridge } from '../rendering/unit-render-bridge';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
 import type { TacticalSpellId } from '../simulation/element-types';
+import type { FormationId } from '../simulation/formation';
 import type { M04Simulation } from '../simulation/m04-simulation';
 import type { EntitySnapshot } from '../simulation/simulation';
 import { SelectionState } from './selection-state';
 
 const DRAG_THRESHOLD = 6;
+const DOUBLE_CLICK_MS = 350;
 
 export class UnitControls {
   private readonly selection = new SelectionState();
@@ -17,6 +19,9 @@ export class UnitControls {
   private currentClientY = 0;
   private hoverClientX: number | null = null;
   private hoverClientY: number | null = null;
+  private formation: FormationId = 'LINE';
+  private lastClickEntityId: number | null = null;
+  private lastClickTimeMs = Number.NEGATIVE_INFINITY;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -30,6 +35,7 @@ export class UnitControls {
     window.addEventListener('pointermove', this.onPointerMove);
     window.addEventListener('pointerup', this.onPointerUp);
     window.addEventListener('keydown', this.onKeyDown);
+    this.renderFormationMode();
   }
 
   get selectedCount(): number {
@@ -41,6 +47,10 @@ export class UnitControls {
     return this.simulation.snapshot().entities.filter((entity) => selected.has(entity.id));
   }
 
+  get activeFormation(): FormationId {
+    return this.formation;
+  }
+
   moveSelectionTo(targetX: number, targetZ: number): void {
     if (this.selection.ids.length === 0) return;
     this.simulation.enqueueCommand({
@@ -50,6 +60,7 @@ export class UnitControls {
       entityIds: this.selection.ids,
       targetX,
       targetZ,
+      formation: this.formation,
     });
   }
 
@@ -111,18 +122,29 @@ export class UnitControls {
     if (this.dragDistance() < DRAG_THRESHOLD) {
       const entityId = this.bridge.pickSingle(this.camera, end.x, end.y);
       if (entityId !== null && this.bridge.isControllable(entityId)) {
-        this.selection.select([entityId], event.shiftKey ? 'TOGGLE' : 'REPLACE');
+        const doubleClick = entityId === this.lastClickEntityId && event.timeStamp - this.lastClickTimeMs <= DOUBLE_CLICK_MS;
+        if (doubleClick) {
+          this.selectSameTypeOnScreen(entityId, event.shiftKey);
+          this.lastClickEntityId = null;
+          this.lastClickTimeMs = Number.NEGATIVE_INFINITY;
+        } else {
+          this.selection.select([entityId], event.shiftKey ? 'TOGGLE' : 'REPLACE');
+          this.lastClickEntityId = entityId;
+          this.lastClickTimeMs = event.timeStamp;
+        }
       } else if (!event.shiftKey) {
         this.selection.select([], 'REPLACE');
+        this.lastClickEntityId = null;
+        this.lastClickTimeMs = Number.NEGATIVE_INFINITY;
       }
     } else {
       this.selection.select(this.bridge.pickBox(
         this.camera,
-        Math.min(start.x, end.x),
-        Math.min(start.y, end.y),
-        Math.max(start.x, end.x),
-        Math.max(start.y, end.y),
+        Math.min(start.x, end.x), Math.min(start.y, end.y),
+        Math.max(start.x, end.x), Math.max(start.y, end.y),
       ), event.shiftKey ? 'ADD' : 'REPLACE');
+      this.lastClickEntityId = null;
+      this.lastClickTimeMs = Number.NEGATIVE_INFINITY;
     }
     this.renderSelected();
     this.pointerId = null;
@@ -141,6 +163,19 @@ export class UnitControls {
       )) {
         this.renderSelected();
       }
+      return;
+    }
+
+    if (!event.repeat && event.code === 'KeyZ') {
+      this.setFormation('LINE');
+      return;
+    }
+    if (!event.repeat && event.code === 'KeyC') {
+      this.setFormation('COLUMN');
+      return;
+    }
+    if (!event.repeat && event.code === 'KeyV') {
+      this.setFormation('SPREAD');
       return;
     }
 
@@ -173,7 +208,7 @@ export class UnitControls {
       return;
     }
 
-    if (event.code !== 'KeyX' || event.repeat || this.selection.ids.length === 0) return;
+    if ((event.code !== 'KeyX' && event.code !== 'KeyS') || event.repeat || this.selection.ids.length === 0) return;
     this.simulation.enqueueCommand({
       targetTick: this.simulation.snapshot().tick + 1,
       playerId: 0,
@@ -181,6 +216,30 @@ export class UnitControls {
       entityIds: this.selection.ids,
     });
   };
+
+  private setFormation(formation: FormationId): void {
+    this.formation = formation;
+    this.renderFormationMode();
+  }
+
+  private renderFormationMode(): void {
+    const element = document.getElementById('formation-mode');
+    if (!element) return;
+    const label = this.formation === 'LINE' ? 'Line' : this.formation === 'COLUMN' ? 'Column' : 'Spread';
+    element.textContent = `Formation: ${label}`;
+    element.dataset.formation = this.formation;
+  }
+
+  private selectSameTypeOnScreen(entityId: number, add: boolean): void {
+    const snapshot = this.simulation.snapshot();
+    const clicked = snapshot.entities.find((entity) => entity.id === entityId && entity.playerId === 0 && entity.alive);
+    if (!clicked) return;
+    const onScreen = new Set(this.bridge.pickBox(this.camera, 0, 0, this.canvas.width, this.canvas.height));
+    const sameType = snapshot.entities
+      .filter((entity) => entity.playerId === 0 && entity.alive && entity.archetype === clicked.archetype && onScreen.has(entity.id))
+      .map((entity) => entity.id);
+    this.selection.select(sameType, add ? 'ADD' : 'REPLACE');
+  }
 
   private castTacticalAtHover(spellId: Exclude<TacticalSpellId, 'CHAIN_LIGHTNING'>): void {
     const target = this.hoverWorldPoint();
@@ -265,7 +324,7 @@ export class UnitControls {
   }
 
   private controlGroupSlot(code: string): number | null {
-    const match = /^Digit([1-9])$/.exec(code);
-    return match?.[1] ? Number(match[1]) : null;
+    const match = /^Digit([0-9])$/.exec(code);
+    return match?.[1] !== undefined ? Number(match[1]) : null;
   }
 }

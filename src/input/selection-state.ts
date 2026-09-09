@@ -52,8 +52,8 @@ export class SelectionState {
   }
 
   private assertSlot(slot: number): void {
-    if (!Number.isInteger(slot) || slot < 1 || slot > 9) {
-      throw new Error('Control-group slot must be an integer from 1 to 9.');
+    if (!Number.isInteger(slot) || slot < 0 || slot > 9) {
+      throw new Error('Control-group slot must be an integer from 0 to 9.');
     }
   }
 }

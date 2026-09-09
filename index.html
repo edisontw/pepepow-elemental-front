@@ -32,13 +32,14 @@
         <span>Teal / red squares: player / enemy Core</span>
         <span>Yellow / magenta: objective / boss</span>
       </aside>
-      <aside id="elemental-jobs" aria-label="Element tactical roles">
+      <aside id="elemental-jobs" aria-label="Element tactical roles and formation mode">
         <b>ELEMENT TACTICS</b>
-        <span><kbd>R</kbd><strong>Fire</strong><em>Deny / clear cover</em></span>
-        <span><kbd>Q</kbd><strong>Water</strong><em>Set up / displace</em></span>
-        <span><kbd>F</kbd><strong>Ice</strong><em>Control / create route</em></span>
-        <span><kbd>L</kbd><strong>Lightning</strong><em>Punish Wet clumps</em></span>
-        <small>Aim with the battlefield cursor. H = Heat / melt test.</small>
+        <span><kbd>R</kbd><strong>Firebolt</strong><em>Deny / clear cover</em></span>
+        <span><kbd>Q</kbd><strong>Water Burst</strong><em>Set up / displace</em></span>
+        <span><kbd>F</kbd><strong>Freeze</strong><em>Control / create route</em></span>
+        <span><kbd>L</kbd><strong>Chain Lightning</strong><em>Punish Wet clumps</em></span>
+        <small>Aim with the battlefield cursor. Select an aligned Elementalist to cast.</small>
+        <small id="formation-mode" data-formation="LINE">Formation: Line</small>
       </aside>
       <aside id="strategy-panel" aria-label="Economy and territory controls"></aside>
       <aside id="roguelite-panel" aria-label="Shrines, upgrades, and world events"></aside>
@@ -51,7 +52,7 @@
         <span><i class="swatch crossing"></i>Natural crossing</span>
       </aside>
       <div id="selection-box" hidden></div>
-      <div id="camera-help">Select: Left click / drag · Move or attack: Right click · Stop: X · Groups: Ctrl+1–9 / 1–9 · Camera: WASD / arrows, wheel, middle drag · Elements: R Fire / Q Water / F Ice / L Lightning / H Heat · Audio: M mute</div>
+      <div id="camera-help">Select: Left click / drag / double-click same type · Move or attack: Right click · Stop: S or X · Formations: Z Line / C Column / V Spread · Groups: Ctrl+0–9 / 0–9 · Camera: WASD / arrows, wheel, middle drag · Tactical: R / Q / F / L · Audio: M mute</div>
       <div id="fatal-error" role="alert" hidden></div>
     </main>
     <script type="module" src="/src/main.ts"></script>

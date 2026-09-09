@@ -18,7 +18,7 @@ Presentation resolves canonical files through manifests. Asset replacement canno
 
 ## ADR-005 — Gameplay ruleset identity is separate from world generation
 
-World generation remains independently versioned as `m02-standard-v1`. The frozen post-roadmap Phase 1 contract reserves `ef-standard-v2` for the first authoritative redesign gameplay semantics. The new gameplay version must not become current until runtime data/code, replay/state hashes, challenge identity, and required regression tests adopt the same semantics together.
+World generation remains independently versioned as `m02-standard-v1`. Post-roadmap gameplay versions advance independently whenever authoritative combat/control semantics change. Runtime data/code, replay/state hashes, challenge identity, and required regression tests must adopt a new gameplay version together without changing established M02 world generation or Golden Block hashes.
 
 ## ADR-006 — Elementalist alignment and spell authority use composition
 
@@ -27,3 +27,7 @@ Keep one `ELEMENTALIST` archetype. Each fielded Elementalist has one immutable e
 ## ADR-007 — Static target roles and dynamic elemental states remain separate
 
 Unit/building role tags such as `LIGHT`, `HEAVY`, `METAL`, `BUILDING`, `ARCANE`, `SUPPORT`, and `SIEGE` are data-driven static or structure-derived roles. `WET`, `CHILLED`, `FROZEN`, `BURNING`, and `CONDUCTIVE` are derived from authoritative status/environment state. Tags enable readable preferred-target logic without introducing a hidden universal armor table.
+
+## ADR-008 — Formation is semantic MOVE metadata, not a hidden stat stance
+
+Player formation choice is carried on the authoritative `MOVE` command. Simulation computes orientation, role ordering, formation slots, unique walkable destinations, and paths at command execution time. UI does not calculate authoritative per-unit offsets. `LINE`, `COLUMN`, and `SPREAD` differ through spatial behavior only; no hidden formation damage, defense, or movement percentage bonuses are introduced. MOVE without formation metadata remains the closed-system compact-grid migration path. Because this changes authoritative movement outcomes, Phase 3 advances gameplay/replay identity to `ef-standard-v3` / `ef-replay-v3` while world generation remains `m02-standard-v1`.
