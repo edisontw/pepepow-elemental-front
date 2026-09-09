@@ -217,7 +217,8 @@ Priority A is implemented; manual WebGL acceptance remains pending.
 - Hollow selection/Wet rings, freeze shell, Water ripples, segmented Lightning, and pooled single-draw combat sparks; 192-spark/64-projectile/96-transient caps.
 - TypeScript/build and 10 targeted rendering tests pass; GLB structure checks pass. Work browser cannot boot WebGL (`WebGL not supported`); no visual or 100-unit FPS pass is claimed.
 - Priority B is now implemented in the current working branch: four additional unit models, six building models, and pulsing resource-site markers. Manual WebGL acceptance remains pending.
-- Next: manual Priority A/B acceptance, then Strategic network/footprint presentation, terrain material polish, and LOD. Do not reopen gameplay authority.
+- Canonical AI final-art prompts are now available at `media/prompts/images/VISUAL_PRODUCTION_PRIORITY_A_B_PROMPTS.md`. Current GLBs remain fallbacks and model entries are queued as `NEEDS_MANUAL_GENERATION` until the user manually approves and uploads final art.
+- Next: manual final-art generation/approval, then Strategic network/footprint presentation, terrain material polish, and LOD. Do not reopen gameplay authority.
 
 ### Token-efficient validation policy
 
