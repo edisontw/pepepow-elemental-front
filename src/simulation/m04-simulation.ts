@@ -5,12 +5,11 @@ import {
   type CastCommand,
   type CastStrategicSpellCommand,
   type CastTacticalSpellCommand,
-  type GameCommand,
   type M04GameCommand,
   type TerrainCastCommand,
 } from './commands';
 import type { ElementId, StrategicSpellId, TacticalSpellId } from './element-types';
-import type { M03Command, TrainCommand } from './m03-commands';
+import type { M03Command } from './m03-commands';
 import { M03CommandQueue } from './m03-commands';
 import type { M04Command } from './m04-commands';
 import { M04CommandQueue } from './m04-commands';
