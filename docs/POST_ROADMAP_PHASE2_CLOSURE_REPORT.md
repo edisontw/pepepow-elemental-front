@@ -1,10 +1,11 @@
 # PEPEPOW Elemental Front — Post-Roadmap Phase 2 Closure Report
 
 **Phase:** Element access and caster authority  
-**Status:** CLOSED — pending merge of PR #40  
-**Implementation branch:** `phase2-element-authority`  
+**Status:** CLOSED  
+**Implementation branch / PR:** `phase2-element-authority` / #40  
 **Validated implementation head:** `5b8437a0ed77e81c1375c9c6887c6d82aabc1587`  
-**Validation:** CI #191 / run `34369956229` — PASS
+**Implementation validation:** CI #191 / run `34369956229` — PASS  
+**Canonical-docs PR validation:** CI #193 / run `34370468837` — PASS
 
 ---
 
@@ -68,6 +69,8 @@ Final validated implementation run:
 - strict TypeScript PASS
 - production Vite build PASS
 - CI #191 / `34369956229` PASS
+
+The canonical-docs PR head was subsequently revalidated by CI #193 / `34370468837`, with tests and production build PASS.
 
 Phase 2 minimum acceptance is covered by dedicated tests for:
 
