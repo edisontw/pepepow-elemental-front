@@ -1,5 +1,6 @@
 import type { EntityID, PlayerID } from './components';
 import type { SpellTarget, StrategicSpellId, TacticalSpellId } from './element-types';
+import { isFormationId, type FormationId } from './formation';
 import { STRATEGIC_SPELLS, TACTICAL_SPELLS } from './spell-content';
 
 interface CommandBase {
@@ -15,6 +16,7 @@ export interface MoveCommand extends EntityCommandBase {
   type: 'MOVE';
   targetX: number;
   targetZ: number;
+  formation?: FormationId;
 }
 
 export interface StopCommand extends EntityCommandBase {
@@ -110,7 +112,14 @@ function normalizeCommand(command: GameCommand): GameCommand {
   }
   const entityIds = normalizeEntityIds(command.entityIds);
   if (command.type === 'MOVE') {
-    return { ...base, entityIds, type: 'MOVE', targetX: Math.round(command.targetX), targetZ: Math.round(command.targetZ) };
+    return {
+      ...base,
+      entityIds,
+      type: 'MOVE',
+      targetX: Math.round(command.targetX),
+      targetZ: Math.round(command.targetZ),
+      ...(command.formation === undefined ? {} : { formation: command.formation }),
+    };
   }
   if (command.type === 'ATTACK') {
     return { ...base, entityIds, type: 'ATTACK', targetEntityId: command.targetEntityId };
@@ -157,6 +166,9 @@ export class CommandQueue {
       && (!Number.isSafeInteger(command.targetX) || !Number.isSafeInteger(command.targetZ))
     ) {
       throw new Error(`${command.type} target coordinates must be safe integers.`);
+    }
+    if (command.type === 'MOVE' && command.formation !== undefined && !isFormationId(command.formation)) {
+      throw new Error('MOVE formation must be LINE, COLUMN, or SPREAD.');
     }
     if (command.type === 'CAST' && command.effectId !== 'CHAIN_LIGHTNING' && (!Number.isSafeInteger(command.radius) || command.radius < 0)) {
       throw new Error('CAST radius must be a non-negative safe integer.');
