@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { WORLD_UNITS_PER_METER } from '../../src/simulation/arena';
+import { WORLD_UNITS_PER_METER, M01_ARENA } from '../../src/simulation/arena';
 import { EntityStore } from '../../src/simulation/entity-store';
 import {
   formationDestinations,
@@ -9,7 +9,6 @@ import {
 } from '../../src/simulation/formation';
 import { NavigationGrid } from '../../src/simulation/navigation';
 import { Simulation, formationOffsets } from '../../src/simulation/simulation';
-import { M01_ARENA } from '../../src/simulation/arena';
 import type { UnitArchetype } from '../../src/simulation/components';
 
 const M = WORLD_UNITS_PER_METER;
@@ -54,6 +53,12 @@ function destinationMap(destinations: readonly { entityId: number; x: number; z:
   return new Map(destinations.map((destination) => [destination.entityId, `${destination.x},${destination.z}`]));
 }
 
+function footprint(slots: readonly { lateral: number; depth: number }[]): number {
+  const lateral = slots.map((slot) => slot.lateral);
+  const depth = slots.map((slot) => slot.depth);
+  return (Math.max(...lateral) - Math.min(...lateral)) * (Math.max(...depth) - Math.min(...depth));
+}
+
 function planned(formation: FormationId, blocked = false) {
   const { entities, ids } = mixedEntities();
   const nav = navigation(blocked);
@@ -61,16 +66,15 @@ function planned(formation: FormationId, blocked = false) {
 }
 
 describe('post-roadmap Phase 3 formation movement', () => {
-  it('gives Line, Column, and Spread distinct deterministic layouts', () => {
+  it('gives Line, Column, and Spread distinct deterministic layouts with a larger Spread footprint', () => {
     const line = formationSlots('LINE', 10);
     const column = formationSlots('COLUMN', 10);
     const spread = formationSlots('SPREAD', 10);
     expect(line).not.toEqual(column);
     expect(line).not.toEqual(spread);
     expect(column).not.toEqual(spread);
-    const lineExtent = Math.max(...line.map((slot) => Math.abs(slot.lateral)));
-    const spreadExtent = Math.max(...spread.map((slot) => Math.abs(slot.lateral)));
-    expect(spreadExtent).toBeGreaterThan(lineExtent);
+    expect(footprint(spread)).toBeGreaterThan(footprint(line));
+    expect(footprint(spread)).toBeGreaterThan(footprint(column));
   });
 
   it('is independent of selected entity input order and reserves unique walkable cells', () => {
