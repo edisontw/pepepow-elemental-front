@@ -26,6 +26,15 @@ describe('M01 selection and control groups', () => {
     expect(selection.ids).toEqual([1, 4]);
   });
 
+  it('supports control group zero alongside one through nine', () => {
+    const selection = new SelectionState();
+    selection.select([7, 2], 'REPLACE');
+    selection.assignControlGroup(0);
+    selection.select([9], 'REPLACE');
+    expect(selection.recallControlGroup(0, () => true)).toBe(true);
+    expect(selection.ids).toEqual([2, 7]);
+  });
+
   it('leaves selection unchanged for an unassigned group and prunes dead units', () => {
     const selection = new SelectionState();
     selection.select([1, 2, 3], 'REPLACE');
@@ -39,8 +48,8 @@ describe('M01 selection and control groups', () => {
 
   it('rejects invalid control-group slots', () => {
     const selection = new SelectionState();
-    expect(() => selection.assignControlGroup(0)).toThrow(/1 to 9/);
-    expect(() => selection.recallControlGroup(10, () => true)).toThrow(/1 to 9/);
+    expect(() => selection.assignControlGroup(-1)).toThrow(/0 to 9/);
+    expect(() => selection.recallControlGroup(10, () => true)).toThrow(/0 to 9/);
   });
 
   it('formats selected unit health, order, and status for the debug overlay', () => {
