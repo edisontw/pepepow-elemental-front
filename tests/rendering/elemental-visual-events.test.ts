@@ -55,4 +55,19 @@ describe('M08 elemental visual event derivation', () => {
     expect(newlyWetVisibleEntities(previous, waterFrame)).toEqual([target.id]);
     expect(newlyWetVisibleEntities(previous, { ...waterFrame, lastTerrainEffectTick: current.tick - 1 })).toEqual([]);
   });
+
+  it('shows v3 Water Burst without requiring the legacy terrain event', () => {
+    const [previous, current] = snapshots();
+    const target = current.entities[0]!;
+    const v3Frame = {
+      ...current,
+      elementalAuthority: { lastCastResult: { tick: current.tick, status: 'CAST', spellId: 'WATER_BURST' } },
+      entities: current.entities.map((entity) => entity.id === target.id
+        ? { ...entity, wet: true, wetTicks: 10, visibleToPlayer: true } : entity),
+    };
+    expect(newlyWetVisibleEntities(previous, v3Frame)).toEqual([target.id]);
+    const noCast = { ...v3Frame, elementalAuthority: undefined };
+    expect(newlyWetVisibleEntities(previous, noCast)).toEqual([]);
+  });
+
 });

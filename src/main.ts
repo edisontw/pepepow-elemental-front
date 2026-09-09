@@ -1,5 +1,6 @@
 import './styles.css';
 import './layout.css';
+import './frontier.css';
 import {
   assertBlockChallengeWorldMatches,
   readBlockChallengeShareRequest,
@@ -177,7 +178,7 @@ async function boot(): Promise<void> {
       canvas,
       (clientX, clientY) => scene.screenToSimulationPosition(clientX, clientY),
     );
-    const manaSystemHud = new ManaSystemHud(strategyElement, simulation);
+    const manaSystemHud = new ManaSystemHud(strategyElement, simulation, () => scene.selectedUnits.map((unit) => unit.id));
     const poiCaptureHint = new PoiCaptureHint(strategyElement, simulation, () => scene.selectedUnits);
     const resourceDefensePanel = new ResourceDefensePanel(strategyElement, simulation);
     const roguelitePanel = new RoguelitePanel(rogueliteElement, simulation);

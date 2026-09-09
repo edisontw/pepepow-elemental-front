@@ -1,6 +1,6 @@
 # PEPEPOW Elemental Front — PROJECT_CONTEXT
 
-**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Visual Production Pass OPEN  
+**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Visual Production Pass — Priority A IMPLEMENTED / MANUAL WEBGL PENDING  
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
@@ -206,6 +206,17 @@ Rules for current work:
 - prefer coherent vertical slices over many tiny handoffs;
 - use stable asset IDs / manifest paths;
 - keep repository and in-game UI English-only.
+
+### Visual production implementation baseline
+
+Priority A is implemented; manual WebGL acceptance remains pending.
+
+- Manifest-loaded original GLBs: Vanguard, four aligned Elementalists, and Elemental Core (53–123 KiB per model). Stable Core asset ID preserved.
+- Named rigid-node movement, attack/cast, hit/death, and reactor motion; artist-authored skeletal animation remains a follow-up.
+- Gunmetal/brass HUD, construction/army categories, selected-army health, selected-caster Tactical readiness, and in-world work progress.
+- Hollow selection/Wet rings, freeze shell, Water ripples, segmented Lightning, and pooled single-draw combat sparks; 192-spark/64-projectile/96-transient caps.
+- TypeScript/build and 10 targeted rendering tests pass; GLB structure checks pass. Work browser cannot boot WebGL (`WebGL not supported`); no visual or 100-unit FPS pass is claimed.
+- Next: manual Priority A acceptance, then Priority B/C assets, terrain/environment, Strategic network/footprint presentation and LOD. Do not reopen gameplay authority.
 
 ### Token-efficient validation policy
 

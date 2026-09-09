@@ -20,7 +20,7 @@ export interface UnitVisualProfile {
 
 export const UNIT_VISUAL_PROFILES: Readonly<Record<UnitArchetype, UnitVisualProfile>> = {
   VANGUARD: {
-    height: 1.72,
+    height: 1.9,
     selectionScale: 1.2,
     projectile: 'NONE',
     parts: [
@@ -59,7 +59,7 @@ export const UNIT_VISUAL_PROFILES: Readonly<Record<UnitArchetype, UnitVisualProf
     ],
   },
   ELEMENTALIST: {
-    height: 1.72,
+    height: 2.3,
     selectionScale: 1.1,
     projectile: 'ORB',
     parts: [

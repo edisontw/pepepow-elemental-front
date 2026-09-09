@@ -37,6 +37,7 @@ export class ManaSystemHud {
   constructor(
     private readonly strategyElement: HTMLElement,
     private readonly simulation: M04Simulation,
+    private readonly selectedIds: () => readonly number[],
   ) {
     this.observer = new MutationObserver(() => {
       if (!this.rendering) this.render();
@@ -135,7 +136,8 @@ export class ManaSystemHud {
       const attuned = new Set(authority.attunements.players[PLAYER_ID]?.unlocked ?? []);
       this.renderElementalistTrainingControls(attuned);
       const playerEntityIds = new Set(snapshot.entities.filter((entity) => entity.playerId === PLAYER_ID && entity.alive).map((entity) => entity.id));
-      const aligned = authority.alignedElementalists.filter((entry) => playerEntityIds.has(entry.entityId));
+      const selectedIds = new Set(this.selectedIds());
+      const aligned = authority.alignedElementalists.filter((entry) => playerEntityIds.has(entry.entityId) && selectedIds.has(entry.entityId));
       const cooldownByCasterSpell = new Map(
         authority.spells.tacticalCooldowns.map((cooldown) => [`${cooldown.casterEntityId}:${cooldown.spellId}`, cooldown.readyTick]),
       );
@@ -146,12 +148,10 @@ export class ManaSystemHud {
         const remaining = casters.length === 0
           ? null
           : Math.min(...casters.map((caster) => Math.max(0, (cooldownByCasterSpell.get(`${caster.entityId}:${spellId}`) ?? 0) - snapshot.tick)));
-        const state = remaining === null
-          ? ' · no caster'
-          : remaining > 0
-            ? ` · ${(remaining / 10).toFixed(1)}s`
-            : '';
-        return `<span><kbd>${KEY_BY_SPELL[spellId]}</kbd>${SPELL_LABELS[spellId]} ${value(spell.manaCostMilli)}${state}</span>`;
+        const lowMana = mana.currentManaMilli < spell.manaCostMilli;
+        const state = remaining === null ? 'Select caster' : remaining > 0 ? `${(remaining / 10).toFixed(1)}s` : lowMana ? 'Low Mana' : 'Check target';
+        const fill = remaining === null ? 0 : Math.round(100 * (1 - Math.min(1, remaining / spell.cooldownTicks)));
+        return `<span class="spell-card" data-element="${spell.element}" data-available="${remaining === 0 && !lowMana}" title="Select an aligned caster, hover a valid target in range, then press ${KEY_BY_SPELL[spellId]}. Readiness does not guarantee target legality."><kbd>${KEY_BY_SPELL[spellId]}</kbd><b>${SPELL_LABELS[spellId]}</b><small>${value(spell.manaCostMilli)} Mana · ${state}</small><i style="--ready:${fill}%"></i></span>`;
       }).join('');
 
       const result = authority.lastCastResult;
@@ -173,7 +173,7 @@ export class ManaSystemHud {
       const attunementLabel = [...attuned].map(elementLabel).join(' + ');
 
       hint.innerHTML = snapshot.elementalMana.enabled
-        ? `<small>Attunements: <b>${attunementLabel || 'None'}</b></small><div>${spells || '<span>Train an aligned Elementalist to use Tactical spells.</span>'}</div><small>Train Elementalists with an Attuned alignment. Select aligned Elementalists, hover a target, then use R / Q / F / L. Cooldowns belong to the caster.</small>${feedback}`
+        ? `<small class="spell-heading">TACTICAL <b>${attunementLabel || 'None'}</b></small><div>${spells || '<span>Train an aligned Elementalist to use Tactical spells.</span>'}</div><small>Select caster · hover target · press key. Readiness is per selected caster; range and target rules still apply.</small>${feedback}`
         : '<small>Mana economy active. Full spell authority activates in Enemy War / full runs.</small>';
     } finally {
       this.rendering = false;

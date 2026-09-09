@@ -299,3 +299,13 @@ Keep the final Work response short:
 - known follow-up items only if material.
 
 Do not produce a long milestone narrative for routine visual-production work.
+
+
+## 13. Priority A implementation notes
+
+- Models: `public/assets/models/`; rebuild with `python scripts/art/build_frontier_models.py` (standard library only).
+- Original faceted geometry, no third-party asset license dependency. This is a coherent runtime baseline, not final artist-approved concept/rig completion.
+- Format: GLB, metres, Y up, +Z forward. `SURFACE` uses vertex colors; `TEAM` is replaced per faction; `ELEMENT` remains independent. No texture download required.
+- Optional motion nodes: `LegL`, `LegR`, `Weapon`, `Reactor`, `Orbit`. Missing nodes safely omit that motion; the manifest loader retains primitive fallback on load failure.
+- Unit models have 470–832 triangles / 5–6 primitives; Core has 1,136 triangles / 4 primitives. Geometry and materials are shared across instances. Ordinary-unit draw-count/LOD reduction remains Priority C.
+- Validation: build/typecheck, 10 targeted rendering tests, six GLB structural checks. Browser smoke blocked by unavailable WebGL. Actual appearance, animation and target-device FPS still need manual acceptance.
