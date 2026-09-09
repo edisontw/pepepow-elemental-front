@@ -1,4 +1,5 @@
 import type { ElementId, TacticalSpellId } from '../simulation/element-types';
+import { UNITS } from '../simulation/m03-content';
 import type { M04Simulation } from '../simulation/m04-simulation';
 import { TACTICAL_SPELLS } from '../simulation/spell-content';
 
@@ -41,6 +42,7 @@ export class ManaSystemHud {
       if (!this.rendering) this.render();
     });
     this.observer.observe(strategyElement, { childList: true });
+    strategyElement.addEventListener('click', this.onClick, true);
     this.render();
   }
 
@@ -54,7 +56,58 @@ export class ManaSystemHud {
 
   destroy(): void {
     this.observer.disconnect();
+    this.strategyElement.removeEventListener('click', this.onClick, true);
     this.strategyElement.querySelector('.mana-system-hint')?.remove();
+  }
+
+  private readonly onClick = (event: MouseEvent): void => {
+    const target = event.target instanceof Element
+      ? event.target.closest<HTMLButtonElement>('button[data-action="train-elementalist-v2"]')
+      : null;
+    if (!target || target.disabled) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    const element = target.dataset.element as ElementId | undefined;
+    if (!element || !this.simulation.attunements.has(PLAYER_ID, element)) return;
+    const producer = this.strategyElement.querySelector<HTMLButtonElement>(
+      '.producer-select button.active[data-action="select-producer"]',
+    );
+    const buildingId = Number(producer?.dataset.value);
+    const message = this.strategyElement.querySelector<HTMLElement>('.strategy-message');
+    if (!Number.isSafeInteger(buildingId) || buildingId <= 0) {
+      if (message) message.textContent = 'Select a completed Arcane Tower before training an Elementalist.';
+      return;
+    }
+
+    this.simulation.enqueueStrategicCommand({
+      targetTick: this.simulation.snapshot().tick + 1,
+      playerId: PLAYER_ID,
+      type: 'TRAIN',
+      buildingId,
+      unitType: 'ELEMENTALIST',
+      elementalistAlignment: element,
+    });
+    if (message) message.textContent = `Queued ${elementLabel(element)} Elementalist at Arcane Tower #${buildingId}.`;
+  };
+
+  private renderElementalistTrainingControls(attuned: ReadonlySet<ElementId>): void {
+    const generic = this.strategyElement.querySelector<HTMLButtonElement>(
+      'button[data-action="train"][data-value="ELEMENTALIST"]',
+    );
+    if (!generic) return;
+
+    const definition = UNITS.ELEMENTALIST;
+    const replacements = [...attuned].map((element) => {
+      const button = document.createElement('button');
+      button.dataset.action = 'train-elementalist-v2';
+      button.dataset.element = element;
+      button.disabled = generic.disabled;
+      button.title = `${elementLabel(element)} alignment is immutable for this Elementalist.`;
+      button.innerHTML = `${elementLabel(element)} Elementalist<small>${definition.cost.material}M${definition.cost.mana ? ` · ${definition.cost.mana}A` : ''} · P${definition.population}</small>`;
+      return button;
+    });
+    generic.replaceWith(...replacements);
   }
 
   private render(): void {
@@ -80,6 +133,7 @@ export class ManaSystemHud {
       }
 
       const attuned = new Set(authority.attunements.players[PLAYER_ID]?.unlocked ?? []);
+      this.renderElementalistTrainingControls(attuned);
       const playerEntityIds = new Set(snapshot.entities.filter((entity) => entity.playerId === PLAYER_ID && entity.alive).map((entity) => entity.id));
       const aligned = authority.alignedElementalists.filter((entry) => playerEntityIds.has(entry.entityId));
       const cooldownByCasterSpell = new Map(
@@ -119,7 +173,7 @@ export class ManaSystemHud {
       const attunementLabel = [...attuned].map(elementLabel).join(' + ');
 
       hint.innerHTML = snapshot.elementalMana.enabled
-        ? `<small>Attunements: <b>${attunementLabel || 'None'}</b></small><div>${spells || '<span>Train an aligned Elementalist to use Tactical spells.</span>'}</div><small>Select aligned Elementalists, hover a target, then use R / Q / F / L. Cooldowns belong to the caster.</small>${feedback}`
+        ? `<small>Attunements: <b>${attunementLabel || 'None'}</b></small><div>${spells || '<span>Train an aligned Elementalist to use Tactical spells.</span>'}</div><small>Train Elementalists with an Attuned alignment. Select aligned Elementalists, hover a target, then use R / Q / F / L. Cooldowns belong to the caster.</small>${feedback}`
         : '<small>Mana economy active. Full spell authority activates in Enemy War / full runs.</small>';
     } finally {
       this.rendering = false;
