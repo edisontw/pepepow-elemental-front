@@ -20,6 +20,16 @@ Canonical files:
 3. `docs/TECH_ARCHITECTURE.md`
 4. `docs/ROADMAP.md`
 
+Active post-roadmap design baseline:
+
+- `docs/POST_ROADMAP_GAMEPLAY_REDESIGN_SPEC.md`
+
+Final-art prompt reference:
+
+- `media/prompts/images/POST_ROADMAP_UNIT_BUILDING_ART_PROMPTS.md`
+
+The post-roadmap redesign document is an approved design direction / implementation-planning baseline, but it does **not** replace live authoritative gameplay semantics until changes are explicitly adopted into the canonical gameplay spec, runtime data/code, tests, and a new gameplay Ruleset Version.
+
 Historical milestone detail belongs under `docs/milestones/`. Do not reconstruct or redo CLOSED milestones from chat history.
 
 All repository content and current in-game/debug UI remain English-only for now.
@@ -110,15 +120,31 @@ Do not reopen M00–M08 unless a concrete regression is demonstrated or a later 
 
 ## 4. Post-roadmap status
 
-Operator direction is to finish the original roadmap first and defer the many remaining gameplay/design adjustments until afterward. The original roadmap is now complete.
+The original roadmap is complete. Product development has now entered deliberate post-roadmap redesign.
 
-The following are intentionally unresolved product/design areas rather than milestone closure failures:
+The active gameplay design direction is defined in:
 
-- deeper Fire / Water / Ice / Lightning role and counterplay redesign
+- `docs/POST_ROADMAP_GAMEPLAY_REDESIGN_SPEC.md`
+
+Current proposed decisions include:
+
+- retain Material / Mana / Influence rather than adding four elemental stockpile resources;
+- choose two starting Elemental Attunements per run;
+- use aligned Elementalists as the main Tactical spellcasters;
+- use Core / Arcane Tower / upgraded connected Outposts as Strategic spell infrastructure;
+- sharpen Fire / Water / Ice / Lightning into distinct battlefield jobs with setup, targets, and counterplay;
+- keep environmental consequences strategically meaningful to both factions;
+- sharpen the current eight-unit roster before expanding unit count;
+- reduce unnecessary caster micro through deterministic caster selection and clearer targeting previews;
+- emphasize spatial formation behavior over hidden percentage-stat formation bonuses;
+- assign a new gameplay Ruleset Version before merging authoritative redesign semantics.
+
+These decisions are a design and implementation-planning baseline. The current deployed runtime still uses `m08-standard-v1` gameplay semantics until a later implementation explicitly replaces them.
+
+Other remaining post-roadmap work includes:
+
 - forest / river / bridge / crossing strategic-value tuning
-- broader combat target and structure-assault redesign
 - economy and territorial pacing
-- Mana-system design and tuning
 - AI behavior and balance
 - progression / reward tuning
 - final manually approved art replacement
@@ -127,20 +153,21 @@ The following are intentionally unresolved product/design areas rather than mile
 - deferred PEPEPOW browser live-height / CORS integration
 - client bundle code-splitting / size optimization
 
-These are a post-roadmap backlog. They must not be represented as already solved merely because M08 is CLOSED.
-
 ---
 
 ## 5. Next-work rule
 
-Do not automatically start a new implementation milestone or broad redesign from this closure commit.
+Do not reopen the original M00–M08 milestones.
 
-For the next phase:
+For the next gameplay implementation phase:
 
 1. start from latest GitHub `main`;
-2. define the specific product/gameplay redesign goal before changing implementation;
-3. preserve deterministic architecture and existing CLOSED-system tests unless an explicit redesign requires change;
-4. when authoritative gameplay semantics change, assign a new gameplay Ruleset Version rather than reusing `m08-standard-v1`;
-5. keep final-art/audio replacement separable from gameplay correctness.
+2. read `docs/POST_ROADMAP_GAMEPLAY_REDESIGN_SPEC.md` before planning gameplay changes;
+3. convert the redesign into a concrete implementation contract before changing authoritative behavior;
+4. first finalize Attunement state, Elementalist alignment, Tactical / Strategic spell ownership, required target tags, and the new gameplay Ruleset Version;
+5. preserve deterministic architecture and existing CLOSED-system tests unless an explicit redesign requires a documented change;
+6. update replay / challenge identity whenever authoritative gameplay semantics change;
+7. keep final-art/audio replacement separable from gameplay correctness;
+8. implement in reviewable phases, with automated determinism/regression tests and later human WebGL acceptance.
 
-The original M00–M08 roadmap is complete; future work is deliberate post-roadmap product development.
+The immediate next formal work point is **post-roadmap gameplay implementation planning — Phase 1: redesign contract and data model**.
