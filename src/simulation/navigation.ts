@@ -99,6 +99,29 @@ export class NavigationGrid {
     return null;
   }
 
+  resolveWalkableTargetAvoiding(target: GridCell, reserved: ReadonlySet<string>): GridCell | null {
+    const start = this.clampCell(target);
+    const startKey = this.cellKey(start);
+    if (this.isWalkable(start) && !reserved.has(startKey)) return start;
+    const visited = new Set<string>([startKey]);
+    let frontier: GridCell[] = [start];
+    while (frontier.length > 0) {
+      const next: GridCell[] = [];
+      for (const cell of frontier) {
+        for (const offset of NEIGHBORS) {
+          const candidate = { column: cell.column + offset.column, row: cell.row + offset.row };
+          const key = this.cellKey(candidate);
+          if (visited.has(key) || !this.inBounds(candidate)) continue;
+          visited.add(key);
+          if (this.isWalkable(candidate) && !reserved.has(key)) return candidate;
+          next.push(candidate);
+        }
+      }
+      frontier = next;
+    }
+    return null;
+  }
+
   findPath(start: GridCell, requestedGoal: GridCell): GridCell[] | null {
     const goal = this.resolveWalkableTarget(requestedGoal);
     if (!goal || !this.isWalkable(start)) return null;
@@ -144,6 +167,13 @@ export class NavigationGrid {
 
   private heuristic(left: GridCell, right: GridCell): number {
     return Math.abs(left.column - right.column) + Math.abs(left.row - right.row);
+  }
+
+  private clampCell(cell: GridCell): GridCell {
+    return {
+      column: Math.max(0, Math.min(this.definition.columns - 1, cell.column)),
+      row: Math.max(0, Math.min(this.definition.rows - 1, cell.row)),
+    };
   }
 
   private inBounds(cell: GridCell): boolean {
