@@ -1,6 +1,6 @@
 # PEPEPOW Elemental Front — PROJECT_CONTEXT
 
-**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED  
+**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Visual Production Pass OPEN  
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
@@ -15,7 +15,13 @@
 
 GitHub `main` is the only source of truth.
 
-Always read this file first. Then read only relevant sections of:
+Always read this file first.
+
+For the current visual-production pass, read next:
+
+- `docs/VISUAL_IMPLEMENTATION_BRIEF.md`
+
+Then read only task-relevant sections of:
 
 1. `docs/GAME_DESIGN_SPEC.md`
 2. `docs/TECH_ARCHITECTURE.md`
@@ -23,7 +29,7 @@ Always read this file first. Then read only relevant sections of:
 
 Post-roadmap authoritative supplements:
 
-- `docs/POST_ROADMAP_GAMEPLAY_REDESIGN_SPEC.md` — approved redesign direction;
+- `docs/POST_ROADMAP_GAMEPLAY_REDESIGN_SPEC.md` — historical redesign baseline; Phase 2 and part of Phase 3 have since been adopted into authoritative runtime contracts;
 - `docs/POST_ROADMAP_PHASE1_IMPLEMENTATION_CONTRACT.md` — frozen element-authority contract adopted by Phase 2;
 - `docs/POST_ROADMAP_PHASE2_CLOSURE_REPORT.md` — Phase 2 implementation record;
 - `docs/POST_ROADMAP_PHASE3_ARMY_CONTROL_CONTRACT.md` — frozen Phase 3 formation/control contract;
@@ -58,6 +64,8 @@ Current version separation:
 - replay: `ef-replay-v3`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
+
+Presentation-only replacement of UI, models, materials, animations, terrain dressing, particles, decals, lighting, camera feedback, or audio hooks does not require a gameplay/replay version bump.
 
 ---
 
@@ -137,9 +145,9 @@ The existing Official Challenge ID `m08-roadmap` is retained for link continuity
 
 ---
 
-## 5. Explicit Phase 3 deferrals
+## 5. Explicit gameplay deferrals
 
-The formation slice intentionally does not yet include:
+The completed formation slice intentionally does not yet include:
 
 - `A` Attack Move;
 - `H` Hold Position;
@@ -151,30 +159,63 @@ The formation slice intentionally does not yet include:
 - Strategic spell relay/network visualization;
 - broad unit/economy/terrain/AI rebalance.
 
-Do not reinterpret these as missing M00–M08 work. They are current post-roadmap follow-up scope.
+These are post-roadmap gameplay/control follow-up items, not missing M00–M08 work.
+
+During the current visual-production pass, keep these gameplay items deferred unless the user explicitly requests them. Visual/UI readability for existing authoritative behavior may be improved without adopting deferred gameplay semantics.
 
 ---
 
-## 6. Next formal work point
+## 6. Current formal work point — Visual Production Pass
 
-Continue **post-roadmap Phase 3 army-control follow-up** before broad balance tuning.
+The active work point is a **high-quality presentation production pass** before resuming broader gameplay/control follow-up.
 
-Priority:
+Primary scope:
 
-1. implement authoritative `A` Attack Move;
-2. implement authoritative `H` Hold Position;
-3. add `Tab` subgroup cycling for mixed selections;
-4. implement persistent `GUARD` around selected/high-value units;
-5. refine Tactical spell targeting/preview UX;
-6. improve Strategic spell casting and relay/network readability;
-7. only then tune unit roles, economy, terrain value, and AI elemental decisions.
+1. polished UI / HUD / command-card visual baseline;
+2. refined unit presentation and animation;
+3. refined building presentation and construction/production feedback;
+4. battlefield terrain, water, forest, ice, resources, POIs, and environment dressing;
+5. combat feedback, projectiles, hit/death/destruction presentation;
+6. Fire / Water / Ice / Lightning Tactical and Strategic VFX readability;
+7. browser-friendly asset, material, VFX, LOD, and draw-call optimization.
 
-Rules for the next work:
+Visual direction:
+
+- **Arcane-Industrial Frontier**;
+- 2.5D / stylized-3D RTS presentation;
+- strong elevated-camera silhouettes;
+- team color communicates ownership;
+- elemental material/glow communicates elemental identity/state;
+- final or production-quality runtime models should prefer GLB unless the asset pipeline documents another format.
+
+Canonical production constraint:
+
+- `docs/VISUAL_IMPLEMENTATION_BRIEF.md`
+
+Existing concept reference:
+
+- `media/prompts/images/POST_ROADMAP_UNIT_BUILDING_ART_PROMPTS.md`
+
+Rules for current work:
 
 - start from latest GitHub `main`;
-- do not redo Phase 2 or the completed Phase 3 formation slice;
+- do not redo closed milestones or the completed Phase 2 / Phase 3 formation authority;
 - preserve `m02-standard-v1` world generation;
 - preserve deterministic command/replay/hash architecture;
-- bump gameplay/replay identity again only if the next authoritative semantics require it;
-- keep final art/audio replacement separate from gameplay correctness;
-- require automated deterministic/regression tests before WebGL acceptance.
+- do not change authoritative gameplay merely to improve appearance;
+- prefer coherent vertical slices over many tiny handoffs;
+- use stable asset IDs / manifest paths;
+- keep repository and in-game UI English-only.
+
+### Token-efficient validation policy
+
+For presentation-only batches:
+
+- do not rerun broad deterministic/replay/AI/worldgen regressions unless authoritative gameplay code changed or a concrete regression requires them;
+- run TypeScript/build once at the end of a coherent batch;
+- run only directly relevant targeted tests when necessary;
+- perform one short browser/WebGL smoke when available;
+- fix obvious local blockers, then stop;
+- avoid repeated full-repo audits, exhaustive visual inspection, repeated verification of unchanged systems, and long closure reports.
+
+After the visual-production pass reaches a satisfactory baseline, resume the deferred post-roadmap army-control / targeting / balance work only when explicitly requested.
