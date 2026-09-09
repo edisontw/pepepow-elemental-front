@@ -1,5 +1,6 @@
 import type {
   CombatComponent,
+  ElementalAlignmentComponent,
   EntityID,
   FactionComponent,
   HealthComponent,
@@ -9,6 +10,7 @@ import type {
   StatusComponent,
   UnitSpawn,
 } from './components';
+import type { ElementId } from './element-types';
 
 export class EntityStore {
   readonly positions = new Map<EntityID, PositionComponent>();
@@ -19,6 +21,7 @@ export class EntityStore {
   readonly statuses = new Map<EntityID, StatusComponent>();
   readonly combat = new Map<EntityID, CombatComponent>();
   readonly archetypes = new Map<EntityID, UnitSpawn['archetype']>();
+  readonly elementalAlignments = new Map<EntityID, ElementalAlignmentComponent>();
 
   private nextEntityId = 1;
 
@@ -48,6 +51,14 @@ export class EntityStore {
     });
     this.archetypes.set(entityId, spawn.archetype);
     return entityId;
+  }
+
+  setElementalAlignment(entityId: EntityID, element: ElementId): boolean {
+    if (!this.hasUnit(entityId) || this.archetypes.get(entityId) !== 'ELEMENTALIST') return false;
+    const existing = this.elementalAlignments.get(entityId);
+    if (existing) return existing.element === element;
+    this.elementalAlignments.set(entityId, { element });
+    return true;
   }
 
   hasUnit(entityId: EntityID): boolean {
