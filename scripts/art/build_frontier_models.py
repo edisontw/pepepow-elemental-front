@@ -171,8 +171,87 @@ def core():
     m.export('building-elemental-core.glb',(.34,.65,.90))
 
 
+def unit_specialist(kind):
+    """Readable light-weight specialist silhouettes sharing the Frontier body language."""
+    m=Model()
+    for sign,name in [(-1,'LegL'),(1,'LegR')]:
+        m.pivots[name]=[sign*.16,.6,0]
+        m.box((0,-.12,0),(.20,.32,.22),CLOTH,name)
+        m.lathe((0,-.43,0),[(-.12,.12),(.12,.14)],STEEL,name=name,depth=.8)
+        m.box((0,-.56,.08),(.26,.14,.34),LEATHER,name)
+    m.lathe((0,0,0),[(.56,.25),(.82,.3),(1.12,.25)],STEEL,depth=.68)
+    m.lathe((0,0,0),[(1.14,.18),(1.39,.22),(1.53,.12)],STEEL,depth=.82)
+    m.box((0,1.34,.18),(.28,.08,.04),WHITE,role='TEAM')
+    if kind == 'SPEAR_GUARD':
+        m.box((-.35,1.01,.02),(.18,.26,.18),EDGE)
+        m.pivots['Weapon']=[.08,1.02,.08]
+        m.lathe((0,-.05,.72),[(-.04,.08),(.04,.08)],EDGE,sides=6,name='Weapon',depth=6.6)
+        m.lathe((0,-.05,1.42),[(-.10,.16),(0,.03),(.22,.001)],BRASS,sides=4,name='Weapon',depth=1)
+    elif kind == 'RANGER':
+        m.box((-.31,.72,-.02),(.12,.64,.16),CLOTH)
+        m.box((.31,.72,-.02),(.12,.64,.16),CLOTH)
+        m.pivots['Weapon']=[-.38,1.02,.15]
+        m.ring((0,1.05,.15),.38,.035,BRASS,'Weapon',vertical=True)
+        m.box((-.38,1.05,.15),(.06,.62,.06),LEATHER,'Weapon')
+        m.box((.39,.77,-.08),(.15,.35,.15),BRASS)
+    elif kind == 'SCOUT':
+        m.box((-.27,.64,-.12),(.18,.48,.14),CLOTH)
+        m.box((.27,.64,-.12),(.18,.48,.14),CLOTH)
+        m.pivots['Weapon']=[.34,.92,.12]
+        m.lathe((.34,.92,.12),[(-.12,.11),(.12,.11)],BRASS,sides=6,name='Weapon',depth=2.8)
+        m.box((-.35,1.03,.15),(.18,.22,.22),WHITE,role='TEAM')
+        m.box((.32,1.2,.08),(.12,.12,.18),BRASS)
+    else: # ENGINEER
+        m.box((-.32,.72,-.02),(.22,.52,.22),CLOTH)
+        m.box((.34,.76,.10),(.3,.42,.34),BRASS)
+        m.box((.34,.80,.30),(.36,.10,.08),WHITE,role='TEAM')
+        m.pivots['Weapon']=[-.4,1.0,.12]
+        m.box((-.42,.93,.12),(.16,.42,.18),EDGE,'Weapon')
+        m.box((-.42,.69,.12),(.26,.18,.28),BRASS,'Weapon')
+    m.export(f'unit-{kind.lower().replace("_","-")}.glb')
+
+
+def building(kind):
+    m=Model()
+    team=WHITE
+    if kind == 'BARRACKS':
+        m.box((0,.55,0),(2.55,1.05,2.05),STONE)
+        m.box((0,1.18,0),(2.35,.26,1.85),STEEL)
+        m.box((0,.5,1.08),(.82,.75,.08),team,role='TEAM')
+        m.box((0,1.34,.12),(1.75,.10,.15),BRASS)
+        for x in [-.88,.88]: m.box((x,1.22,-.72),(.18,.40,.18),BRASS)
+    elif kind == 'ARCANE_TOWER':
+        m.lathe((0,0,0),[(.02,1.08),(.35,1.0),(1.45,.78),(2.05,.7)],STONE,sides=8)
+        m.ring((0,2.06,0),.82,.08,BRASS,'Body',vertical=False)
+        m.lathe((0,2.06,0),[(-.35,.35),(.35,.35)],WHITE,sides=6,name='Body',role='ELEMENT')
+        m.box((0,.48,.85),(.38,.8,.06),team,role='TEAM')
+    elif kind == 'WORKSHOP':
+        m.box((0,.58,0),(2.85,1.1,2.45),STONE)
+        m.box((0,1.25,0),(2.68,.22,2.28),STEEL)
+        m.box((0,.72,1.27),(1.35,.75,.06),team,role='TEAM')
+        for x in [-.98,.98]: m.box((x,1.55,-.55),(.22,1.05,.22),BRASS)
+        m.box((0,1.78,-.55),(2.18,.16,.22),BRASS)
+    elif kind == 'OUTPOST':
+        m.lathe((0,0,0),[(.02,1.05),(.38,1.08),(.72,.88)],STONE,sides=8)
+        m.box((0,1.35,0),(.34,1.55,.34),team,role='TEAM')
+        m.lathe((0,2.25,0),[(-.25,.22),(.25,.22)],WHITE,sides=6,name='Body',role='ELEMENT')
+    elif kind == 'EXTRACTOR':
+        m.lathe((0,0,0),[(.02,.88),(.35,.88),(.62,.7)],STEEL)
+        m.lathe((0,.72,0),[(-.22,.38),(.22,.38)],WHITE,sides=6,role='ELEMENT')
+        for x,z in [(-.72,0),(.72,0),(0,.72),(0,-.72)]: m.box((x,.55,z),(.75,.16,.16),BRASS)
+    else: # MANA_WELL
+        m.lathe((0,0,0),[(.02,.9),(.25,.9),(.44,.73)],STONE)
+        m.ring((0,.62,0),.65,.07,BRASS,'Body')
+        m.lathe((0,.78,0),[(-.35,.25),(.35,.25)],WHITE,sides=6,name='Body',role='ELEMENT')
+        for angle in [0,2.094,4.188]:
+            m.box((math.sin(angle)*.62,1.0,math.cos(angle)*.62),(.12,.72,.12),BRASS)
+    m.export(f'building-{kind.lower().replace("_","-")}.glb',(.35,.65,.9))
+
+
 if __name__=='__main__':
     OUT.mkdir(parents=True,exist_ok=True)
     infantry()
     for element in ['FIRE','WATER','ICE','LIGHTNING']: infantry(True,element)
     core()
+    for kind in ['SPEAR_GUARD','RANGER','SCOUT','ENGINEER']: unit_specialist(kind)
+    for kind in ['BARRACKS','ARCANE_TOWER','WORKSHOP','OUTPOST','EXTRACTOR','MANA_WELL']: building(kind)

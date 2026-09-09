@@ -13,6 +13,7 @@ interface BuildingPartPresentation {
 interface BuildingPresentation {
   root: pc.Entity;
   model: VisualModel | null;
+  modelId: string;
   parts: readonly BuildingPartPresentation[];
   footprint: pc.Entity;
   beacon: pc.Entity;
@@ -100,6 +101,21 @@ export class StrategicRenderBridge {
       presentation.beacon.enabled = building.type !== 'ELEMENTAL_CORE' && !building.destroyed;
 
       const profile = buildingVisualProfile(building.type);
+      const modelIds: Readonly<Record<string, string>> = {
+        ELEMENTAL_CORE: 'building.elemental-core.debug',
+        BARRACKS: 'building.barracks',
+        ARCANE_TOWER: 'building.arcane-tower',
+        WORKSHOP: 'building.workshop',
+        OUTPOST: 'building.outpost',
+        EXTRACTOR: 'building.extractor',
+        MANA_WELL: 'building.mana-well',
+      };
+      const modelId = modelIds[building.type] ?? '';
+      if (modelId && presentation.modelId !== modelId) {
+        this.visualAssets.release(presentation.model);
+        presentation.model = this.visualAssets.attach(presentation.root, presentation.parts.map((part) => part.entity), modelId, building.playerId);
+        presentation.modelId = modelId;
+      }
       const model = presentation.model;
       if (model?.entity) {
         model.reactor?.setLocalEulerAngles(0, tick * 2.5, 0);
@@ -244,9 +260,7 @@ export class StrategicRenderBridge {
     root.addChild(defenseHead);
 
     this.app.root.addChild(root);
-    const model = building.type === 'ELEMENTAL_CORE'
-      ? this.visualAssets.attach(root, parts.map((part) => part.entity), 'building.elemental-core.debug', building.playerId) : null;
-    return { root, model, parts, footprint, beacon, rally, healthBack, healthBar, defenseStem, defenseHead };
+    return { root, model: null, modelId: '', parts, footprint, beacon, rally, healthBack, healthBar, defenseStem, defenseHead };
   }
 
   private materialFor(playerId: number, role: BuildingVisualMaterialRole): pc.Material {

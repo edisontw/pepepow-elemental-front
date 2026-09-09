@@ -136,6 +136,16 @@
       "path": "assets/models/unit-elementalist-lightning.glb",
       "canonicalFilename": "unit-elementalist-lightning.glb",
       "notes": "Original faceted model. Y up, +Z forward; TEAM independent of ELEMENT. Rebuild: python scripts/art/build_frontier_models.py"
-    }
+    },
+    { "id": "unit.spear-guard", "kind": "model", "status": "PRODUCTION_BASELINE", "path": "assets/models/unit-spear-guard.glb", "canonicalFilename": "unit-spear-guard.glb", "notes": "Original faceted Arcane-Industrial Frontier model." },
+    { "id": "unit.ranger", "kind": "model", "status": "PRODUCTION_BASELINE", "path": "assets/models/unit-ranger.glb", "canonicalFilename": "unit-ranger.glb", "notes": "Original faceted Arcane-Industrial Frontier model." },
+    { "id": "unit.scout", "kind": "model", "status": "PRODUCTION_BASELINE", "path": "assets/models/unit-scout.glb", "canonicalFilename": "unit-scout.glb", "notes": "Original faceted Arcane-Industrial Frontier model." },
+    { "id": "unit.engineer", "kind": "model", "status": "PRODUCTION_BASELINE", "path": "assets/models/unit-engineer.glb", "canonicalFilename": "unit-engineer.glb", "notes": "Original faceted Arcane-Industrial Frontier model." },
+    { "id": "building.barracks", "kind": "model", "status": "PRODUCTION_BASELINE", "path": "assets/models/building-barracks.glb", "canonicalFilename": "building-barracks.glb", "notes": "Original faceted Arcane-Industrial Frontier model." },
+    { "id": "building.arcane-tower", "kind": "model", "status": "PRODUCTION_BASELINE", "path": "assets/models/building-arcane-tower.glb", "canonicalFilename": "building-arcane-tower.glb", "notes": "Original faceted Arcane-Industrial Frontier model." },
+    { "id": "building.workshop", "kind": "model", "status": "PRODUCTION_BASELINE", "path": "assets/models/building-workshop.glb", "canonicalFilename": "building-workshop.glb", "notes": "Original faceted Arcane-Industrial Frontier model." },
+    { "id": "building.outpost", "kind": "model", "status": "PRODUCTION_BASELINE", "path": "assets/models/building-outpost.glb", "canonicalFilename": "building-outpost.glb", "notes": "Original faceted Arcane-Industrial Frontier model." },
+    { "id": "building.extractor", "kind": "model", "status": "PRODUCTION_BASELINE", "path": "assets/models/building-extractor.glb", "canonicalFilename": "building-extractor.glb", "notes": "Original faceted Arcane-Industrial Frontier model." },
+    { "id": "building.mana-well", "kind": "model", "status": "PRODUCTION_BASELINE", "path": "assets/models/building-mana-well.glb", "canonicalFilename": "building-mana-well.glb", "notes": "Original faceted Arcane-Industrial Frontier model." }
   ]
 }
