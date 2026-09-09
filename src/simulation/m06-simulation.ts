@@ -17,7 +17,7 @@ export type M06ReplayEntry =
   | { channel: 'ROGUELITE'; command: M04Command };
 
 export interface M06ReplayHeader {
-  version: 'ef-replay-v2';
+  version: 'ef-replay-v3';
   blockHeight: number;
   rulesetVersion: string;
   worldGameplayHash: string;
@@ -87,7 +87,7 @@ export function isM06ReplayPacket(value: unknown): value is M06ReplayPacket {
   if (typeof value !== 'object' || value === null) return false;
   const packet = value as Partial<M06ReplayPacket>;
   const header = packet.header as Partial<M06ReplayHeader> | undefined;
-  if (!header || header.version !== 'ef-replay-v2') return false;
+  if (!header || header.version !== 'ef-replay-v3') return false;
   if (!Number.isSafeInteger(header.blockHeight) || !Number.isSafeInteger(header.generationAttempt)) return false;
   if (typeof header.rulesetVersion !== 'string' || typeof header.worldGameplayHash !== 'string') return false;
   if (!validStartingAttunements(header.startingAttunements)) return false;
@@ -219,7 +219,7 @@ export class M06Simulation extends M05Simulation {
   private buildReplayPacket(snapshot: M06SimulationSnapshot): M06ReplayPacket {
     return {
       header: {
-        version: 'ef-replay-v2',
+        version: 'ef-replay-v3',
         blockHeight: this.generatedWorld.identity.blockHeight,
         rulesetVersion: CURRENT_CHALLENGE_RULESET_VERSION,
         worldGameplayHash: this.generatedWorld.gameplayHash,
