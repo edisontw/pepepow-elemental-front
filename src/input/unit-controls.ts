@@ -9,6 +9,7 @@ import { SelectionState } from './selection-state';
 
 const DRAG_THRESHOLD = 6;
 const DOUBLE_CLICK_MS = 350;
+const UNIT_PICK_RADIUS = 54;
 
 export class UnitControls {
   private readonly selection = new SelectionState();
@@ -120,7 +121,7 @@ export class UnitControls {
     const start = this.toCanvasCoordinates(this.startClientX, this.startClientY);
     const end = this.toCanvasCoordinates(this.currentClientX, this.currentClientY);
     if (this.dragDistance() < DRAG_THRESHOLD) {
-      const entityId = this.bridge.pickSingle(this.camera, end.x, end.y);
+      const entityId = this.bridge.pickSingle(this.camera, end.x, end.y, UNIT_PICK_RADIUS);
       if (entityId !== null && this.bridge.isControllable(entityId)) {
         const doubleClick = entityId === this.lastClickEntityId && event.timeStamp - this.lastClickTimeMs <= DOUBLE_CLICK_MS;
         if (doubleClick) {
@@ -195,7 +196,7 @@ export class UnitControls {
     if (event.code === 'KeyL' && !event.repeat) {
       if (this.hoverClientX === null || this.hoverClientY === null) return;
       const screen = this.toCanvasCoordinates(this.hoverClientX, this.hoverClientY);
-      const targetId = this.bridge.pickSingle(this.camera, screen.x, screen.y, 54);
+      const targetId = this.bridge.pickSingle(this.camera, screen.x, screen.y, UNIT_PICK_RADIUS);
       if (targetId === null || !this.bridge.isEnemy(targetId)) return;
       this.simulation.enqueueCommand({
         targetTick: this.simulation.snapshot().tick + 1,
@@ -263,7 +264,7 @@ export class UnitControls {
   private enqueueContextOrder(clientX: number, clientY: number): void {
     if (this.selection.ids.length === 0) return;
     const screen = this.toCanvasCoordinates(clientX, clientY);
-    const picked = this.bridge.pickSingle(this.camera, screen.x, screen.y);
+    const picked = this.bridge.pickSingle(this.camera, screen.x, screen.y, UNIT_PICK_RADIUS);
     if (picked !== null && this.bridge.isEnemy(picked)) {
       this.simulation.enqueueCommand({
         targetTick: this.simulation.snapshot().tick + 1,
