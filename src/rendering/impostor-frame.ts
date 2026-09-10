@@ -6,11 +6,13 @@ function normalizeDegrees(value: number): number {
 }
 
 /**
- * Atlas order: front, front-left, left, rear-left, rear, rear-right, right, front-right.
+ * Direction order: front, front-left, left, rear-left, rear, rear-right, right, front-right.
  * cameraYaw is the world azimuth from which the fixed RTS camera observes the unit.
+ * Positive frame progression moves around the unit's left side, so convert the
+ * observer azimuth into unit-local view space as heading - cameraYaw.
  */
 export function impostorFrameForHeading(headingDegrees: number, cameraYawDegrees = 45): number {
-  const relative = normalizeDegrees(cameraYawDegrees - headingDegrees);
+  const relative = normalizeDegrees(headingDegrees - cameraYawDegrees);
   return Math.round(relative / DIRECTION_STEP_DEGREES) % DIRECTION_COUNT;
 }
 
