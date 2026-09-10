@@ -1,6 +1,6 @@
 import * as pc from 'playcanvas';
 import manifest from '../../data/assets/manifest.json';
-import { impostorAtlasOffset, impostorFrameForHeading } from './impostor-frame';
+import { impostorFrameForHeading } from './impostor-frame';
 import { VANGUARD_IMPOSTOR_DATA_URI } from './vanguard-impostor-data';
 
 interface ImpostorHandle {
@@ -154,10 +154,6 @@ export class VisualAssetLibrary {
   private loadVanguardImpostorMaterials(): Promise<readonly pc.StandardMaterial[] | null> {
     if (this.vanguardImpostorPromise) return this.vanguardImpostorPromise;
     this.vanguardImpostorPromise = new Promise<readonly pc.StandardMaterial[] | null>((resolve) => {
-      // PlayCanvas' asset loader is intended for URL-like resources and did not
-      // reliably decode the embedded data URI in deployed browsers. Let the
-      // browser decode the WebP first, then hand the image to a PlayCanvas
-      // texture. This keeps the fallback visible until the texture is ready.
       const image = new Image();
       image.decoding = 'async';
       image.onload = () => {
@@ -176,19 +172,16 @@ export class VisualAssetLibrary {
         texture.setSource(image);
         this.vanguardImpostorTexture = texture;
 
+        // Validation asset: one approved full-body sprite. Keep eight material
+        // slots so heading logic stays unchanged, but do not atlas-crop it.
         for (let frame = 0; frame < 8; frame += 1) {
-          const [offsetX, offsetY] = impostorAtlasOffset(frame);
           const material = new pc.StandardMaterial();
           material.name = `VANGUARD_IMPOSTOR_${frame}`;
           material.useLighting = false;
           material.emissive = new pc.Color(1, 1, 1);
           material.emissiveMap = texture;
-          material.emissiveMapTiling.set(0.25, 0.5);
-          material.emissiveMapOffset.set(offsetX, offsetY);
           material.opacityMap = texture;
           material.opacityMapChannel = 'a';
-          material.opacityMapTiling.set(0.25, 0.5);
-          material.opacityMapOffset.set(offsetX, offsetY);
           material.alphaTest = 0.12;
           material.cull = pc.CULLFACE_NONE;
           material.update();
