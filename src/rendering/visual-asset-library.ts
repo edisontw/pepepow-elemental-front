@@ -1,11 +1,12 @@
 import * as pc from 'playcanvas';
 import manifest from '../../data/assets/manifest.json';
-import { impostorFrameForHeading } from './impostor-frame';
+import { stableImpostorFrameForHeading } from './impostor-frame';
 import { VANGUARD_IMPOSTOR_FRAME_FILES, vanguardImpostorFrameUrl } from './vanguard-impostor-frames';
 
 interface ImpostorHandle {
   billboard: pc.Entity;
   plane: pc.Entity;
+  shadow: pc.Entity;
   frame: number;
   update: () => void;
 }
@@ -29,10 +30,21 @@ export class VisualAssetLibrary {
   private readonly impostorMaterials: pc.StandardMaterial[] = [];
   private readonly impostorUpdates = new Set<() => void>();
   private readonly vanguardImpostorTextures: pc.Texture[] = [];
+  private readonly vanguardShadowMaterial: pc.StandardMaterial;
   private vanguardImpostorPromise: Promise<readonly pc.StandardMaterial[] | null> | null = null;
   private disposed = false;
 
-  constructor(private readonly app: pc.Application) {}
+  constructor(private readonly app: pc.Application) {
+    this.vanguardShadowMaterial = new pc.StandardMaterial();
+    this.vanguardShadowMaterial.name = 'VANGUARD_IMPOSTOR_SHADOW';
+    this.vanguardShadowMaterial.useLighting = false;
+    this.vanguardShadowMaterial.diffuse = new pc.Color(0.02, 0.025, 0.025);
+    this.vanguardShadowMaterial.opacity = 0.24;
+    this.vanguardShadowMaterial.blendType = pc.BLEND_NORMAL;
+    this.vanguardShadowMaterial.depthWrite = false;
+    this.vanguardShadowMaterial.cull = pc.CULLFACE_NONE;
+    this.vanguardShadowMaterial.update();
+  }
 
   attach(parent: pc.Entity, fallback: readonly pc.Entity[], id: string, playerId: number): VisualModel {
     const handle: VisualModel = {
@@ -90,7 +102,7 @@ export class VisualAssetLibrary {
     // Cancel the parent's unit heading so the image plane remains camera-facing;
     // the selected directional frame carries the visible unit orientation.
     impostor.billboard.setLocalEulerAngles(0, 45 - headingDegrees, 0);
-    const frame = impostorFrameForHeading(headingDegrees);
+    const frame = stableImpostorFrameForHeading(headingDegrees, impostor.frame);
     if (frame === impostor.frame) return;
     const material = this.impostorMaterials[frame];
     if (impostor.plane.render && material) impostor.plane.render.material = material;
@@ -103,6 +115,7 @@ export class VisualAssetLibrary {
     if (handle.impostor) {
       this.app.off('update', handle.impostor.update);
       this.impostorUpdates.delete(handle.impostor.update);
+      handle.impostor.shadow.destroy();
     }
     handle.entity?.destroy();
   }
@@ -113,6 +126,7 @@ export class VisualAssetLibrary {
     for (const material of this.teamMaterials.values()) material.destroy();
     for (const material of this.impostorMaterials) material.destroy();
     for (const texture of this.vanguardImpostorTextures) texture.destroy();
+    this.vanguardShadowMaterial.destroy();
     for (const asset of this.registered) {
       asset.unload();
       this.app.assets.remove(asset);
@@ -138,16 +152,42 @@ export class VisualAssetLibrary {
         receiveShadows: false,
       });
       plane.setLocalEulerAngles(90, 0, 0);
-      plane.setLocalPosition(0, 1.03, 0);
-      plane.setLocalScale(1.35, 1, 2.06);
+
+      // Match the canonical Vanguard's nominal 1.9 m stature and pin the
+      // sprite's bottom edge to the unit origin so feet stay planted.
+      plane.setLocalPosition(0, 0.95, 0);
+      plane.setLocalScale(1.27, 1, 1.9);
       billboard.addChild(plane);
       pivot.addChild(billboard);
       parent.addChild(pivot);
+
+      // Keep the contact shadow outside the bobbing unit root so it remains
+      // visually attached to the terrain rather than floating with the sprite.
+      const shadow = new pc.Entity('Vanguard Impostor Shadow');
+      shadow.addComponent('render', {
+        type: 'cylinder',
+        material: this.vanguardShadowMaterial,
+        castShadows: false,
+        receiveShadows: false,
+      });
+      shadow.setLocalScale(0.92, 0.018, 0.64);
+      this.app.root.addChild(shadow);
+
       for (const primitive of fallback) primitive.enabled = false;
 
-      const update = (): void => this.syncImpostor(handle, parent.getEulerAngles().y);
+      const update = (): void => {
+        const position = parent.getPosition();
+        shadow.enabled = parent.enabled;
+        shadow.setPosition(position.x, 0.022, position.z);
+
+        // Primitive 3D units use a stronger procedural gait bob. Counter part
+        // of that positive Y motion for the flat sprite so it reads as weight,
+        // not as a card bouncing above the ground. Negative death fall remains.
+        pivot.setLocalPosition(0, -Math.max(0, position.y) * 0.45, 0);
+        this.syncImpostor(handle, parent.getEulerAngles().y);
+      };
       handle.entity = pivot;
-      handle.impostor = { billboard, plane, frame: -1, update };
+      handle.impostor = { billboard, plane, shadow, frame: -1, update };
       this.impostorUpdates.add(update);
       this.app.on('update', update);
       update();

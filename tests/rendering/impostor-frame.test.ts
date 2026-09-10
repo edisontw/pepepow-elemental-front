@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { impostorAtlasOffset, impostorFrameForHeading } from '../../src/rendering/impostor-frame';
+import {
+  impostorAtlasOffset,
+  impostorFrameForHeading,
+  stableImpostorFrameForHeading,
+} from '../../src/rendering/impostor-frame';
 
 describe('impostor frame mapping', () => {
   it('maps the fixed 45 degree RTS camera into unit-local view directions', () => {
@@ -12,6 +16,17 @@ describe('impostor frame mapping', () => {
     expect(impostorFrameForHeading(-45)).toBe(6); // right
     expect(impostorFrameForHeading(0)).toBe(7);   // front-right
     expect(impostorFrameForHeading(405)).toBe(0);
+  });
+
+  it('keeps the current frame briefly past a sector boundary to avoid chatter', () => {
+    expect(impostorFrameForHeading(70)).toBe(1);
+    expect(stableImpostorFrameForHeading(70, 0)).toBe(0);
+    expect(stableImpostorFrameForHeading(75, 0)).toBe(1);
+
+    expect(impostorFrameForHeading(20)).toBe(7);
+    expect(stableImpostorFrameForHeading(20, 0)).toBe(0);
+    expect(stableImpostorFrameForHeading(10, 0)).toBe(7);
+    expect(stableImpostorFrameForHeading(90, -1)).toBe(1);
   });
 
   it('maps frames into the legacy 4x2 atlas without leaving the texture', () => {
