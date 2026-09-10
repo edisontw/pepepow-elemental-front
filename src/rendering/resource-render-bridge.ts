@@ -3,6 +3,9 @@ import { WORLD_UNITS_PER_METER } from '../simulation/arena';
 import type { GeneratedWorld } from '../world/world-definition';
 import { worldCellToSimulationPosition } from '../world/world-arena';
 
+const RESOURCE_PULSE_BASE_SCALE = 0.68;
+const RESOURCE_PULSE_HEIGHT = 0.018;
+
 function material(color: pc.Color, emissive: pc.Color): pc.StandardMaterial {
   const result = new pc.StandardMaterial();
   result.diffuse = color;
@@ -28,6 +31,12 @@ function primitive(
   parent.addChild(entity);
 }
 
+export function resourcePulseScale(rich: boolean, tick: number, index: number): readonly [number, number, number] {
+  const pulse = 1 + Math.sin(tick * 0.14 + index * 1.7) * (rich ? 0.1 : 0.055);
+  const footprint = RESOURCE_PULSE_BASE_SCALE * (rich ? 1.2 : 1) * pulse;
+  return [footprint, RESOURCE_PULSE_HEIGHT, footprint];
+}
+
 export class ResourceRenderBridge {
   private readonly entities: { root: pc.Entity; marker: pc.Entity; rich: boolean }[] = [];
   private readonly materialDeposit = material(new pc.Color(0.72, 0.48, 0.18), new pc.Color(0.28, 0.11, 0.015));
@@ -36,7 +45,7 @@ export class ResourceRenderBridge {
   private readonly manaAccent = material(new pc.Color(0.67, 0.48, 1), new pc.Color(0.34, 0.13, 0.72));
 
   constructor(app: pc.Application, world: GeneratedWorld) {
-    for (const resource of world.resources) {
+    for (const [index, resource] of world.resources.entries()) {
       const position = worldCellToSimulationPosition(world, resource.cell);
       const root = new pc.Entity(`${resource.type === 'MATERIAL' ? 'Material Deposit' : 'Mana Spring'} ${resource.id}`);
       root.setPosition(position.x / WORLD_UNITS_PER_METER, 0.025, position.z / WORLD_UNITS_PER_METER);
@@ -52,7 +61,8 @@ export class ResourceRenderBridge {
       const marker = new pc.Entity('Resource Pulse');
       marker.addComponent('render', { type: 'cylinder', material: resource.type === 'MATERIAL' ? this.materialAccent : this.manaAccent });
       marker.setLocalPosition(0, 0.035, 0);
-      marker.setLocalScale(0.78 * scale, 0.018, 0.78 * scale);
+      const initialPulseScale = resourcePulseScale(resource.rich, 0, index);
+      marker.setLocalScale(initialPulseScale[0], initialPulseScale[1], initialPulseScale[2]);
       root.addChild(marker);
       app.root.addChild(root);
       this.entities.push({ root, marker, rich: resource.rich });
@@ -61,8 +71,8 @@ export class ResourceRenderBridge {
 
   sync(tick: number): void {
     for (const [index, presentation] of this.entities.entries()) {
-      const pulse = 1 + Math.sin(tick * 0.14 + index * 1.7) * (presentation.rich ? 0.1 : 0.055);
-      presentation.marker.setLocalScale(pulse, 1, pulse);
+      const scale = resourcePulseScale(presentation.rich, tick, index);
+      presentation.marker.setLocalScale(scale[0], scale[1], scale[2]);
     }
   }
 
