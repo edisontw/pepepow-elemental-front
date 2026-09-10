@@ -1,5 +1,13 @@
 import * as pc from 'playcanvas';
 import manifest from '../../data/assets/manifest.json';
+import { impostorAtlasOffset, impostorFrameForHeading } from './impostor-frame';
+import { VANGUARD_IMPOSTOR_DATA_URI } from './vanguard-impostor-data';
+
+interface ImpostorHandle {
+  billboard: pc.Entity;
+  plane: pc.Entity;
+  frame: number;
+}
 
 export interface VisualModel {
   entity: pc.Entity | null;
@@ -8,6 +16,7 @@ export interface VisualModel {
   weapon: pc.GraphNode | null;
   reactor: pc.GraphNode | null;
   orbit: pc.GraphNode | null;
+  impostor: ImpostorHandle | null;
   released: boolean;
 }
 
@@ -16,12 +25,29 @@ export class VisualAssetLibrary {
   private readonly assets = new Map<string, Promise<pc.ContainerResource | null>>();
   private readonly registered: pc.Asset[] = [];
   private readonly teamMaterials = new Map<string, pc.StandardMaterial>();
+  private readonly impostorMaterials: pc.StandardMaterial[] = [];
+  private vanguardImpostorPromise: Promise<readonly pc.StandardMaterial[] | null> | null = null;
   private disposed = false;
 
   constructor(private readonly app: pc.Application) {}
 
   attach(parent: pc.Entity, fallback: readonly pc.Entity[], id: string, playerId: number): VisualModel {
-    const handle: VisualModel = { entity: null, legL: null, legR: null, weapon: null, reactor: null, orbit: null, released: false };
+    const handle: VisualModel = {
+      entity: null,
+      legL: null,
+      legR: null,
+      weapon: null,
+      reactor: null,
+      orbit: null,
+      impostor: null,
+      released: false,
+    };
+
+    if (id === 'unit.vanguard' && playerId === 0) {
+      this.attachVanguardImpostor(parent, fallback, handle);
+      return handle;
+    }
+
     void this.load(id).then((resource) => {
       if (!resource || this.disposed || handle.released) return;
       const entity = resource.instantiateRenderEntity();
@@ -52,6 +78,17 @@ export class VisualAssetLibrary {
     return handle;
   }
 
+  syncImpostor(handle: VisualModel | null, headingDegrees: number): void {
+    const impostor = handle?.impostor;
+    if (!impostor || this.impostorMaterials.length !== 8) return;
+    impostor.billboard.setLocalEulerAngles(0, 45 - headingDegrees, 0);
+    const frame = impostorFrameForHeading(headingDegrees);
+    if (frame === impostor.frame) return;
+    const material = this.impostorMaterials[frame];
+    if (impostor.plane.render && material) impostor.plane.render.material = material;
+    impostor.frame = frame;
+  }
+
   release(handle: VisualModel | null): void {
     if (!handle) return;
     handle.released = true;
@@ -61,12 +98,80 @@ export class VisualAssetLibrary {
   destroy(): void {
     this.disposed = true;
     for (const material of this.teamMaterials.values()) material.destroy();
+    for (const material of this.impostorMaterials) material.destroy();
     for (const asset of this.registered) {
       asset.unload();
       this.app.assets.remove(asset);
     }
     this.teamMaterials.clear();
+    this.impostorMaterials.length = 0;
     this.assets.clear();
+    this.vanguardImpostorPromise = null;
+  }
+
+  private attachVanguardImpostor(parent: pc.Entity, fallback: readonly pc.Entity[], handle: VisualModel): void {
+    void this.loadVanguardImpostorMaterials().then((materials) => {
+      if (!materials || this.disposed || handle.released) return;
+      const pivot = new pc.Entity('Vanguard Impostor Pivot');
+      const billboard = new pc.Entity('Vanguard Impostor Billboard');
+      const plane = new pc.Entity('Vanguard Impostor');
+      plane.addComponent('render', {
+        type: 'plane',
+        material: materials[0],
+        castShadows: false,
+        receiveShadows: false,
+      });
+      plane.setLocalEulerAngles(90, 0, 0);
+      plane.setLocalPosition(0, 1.03, 0);
+      plane.setLocalScale(1.35, 1, 2.06);
+      billboard.addChild(plane);
+      pivot.addChild(billboard);
+      parent.addChild(pivot);
+      for (const primitive of fallback) primitive.enabled = false;
+      handle.entity = pivot;
+      handle.impostor = { billboard, plane, frame: 0 };
+    });
+  }
+
+  private loadVanguardImpostorMaterials(): Promise<readonly pc.StandardMaterial[] | null> {
+    if (this.vanguardImpostorPromise) return this.vanguardImpostorPromise;
+    this.vanguardImpostorPromise = new Promise<readonly pc.StandardMaterial[] | null>((resolve) => {
+      const asset = new pc.Asset('unit.vanguard.impostor', 'texture', { url: VANGUARD_IMPOSTOR_DATA_URI });
+      asset.once('load', () => {
+        if (this.disposed) {
+          resolve(null);
+          return;
+        }
+        const texture = asset.resource as pc.Texture;
+        for (let frame = 0; frame < 8; frame += 1) {
+          const [offsetX, offsetY] = impostorAtlasOffset(frame);
+          const material = new pc.StandardMaterial();
+          material.name = `VANGUARD_IMPOSTOR_${frame}`;
+          material.useLighting = false;
+          material.emissive = new pc.Color(1, 1, 1);
+          material.emissiveMap = texture;
+          material.emissiveMapTiling.set(0.25, 0.5);
+          material.emissiveMapOffset.set(offsetX, offsetY);
+          material.opacityMap = texture;
+          material.opacityMapChannel = 'a';
+          material.opacityMapTiling.set(0.25, 0.5);
+          material.opacityMapOffset.set(offsetX, offsetY);
+          material.alphaTest = 0.12;
+          material.cull = pc.CULLFACE_NONE;
+          material.update();
+          this.impostorMaterials.push(material);
+        }
+        resolve(this.impostorMaterials);
+      });
+      asset.once('error', () => {
+        console.warn('Vanguard impostor unavailable; using fallback geometry.');
+        resolve(null);
+      });
+      this.registered.push(asset);
+      this.app.assets.add(asset);
+      this.app.assets.load(asset);
+    });
+    return this.vanguardImpostorPromise;
   }
 
   private load(id: string): Promise<pc.ContainerResource | null> {
