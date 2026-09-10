@@ -116,6 +116,8 @@ export function createSceneShell(
 
   app.setCanvasFillMode(pc.FILLMODE_FILL_WINDOW);
   app.setCanvasResolution(pc.RESOLUTION_AUTO);
+  // Keep high-DPI backbuffers bounded so RTS scenes remain fill-rate friendly.
+  app.graphicsDevice.maxPixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
   app.scene.ambientLight = new pc.Color(0.2, 0.25, 0.23);
 
   const materials: Record<string, pc.Material> = {
@@ -302,3 +304,4 @@ export function createSceneShell(
     },
   };
 }
+
