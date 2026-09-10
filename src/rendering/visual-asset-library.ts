@@ -1,7 +1,7 @@
 import * as pc from 'playcanvas';
 import manifest from '../../data/assets/manifest.json';
 import { impostorFrameForHeading } from './impostor-frame';
-import { VANGUARD_IMPOSTOR_DATA_URI } from './vanguard-impostor-data';
+import { VANGUARD_IMPOSTOR_FRAME_FILES, vanguardImpostorFrameUrl } from './vanguard-impostor-frames';
 
 interface ImpostorHandle {
   billboard: pc.Entity;
@@ -28,8 +28,8 @@ export class VisualAssetLibrary {
   private readonly teamMaterials = new Map<string, pc.StandardMaterial>();
   private readonly impostorMaterials: pc.StandardMaterial[] = [];
   private readonly impostorUpdates = new Set<() => void>();
+  private readonly vanguardImpostorTextures: pc.Texture[] = [];
   private vanguardImpostorPromise: Promise<readonly pc.StandardMaterial[] | null> | null = null;
-  private vanguardImpostorTexture: pc.Texture | null = null;
   private disposed = false;
 
   constructor(private readonly app: pc.Application) {}
@@ -46,8 +46,8 @@ export class VisualAssetLibrary {
       released: false,
     };
 
-    // Current approved Vanguard art has baked blue team panels. Use it for the
-    // player only; enemy Vanguard stays on the recolorable GLB fallback.
+    // The approved Vanguard WebP set has baked blue ownership panels. Use it
+    // for the player only; enemy Vanguard stays on the recolorable GLB path.
     if (id === 'unit.vanguard' && playerId === 0) {
       this.attachVanguardImpostor(parent, fallback, handle);
       return handle;
@@ -85,7 +85,10 @@ export class VisualAssetLibrary {
 
   syncImpostor(handle: VisualModel | null, headingDegrees: number): void {
     const impostor = handle?.impostor;
-    if (!impostor || this.impostorMaterials.length !== 8) return;
+    if (!impostor || this.impostorMaterials.length !== VANGUARD_IMPOSTOR_FRAME_FILES.length) return;
+
+    // Cancel the parent's unit heading so the image plane remains camera-facing;
+    // the selected directional frame carries the visible unit orientation.
     impostor.billboard.setLocalEulerAngles(0, 45 - headingDegrees, 0);
     const frame = impostorFrameForHeading(headingDegrees);
     if (frame === impostor.frame) return;
@@ -109,8 +112,7 @@ export class VisualAssetLibrary {
     for (const update of this.impostorUpdates) this.app.off('update', update);
     for (const material of this.teamMaterials.values()) material.destroy();
     for (const material of this.impostorMaterials) material.destroy();
-    this.vanguardImpostorTexture?.destroy();
-    this.vanguardImpostorTexture = null;
+    for (const texture of this.vanguardImpostorTextures) texture.destroy();
     for (const asset of this.registered) {
       asset.unload();
       this.app.assets.remove(asset);
@@ -118,6 +120,7 @@ export class VisualAssetLibrary {
     this.impostorUpdates.clear();
     this.teamMaterials.clear();
     this.impostorMaterials.length = 0;
+    this.vanguardImpostorTextures.length = 0;
     this.assets.clear();
     this.vanguardImpostorPromise = null;
   }
@@ -153,16 +156,25 @@ export class VisualAssetLibrary {
 
   private loadVanguardImpostorMaterials(): Promise<readonly pc.StandardMaterial[] | null> {
     if (this.vanguardImpostorPromise) return this.vanguardImpostorPromise;
-    this.vanguardImpostorPromise = new Promise<readonly pc.StandardMaterial[] | null>((resolve) => {
+
+    const loadImage = (url: string): Promise<HTMLImageElement> => new Promise((resolve, reject) => {
       const image = new Image();
       image.decoding = 'async';
-      image.onload = () => {
-        if (this.disposed) {
-          resolve(null);
-          return;
-        }
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error(`Failed to load Vanguard impostor frame: ${url}`));
+      image.src = url;
+    });
+
+    this.vanguardImpostorPromise = Promise.all(
+      VANGUARD_IMPOSTOR_FRAME_FILES.map((_, frame) => loadImage(
+        vanguardImpostorFrameUrl(frame, import.meta.env.BASE_URL),
+      )),
+    ).then((images) => {
+      if (this.disposed) return null;
+
+      for (const [frame, image] of images.entries()) {
         const texture = new pc.Texture(this.app.graphicsDevice, {
-          name: 'unit.vanguard.impostor',
+          name: `unit.vanguard.impostor.${frame}`,
           mipmaps: false,
           minFilter: pc.FILTER_LINEAR,
           magFilter: pc.FILTER_LINEAR,
@@ -170,31 +182,27 @@ export class VisualAssetLibrary {
           addressV: pc.ADDRESS_CLAMP_TO_EDGE,
         });
         texture.setSource(image);
-        this.vanguardImpostorTexture = texture;
+        this.vanguardImpostorTextures.push(texture);
 
-        // Validation asset: one approved full-body sprite. Keep eight material
-        // slots so heading logic stays unchanged, but do not atlas-crop it.
-        for (let frame = 0; frame < 8; frame += 1) {
-          const material = new pc.StandardMaterial();
-          material.name = `VANGUARD_IMPOSTOR_${frame}`;
-          material.useLighting = false;
-          material.emissive = new pc.Color(1, 1, 1);
-          material.emissiveMap = texture;
-          material.opacityMap = texture;
-          material.opacityMapChannel = 'a';
-          material.alphaTest = 0.12;
-          material.cull = pc.CULLFACE_NONE;
-          material.update();
-          this.impostorMaterials.push(material);
-        }
-        resolve(this.impostorMaterials);
-      };
-      image.onerror = () => {
-        console.warn('Vanguard impostor image decode failed; using fallback geometry.');
-        resolve(null);
-      };
-      image.src = VANGUARD_IMPOSTOR_DATA_URI;
+        const material = new pc.StandardMaterial();
+        material.name = `VANGUARD_IMPOSTOR_${frame}`;
+        material.useLighting = false;
+        material.emissive = new pc.Color(1, 1, 1);
+        material.emissiveMap = texture;
+        material.opacityMap = texture;
+        material.opacityMapChannel = 'a';
+        material.alphaTest = 0.12;
+        material.cull = pc.CULLFACE_NONE;
+        material.update();
+        this.impostorMaterials.push(material);
+      }
+
+      return this.impostorMaterials;
+    }).catch((error: unknown) => {
+      console.warn('Vanguard impostor frame load failed; using fallback geometry.', error);
+      return null;
     });
+
     return this.vanguardImpostorPromise;
   }
 
