@@ -36,7 +36,7 @@ function addPrimitive(
   material: pc.Material,
 ): pc.Entity {
   const entity = new pc.Entity(name);
-  entity.addComponent('render', { type, material });
+  entity.addComponent('render', { type, material, castShadows: false, receiveShadows: false });
   entity.setPosition(position);
   entity.setLocalScale(scale);
   app.root.addChild(entity);
@@ -52,7 +52,7 @@ function addChildPrimitive(
   material: pc.Material,
 ): pc.Entity {
   const entity = new pc.Entity(name);
-  entity.addComponent('render', { type, material });
+  entity.addComponent('render', { type, material, castShadows: false, receiveShadows: false });
   entity.setLocalPosition(position);
   entity.setLocalScale(scale);
   parent.addChild(entity);
