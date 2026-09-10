@@ -106,10 +106,11 @@ export function createSceneShell(
   simulation: M04Simulation,
   selectionBox: HTMLElement,
 ): SceneShell {
+  const lowQuality = new URLSearchParams(window.location.search).get('quality')?.trim().toLowerCase() === 'low';
   const app = new pc.Application(canvas, {
     graphicsDeviceOptions: {
       alpha: false,
-      antialias: true,
+      antialias: !lowQuality,
       powerPreference: 'high-performance',
     },
   });
@@ -117,7 +118,7 @@ export function createSceneShell(
   app.setCanvasFillMode(pc.FILLMODE_FILL_WINDOW);
   app.setCanvasResolution(pc.RESOLUTION_AUTO);
   // Keep high-DPI backbuffers bounded so RTS scenes remain fill-rate friendly.
-  app.graphicsDevice.maxPixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+  app.graphicsDevice.maxPixelRatio = lowQuality ? 1 : Math.min(window.devicePixelRatio || 1, 1.5);
   app.scene.ambientLight = new pc.Color(0.2, 0.25, 0.23);
 
   const materials: Record<string, pc.Material> = {
@@ -155,7 +156,7 @@ export function createSceneShell(
     type: 'directional',
     color: new pc.Color(0.9, 0.94, 0.84),
     intensity: 1.45,
-    castShadows: true,
+    castShadows: !lowQuality,
   });
   light.setEulerAngles(48, 28, 0);
   app.root.addChild(light);
@@ -304,4 +305,3 @@ export function createSceneShell(
     },
   };
 }
-
