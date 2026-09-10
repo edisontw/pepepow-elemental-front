@@ -1,5 +1,7 @@
 import * as pc from 'playcanvas';
+import { pointToSegmentDistanceSquared } from '../rendering/screen-space-pick';
 import type { UnitRenderBridge } from '../rendering/unit-render-bridge';
+import { unitVisualProfile } from '../rendering/unit-visual-profile';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
 import type { TacticalSpellId } from '../simulation/element-types';
 import type { FormationId } from '../simulation/formation';
@@ -13,6 +15,9 @@ const UNIT_PICK_RADIUS = 54;
 
 export class UnitControls {
   private readonly selection = new SelectionState();
+  private readonly pickWorld = new pc.Vec3();
+  private readonly pickBaseScreen = new pc.Vec3();
+  private readonly pickTopScreen = new pc.Vec3();
   private pointerId: number | null = null;
   private startClientX = 0;
   private startClientY = 0;
@@ -121,8 +126,8 @@ export class UnitControls {
     const start = this.toCanvasCoordinates(this.startClientX, this.startClientY);
     const end = this.toCanvasCoordinates(this.currentClientX, this.currentClientY);
     if (this.dragDistance() < DRAG_THRESHOLD) {
-      const entityId = this.bridge.pickSingle(this.camera, end.x, end.y, UNIT_PICK_RADIUS);
-      if (entityId !== null && this.bridge.isControllable(entityId)) {
+      const entityId = this.pickControllableUnit(end.x, end.y, UNIT_PICK_RADIUS);
+      if (entityId !== null) {
         const doubleClick = entityId === this.lastClickEntityId && event.timeStamp - this.lastClickTimeMs <= DOUBLE_CLICK_MS;
         if (doubleClick) {
           this.selectSameTypeOnScreen(entityId, event.shiftKey);
@@ -240,6 +245,36 @@ export class UnitControls {
       .filter((entity) => entity.playerId === 0 && entity.alive && entity.archetype === clicked.archetype && onScreen.has(entity.id))
       .map((entity) => entity.id);
     this.selection.select(sameType, add ? 'ADD' : 'REPLACE');
+  }
+
+  private pickControllableUnit(screenX: number, screenY: number, maxDistance: number): number | null {
+    let bestId: number | null = null;
+    let bestDistanceSquared = maxDistance * maxDistance;
+    for (const entity of this.simulation.snapshot().entities) {
+      if (!entity.alive || entity.playerId !== 0 || !entity.visibleToPlayer) continue;
+      const profile = unitVisualProfile(entity.archetype);
+      this.pickWorld.set(
+        entity.x / WORLD_UNITS_PER_METER,
+        0.08,
+        entity.z / WORLD_UNITS_PER_METER,
+      );
+      this.camera.worldToScreen(this.pickWorld, this.pickBaseScreen);
+      this.pickWorld.y = Math.max(0.5, profile.height * 0.92);
+      this.camera.worldToScreen(this.pickWorld, this.pickTopScreen);
+      const distanceSquared = pointToSegmentDistanceSquared(
+        screenX,
+        screenY,
+        this.pickBaseScreen.x,
+        this.pickBaseScreen.y,
+        this.pickTopScreen.x,
+        this.pickTopScreen.y,
+      );
+      if (distanceSquared <= bestDistanceSquared) {
+        bestDistanceSquared = distanceSquared;
+        bestId = entity.id;
+      }
+    }
+    return bestId;
   }
 
   private castTacticalAtHover(spellId: Exclude<TacticalSpellId, 'CHAIN_LIGHTNING'>): void {
