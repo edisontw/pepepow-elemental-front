@@ -182,9 +182,9 @@ export class UnitRenderBridge {
       const healthWidth = Math.max(1.05, profile.selectionScale * 1.05);
       const healthY = profile.height + 0.34;
       presentation.healthBack.setPosition(x, healthY, z);
-      presentation.healthBack.setLocalScale(healthWidth, 0.11, 0.14);
-      presentation.healthBar.setPosition(x - (1 - healthRatio) * healthWidth * 0.5, healthY + 0.012, z);
-      presentation.healthBar.setLocalScale(healthWidth * healthRatio, 0.075, 0.1);
+      presentation.healthBack.setLocalScale(healthWidth, 0.055, 0.14);
+      presentation.healthBar.setPosition(x - (1 - healthRatio) * healthWidth * 0.5, healthY + 0.044, z);
+      presentation.healthBar.setLocalScale(healthWidth * healthRatio, 0.025, 0.1);
     }
 
     this.updateProjectiles(current.tick, alpha);
