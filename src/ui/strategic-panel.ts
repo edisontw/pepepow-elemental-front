@@ -14,7 +14,7 @@ import { worldCellToSimulationPosition } from '../world/world-arena';
 
 const PLAYER_ID = 0;
 const TICKS_PER_SECOND = 10;
-const RESOURCE_PICK_RADIUS = 2.5 * WORLD_UNITS_PER_METER;
+const RESOURCE_PICK_RADIUS = 4 * WORLD_UNITS_PER_METER;
 const BUILD_ORDER: readonly Exclude<BuildingType, 'ELEMENTAL_CORE'>[] = [
   'BARRACKS', 'ARCANE_TOWER', 'WORKSHOP', 'OUTPOST', 'EXTRACTOR', 'MANA_WELL',
 ];
@@ -277,13 +277,7 @@ export class StrategicPanel {
     if (resourceType !== null) {
       const occupied = new Set(snapshot.buildings.flatMap((building) => building.resourceNodeId ? [building.resourceNodeId] : []));
       const candidates = world.resources
-        .filter((resource) => (
-          resource.type === resourceType
-          && !occupied.has(resource.id)
-          && snapshot.regionOwners[resource.regionId] === PLAYER_ID
-          && snapshot.suppliedRegions[PLAYER_ID]?.includes(resource.regionId)
-          && !snapshot.contestedRegions.includes(resource.regionId)
-        ))
+        .filter((resource) => resource.type === resourceType)
         .map((resource) => {
           const position = worldCellToSimulationPosition(world, resource.cell);
           const dx = position.x - targetX;
@@ -292,16 +286,46 @@ export class StrategicPanel {
         })
         .sort((left, right) => left.distanceSquared - right.distanceSquared || left.resource.id.localeCompare(right.resource.id));
       const chosen = candidates[0];
+      const marker = resourceType === 'MATERIAL' ? 'amber Material Deposit' : 'violet Mana Spring';
+      const site = resourceType === 'MATERIAL' ? 'Material Deposit' : 'Mana Spring';
+      const structure = resourceType === 'MATERIAL' ? 'Extractor' : 'Mana Well';
       if (!chosen || chosen.distanceSquared > RESOURCE_PICK_RADIUS * RESOURCE_PICK_RADIUS) {
-        const marker = resourceType === 'MATERIAL' ? 'amber Material Deposit' : 'violet Mana Spring';
         return {
           valid: false, regionId: null, resourceNodeId: null, targetX, targetZ,
-          reason: `Click directly on an available ${marker} marker in controlled supplied territory.`,
+          reason: `Click the ${marker} marker itself; placement snaps to the resource site.`,
+        };
+      }
+      const regionId = chosen.resource.regionId;
+      if (occupied.has(chosen.resource.id)) {
+        return {
+          valid: false, regionId, resourceNodeId: chosen.resource.id, targetX, targetZ,
+          reason: `That ${site} already has a resource building.`,
+        };
+      }
+      if (snapshot.contestedRegions.includes(regionId)) {
+        return {
+          valid: false, regionId, resourceNodeId: chosen.resource.id, targetX, targetZ,
+          reason: `Region ${regionId + 1} is contested; ${structure} construction is blocked until control stabilizes.`,
+        };
+      }
+      const owner = snapshot.regionOwners[regionId] ?? -1;
+      if (owner !== PLAYER_ID) {
+        return {
+          valid: false, regionId, resourceNodeId: chosen.resource.id, targetX, targetZ,
+          reason: owner < 0
+            ? `That ${site} is in neutral territory. Build an Outpost to claim Region ${regionId + 1} first.`
+            : `That ${site} is in enemy-controlled territory. Claim Region ${regionId + 1} before constructing a ${structure}.`,
+        };
+      }
+      if (!snapshot.suppliedRegions[PLAYER_ID]?.includes(regionId)) {
+        return {
+          valid: false, regionId, resourceNodeId: chosen.resource.id, targetX, targetZ,
+          reason: `That ${site} is in controlled but unsupplied territory. Restore supply before constructing a ${structure}.`,
         };
       }
       return {
         valid: true,
-        regionId: chosen.resource.regionId,
+        regionId,
         resourceNodeId: chosen.resource.id,
         targetX: chosen.position.x,
         targetZ: chosen.position.z,
@@ -545,10 +569,10 @@ export class StrategicPanel {
       ${this.queueMarkup(simulationSnapshot.tick, snapshot)}
       <div class="strategy-section build-view"><strong>Construct</strong><div class="strategy-buttons">${buildingButtons}</div><small>Each site progresses independently. Shift-click the battlefield to place another building of the same type.</small></div>
       <div class="strategy-section army-view"><strong>Recruit</strong>${this.producerMarkup(snapshot)}<div class="strategy-buttons compact">${trainButtons}</div><div class="strategy-buttons"><button class="${rallyActive.trim()}" data-action="set-rally" ${selectedProducer ? '' : 'disabled'}>Set Rally Point</button></div></div>
+      <div class="strategy-message" aria-live="polite">${this.message}</div>
       <div class="strategy-section territory-info"><strong>Expansion</strong><small>${expansionHint}</small><div class="strategy-buttons">
         <button data-action="capture-poi">Capture POI (+10 Influence)</button>
       </div></div>
-      <div class="strategy-message">${this.message}</div>
     `;
   }
 }
