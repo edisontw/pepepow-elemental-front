@@ -29,6 +29,7 @@ export class VisualAssetLibrary {
   private readonly impostorMaterials: pc.StandardMaterial[] = [];
   private readonly impostorUpdates = new Set<() => void>();
   private vanguardImpostorPromise: Promise<readonly pc.StandardMaterial[] | null> | null = null;
+  private vanguardImpostorTexture: pc.Texture | null = null;
   private disposed = false;
 
   constructor(private readonly app: pc.Application) {}
@@ -108,6 +109,8 @@ export class VisualAssetLibrary {
     for (const update of this.impostorUpdates) this.app.off('update', update);
     for (const material of this.teamMaterials.values()) material.destroy();
     for (const material of this.impostorMaterials) material.destroy();
+    this.vanguardImpostorTexture?.destroy();
+    this.vanguardImpostorTexture = null;
     for (const asset of this.registered) {
       asset.unload();
       this.app.assets.remove(asset);
@@ -151,13 +154,28 @@ export class VisualAssetLibrary {
   private loadVanguardImpostorMaterials(): Promise<readonly pc.StandardMaterial[] | null> {
     if (this.vanguardImpostorPromise) return this.vanguardImpostorPromise;
     this.vanguardImpostorPromise = new Promise<readonly pc.StandardMaterial[] | null>((resolve) => {
-      const asset = new pc.Asset('unit.vanguard.impostor', 'texture', { url: VANGUARD_IMPOSTOR_DATA_URI });
-      asset.once('load', () => {
+      // PlayCanvas' asset loader is intended for URL-like resources and did not
+      // reliably decode the embedded data URI in deployed browsers. Let the
+      // browser decode the WebP first, then hand the image to a PlayCanvas
+      // texture. This keeps the fallback visible until the texture is ready.
+      const image = new Image();
+      image.decoding = 'async';
+      image.onload = () => {
         if (this.disposed) {
           resolve(null);
           return;
         }
-        const texture = asset.resource as pc.Texture;
+        const texture = new pc.Texture(this.app.graphicsDevice, {
+          name: 'unit.vanguard.impostor',
+          mipmaps: false,
+          minFilter: pc.FILTER_LINEAR,
+          magFilter: pc.FILTER_LINEAR,
+          addressU: pc.ADDRESS_CLAMP_TO_EDGE,
+          addressV: pc.ADDRESS_CLAMP_TO_EDGE,
+        });
+        texture.setSource(image);
+        this.vanguardImpostorTexture = texture;
+
         for (let frame = 0; frame < 8; frame += 1) {
           const [offsetX, offsetY] = impostorAtlasOffset(frame);
           const material = new pc.StandardMaterial();
@@ -177,14 +195,12 @@ export class VisualAssetLibrary {
           this.impostorMaterials.push(material);
         }
         resolve(this.impostorMaterials);
-      });
-      asset.once('error', () => {
-        console.warn('Vanguard impostor unavailable; using fallback geometry.');
+      };
+      image.onerror = () => {
+        console.warn('Vanguard impostor image decode failed; using fallback geometry.');
         resolve(null);
-      });
-      this.registered.push(asset);
-      this.app.assets.add(asset);
-      this.app.assets.load(asset);
+      };
+      image.src = VANGUARD_IMPOSTOR_DATA_URI;
     });
     return this.vanguardImpostorPromise;
   }
