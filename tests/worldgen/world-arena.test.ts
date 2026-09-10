@@ -5,7 +5,7 @@ import { generatedWorldToArena, worldCellToSimulationPosition } from '../../src/
 import { WorldCellFlag } from '../../src/world/world-definition';
 
 describe('generated world arena presentation adapter', () => {
-  it.each([0, 42, 1_000_000])('keeps both starting armies distinct, walkable, clear of the Core, and off resource sites for block %i', (blockHeight) => {
+  it.each([0, 42, 1_000_000])('keeps both starting armies distinct, walkable, in their spawn region, clear of the Core, and off resource sites for block %i', (blockHeight) => {
     const world = generateWorld(blockHeight);
     const arena = generatedWorldToArena(world);
     const resourceCells = new Set(world.resources.map((resource) => `${resource.cell.x},${resource.cell.z}`));
@@ -31,6 +31,7 @@ describe('generated world arena presentation adapter', () => {
         expect(row).toBeLessThan(world.height);
         const index = row * world.width + column;
         expect((world.flags[index] ?? 0) & WorldCellFlag.WALKABLE).not.toBe(0);
+        expect(world.regionByCell[index]).toBe(spawn!.regionId);
 
         const deltaX = unit.x - corePosition.x;
         const deltaZ = unit.z - corePosition.z;
