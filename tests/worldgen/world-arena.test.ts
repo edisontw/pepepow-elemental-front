@@ -5,9 +5,10 @@ import { generatedWorldToArena, worldCellToSimulationPosition } from '../../src/
 import { WorldCellFlag } from '../../src/world/world-definition';
 
 describe('generated world arena presentation adapter', () => {
-  it.each([0, 42, 1_000_000])('keeps both starting armies distinct, walkable, and visibly clear of the Core for block %i', (blockHeight) => {
+  it.each([0, 42, 1_000_000])('keeps both starting armies distinct, walkable, clear of the Core, and off resource sites for block %i', (blockHeight) => {
     const world = generateWorld(blockHeight);
     const arena = generatedWorldToArena(world);
+    const resourceCells = new Set(world.resources.map((resource) => `${resource.cell.x},${resource.cell.z}`));
 
     for (const playerId of [0, 1]) {
       const units = arena.units.filter((unit) => unit.playerId === playerId);
@@ -23,6 +24,7 @@ describe('generated world arena presentation adapter', () => {
         const key = `${column},${row}`;
         expect(occupied.has(key)).toBe(false);
         occupied.add(key);
+        expect(resourceCells.has(key)).toBe(false);
         expect(column).toBeGreaterThanOrEqual(0);
         expect(column).toBeLessThan(world.width);
         expect(row).toBeGreaterThanOrEqual(0);
