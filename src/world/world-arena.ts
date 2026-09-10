@@ -113,9 +113,11 @@ function formationSpawnCells(world: GeneratedWorld, center: GridPoint, regionId:
       || left.z - right.z
       || left.x - right.x
     );
-    const candidate = [...sameRegion, ...fallback]
-      .filter((point) => !selected.some((used) => used.x === point.x && used.z === point.z))
-      .sort(rank)[0];
+    const unusedSameRegion = sameRegion
+      .filter((point) => !selected.some((used) => used.x === point.x && used.z === point.z));
+    const unusedFallback = fallback
+      .filter((point) => !selected.some((used) => used.x === point.x && used.z === point.z));
+    const candidate = (unusedSameRegion.length > 0 ? unusedSameRegion : unusedFallback).sort(rank)[0];
     if (!candidate) throw new Error(`Generated ${regionId} spawn region lacks ${count} visible formation cells.`);
     selected.push(candidate);
   }
