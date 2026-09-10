@@ -84,6 +84,8 @@ export class TerritoryRenderBridge {
       entity.addComponent('render', {
         type: 'plane',
         material: run.owner === 0 ? this.playerMaterial : run.owner === 1 ? this.enemyMaterial : this.contestedMaterial,
+        castShadows: false,
+        receiveShadows: false,
       });
       entity.setPosition(
         originX + run.startColumn + width / 2,
@@ -101,3 +103,4 @@ export class TerritoryRenderBridge {
     this.entities.length = 0;
   }
 }
+
