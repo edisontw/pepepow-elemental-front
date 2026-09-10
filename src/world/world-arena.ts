@@ -42,7 +42,7 @@ function rowRunPatches(
   for (let row = 0; row < world.height; row += 1) {
     let runStart = -1;
     for (let column = 0; column <= world.width; column += 1) {
-      const matches = column < world.width && predicate(row * world.width + column);
+      const matches = column < width && predicate(row * world.width + column);
       if (matches && runStart < 0) runStart = column;
       if ((!matches || column === world.width) && runStart >= 0) {
         patches.push({
@@ -113,11 +113,9 @@ function formationSpawnCells(world: GeneratedWorld, center: GridPoint, regionId:
       || left.z - right.z
       || left.x - right.x
     );
-    const unusedSameRegion = sameRegion
-      .filter((point) => !selected.some((used) => used.x === point.x && used.z === point.z));
-    const unusedFallback = fallback
-      .filter((point) => !selected.some((used) => used.x === point.x && used.z === point.z));
-    const candidate = (unusedSameRegion.length > 0 ? unusedSameRegion : unusedFallback).sort(rank)[0];
+    const candidate = [...sameRegion, ...fallback]
+      .filter((point) => !selected.some((used) => used.x === point.x && used.z === point.z))
+      .sort(rank)[0];
     if (!candidate) throw new Error(`Generated ${regionId} spawn region lacks ${count} visible formation cells.`);
     selected.push(candidate);
   }
