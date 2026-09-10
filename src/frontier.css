@@ -98,3 +98,38 @@ button[data-element] { border-left: 3px solid var(--element); }
 
 .mana-system-hint .spell-card { white-space: normal; overflow: visible; }
 .poi-capture-hint { font-size: .75rem !important; }
+
+/* Debug acceptance layout: keep instrumentation readable without masking the battlefield. */
+.debug-mode #debug-overlay {
+  top: 6.4rem;
+  left: 23.1rem;
+  z-index: 6;
+  width: 17rem;
+  min-width: 0;
+  max-width: 17rem;
+  max-height: min(52vh, 30rem);
+  overflow: hidden;
+  padding: .55rem .65rem;
+  background: rgba(9, 16, 19, .9);
+  font-size: .58rem;
+  line-height: 1.35;
+}
+.debug-mode #debug-overlay .debug-row { gap: .55rem; }
+.debug-mode #debug-overlay .debug-row > span,
+.debug-mode #debug-overlay .debug-row > b { min-width: 0; }
+.debug-mode #debug-overlay .debug-row > b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+}
+.debug-mode #world-debug-summary,
+.debug-mode #world-debug > span:not(.minimap-resource-key) { display: none; }
+.debug-mode #arena-legend,
+.debug-mode #camera-help { display: none; }
+@media (max-width: 1100px) {
+  .debug-mode #debug-overlay { left: 20.6rem; width: 15rem; max-width: 15rem; }
+}
+@media (max-width: 800px) {
+  .debug-mode #debug-overlay { display: none; }
+}
