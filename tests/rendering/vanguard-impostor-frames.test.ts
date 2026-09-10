@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   VANGUARD_IMPOSTOR_FRAME_FILES,
+  VANGUARD_IMPOSTOR_FRAME_REMAP,
+  VANGUARD_IMPOSTOR_HEADING_OFFSET_DEGREES,
   vanguardImpostorFrameUrl,
 } from '../../src/rendering/vanguard-impostor-frames';
 
@@ -16,6 +18,11 @@ describe('Vanguard impostor frame assets', () => {
       'assets/impostors/vanguard/06-right.webp',
       'assets/impostors/vanguard/07-front-right.webp',
     ]);
+  });
+
+  it('calibrates the current AI turnaround from screen-facing labels to observer-side views', () => {
+    expect(VANGUARD_IMPOSTOR_FRAME_REMAP).toEqual([0, 7, 6, 5, 4, 3, 2, 1]);
+    expect(VANGUARD_IMPOSTOR_HEADING_OFFSET_DEGREES).toBe(0);
   });
 
   it('builds base-aware URLs and wraps frame indices', () => {
