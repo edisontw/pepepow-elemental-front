@@ -209,16 +209,16 @@ Rules for current work:
 
 ### Visual production implementation baseline
 
-Priority A is implemented; manual WebGL acceptance remains pending.
+Priority A/B implementation is complete; manual WebGL acceptance remains pending.
 
 - Manifest-loaded original GLBs: Vanguard, four aligned Elementalists, and Elemental Core (53–123 KiB per model). Stable Core asset ID preserved.
 - Named rigid-node movement, attack/cast, hit/death, and reactor motion; artist-authored skeletal animation remains a follow-up.
 - Gunmetal/brass HUD, construction/army categories, selected-army health, selected-caster Tactical readiness, and in-world work progress.
 - Hollow selection/Wet rings, freeze shell, Water ripples, segmented Lightning, and pooled single-draw combat sparks; 192-spark/64-projectile/96-transient caps.
 - TypeScript/build and 10 targeted rendering tests pass; GLB structure checks pass. Work browser cannot boot WebGL (`WebGL not supported`); no visual or 100-unit FPS pass is claimed.
-- Priority B is now implemented in the current working branch: four additional unit models, six building models, and pulsing resource-site markers. Manual WebGL acceptance remains pending.
+- Priority B is implemented: four additional unit models, six building models, and pulsing resource-site markers. Strategic relay links, river material highlights, terrain shadow-pass suppression, and a high-DPI pixel-ratio cap are also in `main`.
 - Canonical AI final-art prompts are now available at `media/prompts/images/VISUAL_PRODUCTION_PRIORITY_A_B_PROMPTS.md`. Current GLBs remain fallbacks and model entries are queued as `NEEDS_MANUAL_GENERATION` until the user manually approves and uploads final art.
-- Next: manual final-art generation/approval, then Strategic network/footprint presentation, terrain material polish, and LOD. Do not reopen gameplay authority.
+- Next: manual final-art generation/approval and WebGL readability/FPS acceptance. Do not reopen gameplay authority.
 
 ### Token-efficient validation policy
 
@@ -232,3 +232,4 @@ For presentation-only batches:
 - avoid repeated full-repo audits, exhaustive visual inspection, repeated verification of unchanged systems, and long closure reports.
 
 After the visual-production pass reaches a satisfactory baseline, resume the deferred post-roadmap army-control / targeting / balance work only when explicitly requested.
+
