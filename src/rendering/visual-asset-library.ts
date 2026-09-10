@@ -7,6 +7,7 @@ interface ImpostorHandle {
   billboard: pc.Entity;
   plane: pc.Entity;
   frame: number;
+  update: () => void;
 }
 
 export interface VisualModel {
@@ -26,6 +27,7 @@ export class VisualAssetLibrary {
   private readonly registered: pc.Asset[] = [];
   private readonly teamMaterials = new Map<string, pc.StandardMaterial>();
   private readonly impostorMaterials: pc.StandardMaterial[] = [];
+  private readonly impostorUpdates = new Set<() => void>();
   private vanguardImpostorPromise: Promise<readonly pc.StandardMaterial[] | null> | null = null;
   private disposed = false;
 
@@ -43,6 +45,8 @@ export class VisualAssetLibrary {
       released: false,
     };
 
+    // Current approved Vanguard art has baked blue team panels. Use it for the
+    // player only; enemy Vanguard stays on the recolorable GLB fallback.
     if (id === 'unit.vanguard' && playerId === 0) {
       this.attachVanguardImpostor(parent, fallback, handle);
       return handle;
@@ -92,17 +96,23 @@ export class VisualAssetLibrary {
   release(handle: VisualModel | null): void {
     if (!handle) return;
     handle.released = true;
+    if (handle.impostor) {
+      this.app.off('update', handle.impostor.update);
+      this.impostorUpdates.delete(handle.impostor.update);
+    }
     handle.entity?.destroy();
   }
 
   destroy(): void {
     this.disposed = true;
+    for (const update of this.impostorUpdates) this.app.off('update', update);
     for (const material of this.teamMaterials.values()) material.destroy();
     for (const material of this.impostorMaterials) material.destroy();
     for (const asset of this.registered) {
       asset.unload();
       this.app.assets.remove(asset);
     }
+    this.impostorUpdates.clear();
     this.teamMaterials.clear();
     this.impostorMaterials.length = 0;
     this.assets.clear();
@@ -128,8 +138,13 @@ export class VisualAssetLibrary {
       pivot.addChild(billboard);
       parent.addChild(pivot);
       for (const primitive of fallback) primitive.enabled = false;
+
+      const update = (): void => this.syncImpostor(handle, parent.getEulerAngles().y);
       handle.entity = pivot;
-      handle.impostor = { billboard, plane, frame: 0 };
+      handle.impostor = { billboard, plane, frame: -1, update };
+      this.impostorUpdates.add(update);
+      this.app.on('update', update);
+      update();
     });
   }
 
