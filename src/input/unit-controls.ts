@@ -7,6 +7,7 @@ import type { TacticalSpellId } from '../simulation/element-types';
 import type { FormationId } from '../simulation/formation';
 import type { M04Simulation } from '../simulation/m04-simulation';
 import type { EntitySnapshot } from '../simulation/simulation';
+import { clientToPlayCanvasScreen } from './screen-coordinate-contract';
 import { SelectionState } from './selection-state';
 
 const DRAG_THRESHOLD = 6;
@@ -240,7 +241,8 @@ export class UnitControls {
     const snapshot = this.simulation.snapshot();
     const clicked = snapshot.entities.find((entity) => entity.id === entityId && entity.playerId === 0 && entity.alive);
     if (!clicked) return;
-    const onScreen = new Set(this.bridge.pickBox(this.camera, 0, 0, this.canvas.width, this.canvas.height));
+    const bounds = this.canvas.getBoundingClientRect();
+    const onScreen = new Set(this.bridge.pickBox(this.camera, 0, 0, bounds.width, bounds.height));
     const sameType = snapshot.entities
       .filter((entity) => entity.playerId === 0 && entity.alive && entity.archetype === clicked.archetype && onScreen.has(entity.id))
       .map((entity) => entity.id);
@@ -337,11 +339,7 @@ export class UnitControls {
   }
 
   private toCanvasCoordinates(clientX: number, clientY: number): { x: number; y: number } {
-    const bounds = this.canvas.getBoundingClientRect();
-    return {
-      x: ((clientX - bounds.left) / bounds.width) * this.canvas.width,
-      y: ((clientY - bounds.top) / bounds.height) * this.canvas.height,
-    };
+    return clientToPlayCanvasScreen(clientX, clientY, this.canvas.getBoundingClientRect());
   }
 
   private dragDistance(): number {
