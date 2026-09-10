@@ -42,7 +42,7 @@ function rowRunPatches(
   for (let row = 0; row < world.height; row += 1) {
     let runStart = -1;
     for (let column = 0; column <= world.width; column += 1) {
-      const matches = column < width && predicate(row * world.width + column);
+      const matches = column < world.width && predicate(row * world.width + column);
       if (matches && runStart < 0) runStart = column;
       if ((!matches || column === world.width) && runStart >= 0) {
         patches.push({
