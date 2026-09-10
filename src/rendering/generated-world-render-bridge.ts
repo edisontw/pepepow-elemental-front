@@ -93,6 +93,11 @@ export class GeneratedWorldRenderBridge {
     new pc.Color(0.048, 0.22, 0.405),
     new pc.Color(0.008, 0.045, 0.095),
   );
+  private readonly riverHighlightMaterial = createMaterial(
+    new pc.Color(0.11, 0.38, 0.58),
+    new pc.Color(0.015, 0.08, 0.14),
+    0.34,
+  );
   private readonly crossingMaterial = createMaterial(new pc.Color(0.43, 0.31, 0.17));
   private readonly iceMaterial = createMaterial(
     new pc.Color(0.58, 0.88, 0.96),
@@ -133,7 +138,8 @@ export class GeneratedWorldRenderBridge {
       this.groundMaterial,
       this.woodlandMaterial,
       this.highlandMaterial,
-      this.riverMaterial,
+    this.riverMaterial,
+      this.riverHighlightMaterial,
       this.crossingMaterial,
       this.iceMaterial,
       this.trunkMaterial,
@@ -192,6 +198,19 @@ export class GeneratedWorldRenderBridge {
       0.035,
       'Generated River',
       this.riverMaterial,
+    );
+    this.renderRuns(
+      runsForGrid(
+        this.world.width,
+        this.world.height,
+        (index) => this.world.terrain[index] === TerrainType.WATER,
+      ),
+      originX,
+      originZ,
+      0.043,
+      'Generated River Highlight',
+      this.riverHighlightMaterial,
+      0.84,
     );
 
     for (const run of runsForGrid(
@@ -308,6 +327,7 @@ export class GeneratedWorldRenderBridge {
     y: number,
     label: string,
     material: pc.Material,
+    scaleFactor = 1,
   ): void {
     for (const run of runs) {
       const widthCells = run.endColumn - run.startColumn + 1;
@@ -320,7 +340,7 @@ export class GeneratedWorldRenderBridge {
           y,
           originZ + run.row + 0.5,
         ),
-        new pc.Vec3(widthCells, 1, 1),
+        new pc.Vec3(widthCells * scaleFactor, 1, scaleFactor),
         material,
       ));
     }
@@ -355,3 +375,4 @@ export class GeneratedWorldRenderBridge {
     }
   }
 }
+
