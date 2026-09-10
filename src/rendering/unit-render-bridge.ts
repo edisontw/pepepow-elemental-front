@@ -13,6 +13,8 @@ interface UnitPresentation {
   modelId: string;
   primitives: pc.Entity[];
   actionTick: number;
+  facingOverrideYaw: number;
+  facingOverrideUntilTick: number;
   selection: pc.Entity;
   healthBack: pc.Entity;
   healthBar: pc.Entity;
@@ -25,9 +27,11 @@ interface UnitPresentation {
   deathUntilTick: number;
 }
 
+type PresentedProjectileStyle = UnitProjectileStyle | 'FIREBOLT';
+
 interface ProjectilePresentation {
   entity: pc.Entity;
-  style: UnitProjectileStyle;
+  style: PresentedProjectileStyle;
   startTick: number;
   durationTicks: number;
   start: pc.Vec3;
@@ -54,6 +58,10 @@ function createMaterial(color: pc.Color, emissive?: pc.Color, opacity = 1): pc.S
 
 function metres(value: number): number {
   return value / WORLD_UNITS_PER_METER;
+}
+
+function facingYawDegrees(fromX: number, fromZ: number, toX: number, toZ: number): number {
+  return Math.atan2(toX - fromX, toZ - fromZ) * 180 / Math.PI;
 }
 
 export class UnitRenderBridge {
@@ -146,7 +154,8 @@ export class UnitRenderBridge {
         const hit = current.tick <= presentation.hitFlashUntilTick;
         presentation.root.setPosition(x, moving ? Math.abs(Math.sin(gait)) * .055 : Math.sin(gait * .23) * .012, z);
         const model = presentation.model;
-        model?.entity?.setLocalEulerAngles(hit ? -9 : action * 9, 0, 0);
+        if (model?.impostor) model.entity?.setLocalEulerAngles(0, 0, 0);
+        else model?.entity?.setLocalEulerAngles(hit ? -9 : action * 9, 0, 0);
         model?.legL?.setLocalEulerAngles(moving ? Math.sin(gait) * 25 : 0, 0, 0);
         model?.legR?.setLocalEulerAngles(moving ? -Math.sin(gait) * 25 : 0, 0, 0);
         model?.weapon?.setLocalEulerAngles(-Math.sin(action * Math.PI) * 65, 0, 0);
@@ -154,6 +163,9 @@ export class UnitRenderBridge {
         const deltaZ = unit.z - prior.z;
         if (deltaX !== 0 || deltaZ !== 0) {
           presentation.root.setEulerAngles(0, Math.atan2(deltaX, deltaZ) * 180 / Math.PI, 0);
+        }
+        if (current.tick <= presentation.facingOverrideUntilTick) {
+          presentation.root.setEulerAngles(0, presentation.facingOverrideYaw, 0);
         }
       }
 
@@ -334,6 +346,8 @@ export class UnitRenderBridge {
       modelId: '',
       primitives,
       actionTick: -100,
+      facingOverrideYaw: 0,
+      facingOverrideUntilTick: -1,
       selection,
       healthBack,
       healthBar,
@@ -357,7 +371,25 @@ export class UnitRenderBridge {
       const presentation = this.units.get(unit.id) ?? this.createPresentation(unit);
       if (!prior) continue;
       if (unit.visibleToPlayer && cast?.status === 'CAST' && cast.casterEntityId === unit.id && cast.tick === current.tick) {
-        this.effects.burst(metres(unit.x), 1.8, metres(unit.z), ELEMENT_TINTS[this.alignments.get(unit.id) ?? 'WATER'], current.tick, 10, .6);
+        const alignment = this.alignments.get(unit.id) ?? 'WATER';
+        presentation.actionTick = current.tick;
+        this.effects.burst(
+          metres(unit.x),
+          unit.archetype === 'ELEMENTALIST' ? 1.65 : 1.8,
+          metres(unit.z),
+          ELEMENT_TINTS[alignment],
+          current.tick,
+          alignment === 'FIRE' ? 14 : 10,
+          alignment === 'FIRE' ? .78 : .6,
+        );
+        if (cast.spellId === 'FIREBOLT' && alignment === 'FIRE') {
+          const target = this.inferFireCastTarget(unit, previousById, current);
+          if (target) {
+            presentation.facingOverrideYaw = facingYawDegrees(unit.x, unit.z, target.x, target.z);
+            presentation.facingOverrideUntilTick = current.tick + 2;
+            this.spawnFirebolt(unit, target.x, target.z, current.tick);
+          }
+        }
       }
 
       if (prior.alive && prior.currentHealth > unit.currentHealth && prior.visibleToPlayer) {
@@ -379,12 +411,36 @@ export class UnitRenderBridge {
       presentation.actionTick = current.tick;
       if (unit.archetype === 'ELEMENTALIST') this.effects.burst(metres(unit.x), 1.65, metres(unit.z), ELEMENT_TINTS[this.alignments.get(unit.id) ?? 'WATER'], current.tick, 5, .4);
       const facing = currentById.get(unit.attackTargetEntityId);
-      if (facing?.visibleToPlayer) presentation.root.setEulerAngles(0, Math.atan2(facing.x - unit.x, facing.z - unit.z) * 180 / Math.PI, 0);
+      if (facing?.visibleToPlayer) {
+        presentation.facingOverrideYaw = facingYawDegrees(unit.x, unit.z, facing.x, facing.z);
+        presentation.facingOverrideUntilTick = current.tick + 1;
+      }
       if (profile.projectile === 'NONE') continue;
       const target = currentById.get(unit.attackTargetEntityId);
       if (!target || (!target.visibleToPlayer && target.playerId !== 0)) continue;
       this.spawnProjectile(unit, target, profile.projectile, current.tick);
     }
+  }
+
+  private inferFireCastTarget(
+    caster: EntitySnapshot,
+    previousById: Map<EntityID, EntitySnapshot>,
+    current: SimulationSnapshot,
+  ): { x: number; z: number } | null {
+    const maxDistance = 14 * WORLD_UNITS_PER_METER;
+    const maxDistanceSquared = maxDistance * maxDistance;
+    const damaged = current.entities.filter((entity) => {
+      const prior = previousById.get(entity.id);
+      if (!prior || entity.playerId === caster.playerId || !entity.visibleToPlayer || prior.currentHealth <= entity.currentHealth) return false;
+      const dx = entity.x - caster.x;
+      const dz = entity.z - caster.z;
+      return dx * dx + dz * dz <= maxDistanceSquared;
+    });
+    if (damaged.length === 0) return null;
+    return {
+      x: Math.round(damaged.reduce((sum, entity) => sum + entity.x, 0) / damaged.length),
+      z: Math.round(damaged.reduce((sum, entity) => sum + entity.z, 0) / damaged.length),
+    };
   }
 
   private spawnProjectile(
@@ -408,6 +464,11 @@ export class UnitRenderBridge {
     const targetProfile = unitVisualProfile(target.archetype);
     const start = new pc.Vec3(metres(attacker.x), attackerProfile.height * 0.62, metres(attacker.z));
     const end = new pc.Vec3(metres(target.x), targetProfile.height * 0.5, metres(target.z));
+    const planarDistance = Math.hypot(end.x - start.x, end.z - start.z);
+    if (planarDistance > 0.001) {
+      start.x += ((end.x - start.x) / planarDistance) * 0.28;
+      start.z += ((end.z - start.z) / planarDistance) * 0.28;
+    }
     entity.setPosition(start);
     const deltaX = end.x - start.x;
     const deltaZ = end.z - start.z;
@@ -423,11 +484,32 @@ export class UnitRenderBridge {
     });
   }
 
+  private spawnFirebolt(attacker: EntitySnapshot, targetX: number, targetZ: number, tick: number): void {
+    if (this.projectiles.length >= 64) return;
+    const entity = new pc.Entity(`Firebolt ${attacker.id}`);
+    entity.addComponent('render', { type: 'sphere', material: this.alignmentMaterials.FIRE });
+    entity.setLocalScale(0.34, 0.34, 0.34);
+    const profile = unitVisualProfile(attacker.archetype);
+    const start = new pc.Vec3(metres(attacker.x), profile.height * 0.72, metres(attacker.z));
+    const end = new pc.Vec3(metres(targetX), 0.32, metres(targetZ));
+    const planarDistance = Math.hypot(end.x - start.x, end.z - start.z);
+    if (planarDistance > 0.001) {
+      start.x += ((end.x - start.x) / planarDistance) * 0.34;
+      start.z += ((end.z - start.z) / planarDistance) * 0.34;
+    }
+    entity.setPosition(start);
+    this.app.root.addChild(entity);
+    this.projectiles.push({ entity, style: 'FIREBOLT', startTick: tick, durationTicks: 3, start, end });
+  }
+
   private updateProjectiles(tick: number, alpha: number): void {
     for (let index = this.projectiles.length - 1; index >= 0; index -= 1) {
       const projectile = this.projectiles[index]!;
       const progress = Math.max(0, Math.min(1, (tick - projectile.startTick + alpha) / projectile.durationTicks));
       if (progress >= 1) {
+        if (projectile.style === 'FIREBOLT') {
+          this.effects.burst(projectile.end.x, projectile.end.y, projectile.end.z, ELEMENT_TINTS.FIRE, tick, 12, .82);
+        }
         projectile.entity.destroy();
         this.projectiles.splice(index, 1);
         continue;
@@ -437,6 +519,7 @@ export class UnitRenderBridge {
       let y = pc.math.lerp(projectile.start.y, projectile.end.y, progress);
       if (projectile.style === 'SHELL') y += Math.sin(progress * Math.PI) * 1.25;
       else if (projectile.style === 'ORB') y += Math.sin(progress * Math.PI) * 0.24;
+      else if (projectile.style === 'FIREBOLT') y += Math.sin(progress * Math.PI) * 0.16;
       projectile.entity.setPosition(x, y, z);
     }
   }
