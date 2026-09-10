@@ -3,6 +3,7 @@ import { BattleVfx } from './battle-vfx';
 import { VisualAssetLibrary } from './visual-asset-library';
 import { AudioFeedback } from '../audio/audio-feedback';
 import { MinimapControls } from '../input/minimap-controls';
+import { clientToPlayCanvasScreen } from '../input/screen-coordinate-contract';
 import { UnitControls } from '../input/unit-controls';
 import { WORLD_UNITS_PER_METER, type ArenaZone } from '../simulation/arena';
 import type { TickFrame } from '../simulation/fixed-tick-runner';
@@ -191,10 +192,9 @@ export function createSceneShell(
   const screenToSimulationPosition = (clientX: number, clientY: number): { x: number; z: number } | null => {
     const bounds = canvas.getBoundingClientRect();
     if (bounds.width <= 0 || bounds.height <= 0) return null;
-    const screenX = ((clientX - bounds.left) / bounds.width) * canvas.width;
-    const screenY = ((clientY - bounds.top) / bounds.height) * canvas.height;
-    const near = cameraComponent.screenToWorld(screenX, screenY, cameraComponent.nearClip);
-    const far = cameraComponent.screenToWorld(screenX, screenY, cameraComponent.farClip);
+    const screen = clientToPlayCanvasScreen(clientX, clientY, bounds);
+    const near = cameraComponent.screenToWorld(screen.x, screen.y, cameraComponent.nearClip);
+    const far = cameraComponent.screenToWorld(screen.x, screen.y, cameraComponent.farClip);
     const verticalDelta = far.y - near.y;
     if (Math.abs(verticalDelta) < 0.000_001) return null;
     const distance = -near.y / verticalDelta;
