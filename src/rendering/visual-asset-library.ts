@@ -1,13 +1,24 @@
 import * as pc from 'playcanvas';
 import manifest from '../../data/assets/manifest.json';
 import { stableImpostorFrameForHeading } from './impostor-frame';
-import { VANGUARD_IMPOSTOR_FRAME_FILES } from './vanguard-impostor-frames';
-import { ELEMENTALIST_FIRE_IMPOSTOR_FRAME_FILES } from './elementalist-fire-impostor-frames';
+import { remapImpostorFrame } from './impostor-frame-assets';
+import {
+  VANGUARD_IMPOSTOR_FRAME_FILES,
+  VANGUARD_IMPOSTOR_FRAME_REMAP,
+  VANGUARD_IMPOSTOR_HEADING_OFFSET_DEGREES,
+} from './vanguard-impostor-frames';
+import {
+  ELEMENTALIST_FIRE_IMPOSTOR_FRAME_FILES,
+  ELEMENTALIST_FIRE_IMPOSTOR_FRAME_REMAP,
+  ELEMENTALIST_FIRE_IMPOSTOR_HEADING_OFFSET_DEGREES,
+} from './elementalist-fire-impostor-frames';
 
 interface ImpostorConfig {
   id: string;
   label: string;
   frameFiles: readonly string[];
+  frameRemap: readonly number[];
+  headingOffsetDegrees: number;
   width: number;
   height: number;
   shadowX: number;
@@ -19,6 +30,8 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
     id: 'unit.vanguard',
     label: 'Vanguard',
     frameFiles: VANGUARD_IMPOSTOR_FRAME_FILES,
+    frameRemap: VANGUARD_IMPOSTOR_FRAME_REMAP,
+    headingOffsetDegrees: VANGUARD_IMPOSTOR_HEADING_OFFSET_DEGREES,
     width: 1.27,
     height: 1.9,
     shadowX: 0.92,
@@ -28,6 +41,8 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
     id: 'unit.elementalist.fire',
     label: 'Fire Elementalist',
     frameFiles: ELEMENTALIST_FIRE_IMPOSTOR_FRAME_FILES,
+    frameRemap: ELEMENTALIST_FIRE_IMPOSTOR_FRAME_REMAP,
+    headingOffsetDegrees: ELEMENTALIST_FIRE_IMPOSTOR_HEADING_OFFSET_DEGREES,
     width: 1.72,
     height: 2.3,
     shadowX: 0.86,
@@ -40,7 +55,9 @@ interface ImpostorHandle {
   plane: pc.Entity;
   shadow: pc.Entity;
   materials: readonly pc.StandardMaterial[];
-  frame: number;
+  frameRemap: readonly number[];
+  headingOffsetDegrees: number;
+  viewFrame: number;
   update: () => void;
 }
 
@@ -140,11 +157,15 @@ export class VisualAssetLibrary {
     // Cancel the parent's unit heading so the image plane remains camera-facing;
     // the selected directional frame carries the visible unit orientation.
     impostor.billboard.setLocalEulerAngles(0, 45 - headingDegrees, 0);
-    const frame = stableImpostorFrameForHeading(headingDegrees, impostor.frame);
-    if (frame === impostor.frame) return;
-    const material = impostor.materials[frame];
+    const viewFrame = stableImpostorFrameForHeading(
+      headingDegrees + impostor.headingOffsetDegrees,
+      impostor.viewFrame,
+    );
+    if (viewFrame === impostor.viewFrame) return;
+    const sourceFrame = remapImpostorFrame(viewFrame, impostor.frameRemap);
+    const material = impostor.materials[sourceFrame];
     if (impostor.plane.render && material) impostor.plane.render.material = material;
-    impostor.frame = frame;
+    impostor.viewFrame = viewFrame;
   }
 
   release(handle: VisualModel | null): void {
@@ -229,7 +250,16 @@ export class VisualAssetLibrary {
         this.syncImpostor(handle, parent.getEulerAngles().y);
       };
       handle.entity = pivot;
-      handle.impostor = { billboard, plane, shadow, materials, frame: -1, update };
+      handle.impostor = {
+        billboard,
+        plane,
+        shadow,
+        materials,
+        frameRemap: config.frameRemap,
+        headingOffsetDegrees: config.headingOffsetDegrees,
+        viewFrame: -1,
+        update,
+      };
       this.impostorUpdates.add(update);
       this.app.on('update', update);
       update();

@@ -48,7 +48,8 @@ Resolve these from `main` and the user request:
 - canonical visual direction and prompt source;
 - whether approved art already exists in the current conversation or repository;
 - whether the art bakes a faction/team color;
-- expected runtime height/selection scale from the unit visual profile.
+- expected runtime height/selection scale from the unit visual profile;
+- source-sheet direction convention, source-frame remap, and any true heading/yaw offset required by that asset.
 
 If the user says the image is already generated, do not generate another image. Use the existing accessible image. If it is not accessible to the current tool/runtime, ask for that exact image to be attached or uploaded; do not substitute a new image.
 
@@ -64,15 +65,19 @@ Recommended source contract:
 - no text, labels, logos, decorative borders, or ground plane;
 - neutral/transparent or easily removable background;
 - elevated RTS-readable view, not eye-level portrait art;
-- canonical direction set:
-  1. front
-  2. front-left
-  3. left
-  4. rear-left
-  5. rear
-  6. rear-right
-  7. right
-  8. front-right
+- canonical **observer-side** direction set:
+  1. front — camera in front of the character;
+  2. front-left — camera moved toward the character's anatomical left side;
+  3. left — camera on the character's anatomical left side;
+  4. rear-left — camera behind and to the character's anatomical left;
+  5. rear — camera behind the character;
+  6. rear-right — camera behind and to the character's anatomical right;
+  7. right — camera on the character's anatomical right side;
+  8. front-right — camera moved toward the character's anatomical right side.
+
+**Do not describe `left` / `right` only as the direction the character should point on the sheet.** Image generators often interpret `left view` as "character facing screen-left", which is the opposite observer-side view. This failure makes front/rear look correct while swapping every left/right pair.
+
+For asymmetric units, explicitly preserve a stable landmark such as weapon hand, shield, shoulder plate, backpack, or staff. Use that landmark to verify which anatomical side the camera is actually seeing.
 
 If no approved source exists and an image-generation tool is available, generate once per explicit art task and inspect the result. If generation is unavailable, requires a user-side UI action, or produces an unusable result, set:
 
@@ -84,13 +89,14 @@ Then provide the exact prompt/source contract and stop. Do not loop on generatio
 
 Once an approved source is available:
 
-1. confirm the source view order visually; never infer the order only from filenames;
-2. crop the eight directions;
-3. remove the background cleanly;
-4. normalize all frames to one transparent canvas and consistent feet/ground baseline;
-5. preserve apparent character scale across directions;
-6. export WebP with alpha;
-7. create a preview/contact sheet for QA when useful.
+1. confirm the source view order visually; never infer the order only from filenames or prompt labels;
+2. use asymmetric equipment/landmarks to distinguish observer-left from screen-facing-left;
+3. crop the eight directions;
+4. remove the background cleanly;
+5. normalize all frames to one transparent canvas and consistent feet/ground baseline;
+6. preserve apparent character scale across directions;
+7. export WebP with alpha;
+8. create a preview/contact sheet for QA when useful.
 
 Default unit frame target unless the current asset requires otherwise:
 
@@ -117,6 +123,8 @@ Canonical repository directory:
 ```text
 public/assets/impostors/<asset-slug>/
 ```
+
+The filenames describe the intended canonical observer-side runtime views. If the approved source sheet visually follows a different convention, either normalize the files before upload or record an explicit per-asset source-frame remap. Do not silently assume the labels are correct.
 
 Do not embed final image payloads as giant TypeScript base64/data URIs. Static binary assets should live under `public/assets/`.
 
@@ -147,39 +155,60 @@ After all eight binary files are verified on `main`:
 - retain the existing primitive/GLB fallback until all impostor materials load successfully;
 - load each direction as an ordinary image/texture rather than one giant embedded payload;
 - keep the image plane camera-facing;
-- derive visible direction from the unit heading relative to the fixed RTS camera azimuth;
+- derive the canonical observer-side view from the unit heading relative to the fixed RTS camera azimuth;
 - use the canonical frame progression listed above;
 - add a small angular hysteresis around frame boundaries to prevent chatter;
+- support a narrow per-impostor `headingOffsetDegrees` for a true rotational calibration error;
+- support a narrow per-impostor source-frame remap when the uploaded sheet's left/right convention or ordering differs from the canonical observer-side convention;
 - keep presentation logic renderer-side only.
 
-Reference implementation files from the Vanguard slice:
+Reference implementation files from the current shared Vanguard / Elementalist path:
 
 ```text
 src/rendering/impostor-frame.ts
+src/rendering/impostor-frame-assets.ts
 src/rendering/vanguard-impostor-frames.ts
+src/rendering/elementalist-fire-impostor-frames.ts
 src/rendering/visual-asset-library.ts
 src/rendering/unit-render-bridge.ts
 public/assets/impostors/vanguard/
+public/assets/impostors/elementalist-fire/
 ```
 
-Before copying Vanguard-specific code for a second or third unit, check whether a narrow generic helper will reduce duplication. Do not perform a broad rendering refactor solely for cleanup.
+Before copying unit-specific code for another unit, check whether the existing narrow generic helper and per-asset calibration fields cover it. Do not perform a broad rendering refactor solely for cleanup.
 
-## 8. Direction-mapping rules
+## 8. Direction-mapping and calibration rules
 
-For the current fixed RTS camera, convert the camera observer angle into unit-local view space. The established canonical mapping uses positive progression through the unit's left side:
+For the current fixed RTS camera, convert the camera observer angle into unit-local view space. The canonical runtime view progression is:
 
 ```text
 0 front
-1 front-left
-2 left
-3 rear-left
+1 front-left observer view
+2 left observer view
+3 rear-left observer view
 4 rear
-5 rear-right
-6 right
-7 front-right
+5 rear-right observer view
+6 right observer view
+7 front-right observer view
 ```
 
-Test all eight headings explicitly. A sign error can make front/rear appear plausible while swapping every left/right pair.
+The important distinction is **observer side**, not which way the character appears to point on the 2D contact sheet.
+
+Before changing code, audit all eight headings explicitly. Use screen-projected movement plus asymmetric equipment to decide whether the visible frame is correct.
+
+Diagnostic rules:
+
+- if every direction is rotated by the same amount, use the per-asset `headingOffsetDegrees` calibration;
+- if front and rear are correct but all left/right and diagonal pairs are swapped, this is not a yaw-offset problem — the source azimuth convention is reversed;
+- for the common screen-facing AI turnaround convention, the canonical observer-side-to-source remap is:
+
+```text
+[0, 7, 6, 5, 4, 3, 2, 1]
+```
+
+- do not "fix" a left/right-pair swap with a 180-degree yaw offset;
+- do not rename or rewrite binary files through a text-only connector merely to normalize order; use an explicit source-frame remap or a proper binary-safe file operation;
+- keep hysteresis in canonical view-frame space, then apply the source-frame remap afterward. Storing the remapped source index as the hysteresis state can create incorrect boundary behavior.
 
 Use hysteresis rather than changing frames at the exact 22.5-degree midpoint every update. Vanguard currently uses a small presentation-only margin; preserve or tune narrowly if visual chatter remains.
 
@@ -191,9 +220,14 @@ After direction switching is correct, tune only what is visually necessary:
 - feet/ground anchor;
 - contact shadow independent of sprite bob;
 - modest motion bob appropriate for a flat sprite;
-- hit/attack feedback without rotating the flat image unnaturally;
+- keep flat impostor planes camera-facing during attack/cast feedback rather than tilting the card like a 3D mesh;
+- make attack/cast facing overrides win briefly over movement heading when a visible release occurs;
+- spawn projectiles slightly in front of the unit toward the target rather than from the exact body center;
+- for elemental casts, make release tint, projectile, impact, and persistent terrain/status VFX agree on element identity;
 - selection ring and health/status marker alignment;
 - alpha-test threshold and transparent edge quality.
+
+If a point-target spell does not expose its target in a presentation-safe snapshot, prefer a renderer-side visual inference from visible authoritative outcomes over adding gameplay state solely for VFX. Keep the fallback graceful when no reliable visual target can be inferred.
 
 If the source art has baked player/team color, do not use it for all factions. Keep an enemy GLB/fallback or provide separately approved enemy/team-neutral art until a proper recolor/mask pipeline exists.
 
@@ -201,7 +235,7 @@ If the source art has baked player/team color, do not use it for all factions. K
 
 For a presentation-only impostor change, keep validation narrow:
 
-1. targeted mapping/URL tests;
+1. targeted mapping/remap/URL tests;
 2. TypeScript/build once;
 3. open PR;
 4. merge only after CI passes;
@@ -213,9 +247,11 @@ Do not rerun broad replay, AI, simulation, or 2,048-seed world-generation regres
 Human WebGL acceptance should check:
 
 - the intended unit actually uses the new art;
-- all eight directions correspond sensibly to movement direction;
-- no left/right inversion;
+- command movement through all eight world headings and confirm the visible body orientation agrees with screen-projected travel;
+- front/rear are correct and every left/right pair is not inverted;
 - no rapid boundary flicker;
+- attack/cast facing visibly turns toward the release target when applicable;
+- projectile release direction agrees with facing;
 - feet remain grounded;
 - scale is appropriate next to other units/buildings;
 - selection and status markers remain readable;
@@ -255,6 +291,16 @@ When the runtime still shows fallback art, debug in this order:
 6. verify plane visibility/scale/alpha;
 7. only then investigate mapping/polish.
 
+When the art loads but direction feels wrong, debug in this order:
+
+1. verify the fixed camera observer azimuth;
+2. verify unit root heading convention;
+3. compare front and rear first;
+4. compare the left/right side pair using an asymmetric landmark;
+5. distinguish uniform yaw offset from reversed source azimuth/order;
+6. apply per-asset yaw offset or frame remap as appropriate;
+7. retest all eight headings with hysteresis enabled.
+
 Do not repeatedly modify loaders before validating the binary asset itself.
 
 ## 13. Completion criteria
@@ -263,9 +309,10 @@ Mark `COMPLETE` only when:
 
 - all eight final WebP frames are present on `main`;
 - runtime uses them through stable static paths;
-- mapping tests and build pass;
+- source direction convention has been visually audited and any remap/yaw calibration is explicit;
+- mapping/remap tests and build pass;
 - Pages deployment passes;
-- human WebGL acceptance confirms direction, scale, grounding, and readability are acceptable;
+- human WebGL acceptance confirms all-eight direction, scale, grounding, attack/cast facing, projectile direction, and readability are acceptable;
 - any baked-team-color limitation is explicitly documented.
 
 This WebP path is a fast 2.5D production option, not a replacement for the preferred long-term GLB pipeline when skeletal animation, dynamic lighting, team recoloring, attachment points, or continuous 3D rotation become important.

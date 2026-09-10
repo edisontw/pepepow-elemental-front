@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   ELEMENTALIST_FIRE_IMPOSTOR_FRAME_FILES,
+  ELEMENTALIST_FIRE_IMPOSTOR_FRAME_REMAP,
+  ELEMENTALIST_FIRE_IMPOSTOR_HEADING_OFFSET_DEGREES,
   elementalistFireImpostorFrameUrl,
 } from '../../src/rendering/elementalist-fire-impostor-frames';
 
@@ -16,6 +18,11 @@ describe('Fire Elementalist impostor frame assets', () => {
       'assets/impostors/elementalist-fire/06-right.webp',
       'assets/impostors/elementalist-fire/07-front-right.webp',
     ]);
+  });
+
+  it('calibrates the current AI turnaround from screen-facing labels to observer-side views', () => {
+    expect(ELEMENTALIST_FIRE_IMPOSTOR_FRAME_REMAP).toEqual([0, 7, 6, 5, 4, 3, 2, 1]);
+    expect(ELEMENTALIST_FIRE_IMPOSTOR_HEADING_OFFSET_DEGREES).toBe(0);
   });
 
   it('builds base-aware URLs and wraps frame indices', () => {
