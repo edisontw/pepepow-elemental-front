@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  IDENTITY_IMPOSTOR_FRAME_REMAP,
+  SCREEN_FACING_TURNAROUND_FRAME_REMAP,
   IMPOSTOR_DIRECTION_FILENAMES,
   impostorFrameFiles,
 } from '../../src/rendering/impostor-frame-assets';
@@ -26,7 +26,7 @@ describe('batch unit impostor static paths', () => {
     }
   });
 
-  it('keeps the new source sheets in canonical observer-side order', () => {
-    expect(IDENTITY_IMPOSTOR_FRAME_REMAP).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
+  it('remaps AI screen-facing side labels into canonical observer-side views', () => {
+    expect(SCREEN_FACING_TURNAROUND_FRAME_REMAP).toEqual([0, 7, 6, 5, 4, 3, 2, 1]);
   });
 });
