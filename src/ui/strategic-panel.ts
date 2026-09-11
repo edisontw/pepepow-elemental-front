@@ -28,6 +28,20 @@ function formatResource(milli: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
+function missingResourceParts(
+  cost: { material: number; mana: number; influence: number },
+  stock: { materialMilli: number; manaMilli: number; influenceMilli: number },
+): string[] {
+  const missing: string[] = [];
+  const materialMilli = Math.max(0, cost.material * 1000 - stock.materialMilli);
+  const manaMilli = Math.max(0, cost.mana * 1000 - stock.manaMilli);
+  const influenceMilli = Math.max(0, cost.influence * 1000 - stock.influenceMilli);
+  if (materialMilli > 0) missing.push(`${formatResource(materialMilli)} Material`);
+  if (manaMilli > 0) missing.push(`${formatResource(manaMilli)} Mana`);
+  if (influenceMilli > 0) missing.push(`${formatResource(influenceMilli)} Influence`);
+  return missing;
+}
+
 function label(value: string): string {
   return value.split('_').map((word) => word[0] + word.slice(1).toLowerCase()).join(' ');
 }
@@ -243,10 +257,7 @@ export class StrategicPanel {
     const stock = this.simulation.strategy.snapshot().resources[PLAYER_ID];
     if (!stock) return 'Player resource stock is unavailable.';
     const cost = BUILDINGS[buildingType].cost;
-    const missing: string[] = [];
-    if (stock.materialMilli < cost.material * 1000) missing.push(`${cost.material - Math.floor(stock.materialMilli / 1000)} Material`);
-    if (stock.manaMilli < cost.mana * 1000) missing.push(`${cost.mana - Math.floor(stock.manaMilli / 1000)} Mana`);
-    if (stock.influenceMilli < cost.influence * 1000) missing.push(`${cost.influence - Math.floor(stock.influenceMilli / 1000)} Influence`);
+    const missing = missingResourceParts(cost, stock);
     if (missing.length === 0) return null;
     if (buildingType === 'OUTPOST' && stock.influenceMilli < cost.influence * 1000) {
       return `Cannot place Outpost: need ${missing.join(', ')}. Capture a POI to gain +10 Influence, then expand into the next adjacent neutral region.`;
@@ -432,6 +443,26 @@ export class StrategicPanel {
       this.message = `${label(producer.type)} #${producer.id} is cut off from supply.`;
       return;
     }
+    const stock = snapshot.resources[PLAYER_ID];
+    if (!stock) {
+      this.message = 'Player resource stock is unavailable.';
+      return;
+    }
+    const missing = missingResourceParts(definition.cost, stock);
+    if (missing.length > 0) {
+      this.message = `Cannot train ${label(unitType)}: need ${missing.join(', ')}.`;
+      return;
+    }
+    const queuedPopulation = snapshot.productionQueue
+      .filter((order) => order.playerId === PLAYER_ID)
+      .reduce((sum, order) => sum + UNITS[order.unitType].population, 0);
+    const committedPopulation = (snapshot.populationUsed[PLAYER_ID] ?? 0) + queuedPopulation;
+    const populationCap = snapshot.populationCap[PLAYER_ID] ?? 0;
+    if (committedPopulation + definition.population > populationCap) {
+      const needed = committedPopulation + definition.population - populationCap;
+      this.message = `Cannot train ${label(unitType)}: need ${needed} more Population capacity.`;
+      return;
+    }
     this.simulation.enqueueStrategicCommand({
       targetTick: this.simulation.snapshot().tick + 1,
       playerId: PLAYER_ID,
@@ -567,11 +598,16 @@ export class StrategicPanel {
       return `<button data-action="train" data-value="${unitType}" ${enabled ? '' : 'disabled'}>${label(unitType)}<small>${definition.cost.material}M${definition.cost.mana ? ` · ${definition.cost.mana}A` : ''} · P${definition.population}</small></button>`;
     }).join('');
     const rallyActive = this.pendingRallyBuildingId !== null ? ' active' : '';
-    const canFundOutpost = stock.materialMilli >= BUILDINGS.OUTPOST.cost.material * 1000
-      && stock.influenceMilli >= BUILDINGS.OUTPOST.cost.influence * 1000;
-    const expansionHint = canFundOutpost
+    const outpostMissing = missingResourceParts(BUILDINGS.OUTPOST.cost, stock);
+    const materialMissing = Math.max(0, BUILDINGS.OUTPOST.cost.material * 1000 - stock.materialMilli);
+    const influenceMissing = Math.max(0, BUILDINGS.OUTPOST.cost.influence * 1000 - stock.influenceMilli);
+    const expansionHint = outpostMissing.length === 0
       ? 'Outpost funded: choose a neutral region directly adjacent to supplied territory.'
-      : `Next Outpost needs 180 Material + 10 Influence. Current Influence: ${formatResource(stock.influenceMilli)}. Capture a POI for +10 Influence.`;
+      : materialMissing > 0 && influenceMissing > 0
+        ? `Next Outpost needs ${formatResource(materialMissing)} more Material and ${formatResource(influenceMissing)} more Influence. Keep an Extractor supplied and capture a POI for +10 Influence.`
+        : materialMissing > 0
+          ? `Next Outpost needs ${formatResource(materialMissing)} more Material. Keep an Extractor supplied to continue Material income.`
+          : `Next Outpost needs ${formatResource(influenceMissing)} more Influence. Capture a POI for +10 Influence.`;
     const selected = this.selectedUnits().filter((unit) => unit.alive && unit.playerId === PLAYER_ID);
     const hp = selected.reduce((sum, unit) => sum + unit.currentHealth, 0);
     const maxHp = selected.reduce((sum, unit) => sum + unit.maxHealth, 0);
