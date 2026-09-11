@@ -26,7 +26,7 @@ describe('batch unit impostor static paths', () => {
     }
   });
 
-  it('remaps AI screen-facing side labels into canonical observer-side views', () => {
-    expect(SCREEN_FACING_TURNAROUND_FRAME_REMAP).toEqual([0, 7, 6, 5, 4, 3, 2, 1]);
+  it('keeps AI turnaround frames in fixed-camera screen-facing order', () => {
+    expect(SCREEN_FACING_TURNAROUND_FRAME_REMAP).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
   });
 });
