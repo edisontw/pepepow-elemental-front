@@ -1,0 +1,56 @@
+name: One-shot impostor direction remap fix
+
+on:
+  push:
+    branches: [visual/impostor-srgb-fix]
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: visual/impostor-srgb-fix
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Correct AI turnaround side-view remap
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          visual = Path('src/rendering/visual-asset-library.ts')
+          text = visual.read_text()
+          old_import = "import { IDENTITY_IMPOSTOR_FRAME_REMAP, impostorFrameFiles, remapImpostorFrame } from './impostor-frame-assets';"
+          new_import = "import { SCREEN_FACING_TURNAROUND_FRAME_REMAP, impostorFrameFiles, remapImpostorFrame } from './impostor-frame-assets';"
+          if old_import not in text:
+              raise SystemExit('expected impostor import not found')
+          text = text.replace(old_import, new_import, 1)
+          count = text.count('frameRemap: IDENTITY_IMPOSTOR_FRAME_REMAP')
+          if count != 9:
+              raise SystemExit(f'expected 9 batch remaps, found {count}')
+          text = text.replace('frameRemap: IDENTITY_IMPOSTOR_FRAME_REMAP', 'frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP')
+          visual.write_text(text)
+
+          test = Path('tests/rendering/batch-impostor-assets.test.ts')
+          text = test.read_text()
+          text = text.replace('IDENTITY_IMPOSTOR_FRAME_REMAP', 'SCREEN_FACING_TURNAROUND_FRAME_REMAP')
+          text = text.replace('keeps the new source sheets in canonical observer-side order', 'remaps AI screen-facing side labels into canonical observer-side views')
+          text = text.replace('[0, 1, 2, 3, 4, 5, 6, 7]', '[0, 7, 6, 5, 4, 3, 2, 1]')
+          test.write_text(text)
+          PY
+      - run: npm ci
+      - run: npm run test -- --run tests/rendering/impostor-frame.test.ts tests/rendering/vanguard-impostor-frames.test.ts tests/rendering/elementalist-fire-impostor-frames.test.ts tests/rendering/batch-impostor-assets.test.ts
+      - run: npm run build
+      - name: Commit fix and remove one-shot workflow
+        run: |
+          rm .github/workflows/tmp-impostor-direction-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/rendering/visual-asset-library.ts tests/rendering/batch-impostor-assets.test.ts .github/workflows/tmp-impostor-direction-fix.yml
+          git commit -m "fix: remap batch impostor side views"
+          git push origin HEAD:visual/impostor-srgb-fix
