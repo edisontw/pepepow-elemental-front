@@ -13,6 +13,7 @@ interface UnitPresentation {
   modelId: string;
   primitives: pc.Entity[];
   actionTick: number;
+  baseFacingYaw: number;
   facingOverrideYaw: number;
   facingOverrideUntilTick: number;
   selection: pc.Entity;
@@ -171,15 +172,16 @@ export class UnitRenderBridge {
         const combatFacingYaw = current.tick <= presentation.facingOverrideUntilTick
           ? presentation.facingOverrideYaw
           : null;
+        if (movementFacingYaw !== null) presentation.baseFacingYaw = movementFacingYaw;
+        if (combatFacingYaw !== null) presentation.baseFacingYaw = combatFacingYaw;
+        const naturalFacingYaw = combatFacingYaw ?? movementFacingYaw ?? presentation.baseFacingYaw;
         const qaFacingYaw = this.qaFacingYawByEntity.get(unit.id);
-        const currentRootYaw = presentation.root.getEulerAngles().y;
-        const effectiveFacingYaw = qaFacingYaw ?? combatFacingYaw ?? movementFacingYaw ?? currentRootYaw;
+        const effectiveFacingYaw = qaFacingYaw ?? naturalFacingYaw;
 
         if (model?.impostor) {
-          // Keep the root on presentation/gameplay-facing state only. QA heading is
-          // frame-selection metadata for flat sprites and must not rotate the card.
-          const rootFacingYaw = combatFacingYaw ?? movementFacingYaw;
-          if (rootFacingYaw !== null) presentation.root.setEulerAngles(0, rootFacingYaw, 0);
+          // Flat impostors keep their root on the natural presentation facing.
+          // Facing QA overrides only the directional frame, never the billboard root.
+          presentation.root.setEulerAngles(0, naturalFacingYaw, 0);
           this.visualAssets.syncImpostor(model, effectiveFacingYaw);
         } else {
           presentation.root.setEulerAngles(0, effectiveFacingYaw, 0);
@@ -376,6 +378,7 @@ export class UnitRenderBridge {
       modelId: '',
       primitives,
       actionTick: -100,
+      baseFacingYaw: 0,
       facingOverrideYaw: 0,
       facingOverrideUntilTick: -1,
       selection,
