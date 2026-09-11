@@ -390,6 +390,7 @@ export class VisualAssetLibrary {
         const texture = new pc.Texture(this.app.graphicsDevice, {
           name: `${config.id}.impostor.${frame}`,
           mipmaps: false,
+          srgb: true,
           minFilter: pc.FILTER_LINEAR,
           magFilter: pc.FILTER_LINEAR,
           addressU: pc.ADDRESS_CLAMP_TO_EDGE,
