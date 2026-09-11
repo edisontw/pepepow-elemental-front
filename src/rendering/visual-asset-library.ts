@@ -12,6 +12,11 @@ import {
   ELEMENTALIST_FIRE_IMPOSTOR_FRAME_REMAP,
   ELEMENTALIST_FIRE_IMPOSTOR_HEADING_OFFSET_DEGREES,
 } from './elementalist-fire-impostor-frames';
+import {
+  RANGER_IMPOSTOR_FRAME_FILES,
+  RANGER_IMPOSTOR_FRAME_REMAP,
+  RANGER_IMPOSTOR_HEADING_OFFSET_DEGREES,
+} from './ranger-impostor-frames';
 
 interface ImpostorConfig {
   id: string;
@@ -95,9 +100,9 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
   ['unit.ranger', {
   id: 'unit.ranger',
   label: 'Ranger',
-  frameFiles: impostorFrameFiles('ranger'),
-  frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
-  headingOffsetDegrees: 0,
+  frameFiles: RANGER_IMPOSTOR_FRAME_FILES,
+  frameRemap: RANGER_IMPOSTOR_FRAME_REMAP,
+  headingOffsetDegrees: RANGER_IMPOSTOR_HEADING_OFFSET_DEGREES,
   width: 1.18,
   height: 1.56,
   shadowX: 0.72,
