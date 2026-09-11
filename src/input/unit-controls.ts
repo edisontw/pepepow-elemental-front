@@ -292,7 +292,9 @@ export class UnitControls {
     const selected = new Set(this.selection.ids);
     for (const [entityId, originalYaw] of [...this.facingQaOriginalYaw]) {
       if (this.facingQaIndex !== null && selected.has(entityId)) continue;
-      this.unitRoot(entityId)?.setEulerAngles(0, originalYaw, 0);
+      const root = this.unitRoot(entityId);
+      root?.setEulerAngles(0, originalYaw, 0);
+      if (root) this.syncFacingQaBillboard(root, originalYaw);
       this.facingQaOriginalYaw.delete(entityId);
     }
     if (this.facingQaIndex === null) return;
@@ -303,6 +305,23 @@ export class UnitControls {
       if (!root) continue;
       if (!this.facingQaOriginalYaw.has(entityId)) this.facingQaOriginalYaw.set(entityId, root.getEulerAngles().y);
       root.setEulerAngles(0, direction.yawDegrees, 0);
+      this.syncFacingQaBillboard(root, direction.yawDegrees);
+    }
+  }
+
+  private syncFacingQaBillboard(root: pc.GraphNode, yawDegrees: number): void {
+    const pending = [...root.children];
+    while (pending.length > 0) {
+      const node = pending.pop();
+      if (!node) continue;
+      if (node.name.endsWith(' Impostor Billboard')) {
+        // Facing QA overrides the unit root after the normal impostor update.
+        // Counter-rotate the billboard immediately so it stays camera-facing
+        // instead of becoming edge-on at some QA headings.
+        node.setLocalEulerAngles(0, 45 - yawDegrees, 0);
+        return;
+      }
+      pending.push(...node.children);
     }
   }
 
