@@ -20,8 +20,8 @@ describe('Fire Elementalist impostor frame assets', () => {
     ]);
   });
 
-  it('reverses observer-side left/right pairs for fixed-camera screen-facing movement', () => {
-    expect(ELEMENTALIST_FIRE_IMPOSTOR_FRAME_REMAP).toEqual([0, 7, 6, 5, 4, 3, 2, 1]);
+  it('uses the right cardinal frame for the bad lower-right diagonal view', () => {
+    expect(ELEMENTALIST_FIRE_IMPOSTOR_FRAME_REMAP).toEqual([0, 6, 6, 5, 4, 3, 2, 1]);
     expect(ELEMENTALIST_FIRE_IMPOSTOR_HEADING_OFFSET_DEGREES).toBe(0);
   });
 
