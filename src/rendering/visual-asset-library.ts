@@ -160,12 +160,14 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
 ]);
 
 interface ImpostorHandle {
+  root: pc.Entity;
   billboard: pc.Entity;
   plane: pc.Entity;
   shadow: pc.Entity;
   materials: readonly pc.StandardMaterial[];
   frameRemap: readonly number[];
   headingOffsetDegrees: number;
+  facingYawDegrees: number;
   viewFrame: number;
   update: () => void;
 }
@@ -263,9 +265,11 @@ export class VisualAssetLibrary {
     const impostor = handle?.impostor;
     if (!impostor || impostor.materials.length !== 8) return;
 
-    // Cancel the parent's unit heading so the image plane remains camera-facing;
-    // the selected directional frame carries the visible unit orientation.
-    impostor.billboard.setLocalEulerAngles(0, 45 - headingDegrees, 0);
+    // Billboard compensation follows the actual unit root transform. The
+    // directional frame can use an independent presentation-only heading.
+    impostor.facingYawDegrees = headingDegrees;
+    const rootYawDegrees = impostor.root.getEulerAngles().y;
+    impostor.billboard.setLocalEulerAngles(0, 45 - rootYawDegrees, 0);
     const viewFrame = stableImpostorFrameForHeading(
       headingDegrees + impostor.headingOffsetDegrees,
       impostor.viewFrame,
@@ -356,16 +360,20 @@ export class VisualAssetLibrary {
         // Primitive 3D units use a stronger procedural gait bob. Counter part
         // of that positive Y motion for flat sprites so they stay grounded.
         pivot.setLocalPosition(0, -Math.max(0, position.y) * 0.45, 0);
-        this.syncImpostor(handle, parent.getEulerAngles().y);
+        const facingYawDegrees = handle.impostor?.facingYawDegrees ?? parent.getEulerAngles().y;
+        this.syncImpostor(handle, facingYawDegrees);
       };
+      const initialFacingYaw = parent.getEulerAngles().y;
       handle.entity = pivot;
       handle.impostor = {
+        root: parent,
         billboard,
         plane,
         shadow,
         materials,
         frameRemap: config.frameRemap,
         headingOffsetDegrees: config.headingOffsetDegrees,
+        facingYawDegrees: initialFacingYaw,
         viewFrame: -1,
         update,
       };
