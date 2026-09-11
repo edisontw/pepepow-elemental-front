@@ -13,6 +13,7 @@ interface UnitPresentation {
   modelId: string;
   primitives: pc.Entity[];
   actionTick: number;
+  baseFacingYaw: number;
   facingOverrideYaw: number;
   facingOverrideUntilTick: number;
   selection: pc.Entity;
@@ -69,6 +70,7 @@ export class UnitRenderBridge {
   private latest = new Map<EntityID, EntitySnapshot>();
   private readonly screenPosition = new pc.Vec3();
   private readonly projectiles: ProjectilePresentation[] = [];
+  private readonly qaFacingYawByEntity = new Map<EntityID, number>();
   private readonly wetMaterial = createMaterial(new pc.Color(0.04, 0.82, 1), new pc.Color(0.03, 0.55, 0.85), 0.82);
   private readonly chilledMaterial = createMaterial(new pc.Color(0.42, 0.78, 1), new pc.Color(0.04, 0.18, 0.32), 0.82);
   private readonly frozenMaterial = createMaterial(new pc.Color(0.72, 0.94, 1), new pc.Color(0.14, 0.42, 0.55), 0.82);
@@ -161,13 +163,28 @@ export class UnitRenderBridge {
         model?.legL?.setLocalEulerAngles(moving ? Math.sin(gait) * 25 : 0, 0, 0);
         model?.legR?.setLocalEulerAngles(moving ? -Math.sin(gait) * 25 : 0, 0, 0);
         model?.weapon?.setLocalEulerAngles(-Math.sin(action * Math.PI) * 65, 0, 0);
+
         const deltaX = unit.x - prior.x;
         const deltaZ = unit.z - prior.z;
-        if (deltaX !== 0 || deltaZ !== 0) {
-          presentation.root.setEulerAngles(0, Math.atan2(deltaX, deltaZ) * 180 / Math.PI, 0);
-        }
-        if (current.tick <= presentation.facingOverrideUntilTick) {
-          presentation.root.setEulerAngles(0, presentation.facingOverrideYaw, 0);
+        const movementFacingYaw = deltaX !== 0 || deltaZ !== 0
+          ? Math.atan2(deltaX, deltaZ) * 180 / Math.PI
+          : null;
+        const combatFacingYaw = current.tick <= presentation.facingOverrideUntilTick
+          ? presentation.facingOverrideYaw
+          : null;
+        if (movementFacingYaw !== null) presentation.baseFacingYaw = movementFacingYaw;
+        if (combatFacingYaw !== null) presentation.baseFacingYaw = combatFacingYaw;
+        const naturalFacingYaw = combatFacingYaw ?? movementFacingYaw ?? presentation.baseFacingYaw;
+        const qaFacingYaw = this.qaFacingYawByEntity.get(unit.id);
+        const effectiveFacingYaw = qaFacingYaw ?? naturalFacingYaw;
+
+        if (model?.impostor) {
+          // Flat impostors keep their root on the natural presentation facing.
+          // Facing QA overrides only the directional frame, never the billboard root.
+          presentation.root.setEulerAngles(0, naturalFacingYaw, 0);
+          this.visualAssets.syncImpostor(model, effectiveFacingYaw);
+        } else {
+          presentation.root.setEulerAngles(0, effectiveFacingYaw, 0);
         }
       }
 
@@ -208,6 +225,18 @@ export class UnitRenderBridge {
     for (const [entityId, presentation] of this.units) {
       presentation.selection.enabled = entityIds.has(entityId) && this.latest.get(entityId)?.alive === true;
     }
+  }
+
+  setFacingQaOverride(entityIds: readonly EntityID[], yawDegrees: number): void {
+    const selected = new Set(entityIds);
+    for (const entityId of [...this.qaFacingYawByEntity.keys()]) {
+      if (!selected.has(entityId)) this.qaFacingYawByEntity.delete(entityId);
+    }
+    for (const entityId of selected) this.qaFacingYawByEntity.set(entityId, yawDegrees);
+  }
+
+  clearFacingQaOverride(): void {
+    this.qaFacingYawByEntity.clear();
   }
 
   pickSingle(camera: pc.CameraComponent, screenX: number, screenY: number, maxDistance = 24): EntityID | null {
@@ -259,6 +288,7 @@ export class UnitRenderBridge {
   }
 
   destroy(): void {
+    this.qaFacingYawByEntity.clear();
     for (const presentation of this.units.values()) this.destroyPresentation(presentation);
     this.units.clear();
     for (const projectile of this.projectiles) projectile.entity.destroy();
@@ -348,6 +378,7 @@ export class UnitRenderBridge {
       modelId: '',
       primitives,
       actionTick: -100,
+      baseFacingYaw: 0,
       facingOverrideYaw: 0,
       facingOverrideUntilTick: -1,
       selection,

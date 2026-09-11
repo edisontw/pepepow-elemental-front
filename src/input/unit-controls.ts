@@ -30,7 +30,6 @@ export class UnitControls {
   private readonly pickWorld = new pc.Vec3();
   private readonly pickBaseScreen = new pc.Vec3();
   private readonly pickTopScreen = new pc.Vec3();
-  private readonly facingQaOriginalYaw = new Map<number, number>();
   private pointerId: number | null = null;
   private startClientX = 0;
   private startClientY = 0;
@@ -90,8 +89,6 @@ export class UnitControls {
     if (this.selection.prune((entityId) => this.bridge.isControllable(entityId))) {
       this.renderSelected();
     }
-    // SceneShell calls this after UnitRenderBridge.sync(), so a presentation-only
-    // QA facing override can reliably win over movement/combat facing for this frame.
     this.applyFacingQaOverride();
   }
 
@@ -289,51 +286,26 @@ export class UnitControls {
   }
 
   private applyFacingQaOverride(): void {
-    const selected = new Set(this.selection.ids);
-    for (const [entityId, originalYaw] of [...this.facingQaOriginalYaw]) {
-      if (this.facingQaIndex !== null && selected.has(entityId)) continue;
-      const root = this.unitRoot(entityId);
-      root?.setEulerAngles(0, originalYaw, 0);
-      if (root) this.syncFacingQaBillboard(root, originalYaw);
-      this.facingQaOriginalYaw.delete(entityId);
+    if (this.facingQaIndex === null) {
+      this.bridge.clearFacingQaOverride();
+      return;
     }
-    if (this.facingQaIndex === null) return;
     const direction = FACING_QA_DIRECTIONS[this.facingQaIndex];
-    if (!direction) return;
-    for (const entityId of selected) {
-      const root = this.unitRoot(entityId);
-      if (!root) continue;
-      if (!this.facingQaOriginalYaw.has(entityId)) this.facingQaOriginalYaw.set(entityId, root.getEulerAngles().y);
-      root.setEulerAngles(0, direction.yawDegrees, 0);
-      this.syncFacingQaBillboard(root, direction.yawDegrees);
+    if (!direction) {
+      this.bridge.clearFacingQaOverride();
+      return;
     }
-  }
-
-  private syncFacingQaBillboard(root: pc.GraphNode, yawDegrees: number): void {
-    const pending = [...root.children];
-    while (pending.length > 0) {
-      const node = pending.pop();
-      if (!node) continue;
-      if (node.name.endsWith(' Impostor Billboard')) {
-        // Facing QA overrides the unit root after the normal impostor update.
-        // Counter-rotate the billboard immediately so it stays camera-facing
-        // instead of becoming edge-on at some QA headings.
-        node.setLocalEulerAngles(0, 45 - yawDegrees, 0);
-        return;
-      }
-      pending.push(...node.children);
-    }
+    this.bridge.setFacingQaOverride(this.selection.ids, direction.yawDegrees);
   }
 
   private disableFacingQa(): void {
-    if (this.facingQaIndex === null && this.facingQaOriginalYaw.size === 0) return;
+    if (this.facingQaIndex === null) {
+      this.bridge.clearFacingQaOverride();
+      return;
+    }
     this.facingQaIndex = null;
-    this.applyFacingQaOverride();
+    this.bridge.clearFacingQaOverride();
     this.renderFacingQaMode();
-  }
-
-  private unitRoot(entityId: number): pc.GraphNode | null {
-    return this.camera.system.app.root.findByName(`Unit ${entityId}`);
   }
 
   private selectSameTypeOnScreen(entityId: number, add: boolean): void {
