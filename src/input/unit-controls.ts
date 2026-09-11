@@ -297,6 +297,7 @@ export class UnitControls {
     }
     if (this.facingQaIndex === null) return;
     const direction = FACING_QA_DIRECTIONS[this.facingQaIndex];
+    if (!direction) return;
     for (const entityId of selected) {
       const root = this.unitRoot(entityId);
       if (!root) continue;
