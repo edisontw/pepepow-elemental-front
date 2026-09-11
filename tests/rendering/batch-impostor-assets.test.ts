@@ -15,8 +15,6 @@ const STANDARD_SLUGS = [
   'spear-guard',
   'ranger',
   'scout',
-  'golem',
-  'siege-construct',
 ] as const;
 
 describe('batch unit impostor static paths', () => {
@@ -28,19 +26,19 @@ describe('batch unit impostor static paths', () => {
     }
   });
 
-  it('uses the manual WebGL recovery order for Water Elementalist diagonals', () => {
+  it('keeps the accepted Water Elementalist manual recovery directions', () => {
     expect(impostorFrameFiles('elementalist-water')).toEqual(
       ELEMENTALIST_WATER_TEMPORARY_DIRECTION_FILENAMES.map((filename) => `assets/impostors/elementalist-water/${filename}`),
     );
     expect(ELEMENTALIST_WATER_TEMPORARY_DIRECTION_FILENAMES).toEqual([
       '00-front.webp',
-      '07-front-right.webp',
-      '02-left.webp',
-      '05-rear-right.webp',
-      '04-rear.webp',
-      '03-rear-left.webp',
-      '06-right.webp',
       '01-front-left.webp',
+      '06-right.webp',
+      '03-rear-left.webp',
+      '04-rear.webp',
+      '05-rear-right.webp',
+      '02-left.webp',
+      '07-front-right.webp',
     ]);
   });
 
@@ -52,7 +50,22 @@ describe('batch unit impostor static paths', () => {
     expect(ENGINEER_TEMPORARY_DIRECTION_FILENAMES[7]).toBe('06-right.webp');
   });
 
-  it('reverses observer-side left/right pairs for fixed-camera screen-facing movement', () => {
-    expect(SCREEN_FACING_TURNAROUND_FRAME_REMAP).toEqual([0, 7, 6, 5, 4, 3, 2, 1]);
+  it('keeps canonical frame order for the shared fixed-camera mapping', () => {
+    expect(SCREEN_FACING_TURNAROUND_FRAME_REMAP).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
+  });
+
+  it('pre-reverses Golem and Siege source loading to cancel their legacy per-asset remap', () => {
+    for (const slug of ['golem', 'siege-construct'] as const) {
+      expect(impostorFrameFiles(slug)).toEqual([
+        `assets/impostors/${slug}/00-front.webp`,
+        `assets/impostors/${slug}/07-front-right.webp`,
+        `assets/impostors/${slug}/06-right.webp`,
+        `assets/impostors/${slug}/05-rear-right.webp`,
+        `assets/impostors/${slug}/04-rear.webp`,
+        `assets/impostors/${slug}/03-rear-left.webp`,
+        `assets/impostors/${slug}/02-left.webp`,
+        `assets/impostors/${slug}/01-front-left.webp`,
+      ]);
+    }
   });
 });
