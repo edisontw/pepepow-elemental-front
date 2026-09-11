@@ -84,7 +84,10 @@ export class StrategicPanel {
     this.elapsed += deltaSeconds;
     if (this.elapsed < 0.2) return;
     this.elapsed = 0;
-    if (this.pointerInside) return;
+    if (this.pointerInside) {
+      this.refreshResourceStrip();
+      return;
+    }
     this.render();
   }
 
@@ -108,6 +111,28 @@ export class StrategicPanel {
     this.elapsed = 0;
     this.render();
   };
+
+  private refreshResourceStrip(): void {
+    const snapshot = this.simulation.strategy.snapshot();
+    const stock = snapshot.resources[PLAYER_ID];
+    if (!stock) return;
+    const values = [
+      formatResource(stock.materialMilli),
+      formatResource(stock.manaMilli),
+      formatResource(stock.influenceMilli),
+      `${snapshot.populationUsed[PLAYER_ID] ?? 0}/${snapshot.populationCap[PLAYER_ID] ?? 0}`,
+    ];
+    const rows = this.element.querySelectorAll<HTMLElement>('.resource-strip b');
+    values.forEach((value, index) => {
+      const row = rows[index];
+      if (!row) return;
+      const labelElement = row.querySelector('span');
+      if (!labelElement) return;
+      const text = row.firstChild;
+      if (text?.nodeType === 3) text.textContent = `${value} `;
+      else row.insertBefore(document.createTextNode(`${value} `), labelElement);
+    });
+  }
 
   private readonly onClick = (event: MouseEvent): void => {
     const target = event.target instanceof Element ? event.target.closest<HTMLButtonElement>('button[data-action]') : null;
