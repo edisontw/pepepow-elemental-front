@@ -35,10 +35,29 @@ export const ENGINEER_TEMPORARY_DIRECTION_FILENAMES = [
   '06-right.webp',
 ] as const;
 
+/**
+ * Temporary Water Elementalist recovery map derived from manual WebGL checks.
+ * The uploaded diagonal labels do not match their visible facing consistently:
+ * source 03 reads up-right, 07 reads down-left, while 01/05 are safer cardinal
+ * side views. Reorder only this asset set; shared runtime mapping stays unchanged.
+ */
+export const ELEMENTALIST_WATER_TEMPORARY_DIRECTION_FILENAMES = [
+  '00-front.webp',
+  '07-front-right.webp',
+  '02-left.webp',
+  '05-rear-right.webp',
+  '04-rear.webp',
+  '03-rear-left.webp',
+  '06-right.webp',
+  '01-front-left.webp',
+] as const;
+
 export function impostorFrameFiles(slug: string): readonly string[] {
   const filenames = slug === 'engineer'
     ? ENGINEER_TEMPORARY_DIRECTION_FILENAMES
-    : IMPOSTOR_DIRECTION_FILENAMES;
+    : slug === 'elementalist-water'
+      ? ELEMENTALIST_WATER_TEMPORARY_DIRECTION_FILENAMES
+      : IMPOSTOR_DIRECTION_FILENAMES;
   return filenames.map((filename) => `assets/impostors/${slug}/${filename}`);
 }
 
