@@ -12,13 +12,14 @@ export const IMPOSTOR_DIRECTION_FILENAMES = [
 export const IDENTITY_IMPOSTOR_FRAME_REMAP = [0, 1, 2, 3, 4, 5, 6, 7] as const;
 
 /**
- * Some AI turnarounds interpret "left" / "right" as the direction the
- * character points on the sheet rather than the side from which the observer
- * sees the character. Front/rear remain correct while every side pair is
- * reversed. This remap converts canonical observer-side view indices into that
- * source-sheet convention without changing simulation heading semantics.
+ * AI turnaround sheets are authored in the same 4x2 order as the canonical
+ * filenames. With the fixed 45 degree RTS camera, impostorFrameForHeading()
+ * already advances through those source frames in screen-facing order:
+ * down, down-right, right, up-right, up, up-left, left, down-left.
+ * Reversing the side frames makes lower-right motion display a left-facing
+ * sprite and upper-right motion use the wrong diagonal.
  */
-export const SCREEN_FACING_TURNAROUND_FRAME_REMAP = [0, 7, 6, 5, 4, 3, 2, 1] as const;
+export const SCREEN_FACING_TURNAROUND_FRAME_REMAP = IDENTITY_IMPOSTOR_FRAME_REMAP;
 
 export function impostorFrameFiles(slug: string): readonly string[] {
   return IMPOSTOR_DIRECTION_FILENAMES.map((filename) => `assets/impostors/${slug}/${filename}`);

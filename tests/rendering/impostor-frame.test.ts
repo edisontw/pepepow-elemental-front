@@ -9,6 +9,11 @@ import {
   remapImpostorFrame,
 } from '../../src/rendering/impostor-frame-assets';
 
+function headingForWorldDelta(deltaX: number, deltaZ: number): number {
+  // Matches UnitRenderBridge: world +Z is heading 0, +X is +90 degrees.
+  return Math.atan2(deltaX, deltaZ) * 180 / Math.PI;
+}
+
 describe('impostor frame mapping', () => {
   it('maps the fixed 45 degree RTS camera into unit-local observer-side directions', () => {
     expect(impostorFrameForHeading(45)).toBe(0);   // front
@@ -22,15 +27,34 @@ describe('impostor frame mapping', () => {
     expect(impostorFrameForHeading(405)).toBe(0);
   });
 
-  it('remaps screen-facing AI turnaround labels without corrupting front/rear views', () => {
-    expect(remapImpostorFrame(0, SCREEN_FACING_TURNAROUND_FRAME_REMAP)).toBe(0);
-    expect(remapImpostorFrame(1, SCREEN_FACING_TURNAROUND_FRAME_REMAP)).toBe(7);
-    expect(remapImpostorFrame(2, SCREEN_FACING_TURNAROUND_FRAME_REMAP)).toBe(6);
-    expect(remapImpostorFrame(3, SCREEN_FACING_TURNAROUND_FRAME_REMAP)).toBe(5);
-    expect(remapImpostorFrame(4, SCREEN_FACING_TURNAROUND_FRAME_REMAP)).toBe(4);
-    expect(remapImpostorFrame(5, SCREEN_FACING_TURNAROUND_FRAME_REMAP)).toBe(3);
-    expect(remapImpostorFrame(6, SCREEN_FACING_TURNAROUND_FRAME_REMAP)).toBe(2);
-    expect(remapImpostorFrame(7, SCREEN_FACING_TURNAROUND_FRAME_REMAP)).toBe(1);
+  it('keeps canonical AI turnaround source frames in screen-facing order', () => {
+    for (let frame = 0; frame < 8; frame += 1) {
+      expect(remapImpostorFrame(frame, SCREEN_FACING_TURNAROUND_FRAME_REMAP)).toBe(frame);
+    }
+  });
+
+  it('maps all eight canonical world movement vectors to the matching fixed-camera source frame', () => {
+    // At camera yaw 45 degrees, the source art visually faces:
+    // down, down-right, right, up-right, up, up-left, left, down-left.
+    const cases = [
+      { label: 'down', deltaX: 1, deltaZ: 1, sourceFrame: 0 },
+      { label: 'down-right', deltaX: 1, deltaZ: 0, sourceFrame: 1 },
+      { label: 'right', deltaX: 1, deltaZ: -1, sourceFrame: 2 },
+      { label: 'up-right', deltaX: 0, deltaZ: -1, sourceFrame: 3 },
+      { label: 'up', deltaX: -1, deltaZ: -1, sourceFrame: 4 },
+      { label: 'up-left', deltaX: -1, deltaZ: 0, sourceFrame: 5 },
+      { label: 'left', deltaX: -1, deltaZ: 1, sourceFrame: 6 },
+      { label: 'down-left', deltaX: 0, deltaZ: 1, sourceFrame: 7 },
+    ] as const;
+
+    for (const { label, deltaX, deltaZ, sourceFrame } of cases) {
+      const heading = headingForWorldDelta(deltaX, deltaZ);
+      const viewFrame = impostorFrameForHeading(heading);
+      expect(
+        remapImpostorFrame(viewFrame, SCREEN_FACING_TURNAROUND_FRAME_REMAP),
+        label,
+      ).toBe(sourceFrame);
+    }
   });
 
   it('keeps the current frame briefly past a sector boundary to avoid chatter', () => {
