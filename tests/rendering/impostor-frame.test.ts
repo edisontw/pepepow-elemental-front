@@ -27,25 +27,23 @@ describe('impostor frame mapping', () => {
     expect(impostorFrameForHeading(405)).toBe(0);
   });
 
-  it('reverses source-side progression while preserving front and rear', () => {
-    const expected = [0, 7, 6, 5, 4, 3, 2, 1] as const;
+  it('keeps canonical observer-side source progression unchanged', () => {
+    const expected = [0, 1, 2, 3, 4, 5, 6, 7] as const;
     for (let frame = 0; frame < 8; frame += 1) {
       expect(remapImpostorFrame(frame, SCREEN_FACING_TURNAROUND_FRAME_REMAP)).toBe(expected[frame]);
     }
   });
 
-  it('maps all eight canonical world movement vectors to the corrected turnaround source frame', () => {
-    // The generated sheets use observer-side left/right labels, so screen-facing
-    // movement must select the opposite side source frame for non-front/rear views.
+  it('maps all eight world movement vectors to the matching canonical source frame', () => {
     const cases = [
       { label: 'down', deltaX: 1, deltaZ: 1, sourceFrame: 0 },
-      { label: 'down-right', deltaX: 1, deltaZ: 0, sourceFrame: 7 },
-      { label: 'right', deltaX: 1, deltaZ: -1, sourceFrame: 6 },
-      { label: 'up-right', deltaX: 0, deltaZ: -1, sourceFrame: 5 },
+      { label: 'down-right', deltaX: 1, deltaZ: 0, sourceFrame: 1 },
+      { label: 'right', deltaX: 1, deltaZ: -1, sourceFrame: 2 },
+      { label: 'up-right', deltaX: 0, deltaZ: -1, sourceFrame: 3 },
       { label: 'up', deltaX: -1, deltaZ: -1, sourceFrame: 4 },
-      { label: 'up-left', deltaX: -1, deltaZ: 0, sourceFrame: 3 },
-      { label: 'left', deltaX: -1, deltaZ: 1, sourceFrame: 2 },
-      { label: 'down-left', deltaX: 0, deltaZ: 1, sourceFrame: 1 },
+      { label: 'up-left', deltaX: -1, deltaZ: 0, sourceFrame: 5 },
+      { label: 'left', deltaX: -1, deltaZ: 1, sourceFrame: 6 },
+      { label: 'down-left', deltaX: 0, deltaZ: 1, sourceFrame: 7 },
     ] as const;
 
     for (const { label, deltaX, deltaZ, sourceFrame } of cases) {
