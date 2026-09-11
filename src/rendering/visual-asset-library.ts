@@ -30,6 +30,8 @@ interface ImpostorConfig {
   shadowZ: number;
 }
 
+const REVERSED_SIDE_FRAME_REMAP = [0, 7, 6, 5, 4, 3, 2, 1] as const;
+
 const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
   ['unit.vanguard', {
     id: 'unit.vanguard',
@@ -54,107 +56,107 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
     shadowZ: 0.62,
   }],
   ['unit.elementalist.water', {
-  id: 'unit.elementalist.water',
-  label: 'Water Elementalist',
-  frameFiles: impostorFrameFiles('elementalist-water'),
-  frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
-  headingOffsetDegrees: 0,
-  width: 1.72,
-  height: 2.3,
-  shadowX: 0.86,
-  shadowZ: 0.62,
-}],
+    id: 'unit.elementalist.water',
+    label: 'Water Elementalist',
+    frameFiles: impostorFrameFiles('elementalist-water'),
+    frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
+    headingOffsetDegrees: 0,
+    width: 1.72,
+    height: 2.3,
+    shadowX: 0.86,
+    shadowZ: 0.62,
+  }],
   ['unit.elementalist.ice', {
-  id: 'unit.elementalist.ice',
-  label: 'Ice Elementalist',
-  frameFiles: impostorFrameFiles('elementalist-ice'),
-  frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
-  headingOffsetDegrees: 0,
-  width: 1.72,
-  height: 2.3,
-  shadowX: 0.86,
-  shadowZ: 0.62,
-}],
+    id: 'unit.elementalist.ice',
+    label: 'Ice Elementalist',
+    frameFiles: impostorFrameFiles('elementalist-ice'),
+    frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
+    headingOffsetDegrees: 0,
+    width: 1.72,
+    height: 2.3,
+    shadowX: 0.86,
+    shadowZ: 0.62,
+  }],
   ['unit.elementalist.lightning', {
-  id: 'unit.elementalist.lightning',
-  label: 'Lightning Elementalist',
-  frameFiles: impostorFrameFiles('elementalist-lightning'),
-  frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
-  headingOffsetDegrees: 0,
-  width: 1.72,
-  height: 2.3,
-  shadowX: 0.86,
-  shadowZ: 0.62,
-}],
+    id: 'unit.elementalist.lightning',
+    label: 'Lightning Elementalist',
+    frameFiles: impostorFrameFiles('elementalist-lightning'),
+    frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
+    headingOffsetDegrees: 0,
+    width: 1.72,
+    height: 2.3,
+    shadowX: 0.86,
+    shadowZ: 0.62,
+  }],
   ['unit.spear-guard', {
-  id: 'unit.spear-guard',
-  label: 'Spear Guard',
-  frameFiles: impostorFrameFiles('spear-guard'),
-  frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
-  headingOffsetDegrees: 0,
-  width: 1.36,
-  height: 1.82,
-  shadowX: 0.78,
-  shadowZ: 0.58,
-}],
+    id: 'unit.spear-guard',
+    label: 'Spear Guard',
+    frameFiles: impostorFrameFiles('spear-guard'),
+    frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
+    headingOffsetDegrees: 0,
+    width: 1.65,
+    height: 2.2,
+    shadowX: 0.86,
+    shadowZ: 0.62,
+  }],
   ['unit.ranger', {
-  id: 'unit.ranger',
-  label: 'Ranger',
-  frameFiles: RANGER_IMPOSTOR_FRAME_FILES,
-  frameRemap: RANGER_IMPOSTOR_FRAME_REMAP,
-  headingOffsetDegrees: RANGER_IMPOSTOR_HEADING_OFFSET_DEGREES,
-  width: 1.18,
-  height: 1.56,
-  shadowX: 0.72,
-  shadowZ: 0.52,
-}],
+    id: 'unit.ranger',
+    label: 'Ranger',
+    frameFiles: RANGER_IMPOSTOR_FRAME_FILES,
+    frameRemap: RANGER_IMPOSTOR_FRAME_REMAP,
+    headingOffsetDegrees: RANGER_IMPOSTOR_HEADING_OFFSET_DEGREES,
+    width: 1.18,
+    height: 1.56,
+    shadowX: 0.72,
+    shadowZ: 0.52,
+  }],
   ['unit.scout', {
-  id: 'unit.scout',
-  label: 'Scout',
-  frameFiles: impostorFrameFiles('scout'),
-  frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
-  headingOffsetDegrees: 0,
-  width: 0.96,
-  height: 1.24,
-  shadowX: 0.64,
-  shadowZ: 0.46,
-}],
+    id: 'unit.scout',
+    label: 'Scout',
+    frameFiles: impostorFrameFiles('scout'),
+    frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
+    headingOffsetDegrees: 0,
+    width: 0.96,
+    height: 1.24,
+    shadowX: 0.64,
+    shadowZ: 0.46,
+  }],
   ['unit.engineer', {
-  id: 'unit.engineer',
-  label: 'Engineer',
-  frameFiles: impostorFrameFiles('engineer'),
-  frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
-  headingOffsetDegrees: 0,
-  width: 1.22,
-  height: 1.58,
-  shadowX: 0.78,
-  shadowZ: 0.56,
-}],
+    id: 'unit.engineer',
+    label: 'Engineer',
+    frameFiles: impostorFrameFiles('engineer'),
+    frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
+    headingOffsetDegrees: 0,
+    width: 1.22,
+    height: 1.58,
+    shadowX: 0.78,
+    shadowZ: 0.56,
+  }],
   ['unit.golem', {
-  id: 'unit.golem',
-  label: 'Golem',
-  frameFiles: impostorFrameFiles('golem'),
-  frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
-  headingOffsetDegrees: 0,
-  width: 2.05,
-  height: 2.46,
-  shadowX: 1.28,
-  shadowZ: 0.9,
-}],
+    id: 'unit.golem',
+    label: 'Golem',
+    frameFiles: impostorFrameFiles('golem'),
+    frameRemap: REVERSED_SIDE_FRAME_REMAP,
+    headingOffsetDegrees: 0,
+    width: 2.05,
+    height: 2.46,
+    shadowX: 1.28,
+    shadowZ: 0.9,
+  }],
   ['unit.siege-construct', {
-  id: 'unit.siege-construct',
-  label: 'Siege Construct',
-  frameFiles: impostorFrameFiles('siege-construct'),
-  frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
-  headingOffsetDegrees: 0,
-  // Keep the 192x256 source frame near its native aspect. The prior
-  // 2.55x1.82 plane stretched this wide vehicle almost 2x horizontally,
-  // making the elevated turnaround read like a flattened top view.
-  width: 2.25,
-  height: 3.0,
-  shadowX: 1.45,
-  shadowZ: 1.0,
-}],
+    id: 'unit.siege-construct',
+    label: 'Siege Construct',
+    frameFiles: impostorFrameFiles('siege-construct'),
+    frameRemap: REVERSED_SIDE_FRAME_REMAP,
+    headingOffsetDegrees: 0,
+    // Keep the 192x256 source frame near its native aspect. The prior
+    // 2.55x1.82 plane stretched this wide vehicle almost 2x horizontally,
+    // making the elevated turnaround read like a flattened top view.
+    width: 2.25,
+    height: 3.0,
+    shadowX: 1.45,
+    shadowZ: 1.0,
+  }],
 ]);
 
 interface ImpostorHandle {
@@ -389,12 +391,36 @@ export class VisualAssetLibrary {
       image.src = url;
     });
 
-    resources.promise = Promise.all(
+    resources.promise = Promise.allSettled(
       config.frameFiles.map((path) => loadImage(`${import.meta.env.BASE_URL}${path}`)),
-    ).then((images) => {
+    ).then((results) => {
       if (this.disposed) return null;
 
-      for (const [frame, image] of images.entries()) {
+      const loadedImages = results.map((result) => result.status === 'fulfilled' ? result.value : null);
+      const loadedCount = loadedImages.filter((image): image is HTMLImageElement => image !== null).length;
+      if (loadedCount === 0) throw new Error(`No ${config.label} impostor frames could be loaded.`);
+
+      if (loadedCount !== loadedImages.length) {
+        const missing = results
+          .map((result, frame) => result.status === 'rejected' ? config.frameFiles[frame] : null)
+          .filter((path): path is string => path !== null);
+        console.warn(`${config.label} impostor has ${missing.length} missing/corrupt frame(s); using nearest valid directional frame.`, missing);
+      }
+
+      const nearestLoadedImage = (frame: number): HTMLImageElement => {
+        const direct = loadedImages[frame];
+        if (direct) return direct;
+        for (let distance = 1; distance < loadedImages.length; distance += 1) {
+          const previous = loadedImages[(frame - distance + loadedImages.length) % loadedImages.length];
+          if (previous) return previous;
+          const next = loadedImages[(frame + distance) % loadedImages.length];
+          if (next) return next;
+        }
+        return loadedImages.find((image): image is HTMLImageElement => image !== null)!;
+      };
+
+      for (let frame = 0; frame < loadedImages.length; frame += 1) {
+        const image = nearestLoadedImage(frame);
         const texture = new pc.Texture(this.app.graphicsDevice, {
           name: `${config.id}.impostor.${frame}`,
           mipmaps: false,
