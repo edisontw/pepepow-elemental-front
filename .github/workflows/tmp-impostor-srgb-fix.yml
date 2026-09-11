@@ -22,18 +22,16 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
           path = Path('src/rendering/visual-asset-library.ts')
           text = path.read_text()
-          old = """          mipmaps: false,
-          minFilter: pc.FILTER_LINEAR,"""
-          new = """          mipmaps: false,
-          srgb: true,
-          minFilter: pc.FILTER_LINEAR,"""
-          if old not in text:
-              raise SystemExit('impostor texture marker not found')
           if 'srgb: true' in text:
               raise SystemExit('sRGB flag already present')
-          path.write_text(text.replace(old, new, 1))
+          pattern = r'(mipmaps:\s*false,\n)(\s*minFilter:\s*pc\.FILTER_LINEAR,)'
+          updated, count = re.subn(pattern, r'\1          srgb: true,\n\2', text, count=1)
+          if count != 1:
+              raise SystemExit('impostor texture marker not found')
+          path.write_text(updated)
           PY
       - run: npm ci
       - run: npm run test -- --run tests/rendering/impostor-frame.test.ts tests/rendering/vanguard-impostor-frames.test.ts tests/rendering/elementalist-fire-impostor-frames.test.ts tests/rendering/batch-impostor-assets.test.ts
