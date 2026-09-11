@@ -1,11 +1,16 @@
 import {
-  SCREEN_FACING_TURNAROUND_FRAME_REMAP,
   impostorFrameFiles,
   impostorFrameUrl,
 } from './impostor-frame-assets';
 
 export const VANGUARD_IMPOSTOR_FRAME_FILES = impostorFrameFiles('vanguard');
-export const VANGUARD_IMPOSTOR_FRAME_REMAP = SCREEN_FACING_TURNAROUND_FRAME_REMAP;
+
+// Temporary presentation-only safety map. The current diagonal Vanguard source
+// views do not consistently match their intended screen-facing direction. Use
+// the nearest reliable cardinal view on the three confirmed bad diagonals so
+// the unit never appears to face the opposite side while moving. Replace this
+// with a true eight-direction map once corrected source art is uploaded.
+export const VANGUARD_IMPOSTOR_FRAME_REMAP = [0, 6, 6, 6, 4, 3, 2, 2] as const;
 export const VANGUARD_IMPOSTOR_HEADING_OFFSET_DEGREES = 0;
 
 export function vanguardImpostorFrameUrl(frame: number, baseUrl: string): string {
