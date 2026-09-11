@@ -20,8 +20,8 @@ describe('Fire Elementalist impostor frame assets', () => {
     ]);
   });
 
-  it('uses the right cardinal frame for the bad lower-right diagonal view', () => {
-    expect(ELEMENTALIST_FIRE_IMPOSTOR_FRAME_REMAP).toEqual([0, 6, 6, 5, 4, 3, 2, 1]);
+  it('uses cardinal-safe fallbacks for all current diagonal views', () => {
+    expect(ELEMENTALIST_FIRE_IMPOSTOR_FRAME_REMAP).toEqual([0, 6, 6, 6, 4, 2, 2, 2]);
     expect(ELEMENTALIST_FIRE_IMPOSTOR_HEADING_OFFSET_DEGREES).toBe(0);
   });
 

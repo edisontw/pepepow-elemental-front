@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ELEMENTALIST_WATER_TEMPORARY_DIRECTION_FILENAMES,
   ENGINEER_TEMPORARY_DIRECTION_FILENAMES,
   SCREEN_FACING_TURNAROUND_FRAME_REMAP,
   IMPOSTOR_DIRECTION_FILENAMES,
@@ -9,7 +10,6 @@ import {
 const STANDARD_SLUGS = [
   'vanguard',
   'elementalist-fire',
-  'elementalist-water',
   'elementalist-ice',
   'elementalist-lightning',
   'spear-guard',
@@ -26,6 +26,22 @@ describe('batch unit impostor static paths', () => {
         IMPOSTOR_DIRECTION_FILENAMES.map((filename) => `assets/impostors/${slug}/${filename}`),
       );
     }
+  });
+
+  it('uses the manual WebGL recovery order for Water Elementalist diagonals', () => {
+    expect(impostorFrameFiles('elementalist-water')).toEqual(
+      ELEMENTALIST_WATER_TEMPORARY_DIRECTION_FILENAMES.map((filename) => `assets/impostors/elementalist-water/${filename}`),
+    );
+    expect(ELEMENTALIST_WATER_TEMPORARY_DIRECTION_FILENAMES).toEqual([
+      '00-front.webp',
+      '07-front-right.webp',
+      '02-left.webp',
+      '05-rear-right.webp',
+      '04-rear.webp',
+      '03-rear-left.webp',
+      '06-right.webp',
+      '01-front-left.webp',
+    ]);
   });
 
   it('temporarily avoids the two unusable Engineer diagonal files', () => {
