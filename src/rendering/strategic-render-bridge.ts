@@ -141,7 +141,7 @@ export class StrategicRenderBridge {
         const y = profile.height + 0.72;
         presentation.healthBack.setLocalPosition(0, y, 0);
         presentation.healthBack.setLocalScale(width, 0.095, 0.13);
-        presentation.healthBar.setLocalPosition(-(1 - ratio) * width * 0.5, y + 0.012, 0);
+        presentation.healthBar.setLocalPosition(-(1 - ratio) * width * 0.5, y + 0.04, 0);
         presentation.healthBar.setLocalScale(width * ratio, 0.062, 0.09);
         if (presentation.healthBar.render) {
           presentation.healthBar.render.material = working ? this.workMaterial : this.materialFor(building.playerId, 'ACCENT');
