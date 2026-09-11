@@ -120,6 +120,8 @@ export class UnitRenderBridge {
         RANGER: 'unit.ranger',
         SCOUT: 'unit.scout',
         ENGINEER: 'unit.engineer',
+        GOLEM: 'unit.golem',
+        SIEGE_CONSTRUCT: 'unit.siege-construct',
       };
       const resolvedModelId = modelId || specialistModelId[unit.archetype] || '';
       if (resolvedModelId && presentation.modelId !== resolvedModelId) {
