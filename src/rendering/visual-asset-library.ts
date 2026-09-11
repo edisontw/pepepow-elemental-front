@@ -142,8 +142,11 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
   frameFiles: impostorFrameFiles('siege-construct'),
   frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
   headingOffsetDegrees: 0,
-  width: 2.55,
-  height: 1.82,
+  // Keep the 192x256 source frame near its native aspect. The prior
+  // 2.55x1.82 plane stretched this wide vehicle almost 2x horizontally,
+  // making the elevated turnaround read like a flattened top view.
+  width: 2.25,
+  height: 3.0,
   shadowX: 1.45,
   shadowZ: 1.0,
 }],
