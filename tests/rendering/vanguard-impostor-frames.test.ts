@@ -20,8 +20,8 @@ describe('Vanguard impostor frame assets', () => {
     ]);
   });
 
-  it('calibrates the current AI turnaround from screen-facing labels to observer-side views', () => {
-    expect(VANGUARD_IMPOSTOR_FRAME_REMAP).toEqual([0, 7, 6, 5, 4, 3, 2, 1]);
+  it('keeps the turnaround frames in fixed-camera screen-facing order', () => {
+    expect(VANGUARD_IMPOSTOR_FRAME_REMAP).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
     expect(VANGUARD_IMPOSTOR_HEADING_OFFSET_DEGREES).toBe(0);
   });
 
