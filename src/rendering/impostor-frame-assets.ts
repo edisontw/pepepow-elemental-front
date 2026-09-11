@@ -12,17 +12,34 @@ export const IMPOSTOR_DIRECTION_FILENAMES = [
 export const IDENTITY_IMPOSTOR_FRAME_REMAP = [0, 1, 2, 3, 4, 5, 6, 7] as const;
 
 /**
- * AI turnaround sheets are authored in the same 4x2 order as the canonical
- * filenames. With the fixed 45 degree RTS camera, impostorFrameForHeading()
- * already advances through those source frames in screen-facing order:
- * down, down-right, right, up-right, up, up-left, left, down-left.
- * Reversing the side frames makes lower-right motion display a left-facing
- * sprite and upper-right motion use the wrong diagonal.
+ * The generated turnaround sheets use observer-side labels while the runtime
+ * advances view frames in screen-facing movement order. Front/rear stay fixed,
+ * while every left/right side pair must be reversed before selecting source art.
  */
-export const SCREEN_FACING_TURNAROUND_FRAME_REMAP = IDENTITY_IMPOSTOR_FRAME_REMAP;
+export const SCREEN_FACING_TURNAROUND_FRAME_REMAP = [0, 7, 6, 5, 4, 3, 2, 1] as const;
+
+/**
+ * Temporary Engineer recovery map. The uploaded 03 view is visually duplicated
+ * toward the lower-left and 07 is currently empty, so use the nearest readable
+ * cardinal frames for those two diagonals until replacement art is uploaded.
+ * Remove this override once all eight Engineer source frames are corrected.
+ */
+export const ENGINEER_TEMPORARY_DIRECTION_FILENAMES = [
+  '00-front.webp',
+  '01-front-left.webp',
+  '02-left.webp',
+  '04-rear.webp',
+  '04-rear.webp',
+  '05-rear-right.webp',
+  '06-right.webp',
+  '06-right.webp',
+] as const;
 
 export function impostorFrameFiles(slug: string): readonly string[] {
-  return IMPOSTOR_DIRECTION_FILENAMES.map((filename) => `assets/impostors/${slug}/${filename}`);
+  const filenames = slug === 'engineer'
+    ? ENGINEER_TEMPORARY_DIRECTION_FILENAMES
+    : IMPOSTOR_DIRECTION_FILENAMES;
+  return filenames.map((filename) => `assets/impostors/${slug}/${filename}`);
 }
 
 export function remapImpostorFrame(frame: number, frameRemap: readonly number[]): number {
