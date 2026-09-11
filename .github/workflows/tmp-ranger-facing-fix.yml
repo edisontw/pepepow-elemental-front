@@ -1,0 +1,158 @@
+name: One-shot Ranger impostor facing calibration
+
+on:
+  push:
+    branches: [fix/ranger-impostor-facing]
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/ranger-impostor-facing
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply Ranger-specific source-frame calibration
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          ranger = Path('src/rendering/ranger-impostor-frames.ts')
+          ranger.write_text("""import { impostorFrameFiles, impostorFrameUrl } from './impostor-frame-assets';
+
+export const RANGER_IMPOSTOR_FRAME_FILES = impostorFrameFiles('ranger');
+
+/**
+ * This Ranger turnaround uses the common AI screen-facing side convention:
+ * front/rear are correct, while every left/right observer-side pair is reversed.
+ * Keep the global fixed-camera mapping canonical and correct only this asset.
+ */
+export const RANGER_IMPOSTOR_FRAME_REMAP = [0, 7, 6, 5, 4, 3, 2, 1] as const;
+export const RANGER_IMPOSTOR_HEADING_OFFSET_DEGREES = 0;
+
+export function rangerImpostorFrameUrl(frame: number, baseUrl: string): string {
+  return impostorFrameUrl(frame, baseUrl, RANGER_IMPOSTOR_FRAME_FILES);
+}
+""")
+
+          visual = Path('src/rendering/visual-asset-library.ts')
+          text = visual.read_text()
+          import_anchor = """import {
+  ELEMENTALIST_FIRE_IMPOSTOR_FRAME_FILES,
+  ELEMENTALIST_FIRE_IMPOSTOR_FRAME_REMAP,
+  ELEMENTALIST_FIRE_IMPOSTOR_HEADING_OFFSET_DEGREES,
+} from './elementalist-fire-impostor-frames';
+"""
+          import_insert = import_anchor + """import {
+  RANGER_IMPOSTOR_FRAME_FILES,
+  RANGER_IMPOSTOR_FRAME_REMAP,
+  RANGER_IMPOSTOR_HEADING_OFFSET_DEGREES,
+} from './ranger-impostor-frames';
+"""
+          if import_anchor not in text:
+              raise SystemExit('visual asset import anchor not found')
+          text = text.replace(import_anchor, import_insert, 1)
+          old = """  ['unit.ranger', {
+  id: 'unit.ranger',
+  label: 'Ranger',
+  frameFiles: impostorFrameFiles('ranger'),
+  frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
+  headingOffsetDegrees: 0,
+  width: 1.18,
+  height: 1.56,
+  shadowX: 0.72,
+  shadowZ: 0.52,
+}],
+"""
+          new = """  ['unit.ranger', {
+  id: 'unit.ranger',
+  label: 'Ranger',
+  frameFiles: RANGER_IMPOSTOR_FRAME_FILES,
+  frameRemap: RANGER_IMPOSTOR_FRAME_REMAP,
+  headingOffsetDegrees: RANGER_IMPOSTOR_HEADING_OFFSET_DEGREES,
+  width: 1.18,
+  height: 1.56,
+  shadowX: 0.72,
+  shadowZ: 0.52,
+}],
+"""
+          if old not in text:
+              raise SystemExit('Ranger impostor config block not found')
+          visual.write_text(text.replace(old, new, 1))
+
+          test = Path('tests/rendering/ranger-impostor-frames.test.ts')
+          test.write_text("""import { describe, expect, it } from 'vitest';
+import {
+  RANGER_IMPOSTOR_FRAME_FILES,
+  RANGER_IMPOSTOR_FRAME_REMAP,
+  RANGER_IMPOSTOR_HEADING_OFFSET_DEGREES,
+  rangerImpostorFrameUrl,
+} from '../../src/rendering/ranger-impostor-frames';
+import { impostorFrameForHeading } from '../../src/rendering/impostor-frame';
+import { remapImpostorFrame } from '../../src/rendering/impostor-frame-assets';
+
+function headingForWorldDelta(deltaX: number, deltaZ: number): number {
+  return Math.atan2(deltaX, deltaZ) * 180 / Math.PI;
+}
+
+describe('Ranger impostor frame calibration', () => {
+  it('keeps canonical filenames and an asset-specific mirrored side remap', () => {
+    expect(RANGER_IMPOSTOR_FRAME_FILES).toEqual([
+      'assets/impostors/ranger/00-front.webp',
+      'assets/impostors/ranger/01-front-left.webp',
+      'assets/impostors/ranger/02-left.webp',
+      'assets/impostors/ranger/03-rear-left.webp',
+      'assets/impostors/ranger/04-rear.webp',
+      'assets/impostors/ranger/05-rear-right.webp',
+      'assets/impostors/ranger/06-right.webp',
+      'assets/impostors/ranger/07-front-right.webp',
+    ]);
+    expect(RANGER_IMPOSTOR_FRAME_REMAP).toEqual([0, 7, 6, 5, 4, 3, 2, 1]);
+    expect(RANGER_IMPOSTOR_HEADING_OFFSET_DEGREES).toBe(0);
+  });
+
+  it('preserves front/rear while reversing Ranger side-pair source frames', () => {
+    const cases = [
+      { deltaX: 1, deltaZ: 1, sourceFrame: 0 },
+      { deltaX: 1, deltaZ: 0, sourceFrame: 7 },
+      { deltaX: 1, deltaZ: -1, sourceFrame: 6 },
+      { deltaX: 0, deltaZ: -1, sourceFrame: 5 },
+      { deltaX: -1, deltaZ: -1, sourceFrame: 4 },
+      { deltaX: -1, deltaZ: 0, sourceFrame: 3 },
+      { deltaX: -1, deltaZ: 1, sourceFrame: 2 },
+      { deltaX: 0, deltaZ: 1, sourceFrame: 1 },
+    ] as const;
+    for (const { deltaX, deltaZ, sourceFrame } of cases) {
+      const viewFrame = impostorFrameForHeading(headingForWorldDelta(deltaX, deltaZ));
+      expect(remapImpostorFrame(viewFrame, RANGER_IMPOSTOR_FRAME_REMAP)).toBe(sourceFrame);
+    }
+  });
+
+  it('builds base-aware URLs and wraps frame indices', () => {
+    expect(rangerImpostorFrameUrl(0, '/pepepow-elemental-front/'))
+      .toBe('/pepepow-elemental-front/assets/impostors/ranger/00-front.webp');
+    expect(rangerImpostorFrameUrl(-1, '/pepepow-elemental-front/'))
+      .toBe('/pepepow-elemental-front/assets/impostors/ranger/07-front-right.webp');
+  });
+});
+""")
+          PY
+      - run: npm ci
+      - name: Run Ranger facing QA
+        run: npx vitest run tests/rendering/ranger-impostor-frames.test.ts tests/rendering/impostor-frame.test.ts
+      - run: npm run build
+      - name: Commit calibration and remove one-shot workflow
+        run: |
+          git rm .github/workflows/tmp-ranger-facing-fix.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/rendering/ranger-impostor-frames.ts src/rendering/visual-asset-library.ts tests/rendering/ranger-impostor-frames.test.ts
+          git commit -m 'fix: calibrate Ranger impostor facing'
+          git push origin HEAD:fix/ranger-impostor-facing
