@@ -14,11 +14,23 @@ const DRAG_THRESHOLD = 6;
 const DOUBLE_CLICK_MS = 350;
 const UNIT_PICK_RADIUS = 54;
 
+const FACING_QA_DIRECTIONS = [
+  { label: 'Down', glyph: '↓', yawDegrees: 45 },
+  { label: 'Down-Right', glyph: '↘', yawDegrees: 90 },
+  { label: 'Right', glyph: '→', yawDegrees: 135 },
+  { label: 'Up-Right', glyph: '↗', yawDegrees: 180 },
+  { label: 'Up', glyph: '↑', yawDegrees: 225 },
+  { label: 'Up-Left', glyph: '↖', yawDegrees: 270 },
+  { label: 'Left', glyph: '←', yawDegrees: 315 },
+  { label: 'Down-Left', glyph: '↙', yawDegrees: 0 },
+] as const;
+
 export class UnitControls {
   private readonly selection = new SelectionState();
   private readonly pickWorld = new pc.Vec3();
   private readonly pickBaseScreen = new pc.Vec3();
   private readonly pickTopScreen = new pc.Vec3();
+  private readonly facingQaOriginalYaw = new Map<number, number>();
   private pointerId: number | null = null;
   private startClientX = 0;
   private startClientY = 0;
@@ -27,6 +39,7 @@ export class UnitControls {
   private hoverClientX: number | null = null;
   private hoverClientY: number | null = null;
   private formation: FormationId = 'LINE';
+  private facingQaIndex: number | null = null;
   private lastClickEntityId: number | null = null;
   private lastClickTimeMs = Number.NEGATIVE_INFINITY;
 
@@ -43,6 +56,7 @@ export class UnitControls {
     window.addEventListener('pointerup', this.onPointerUp);
     window.addEventListener('keydown', this.onKeyDown);
     this.renderFormationMode();
+    this.renderFacingQaMode();
   }
 
   get selectedCount(): number {
@@ -60,6 +74,7 @@ export class UnitControls {
 
   moveSelectionTo(targetX: number, targetZ: number): void {
     if (this.selection.ids.length === 0) return;
+    this.disableFacingQa();
     this.simulation.enqueueCommand({
       targetTick: this.simulation.snapshot().tick + 1,
       playerId: 0,
@@ -75,9 +90,13 @@ export class UnitControls {
     if (this.selection.prune((entityId) => this.bridge.isControllable(entityId))) {
       this.renderSelected();
     }
+    // SceneShell calls this after UnitRenderBridge.sync(), so a presentation-only
+    // QA facing override can reliably win over movement/combat facing for this frame.
+    this.applyFacingQaOverride();
   }
 
   destroy(): void {
+    this.disableFacingQa();
     this.canvas.removeEventListener('pointerdown', this.onPointerDown);
     this.canvas.removeEventListener('contextmenu', this.onContextMenu);
     window.removeEventListener('pointermove', this.onPointerMove);
@@ -159,6 +178,22 @@ export class UnitControls {
   };
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
+    if (!event.repeat && (event.code === 'BracketLeft' || event.code === 'BracketRight' || event.code === 'Backslash')) {
+      event.preventDefault();
+      if (event.code === 'Backslash') {
+        this.disableFacingQa();
+      } else {
+        const step = event.code === 'BracketRight' ? 1 : -1;
+        const current = this.facingQaIndex;
+        this.facingQaIndex = current === null
+          ? (step > 0 ? 0 : FACING_QA_DIRECTIONS.length - 1)
+          : (current + step + FACING_QA_DIRECTIONS.length) % FACING_QA_DIRECTIONS.length;
+        this.applyFacingQaOverride();
+        this.renderFacingQaMode();
+      }
+      return;
+    }
+
     const controlGroupSlot = this.controlGroupSlot(event.code);
     if (controlGroupSlot !== null && !event.repeat) {
       event.preventDefault();
@@ -204,6 +239,7 @@ export class UnitControls {
       const screen = this.toCanvasCoordinates(this.hoverClientX, this.hoverClientY);
       const targetId = this.bridge.pickSingle(this.camera, screen.x, screen.y, UNIT_PICK_RADIUS);
       if (targetId === null || !this.bridge.isEnemy(targetId)) return;
+      this.disableFacingQa();
       this.simulation.enqueueCommand({
         targetTick: this.simulation.snapshot().tick + 1,
         playerId: 0,
@@ -235,6 +271,49 @@ export class UnitControls {
     const label = this.formation === 'LINE' ? 'Line' : this.formation === 'COLUMN' ? 'Column' : 'Spread';
     element.textContent = `Formation: ${label}`;
     element.dataset.formation = this.formation;
+  }
+
+  private renderFacingQaMode(): void {
+    const element = document.getElementById('facing-qa-mode');
+    if (!element) return;
+    const direction = this.facingQaIndex === null ? null : FACING_QA_DIRECTIONS[this.facingQaIndex];
+    if (!direction) {
+      element.textContent = 'Facing QA: Off · [ / ] cycle · \\ clear';
+      element.dataset.active = 'false';
+      delete element.dataset.direction;
+      return;
+    }
+    element.textContent = `Facing QA: ${direction.glyph} ${direction.label} (${this.facingQaIndex! + 1}/8) · [ / ] cycle · \\ clear`;
+    element.dataset.active = 'true';
+    element.dataset.direction = direction.label;
+  }
+
+  private applyFacingQaOverride(): void {
+    const selected = new Set(this.selection.ids);
+    for (const [entityId, originalYaw] of [...this.facingQaOriginalYaw]) {
+      if (this.facingQaIndex !== null && selected.has(entityId)) continue;
+      this.unitRoot(entityId)?.setEulerAngles(0, originalYaw, 0);
+      this.facingQaOriginalYaw.delete(entityId);
+    }
+    if (this.facingQaIndex === null) return;
+    const direction = FACING_QA_DIRECTIONS[this.facingQaIndex];
+    for (const entityId of selected) {
+      const root = this.unitRoot(entityId);
+      if (!root) continue;
+      if (!this.facingQaOriginalYaw.has(entityId)) this.facingQaOriginalYaw.set(entityId, root.getEulerAngles().y);
+      root.setEulerAngles(0, direction.yawDegrees, 0);
+    }
+  }
+
+  private disableFacingQa(): void {
+    if (this.facingQaIndex === null && this.facingQaOriginalYaw.size === 0) return;
+    this.facingQaIndex = null;
+    this.applyFacingQaOverride();
+    this.renderFacingQaMode();
+  }
+
+  private unitRoot(entityId: number): pc.GraphNode | null {
+    return this.camera.system.app.root.findByName(`Unit ${entityId}`);
   }
 
   private selectSameTypeOnScreen(entityId: number, add: boolean): void {
@@ -282,6 +361,7 @@ export class UnitControls {
   private castTacticalAtHover(spellId: Exclude<TacticalSpellId, 'CHAIN_LIGHTNING'>): void {
     const target = this.hoverWorldPoint();
     if (!target) return;
+    this.disableFacingQa();
     this.simulation.enqueueCommand({
       targetTick: this.simulation.snapshot().tick + 1,
       playerId: 0,
@@ -294,6 +374,7 @@ export class UnitControls {
 
   private renderSelected(): void {
     this.bridge.setSelected(new Set(this.selection.ids));
+    this.applyFacingQaOverride();
   }
 
   private readonly onContextMenu = (event: MouseEvent): void => { event.preventDefault(); };
@@ -303,6 +384,7 @@ export class UnitControls {
     const screen = this.toCanvasCoordinates(clientX, clientY);
     const picked = this.bridge.pickSingle(this.camera, screen.x, screen.y, UNIT_PICK_RADIUS);
     if (picked !== null && this.bridge.isEnemy(picked)) {
+      this.disableFacingQa();
       this.simulation.enqueueCommand({
         targetTick: this.simulation.snapshot().tick + 1,
         playerId: 0,
