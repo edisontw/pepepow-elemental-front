@@ -2,6 +2,8 @@ const DIRECTION_COUNT = 8;
 const DIRECTION_STEP_DEGREES = 360 / DIRECTION_COUNT;
 const HALF_DIRECTION_STEP_DEGREES = DIRECTION_STEP_DEGREES / 2;
 
+export const RTS_CAMERA_YAW_DEGREES = 45;
+
 function normalizeDegrees(value: number): number {
   return ((value % 360) + 360) % 360;
 }
@@ -17,7 +19,10 @@ function angularDistanceDegrees(first: number, second: number): number {
  * Positive frame progression moves around the unit's left side, so convert the
  * observer azimuth into unit-local view space as heading - cameraYaw.
  */
-export function impostorFrameForHeading(headingDegrees: number, cameraYawDegrees = 45): number {
+export function impostorFrameForHeading(
+  headingDegrees: number,
+  cameraYawDegrees = RTS_CAMERA_YAW_DEGREES,
+): number {
   const relative = normalizeDegrees(headingDegrees - cameraYawDegrees);
   return Math.round(relative / DIRECTION_STEP_DEGREES) % DIRECTION_COUNT;
 }
@@ -30,7 +35,7 @@ export function impostorFrameForHeading(headingDegrees: number, cameraYawDegrees
 export function stableImpostorFrameForHeading(
   headingDegrees: number,
   currentFrame: number,
-  cameraYawDegrees = 45,
+  cameraYawDegrees = RTS_CAMERA_YAW_DEGREES,
   hysteresisDegrees = 6,
 ): number {
   const candidate = impostorFrameForHeading(headingDegrees, cameraYawDegrees);

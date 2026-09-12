@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   SCREEN_FACING_TURNAROUND_FRAME_REMAP,
+  IMPOSTOR_ASSET_REVISION,
   IMPOSTOR_DIRECTION_FILENAMES,
   impostorFrameFiles,
 } from '../../src/rendering/impostor-frame-assets';
@@ -23,10 +24,13 @@ const ALL_SLUGS = [
 ] as const;
 
 describe('batch unit impostor static paths', () => {
-  it('uses canonical eight-direction filenames for every uploaded unit set', () => {
+  it('uses canonical eight-direction filenames with one asset revision for every uploaded unit set', () => {
+    expect(IMPOSTOR_ASSET_REVISION.length).toBeGreaterThan(0);
     for (const slug of ALL_SLUGS) {
       expect(impostorFrameFiles(slug)).toEqual(
-        IMPOSTOR_DIRECTION_FILENAMES.map((filename) => `assets/impostors/${slug}/${filename}`),
+        IMPOSTOR_DIRECTION_FILENAMES.map(
+          (filename) => `assets/impostors/${slug}/${filename}?v=${encodeURIComponent(IMPOSTOR_ASSET_REVISION)}`,
+        ),
       );
     }
   });

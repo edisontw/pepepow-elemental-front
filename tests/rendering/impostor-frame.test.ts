@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   impostorAtlasOffset,
   impostorFrameForHeading,
+  RTS_CAMERA_YAW_DEGREES,
   stableImpostorFrameForHeading,
 } from '../../src/rendering/impostor-frame';
 import {
@@ -15,6 +16,10 @@ function headingForWorldDelta(deltaX: number, deltaZ: number): number {
 }
 
 describe('impostor frame mapping', () => {
+  it('shares the fixed RTS camera yaw used by camera and impostor presentation', () => {
+    expect(RTS_CAMERA_YAW_DEGREES).toBe(45);
+  });
+
   it('maps the fixed 45 degree RTS camera into unit-local observer-side directions', () => {
     expect(impostorFrameForHeading(45)).toBe(0);   // front
     expect(impostorFrameForHeading(90)).toBe(1);  // front-left observer view

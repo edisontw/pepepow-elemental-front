@@ -5,18 +5,21 @@ import {
   VANGUARD_IMPOSTOR_HEADING_OFFSET_DEGREES,
   vanguardImpostorFrameUrl,
 } from '../../src/rendering/vanguard-impostor-frames';
+import { IMPOSTOR_ASSET_REVISION } from '../../src/rendering/impostor-frame-assets';
+
+const revision = `?v=${encodeURIComponent(IMPOSTOR_ASSET_REVISION)}`;
 
 describe('Vanguard impostor frame assets', () => {
   it('keeps the canonical eight-direction runtime order', () => {
     expect(VANGUARD_IMPOSTOR_FRAME_FILES).toEqual([
-      'assets/impostors/vanguard/00-front.webp',
-      'assets/impostors/vanguard/01-front-left.webp',
-      'assets/impostors/vanguard/02-left.webp',
-      'assets/impostors/vanguard/03-rear-left.webp',
-      'assets/impostors/vanguard/04-rear.webp',
-      'assets/impostors/vanguard/05-rear-right.webp',
-      'assets/impostors/vanguard/06-right.webp',
-      'assets/impostors/vanguard/07-front-right.webp',
+      `assets/impostors/vanguard/00-front.webp${revision}`,
+      `assets/impostors/vanguard/01-front-left.webp${revision}`,
+      `assets/impostors/vanguard/02-left.webp${revision}`,
+      `assets/impostors/vanguard/03-rear-left.webp${revision}`,
+      `assets/impostors/vanguard/04-rear.webp${revision}`,
+      `assets/impostors/vanguard/05-rear-right.webp${revision}`,
+      `assets/impostors/vanguard/06-right.webp${revision}`,
+      `assets/impostors/vanguard/07-front-right.webp${revision}`,
     ]);
   });
 
@@ -25,14 +28,14 @@ describe('Vanguard impostor frame assets', () => {
     expect(VANGUARD_IMPOSTOR_HEADING_OFFSET_DEGREES).toBe(0);
   });
 
-  it('builds base-aware URLs and wraps frame indices', () => {
+  it('builds base-aware cache-busted URLs and wraps frame indices', () => {
     expect(vanguardImpostorFrameUrl(0, '/pepepow-elemental-front/'))
-      .toBe('/pepepow-elemental-front/assets/impostors/vanguard/00-front.webp');
+      .toBe(`/pepepow-elemental-front/assets/impostors/vanguard/00-front.webp${revision}`);
     expect(vanguardImpostorFrameUrl(7, '/pepepow-elemental-front/'))
-      .toBe('/pepepow-elemental-front/assets/impostors/vanguard/07-front-right.webp');
+      .toBe(`/pepepow-elemental-front/assets/impostors/vanguard/07-front-right.webp${revision}`);
     expect(vanguardImpostorFrameUrl(8, '/pepepow-elemental-front/'))
-      .toBe('/pepepow-elemental-front/assets/impostors/vanguard/00-front.webp');
+      .toBe(`/pepepow-elemental-front/assets/impostors/vanguard/00-front.webp${revision}`);
     expect(vanguardImpostorFrameUrl(-1, '/pepepow-elemental-front/'))
-      .toBe('/pepepow-elemental-front/assets/impostors/vanguard/07-front-right.webp');
+      .toBe(`/pepepow-elemental-front/assets/impostors/vanguard/07-front-right.webp${revision}`);
   });
 });

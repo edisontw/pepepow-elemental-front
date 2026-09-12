@@ -12,13 +12,22 @@ export const IMPOSTOR_DIRECTION_FILENAMES = [
 export const IDENTITY_IMPOSTOR_FRAME_REMAP = [0, 1, 2, 3, 4, 5, 6, 7] as const;
 
 /**
+ * Bump whenever canonical public impostor binaries are replaced in-place.
+ * The public filenames stay stable, so this query revision prevents stale
+ * browser/CDN frames from surviving a visual asset replacement.
+ */
+export const IMPOSTOR_ASSET_REVISION = '368dc7b4';
+
+/**
  * Canonical runtime files are stored directly in observer-side frame order.
  * Keep this shared symbol as an identity alias for existing presentation code.
  */
 export const SCREEN_FACING_TURNAROUND_FRAME_REMAP = IDENTITY_IMPOSTOR_FRAME_REMAP;
 
 export function impostorFrameFiles(slug: string): readonly string[] {
-  return IMPOSTOR_DIRECTION_FILENAMES.map((filename) => `assets/impostors/${slug}/${filename}`);
+  return IMPOSTOR_DIRECTION_FILENAMES.map(
+    (filename) => `assets/impostors/${slug}/${filename}?v=${encodeURIComponent(IMPOSTOR_ASSET_REVISION)}`,
+  );
 }
 
 export function remapImpostorFrame(frame: number, frameRemap: readonly number[]): number {

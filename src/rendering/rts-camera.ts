@@ -1,4 +1,5 @@
 import * as pc from 'playcanvas';
+import { RTS_CAMERA_YAW_DEGREES } from './impostor-frame';
 
 const DEFAULT_MIN_DISTANCE = 12;
 const DEFAULT_MAX_DISTANCE = 46;
@@ -22,7 +23,7 @@ export class RtsCamera {
   private readonly minDistance: number;
   private readonly maxDistance: number;
   private distance: number;
-  private yaw = 45;
+  private yaw = RTS_CAMERA_YAW_DEGREES;
   private pitch = -48;
   private dragging = false;
   private pointerX = 0;
