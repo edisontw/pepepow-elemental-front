@@ -13,7 +13,7 @@ function headingForWorldDelta(deltaX: number, deltaZ: number): number {
 }
 
 describe('Ranger impostor frame calibration', () => {
-  it('keeps canonical filenames and an asset-specific mirrored side remap', () => {
+  it('keeps canonical filenames and canonical observer-side remap', () => {
     expect(RANGER_IMPOSTOR_FRAME_FILES).toEqual([
       'assets/impostors/ranger/00-front.webp',
       'assets/impostors/ranger/01-front-left.webp',
@@ -24,20 +24,20 @@ describe('Ranger impostor frame calibration', () => {
       'assets/impostors/ranger/06-right.webp',
       'assets/impostors/ranger/07-front-right.webp',
     ]);
-    expect(RANGER_IMPOSTOR_FRAME_REMAP).toEqual([0, 7, 6, 5, 4, 3, 2, 1]);
+    expect(RANGER_IMPOSTOR_FRAME_REMAP).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
     expect(RANGER_IMPOSTOR_HEADING_OFFSET_DEGREES).toBe(0);
   });
 
-  it('preserves front/rear while reversing Ranger side-pair source frames', () => {
+  it('maps all eight screen movement directions to matching Ranger source frames', () => {
     const cases = [
       { deltaX: 1, deltaZ: 1, sourceFrame: 0 },
-      { deltaX: 1, deltaZ: 0, sourceFrame: 7 },
-      { deltaX: 1, deltaZ: -1, sourceFrame: 6 },
-      { deltaX: 0, deltaZ: -1, sourceFrame: 5 },
+      { deltaX: 1, deltaZ: 0, sourceFrame: 1 },
+      { deltaX: 1, deltaZ: -1, sourceFrame: 2 },
+      { deltaX: 0, deltaZ: -1, sourceFrame: 3 },
       { deltaX: -1, deltaZ: -1, sourceFrame: 4 },
-      { deltaX: -1, deltaZ: 0, sourceFrame: 3 },
-      { deltaX: -1, deltaZ: 1, sourceFrame: 2 },
-      { deltaX: 0, deltaZ: 1, sourceFrame: 1 },
+      { deltaX: -1, deltaZ: 0, sourceFrame: 5 },
+      { deltaX: -1, deltaZ: 1, sourceFrame: 6 },
+      { deltaX: 0, deltaZ: 1, sourceFrame: 7 },
     ] as const;
 
     for (const { deltaX, deltaZ, sourceFrame } of cases) {
