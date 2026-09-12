@@ -263,11 +263,12 @@ export class VisualAssetLibrary {
     const impostor = handle?.impostor;
     if (!impostor || impostor.materials.length !== 8) return;
 
-    // Billboard compensation follows the actual unit root transform. The
-    // directional frame can use an independent presentation-only heading.
+    // Keep billboard camera-facing in world space. Reading parent Euler yaw and
+    // counter-rotating the child is unsafe because equivalent quaternion
+    // rotations can decompose to different Euler triples beyond +/-90 degrees.
+    // Directional heading is presentation-only and selects the canonical frame.
     impostor.facingYawDegrees = headingDegrees;
-    const rootYawDegrees = impostor.root.getEulerAngles().y;
-    impostor.billboard.setLocalEulerAngles(0, 45 - rootYawDegrees, 0);
+    impostor.billboard.setEulerAngles(0, 45, 0);
     const viewFrame = stableImpostorFrameForHeading(
       headingDegrees + impostor.headingOffsetDegrees,
       impostor.viewFrame,
