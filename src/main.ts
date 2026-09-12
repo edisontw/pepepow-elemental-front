@@ -29,6 +29,7 @@ import {
   type M06ReplayPacket,
 } from './simulation/m06-simulation';
 import type { RunMode, RunPace } from './simulation/m06-content';
+import { addMissingVisualQaUnits } from './simulation/visual-qa-roster';
 import { DebugOverlay } from './ui/debug-overlay';
 import { ManaSystemHud } from './ui/mana-system-hud';
 import { PoiCaptureHint } from './ui/poi-capture-hint';
@@ -150,6 +151,7 @@ async function boot(): Promise<void> {
       mode: replay?.header.mode ?? sharedChallenge?.mode ?? requestedMode(),
       pace: replay?.header.pace ?? sharedChallenge?.pace ?? requestedPace(),
     });
+    if (!replay && !sharedChallenge && !officialChallenge) addMissingVisualQaUnits(simulation);
     if (replay) simulation.loadReplay(replay);
 
     const initialMinimapSnapshot = simulation.snapshot();
