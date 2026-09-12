@@ -6,8 +6,8 @@ import {
 
 export const RANGER_IMPOSTOR_FRAME_FILES = impostorFrameFiles('ranger');
 
-// Runtime source-file order is calibrated centrally by impostorFrameFiles.
-// Keep the renderer remap identity so heading sectors and hysteresis stay shared.
+// Ranger files use canonical observer-side order. Keep runtime order and the
+// renderer remap identity so all units share the same eight-direction contract.
 export const RANGER_IMPOSTOR_FRAME_REMAP = IDENTITY_IMPOSTOR_FRAME_REMAP;
 export const RANGER_IMPOSTOR_HEADING_OFFSET_DEGREES = 0;
 

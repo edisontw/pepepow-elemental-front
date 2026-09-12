@@ -19,35 +19,20 @@ export const IDENTITY_IMPOSTOR_FRAME_REMAP = [0, 1, 2, 3, 4, 5, 6, 7] as const;
 export const IMPOSTOR_ASSET_REVISION = '368dc7b4';
 
 /**
- * The renderer still consumes eight runtime slots in canonical view order.
- * Manual WebGL calibration below only changes which uploaded source filename
- * fills a slot when an AI-generated pair uses the opposite diagonal side.
+ * Canonical runtime files are stored directly in observer-side frame order.
+ * Keep runtime source order and renderer remap identity; direction mistakes
+ * must be fixed in the source asset, not hidden by per-unit file-order swaps.
  */
 export const SCREEN_FACING_TURNAROUND_FRAME_REMAP = IDENTITY_IMPOSTOR_FRAME_REMAP;
 
-export const FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER = [0, 7, 2, 3, 4, 5, 6, 1] as const;
-export const REAR_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER = [0, 1, 2, 5, 4, 3, 6, 7] as const;
-export const BOTH_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER = [0, 7, 2, 5, 4, 3, 6, 1] as const;
-
-const CALIBRATED_IMPOSTOR_FILE_ORDER_BY_SLUG: Readonly<Record<string, readonly number[]>> = {
-  ranger: FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER,
-  'spear-guard': FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER,
-  'elementalist-ice': FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER,
-  golem: FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER,
-  'elementalist-lightning': BOTH_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER,
-  'elementalist-water': BOTH_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER,
-  'siege-construct': REAR_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER,
-};
-
-export function impostorRuntimeFileOrderForSlug(slug: string): readonly number[] {
-  return CALIBRATED_IMPOSTOR_FILE_ORDER_BY_SLUG[slug] ?? IDENTITY_IMPOSTOR_FRAME_REMAP;
+export function impostorRuntimeFileOrderForSlug(_slug: string): readonly number[] {
+  return IDENTITY_IMPOSTOR_FRAME_REMAP;
 }
 
 export function impostorFrameFiles(slug: string): readonly string[] {
-  return impostorRuntimeFileOrderForSlug(slug).map((sourceFrame) => {
-    const filename = IMPOSTOR_DIRECTION_FILENAMES[sourceFrame] ?? IMPOSTOR_DIRECTION_FILENAMES[0];
-    return `assets/impostors/${slug}/${filename}?v=${encodeURIComponent(IMPOSTOR_ASSET_REVISION)}`;
-  });
+  return IMPOSTOR_DIRECTION_FILENAMES.map(
+    (filename) => `assets/impostors/${slug}/${filename}?v=${encodeURIComponent(IMPOSTOR_ASSET_REVISION)}`,
+  );
 }
 
 export function remapImpostorFrame(frame: number, frameRemap: readonly number[]): number {

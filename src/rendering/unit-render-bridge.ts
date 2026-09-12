@@ -6,6 +6,7 @@ import { WORLD_UNITS_PER_METER } from '../simulation/arena';
 import type { EntityID } from '../simulation/components';
 import type { EntitySnapshot, SimulationSnapshot } from '../simulation/simulation';
 import { unitVisualProfile, type UnitProjectileStyle } from './unit-visual-profile';
+import { resolvePresentationFacing } from './unit-facing';
 
 interface UnitPresentation {
   root: pc.Entity;
@@ -172,9 +173,13 @@ export class UnitRenderBridge {
         const combatFacingYaw = current.tick <= presentation.facingOverrideUntilTick
           ? presentation.facingOverrideYaw
           : null;
-        if (movementFacingYaw !== null) presentation.baseFacingYaw = movementFacingYaw;
-        if (combatFacingYaw !== null) presentation.baseFacingYaw = combatFacingYaw;
-        const naturalFacingYaw = combatFacingYaw ?? movementFacingYaw ?? presentation.baseFacingYaw;
+        const facing = resolvePresentationFacing(
+          movementFacingYaw,
+          combatFacingYaw,
+          presentation.baseFacingYaw,
+        );
+        presentation.baseFacingYaw = facing.baseYawDegrees;
+        const naturalFacingYaw = facing.yawDegrees;
         const qaFacingYaw = this.qaFacingYawByEntity.get(unit.id);
         const effectiveFacingYaw = qaFacingYaw ?? naturalFacingYaw;
 

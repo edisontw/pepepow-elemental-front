@@ -15,22 +15,22 @@ function headingForWorldDelta(deltaX: number, deltaZ: number): number {
 const revision = `?v=${encodeURIComponent(IMPOSTOR_ASSET_REVISION)}`;
 
 describe('Ranger impostor frame calibration', () => {
-  it('keeps canonical runtime slots while swapping the mirrored front source files', () => {
+  it('keeps canonical filenames and canonical observer-side remap', () => {
     expect(RANGER_IMPOSTOR_FRAME_FILES).toEqual([
       `assets/impostors/ranger/00-front.webp${revision}`,
-      `assets/impostors/ranger/07-front-right.webp${revision}`,
+      `assets/impostors/ranger/01-front-left.webp${revision}`,
       `assets/impostors/ranger/02-left.webp${revision}`,
       `assets/impostors/ranger/03-rear-left.webp${revision}`,
       `assets/impostors/ranger/04-rear.webp${revision}`,
       `assets/impostors/ranger/05-rear-right.webp${revision}`,
       `assets/impostors/ranger/06-right.webp${revision}`,
-      `assets/impostors/ranger/01-front-left.webp${revision}`,
+      `assets/impostors/ranger/07-front-right.webp${revision}`,
     ]);
     expect(RANGER_IMPOSTOR_FRAME_REMAP).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
     expect(RANGER_IMPOSTOR_HEADING_OFFSET_DEGREES).toBe(0);
   });
 
-  it('keeps all eight screen movement directions in canonical runtime slots', () => {
+  it('maps all eight screen movement directions to matching runtime frames', () => {
     const cases = [
       { deltaX: 1, deltaZ: 1, runtimeFrame: 0 },
       { deltaX: 1, deltaZ: 0, runtimeFrame: 1 },
@@ -48,10 +48,10 @@ describe('Ranger impostor frame calibration', () => {
     }
   });
 
-  it('builds base-aware cache-busted URLs from the calibrated runtime order', () => {
+  it('builds base-aware cache-busted URLs and wraps frame indices', () => {
     expect(rangerImpostorFrameUrl(0, '/pepepow-elemental-front/'))
       .toBe(`/pepepow-elemental-front/assets/impostors/ranger/00-front.webp${revision}`);
     expect(rangerImpostorFrameUrl(-1, '/pepepow-elemental-front/'))
-      .toBe(`/pepepow-elemental-front/assets/impostors/ranger/01-front-left.webp${revision}`);
+      .toBe(`/pepepow-elemental-front/assets/impostors/ranger/07-front-right.webp${revision}`);
   });
 });
