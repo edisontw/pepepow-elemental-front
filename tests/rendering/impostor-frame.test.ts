@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  IMPOSTOR_UNIT_VIEW_LABELS,
   impostorAtlasOffset,
   impostorFrameForHeading,
   RTS_CAMERA_YAW_DEGREES,
@@ -20,15 +21,28 @@ describe('impostor frame mapping', () => {
     expect(RTS_CAMERA_YAW_DEGREES).toBe(45);
   });
 
-  it('maps the fixed 45 degree RTS camera into unit-local observer-side directions', () => {
-    expect(impostorFrameForHeading(45)).toBe(0);   // front
-    expect(impostorFrameForHeading(90)).toBe(1);  // front-left observer view
-    expect(impostorFrameForHeading(135)).toBe(2); // left observer view
-    expect(impostorFrameForHeading(180)).toBe(3); // rear-left observer view
-    expect(impostorFrameForHeading(225)).toBe(4); // rear
-    expect(impostorFrameForHeading(-90)).toBe(5); // rear-right observer view
-    expect(impostorFrameForHeading(-45)).toBe(6); // right observer view
-    expect(impostorFrameForHeading(0)).toBe(7);   // front-right observer view
+  it('locks left and right to unit-relative canonical observer views', () => {
+    expect(IMPOSTOR_UNIT_VIEW_LABELS).toEqual([
+      'Front',
+      'Front-Left',
+      'Left',
+      'Rear-Left',
+      'Rear',
+      'Rear-Right',
+      'Right',
+      'Front-Right',
+    ]);
+  });
+
+  it('maps the fixed 45 degree RTS camera into unit-relative observer views', () => {
+    expect(impostorFrameForHeading(45)).toBe(0);   // unit front
+    expect(impostorFrameForHeading(90)).toBe(1);  // unit front-left
+    expect(impostorFrameForHeading(135)).toBe(2); // unit left
+    expect(impostorFrameForHeading(180)).toBe(3); // unit rear-left
+    expect(impostorFrameForHeading(225)).toBe(4); // unit rear
+    expect(impostorFrameForHeading(-90)).toBe(5); // unit rear-right
+    expect(impostorFrameForHeading(-45)).toBe(6); // unit right
+    expect(impostorFrameForHeading(0)).toBe(7);   // unit front-right
     expect(impostorFrameForHeading(405)).toBe(0);
   });
 
@@ -39,25 +53,26 @@ describe('impostor frame mapping', () => {
     }
   });
 
-  it('maps all eight world movement vectors to the matching canonical source frame', () => {
+  it('maps all eight world movement vectors to the matching unit-relative source view', () => {
     const cases = [
-      { label: 'down', deltaX: 1, deltaZ: 1, sourceFrame: 0 },
-      { label: 'down-right', deltaX: 1, deltaZ: 0, sourceFrame: 1 },
-      { label: 'right', deltaX: 1, deltaZ: -1, sourceFrame: 2 },
-      { label: 'up-right', deltaX: 0, deltaZ: -1, sourceFrame: 3 },
-      { label: 'up', deltaX: -1, deltaZ: -1, sourceFrame: 4 },
-      { label: 'up-left', deltaX: -1, deltaZ: 0, sourceFrame: 5 },
-      { label: 'left', deltaX: -1, deltaZ: 1, sourceFrame: 6 },
-      { label: 'down-left', deltaX: 0, deltaZ: 1, sourceFrame: 7 },
+      { view: 'Front', deltaX: 1, deltaZ: 1, sourceFrame: 0 },
+      { view: 'Front-Left', deltaX: 1, deltaZ: 0, sourceFrame: 1 },
+      { view: 'Left', deltaX: 1, deltaZ: -1, sourceFrame: 2 },
+      { view: 'Rear-Left', deltaX: 0, deltaZ: -1, sourceFrame: 3 },
+      { view: 'Rear', deltaX: -1, deltaZ: -1, sourceFrame: 4 },
+      { view: 'Rear-Right', deltaX: -1, deltaZ: 0, sourceFrame: 5 },
+      { view: 'Right', deltaX: -1, deltaZ: 1, sourceFrame: 6 },
+      { view: 'Front-Right', deltaX: 0, deltaZ: 1, sourceFrame: 7 },
     ] as const;
 
-    for (const { label, deltaX, deltaZ, sourceFrame } of cases) {
+    for (const { view, deltaX, deltaZ, sourceFrame } of cases) {
       const heading = headingForWorldDelta(deltaX, deltaZ);
       const viewFrame = impostorFrameForHeading(heading);
       expect(
         remapImpostorFrame(viewFrame, SCREEN_FACING_TURNAROUND_FRAME_REMAP),
-        label,
+        view,
       ).toBe(sourceFrame);
+      expect(IMPOSTOR_UNIT_VIEW_LABELS[sourceFrame]).toBe(view);
     }
   });
 
