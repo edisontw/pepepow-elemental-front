@@ -6,6 +6,8 @@ import {
   IMPOSTOR_DIRECTION_FILENAMES,
   impostorFrameFiles,
 } from '../../src/rendering/impostor-frame-assets';
+import { RANGER_IMPOSTOR_FRAME_REMAP } from '../../src/rendering/ranger-impostor-frames';
+import { VANGUARD_IMPOSTOR_FRAME_REMAP } from '../../src/rendering/vanguard-impostor-frames';
 
 const STANDARD_SLUGS = [
   'vanguard',
@@ -50,8 +52,11 @@ describe('batch unit impostor static paths', () => {
     expect(ENGINEER_TEMPORARY_DIRECTION_FILENAMES[7]).toBe('06-right.webp');
   });
 
-  it('keeps canonical frame order for the shared fixed-camera mapping', () => {
-    expect(SCREEN_FACING_TURNAROUND_FRAME_REMAP).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
+  it('keeps canonical frame order for shared, Vanguard, and Ranger mapping', () => {
+    const identity = [0, 1, 2, 3, 4, 5, 6, 7];
+    expect(SCREEN_FACING_TURNAROUND_FRAME_REMAP).toEqual(identity);
+    expect(VANGUARD_IMPOSTOR_FRAME_REMAP).toEqual(identity);
+    expect(RANGER_IMPOSTOR_FRAME_REMAP).toEqual(identity);
   });
 
   it('pre-reverses Golem and Siege source loading to cancel their legacy per-asset remap', () => {
