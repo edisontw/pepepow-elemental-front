@@ -17,13 +17,13 @@ function headingForWorldDelta(deltaX: number, deltaZ: number): number {
 describe('impostor frame mapping', () => {
   it('maps the fixed 45 degree RTS camera into unit-local observer-side directions', () => {
     expect(impostorFrameForHeading(45)).toBe(0);   // front
-    expect(impostorFrameForHeading(90)).toBe(1);  // front-left observer view
-    expect(impostorFrameForHeading(135)).toBe(2); // left observer view
-    expect(impostorFrameForHeading(180)).toBe(3); // rear-left observer view
+    expect(impostorFrameForHeading(90)).toBe(7);  // front-right observer view
+    expect(impostorFrameForHeading(135)).toBe(6); // right observer view
+    expect(impostorFrameForHeading(180)).toBe(5); // rear-right observer view
     expect(impostorFrameForHeading(225)).toBe(4); // rear
-    expect(impostorFrameForHeading(-90)).toBe(5); // rear-right observer view
-    expect(impostorFrameForHeading(-45)).toBe(6); // right observer view
-    expect(impostorFrameForHeading(0)).toBe(7);   // front-right observer view
+    expect(impostorFrameForHeading(-90)).toBe(3); // rear-left observer view
+    expect(impostorFrameForHeading(-45)).toBe(2); // left observer view
+    expect(impostorFrameForHeading(0)).toBe(1);   // front-left observer view
     expect(impostorFrameForHeading(405)).toBe(0);
   });
 
@@ -34,16 +34,16 @@ describe('impostor frame mapping', () => {
     }
   });
 
-  it('maps all eight world movement vectors to the matching canonical source frame', () => {
+  it('maps all eight screen movement vectors to the visually matching canonical source frame', () => {
     const cases = [
       { label: 'down', deltaX: 1, deltaZ: 1, sourceFrame: 0 },
-      { label: 'down-right', deltaX: 1, deltaZ: 0, sourceFrame: 1 },
-      { label: 'right', deltaX: 1, deltaZ: -1, sourceFrame: 2 },
-      { label: 'up-right', deltaX: 0, deltaZ: -1, sourceFrame: 3 },
+      { label: 'down-right', deltaX: 1, deltaZ: 0, sourceFrame: 7 },
+      { label: 'right', deltaX: 1, deltaZ: -1, sourceFrame: 6 },
+      { label: 'up-right', deltaX: 0, deltaZ: -1, sourceFrame: 5 },
       { label: 'up', deltaX: -1, deltaZ: -1, sourceFrame: 4 },
-      { label: 'up-left', deltaX: -1, deltaZ: 0, sourceFrame: 5 },
-      { label: 'left', deltaX: -1, deltaZ: 1, sourceFrame: 6 },
-      { label: 'down-left', deltaX: 0, deltaZ: 1, sourceFrame: 7 },
+      { label: 'up-left', deltaX: -1, deltaZ: 0, sourceFrame: 3 },
+      { label: 'left', deltaX: -1, deltaZ: 1, sourceFrame: 2 },
+      { label: 'down-left', deltaX: 0, deltaZ: 1, sourceFrame: 1 },
     ] as const;
 
     for (const { label, deltaX, deltaZ, sourceFrame } of cases) {
@@ -57,14 +57,14 @@ describe('impostor frame mapping', () => {
   });
 
   it('keeps the current frame briefly past a sector boundary to avoid chatter', () => {
-    expect(impostorFrameForHeading(70)).toBe(1);
+    expect(impostorFrameForHeading(70)).toBe(7);
     expect(stableImpostorFrameForHeading(70, 0)).toBe(0);
-    expect(stableImpostorFrameForHeading(75, 0)).toBe(1);
+    expect(stableImpostorFrameForHeading(75, 0)).toBe(7);
 
-    expect(impostorFrameForHeading(20)).toBe(7);
+    expect(impostorFrameForHeading(20)).toBe(1);
     expect(stableImpostorFrameForHeading(20, 0)).toBe(0);
-    expect(stableImpostorFrameForHeading(10, 0)).toBe(7);
-    expect(stableImpostorFrameForHeading(90, -1)).toBe(1);
+    expect(stableImpostorFrameForHeading(10, 0)).toBe(1);
+    expect(stableImpostorFrameForHeading(90, -1)).toBe(7);
   });
 
   it('maps frames into the legacy 4x2 atlas without leaving the texture', () => {

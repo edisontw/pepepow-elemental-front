@@ -31,13 +31,13 @@ describe('Ranger impostor frame calibration', () => {
   it('maps all eight screen movement directions to matching Ranger source frames', () => {
     const cases = [
       { deltaX: 1, deltaZ: 1, sourceFrame: 0 },
-      { deltaX: 1, deltaZ: 0, sourceFrame: 1 },
-      { deltaX: 1, deltaZ: -1, sourceFrame: 2 },
-      { deltaX: 0, deltaZ: -1, sourceFrame: 3 },
+      { deltaX: 1, deltaZ: 0, sourceFrame: 7 },
+      { deltaX: 1, deltaZ: -1, sourceFrame: 6 },
+      { deltaX: 0, deltaZ: -1, sourceFrame: 5 },
       { deltaX: -1, deltaZ: -1, sourceFrame: 4 },
-      { deltaX: -1, deltaZ: 0, sourceFrame: 5 },
-      { deltaX: -1, deltaZ: 1, sourceFrame: 6 },
-      { deltaX: 0, deltaZ: 1, sourceFrame: 7 },
+      { deltaX: -1, deltaZ: 0, sourceFrame: 3 },
+      { deltaX: -1, deltaZ: 1, sourceFrame: 2 },
+      { deltaX: 0, deltaZ: 1, sourceFrame: 1 },
     ] as const;
 
     for (const { deltaX, deltaZ, sourceFrame } of cases) {

@@ -14,11 +14,12 @@ function angularDistanceDegrees(first: number, second: number): number {
 /**
  * Direction order: front, front-left, left, rear-left, rear, rear-right, right, front-right.
  * cameraYaw is the world azimuth from which the fixed RTS camera observes the unit.
- * Positive frame progression moves around the unit's left side, so convert the
- * observer azimuth into unit-local view space as heading - cameraYaw.
+ * Convert the fixed camera azimuth into unit-local observer space as cameraYaw - heading.
+ * The sign is important: a screen-right turn must select the unit's right-side source
+ * frames, while a screen-left turn must select its left-side source frames.
  */
 export function impostorFrameForHeading(headingDegrees: number, cameraYawDegrees = 45): number {
-  const relative = normalizeDegrees(headingDegrees - cameraYawDegrees);
+  const relative = normalizeDegrees(cameraYawDegrees - headingDegrees);
   return Math.round(relative / DIRECTION_STEP_DEGREES) % DIRECTION_COUNT;
 }
 
@@ -36,7 +37,7 @@ export function stableImpostorFrameForHeading(
   const candidate = impostorFrameForHeading(headingDegrees, cameraYawDegrees);
   if (!Number.isInteger(currentFrame) || currentFrame < 0 || currentFrame >= DIRECTION_COUNT) return candidate;
 
-  const relative = normalizeDegrees(headingDegrees - cameraYawDegrees);
+  const relative = normalizeDegrees(cameraYawDegrees - headingDegrees);
   const currentCenter = currentFrame * DIRECTION_STEP_DEGREES;
   const keepThreshold = HALF_DIRECTION_STEP_DEGREES + Math.max(0, hysteresisDegrees);
   return angularDistanceDegrees(relative, currentCenter) <= keepThreshold ? currentFrame : candidate;
