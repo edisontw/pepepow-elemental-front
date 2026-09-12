@@ -30,8 +30,6 @@ interface ImpostorConfig {
   shadowZ: number;
 }
 
-const REVERSED_SIDE_FRAME_REMAP = [0, 7, 6, 5, 4, 3, 2, 1] as const;
-
 const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
   ['unit.vanguard', {
     id: 'unit.vanguard',
@@ -136,7 +134,7 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
     id: 'unit.golem',
     label: 'Golem',
     frameFiles: impostorFrameFiles('golem'),
-    frameRemap: REVERSED_SIDE_FRAME_REMAP,
+    frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
     headingOffsetDegrees: 0,
     width: 2.05,
     height: 2.46,
@@ -147,7 +145,7 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
     id: 'unit.siege-construct',
     label: 'Siege Construct',
     frameFiles: impostorFrameFiles('siege-construct'),
-    frameRemap: REVERSED_SIDE_FRAME_REMAP,
+    frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
     headingOffsetDegrees: 0,
     // Keep the 192x256 source frame near its native aspect. The prior
     // 2.55x1.82 plane stretched this wide vehicle almost 2x horizontally,

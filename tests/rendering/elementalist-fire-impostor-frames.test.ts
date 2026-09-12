@@ -20,8 +20,8 @@ describe('Fire Elementalist impostor frame assets', () => {
     ]);
   });
 
-  it('uses cardinal-safe fallbacks for all current diagonal views', () => {
-    expect(ELEMENTALIST_FIRE_IMPOSTOR_FRAME_REMAP).toEqual([0, 6, 6, 6, 4, 2, 2, 2]);
+  it('uses canonical identity mapping for all eight directions', () => {
+    expect(ELEMENTALIST_FIRE_IMPOSTOR_FRAME_REMAP).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
     expect(ELEMENTALIST_FIRE_IMPOSTOR_HEADING_OFFSET_DEGREES).toBe(0);
   });
 
