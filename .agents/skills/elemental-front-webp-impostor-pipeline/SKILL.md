@@ -183,7 +183,11 @@ Only after the complete binary gate passes:
 5. retain camera-relative heading selection, billboard camera-facing behavior, and angular hysteresis;
 6. keep presentation code renderer-side only;
 7. do not rotate the billboard plane itself merely to express unit facing;
-8. do not preserve a per-asset remap simply because the old asset needed it.
+8. do not preserve a per-asset remap simply because the old asset needed it;
+9. once the canonical batch is verified, all eleven runtime variants must load frames directly through `impostorFrameFiles(slug)` and use the same frame-selection path; do not reintroduce per-unit runtime remaps, heading offsets, or specialized direction modules;
+10. keep billboard orientation independent from unit-root facing: set billboard world yaw from the shared `RTS_CAMERA_YAW_DEGREES` convention rather than reading the parent Euler Y angle and counter-rotating a child;
+11. never use Euler decomposition of the rotating unit root as billboard compensation, because equivalent quaternion rotations can decompose into different Euler triples and break the rear half of the eight-direction cycle;
+12. if a human WebGL check still reports a direction mismatch after canonical assets pass QA, instrument the selected unit's movement delta, world heading, chosen frame index, and filename before changing assets or introducing a remap.
 
 A new per-asset remap is acceptable only if a mathematically necessary runtime convention is proven after canonical assets pass visual QA. It must not be the first response to bad source art.
 
