@@ -51,6 +51,10 @@ export function addMissingVisualQaUnits(simulation: M06Simulation): void {
     if (!position) continue;
     reserved.add(navigation.cellKey(navigation.worldToCell(position.x, position.z)));
   }
+  for (const building of simulation.strategy.snapshot().buildings) {
+    if (building.destroyed) continue;
+    reserved.add(navigation.cellKey(navigation.worldToCell(building.x, building.z)));
+  }
 
   let spawnSlot = 0;
   for (const archetype of VISUAL_QA_ARCHETYPES) {
