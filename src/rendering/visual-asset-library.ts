@@ -1,29 +1,12 @@
 import * as pc from 'playcanvas';
 import manifest from '../../data/assets/manifest.json';
-import { stableImpostorFrameForHeading } from './impostor-frame';
-import { SCREEN_FACING_TURNAROUND_FRAME_REMAP, impostorFrameFiles, remapImpostorFrame } from './impostor-frame-assets';
-import {
-  VANGUARD_IMPOSTOR_FRAME_FILES,
-  VANGUARD_IMPOSTOR_FRAME_REMAP,
-  VANGUARD_IMPOSTOR_HEADING_OFFSET_DEGREES,
-} from './vanguard-impostor-frames';
-import {
-  ELEMENTALIST_FIRE_IMPOSTOR_FRAME_FILES,
-  ELEMENTALIST_FIRE_IMPOSTOR_FRAME_REMAP,
-  ELEMENTALIST_FIRE_IMPOSTOR_HEADING_OFFSET_DEGREES,
-} from './elementalist-fire-impostor-frames';
-import {
-  RANGER_IMPOSTOR_FRAME_FILES,
-  RANGER_IMPOSTOR_FRAME_REMAP,
-  RANGER_IMPOSTOR_HEADING_OFFSET_DEGREES,
-} from './ranger-impostor-frames';
+import { RTS_CAMERA_YAW_DEGREES, stableImpostorFrameForHeading } from './impostor-frame';
+import { impostorFrameFiles } from './impostor-frame-assets';
 
 interface ImpostorConfig {
   id: string;
   label: string;
   frameFiles: readonly string[];
-  frameRemap: readonly number[];
-  headingOffsetDegrees: number;
   width: number;
   height: number;
   shadowX: number;
@@ -34,9 +17,7 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
   ['unit.vanguard', {
     id: 'unit.vanguard',
     label: 'Vanguard',
-    frameFiles: VANGUARD_IMPOSTOR_FRAME_FILES,
-    frameRemap: VANGUARD_IMPOSTOR_FRAME_REMAP,
-    headingOffsetDegrees: VANGUARD_IMPOSTOR_HEADING_OFFSET_DEGREES,
+    frameFiles: impostorFrameFiles('vanguard'),
     width: 1.27,
     height: 1.9,
     shadowX: 0.92,
@@ -45,9 +26,7 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
   ['unit.elementalist.fire', {
     id: 'unit.elementalist.fire',
     label: 'Fire Elementalist',
-    frameFiles: ELEMENTALIST_FIRE_IMPOSTOR_FRAME_FILES,
-    frameRemap: ELEMENTALIST_FIRE_IMPOSTOR_FRAME_REMAP,
-    headingOffsetDegrees: ELEMENTALIST_FIRE_IMPOSTOR_HEADING_OFFSET_DEGREES,
+    frameFiles: impostorFrameFiles('elementalist-fire'),
     width: 1.72,
     height: 2.3,
     shadowX: 0.86,
@@ -57,8 +36,6 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
     id: 'unit.elementalist.water',
     label: 'Water Elementalist',
     frameFiles: impostorFrameFiles('elementalist-water'),
-    frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
-    headingOffsetDegrees: 0,
     width: 1.72,
     height: 2.3,
     shadowX: 0.86,
@@ -68,8 +45,6 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
     id: 'unit.elementalist.ice',
     label: 'Ice Elementalist',
     frameFiles: impostorFrameFiles('elementalist-ice'),
-    frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
-    headingOffsetDegrees: 0,
     width: 1.72,
     height: 2.3,
     shadowX: 0.86,
@@ -79,8 +54,6 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
     id: 'unit.elementalist.lightning',
     label: 'Lightning Elementalist',
     frameFiles: impostorFrameFiles('elementalist-lightning'),
-    frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
-    headingOffsetDegrees: 0,
     width: 1.72,
     height: 2.3,
     shadowX: 0.86,
@@ -90,8 +63,6 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
     id: 'unit.spear-guard',
     label: 'Spear Guard',
     frameFiles: impostorFrameFiles('spear-guard'),
-    frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
-    headingOffsetDegrees: 0,
     width: 1.65,
     height: 2.2,
     shadowX: 0.86,
@@ -100,9 +71,7 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
   ['unit.ranger', {
     id: 'unit.ranger',
     label: 'Ranger',
-    frameFiles: RANGER_IMPOSTOR_FRAME_FILES,
-    frameRemap: RANGER_IMPOSTOR_FRAME_REMAP,
-    headingOffsetDegrees: RANGER_IMPOSTOR_HEADING_OFFSET_DEGREES,
+    frameFiles: impostorFrameFiles('ranger'),
     width: 1.18,
     height: 1.56,
     shadowX: 0.72,
@@ -112,8 +81,6 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
     id: 'unit.scout',
     label: 'Scout',
     frameFiles: impostorFrameFiles('scout'),
-    frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
-    headingOffsetDegrees: 0,
     width: 0.96,
     height: 1.24,
     shadowX: 0.64,
@@ -123,8 +90,6 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
     id: 'unit.engineer',
     label: 'Engineer',
     frameFiles: impostorFrameFiles('engineer'),
-    frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
-    headingOffsetDegrees: 0,
     width: 1.22,
     height: 1.58,
     shadowX: 0.78,
@@ -134,8 +99,6 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
     id: 'unit.golem',
     label: 'Golem',
     frameFiles: impostorFrameFiles('golem'),
-    frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
-    headingOffsetDegrees: 0,
     width: 2.05,
     height: 2.46,
     shadowX: 1.28,
@@ -145,8 +108,6 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
     id: 'unit.siege-construct',
     label: 'Siege Construct',
     frameFiles: impostorFrameFiles('siege-construct'),
-    frameRemap: SCREEN_FACING_TURNAROUND_FRAME_REMAP,
-    headingOffsetDegrees: 0,
     // Keep the 192x256 source frame near its native aspect. The prior
     // 2.55x1.82 plane stretched this wide vehicle almost 2x horizontally,
     // making the elevated turnaround read like a flattened top view.
@@ -163,8 +124,6 @@ interface ImpostorHandle {
   plane: pc.Entity;
   shadow: pc.Entity;
   materials: readonly pc.StandardMaterial[];
-  frameRemap: readonly number[];
-  headingOffsetDegrees: number;
   facingYawDegrees: number;
   viewFrame: number;
   update: () => void;
@@ -263,19 +222,15 @@ export class VisualAssetLibrary {
     const impostor = handle?.impostor;
     if (!impostor || impostor.materials.length !== 8) return;
 
-    // Keep billboard camera-facing in world space. Reading parent Euler yaw and
-    // counter-rotating the child is unsafe because equivalent quaternion
-    // rotations can decompose to different Euler triples beyond +/-90 degrees.
-    // Directional heading is presentation-only and selects the canonical frame.
+    // Every canonical WebP unit follows exactly the same presentation path:
+    // unit heading selects one of eight observer-side frames, while the plane
+    // itself remains camera-facing in world space. Never derive billboard yaw
+    // from the unit root's Euler decomposition.
     impostor.facingYawDegrees = headingDegrees;
-    impostor.billboard.setEulerAngles(0, 45, 0);
-    const viewFrame = stableImpostorFrameForHeading(
-      headingDegrees + impostor.headingOffsetDegrees,
-      impostor.viewFrame,
-    );
+    impostor.billboard.setEulerAngles(0, RTS_CAMERA_YAW_DEGREES, 0);
+    const viewFrame = stableImpostorFrameForHeading(headingDegrees, impostor.viewFrame);
     if (viewFrame === impostor.viewFrame) return;
-    const sourceFrame = remapImpostorFrame(viewFrame, impostor.frameRemap);
-    const material = impostor.materials[sourceFrame];
+    const material = impostor.materials[viewFrame];
     if (impostor.plane.render && material) impostor.plane.render.material = material;
     impostor.viewFrame = viewFrame;
   }
@@ -370,8 +325,6 @@ export class VisualAssetLibrary {
         plane,
         shadow,
         materials,
-        frameRemap: config.frameRemap,
-        headingOffsetDegrees: config.headingOffsetDegrees,
         facingYawDegrees: initialFacingYaw,
         viewFrame: -1,
         update,
