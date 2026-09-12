@@ -16,7 +16,7 @@ export const IDENTITY_IMPOSTOR_FRAME_REMAP = [0, 1, 2, 3, 4, 5, 6, 7] as const;
  * The public filenames stay stable, so this query revision prevents stale
  * browser/CDN frames from surviving a visual asset replacement.
  */
-export const IMPOSTOR_ASSET_REVISION = '9bdf0a43';
+export const IMPOSTOR_ASSET_REVISION = '20260912-unit-relative-audit';
 
 /**
  * Canonical runtime files are stored directly in observer-side frame order.
