@@ -4,6 +4,23 @@ const HALF_DIRECTION_STEP_DEGREES = DIRECTION_STEP_DEGREES / 2;
 
 export const RTS_CAMERA_YAW_DEGREES = 45;
 
+/**
+ * Canonical observer views around the unit. Left/right are ALWAYS the unit's
+ * own anatomical left/right. They never mean the player's screen-left/right.
+ * Any screen-space direction must be explicitly named screen-left, screen-right,
+ * screen-up, screen-down, etc. to avoid mixing the two coordinate systems.
+ */
+export const IMPOSTOR_UNIT_VIEW_LABELS = [
+  'Front',
+  'Front-Left',
+  'Left',
+  'Rear-Left',
+  'Rear',
+  'Rear-Right',
+  'Right',
+  'Front-Right',
+] as const;
+
 function normalizeDegrees(value: number): number {
   return ((value % 360) + 360) % 360;
 }
@@ -14,10 +31,11 @@ function angularDistanceDegrees(first: number, second: number): number {
 }
 
 /**
- * Direction order: front, front-left, left, rear-left, rear, rear-right, right, front-right.
- * cameraYaw is the world azimuth from which the fixed RTS camera observes the unit.
- * Positive frame progression moves around the unit's left side, so convert the
- * observer azimuth into unit-local view space as heading - cameraYaw.
+ * Canonical order: front, front-left, left, rear-left, rear, rear-right,
+ * right, front-right, where left/right are relative to the unit itself.
+ * cameraYaw is the world azimuth from which the fixed RTS camera observes it.
+ * As unit heading rotates positively relative to the camera, the observer moves
+ * around the unit's anatomical left side in canonical frame order.
  */
 export function impostorFrameForHeading(
   headingDegrees: number,
@@ -28,9 +46,9 @@ export function impostorFrameForHeading(
 }
 
 /**
- * Keeps the current view a little beyond its exact 22.5 degree sector boundary.
- * This prevents rapid left/right frame chatter when rendered movement headings
- * hover around a discrete eight-direction threshold.
+ * Keeps the current unit-relative observer view a little beyond its exact
+ * 22.5 degree sector boundary. This prevents rapid frame chatter when rendered
+ * movement headings hover around a discrete eight-direction threshold.
  */
 export function stableImpostorFrameForHeading(
   headingDegrees: number,
