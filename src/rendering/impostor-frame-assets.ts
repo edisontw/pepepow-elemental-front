@@ -10,29 +10,39 @@ export const IMPOSTOR_DIRECTION_FILENAMES = [
 ] as const;
 
 export const IDENTITY_IMPOSTOR_FRAME_REMAP = [0, 1, 2, 3, 4, 5, 6, 7] as const;
+export const FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER = [0, 7, 2, 3, 4, 5, 6, 1] as const;
 
 /**
  * Bump whenever canonical public impostor binaries are replaced in-place.
  * The public filenames stay stable, so this query revision prevents stale
  * browser/CDN frames from surviving a visual asset replacement.
  */
-export const IMPOSTOR_ASSET_REVISION = '20260912-unit-relative-audit';
+export const IMPOSTOR_ASSET_REVISION = '1836f6e7-vanguard-front-diagonal';
 
 /**
- * Canonical runtime files are stored directly in observer-side frame order.
- * Keep runtime source order and renderer remap identity; direction mistakes
- * must be fixed in the source asset, not hidden by per-unit file-order swaps.
+ * Geometry still resolves one of eight canonical observer-side runtime slots.
+ * File-order calibration is presentation-only and is used only when manual
+ * WebGL QA proves that an uploaded turnaround pair reads on the opposite
+ * screen-facing diagonal. Do not change heading math to compensate for art.
  */
 export const SCREEN_FACING_TURNAROUND_FRAME_REMAP = IDENTITY_IMPOSTOR_FRAME_REMAP;
 
-export function impostorRuntimeFileOrderForSlug(_slug: string): readonly number[] {
-  return IDENTITY_IMPOSTOR_FRAME_REMAP;
+const CALIBRATED_IMPOSTOR_FILE_ORDER_BY_SLUG: Readonly<Record<string, readonly number[]>> = {
+  // Manual WebGL QA: when Vanguard moves screen-down-left it must use the
+  // uploaded 01 front-left image; screen-down-right must use uploaded 07.
+  // Rear diagonals already read correctly, so only runtime slots 1 and 7 swap.
+  vanguard: FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER,
+};
+
+export function impostorRuntimeFileOrderForSlug(slug: string): readonly number[] {
+  return CALIBRATED_IMPOSTOR_FILE_ORDER_BY_SLUG[slug] ?? IDENTITY_IMPOSTOR_FRAME_REMAP;
 }
 
 export function impostorFrameFiles(slug: string): readonly string[] {
-  return IMPOSTOR_DIRECTION_FILENAMES.map(
-    (filename) => `assets/impostors/${slug}/${filename}?v=${encodeURIComponent(IMPOSTOR_ASSET_REVISION)}`,
-  );
+  return impostorRuntimeFileOrderForSlug(slug).map((sourceFrame) => {
+    const filename = IMPOSTOR_DIRECTION_FILENAMES[sourceFrame] ?? IMPOSTOR_DIRECTION_FILENAMES[0];
+    return `assets/impostors/${slug}/${filename}?v=${encodeURIComponent(IMPOSTOR_ASSET_REVISION)}`;
+  });
 }
 
 export function remapImpostorFrame(frame: number, frameRemap: readonly number[]): number {
