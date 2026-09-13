@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER,
-  IDENTITY_IMPOSTOR_FRAME_REMAP,
   SCREEN_FACING_TURNAROUND_FRAME_REMAP,
   IMPOSTOR_ASSET_REVISION,
   IMPOSTOR_DIRECTION_FILENAMES,
@@ -27,15 +26,12 @@ const ALL_SLUGS = [
 ] as const;
 
 describe('batch unit impostor static paths', () => {
-  it('loads cache-busted source order with only the manually calibrated Vanguard front diagonals', () => {
+  it('loads every canonical unit with the Vanguard-proven front-diagonal file order', () => {
     expect(IMPOSTOR_ASSET_REVISION.length).toBeGreaterThan(0);
     for (const slug of ALL_SLUGS) {
-      const expectedOrder = slug === 'vanguard'
-        ? FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER
-        : IDENTITY_IMPOSTOR_FRAME_REMAP;
-      expect(impostorRuntimeFileOrderForSlug(slug)).toEqual(expectedOrder);
+      expect(impostorRuntimeFileOrderForSlug(slug)).toEqual(FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER);
       expect(impostorFrameFiles(slug)).toEqual(
-        expectedOrder.map((sourceFrame) => {
+        FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER.map((sourceFrame) => {
           const filename = IMPOSTOR_DIRECTION_FILENAMES[sourceFrame] ?? IMPOSTOR_DIRECTION_FILENAMES[0];
           return `assets/impostors/${slug}/${filename}?v=${encodeURIComponent(IMPOSTOR_ASSET_REVISION)}`;
         }),
