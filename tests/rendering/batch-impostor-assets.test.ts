@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER,
+  IDENTITY_IMPOSTOR_FRAME_REMAP,
   SCREEN_FACING_TURNAROUND_FRAME_REMAP,
   IMPOSTOR_ASSET_REVISION,
   IMPOSTOR_DIRECTION_FILENAMES,
@@ -25,20 +27,23 @@ const ALL_SLUGS = [
 ] as const;
 
 describe('batch unit impostor static paths', () => {
-  it('loads canonical cache-busted source order for every uploaded unit set', () => {
+  it('loads cache-busted source order with only the manually calibrated Vanguard front diagonals', () => {
     expect(IMPOSTOR_ASSET_REVISION.length).toBeGreaterThan(0);
-    const identity = [0, 1, 2, 3, 4, 5, 6, 7];
     for (const slug of ALL_SLUGS) {
-      expect(impostorRuntimeFileOrderForSlug(slug)).toEqual(identity);
+      const expectedOrder = slug === 'vanguard'
+        ? FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER
+        : IDENTITY_IMPOSTOR_FRAME_REMAP;
+      expect(impostorRuntimeFileOrderForSlug(slug)).toEqual(expectedOrder);
       expect(impostorFrameFiles(slug)).toEqual(
-        IMPOSTOR_DIRECTION_FILENAMES.map(
-          (filename) => `assets/impostors/${slug}/${filename}?v=${encodeURIComponent(IMPOSTOR_ASSET_REVISION)}`,
-        ),
+        expectedOrder.map((sourceFrame) => {
+          const filename = IMPOSTOR_DIRECTION_FILENAMES[sourceFrame] ?? IMPOSTOR_DIRECTION_FILENAMES[0];
+          return `assets/impostors/${slug}/${filename}?v=${encodeURIComponent(IMPOSTOR_ASSET_REVISION)}`;
+        }),
       );
     }
   });
 
-  it('keeps canonical identity remaps for shared and specialized frame configs', () => {
+  it('keeps canonical heading remaps for shared and specialized frame configs', () => {
     const identity = [0, 1, 2, 3, 4, 5, 6, 7];
     expect(SCREEN_FACING_TURNAROUND_FRAME_REMAP).toEqual(identity);
     expect(VANGUARD_IMPOSTOR_FRAME_REMAP).toEqual(identity);
