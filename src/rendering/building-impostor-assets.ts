@@ -11,7 +11,7 @@ export interface BuildingImpostorConfig {
  * Bump whenever approved building WebP binaries change in-place. Public paths
  * stay stable, so the query revision prevents stale browser/CDN art.
  */
-export const BUILDING_IMPOSTOR_ASSET_REVISION = '20260913-building-impostor-v1';
+export const BUILDING_IMPOSTOR_ASSET_REVISION = '20260913-building-impostor-v2';
 
 const CONFIGS = [
   {
