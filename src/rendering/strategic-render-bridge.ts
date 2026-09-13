@@ -1,5 +1,6 @@
 import * as pc from 'playcanvas';
 import { VisualAssetLibrary, type VisualModel } from './visual-asset-library';
+import { BuildingImpostorLibrary, type BuildingImpostorHandle } from './building-impostor-library';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
 import { BUILDINGS } from '../simulation/m03-content';
 import type { StrategicBuilding, StrategicSnapshot } from '../simulation/strategic-state';
@@ -13,6 +14,7 @@ interface BuildingPartPresentation {
 interface BuildingPresentation {
   root: pc.Entity;
   model: VisualModel | null;
+  impostor: BuildingImpostorHandle | null;
   modelId: string;
   parts: readonly BuildingPartPresentation[];
   footprint: pc.Entity;
@@ -53,6 +55,7 @@ function isResourceSite(building: StrategicBuilding): boolean {
 export class StrategicRenderBridge {
   private readonly entities = new Map<number, BuildingPresentation>();
   private readonly networkEntities: pc.Entity[] = [];
+  private readonly buildingImpostors: BuildingImpostorLibrary;
   private networkKey = '';
   private readonly playerMaterial = createMaterial(new pc.Color(0.16, 0.58, 0.5), new pc.Color(0.01, 0.15, 0.1));
   private readonly playerAccentMaterial = createMaterial(new pc.Color(0.48, 0.96, 0.86), new pc.Color(0.04, 0.54, 0.4));
@@ -64,7 +67,9 @@ export class StrategicRenderBridge {
   private readonly networkMaterial = createMaterial(new pc.Color(0.18, 0.78, 0.7), new pc.Color(0.04, 0.42, 0.32));
   private readonly healthBackMaterial = createMaterial(new pc.Color(0.035, 0.045, 0.045));
 
-  constructor(private readonly app: pc.Application, private readonly visualAssets: VisualAssetLibrary) {}
+  constructor(private readonly app: pc.Application, private readonly visualAssets: VisualAssetLibrary) {
+    this.buildingImpostors = new BuildingImpostorLibrary(app);
+  }
 
   sync(snapshot: StrategicSnapshot, tick = 0): void {
     const active = new Set<number>();
@@ -101,7 +106,9 @@ export class StrategicRenderBridge {
           ? this.materialFor(building.playerId, 'ACCENT')
           : this.constructionMaterial;
       }
-      presentation.beacon.enabled = building.type !== 'ELEMENTAL_CORE' && !building.destroyed;
+      presentation.beacon.enabled = building.type !== 'ELEMENTAL_CORE'
+        && !building.destroyed
+        && presentation.impostor?.entity == null;
 
       const profile = buildingVisualProfile(building.type);
       const modelIds: Readonly<Record<string, string>> = {
@@ -114,10 +121,40 @@ export class StrategicRenderBridge {
         MANA_WELL: 'building.mana-well',
       };
       const modelId = modelIds[building.type] ?? '';
-      if (modelId && presentation.modelId !== modelId) {
+      const useImpostor = building.playerId === 0 && building.completed && !building.destroyed;
+      const presentationModelId = modelId ? `${modelId}:${useImpostor ? 'webp' : 'glb'}` : '';
+      if (modelId && presentation.modelId !== presentationModelId) {
         this.visualAssets.release(presentation.model);
-        presentation.model = this.visualAssets.attach(presentation.root, presentation.parts.map((part) => part.entity), modelId, building.playerId);
-        presentation.modelId = modelId;
+        this.buildingImpostors.release(presentation.impostor);
+        presentation.model = null;
+        presentation.impostor = null;
+        for (const part of presentation.parts) part.entity.enabled = true;
+
+        if (useImpostor) {
+          const expectedModelId = presentationModelId;
+          presentation.impostor = this.buildingImpostors.attach(
+            presentation.root,
+            presentation.parts.map((part) => part.entity),
+            modelId,
+            () => {
+              if (presentation!.modelId !== expectedModelId) return;
+              presentation!.model = this.visualAssets.attach(
+                presentation!.root,
+                presentation!.parts.map((part) => part.entity),
+                modelId,
+                building.playerId,
+              );
+            },
+          );
+        } else {
+          presentation.model = this.visualAssets.attach(
+            presentation.root,
+            presentation.parts.map((part) => part.entity),
+            modelId,
+            building.playerId,
+          );
+        }
+        presentation.modelId = presentationModelId;
       }
       const model = presentation.model;
       if (model?.entity) {
@@ -178,6 +215,7 @@ export class StrategicRenderBridge {
     for (const [buildingId, presentation] of [...this.entities]) {
       if (active.has(buildingId)) continue;
       this.visualAssets.release(presentation.model);
+      this.buildingImpostors.release(presentation.impostor);
       presentation.root.destroy();
       this.entities.delete(buildingId);
     }
@@ -187,7 +225,12 @@ export class StrategicRenderBridge {
   destroy(): void {
     for (const entity of this.networkEntities) entity.destroy();
     this.networkEntities.length = 0;
-    for (const presentation of this.entities.values()) { this.visualAssets.release(presentation.model); presentation.root.destroy(); }
+    for (const presentation of this.entities.values()) {
+      this.visualAssets.release(presentation.model);
+      this.buildingImpostors.release(presentation.impostor);
+      presentation.root.destroy();
+    }
+    this.buildingImpostors.destroy();
     this.workMaterial.destroy();
     this.networkMaterial.destroy();
     this.entities.clear();
@@ -322,7 +365,20 @@ export class StrategicRenderBridge {
     root.addChild(defenseHead);
 
     this.app.root.addChild(root);
-    return { root, model: null, modelId: '', parts, footprint, beacon, rally, healthBack, healthBar, defenseStem, defenseHead };
+    return {
+      root,
+      model: null,
+      impostor: null,
+      modelId: '',
+      parts,
+      footprint,
+      beacon,
+      rally,
+      healthBack,
+      healthBar,
+      defenseStem,
+      defenseHead,
+    };
   }
 
   private materialFor(playerId: number, role: BuildingVisualMaterialRole): pc.Material {
@@ -330,4 +386,3 @@ export class StrategicRenderBridge {
     return role === 'ACCENT' ? this.enemyAccentMaterial : this.enemyMaterial;
   }
 }
-
