@@ -102,7 +102,7 @@ export class ElementalRenderBridge {
         root = this.createFire(cell.column, cell.row);
         this.burning.set(key, root);
         const center = this.terrain.cellCenter(cell);
-        this.effects.burst(center.x / WORLD_UNITS_PER_METER, .3, center.z / WORLD_UNITS_PER_METER, ELEMENT_TINTS.FIRE, snapshot.tick, 4, .65);
+        this.effects.burst(center.x / WORLD_UNITS_PER_METER, .3, center.z / WORLD_UNITS_PER_METER, ELEMENT_TINTS.FIRE, snapshot.tick, 5, .68);
       }
       const center = this.terrain.cellCenter(cell);
       root.setPosition(center.x / WORLD_UNITS_PER_METER, 0.09, center.z / WORLD_UNITS_PER_METER);
@@ -119,21 +119,33 @@ export class ElementalRenderBridge {
 
   private createFire(column: number, row: number): pc.Entity {
     const root = new pc.Entity(`Burning Cell ${column},${row}`);
+
     const lower = new pc.Entity('Flame Outer');
     lower.addComponent('render', { type: 'cone', material: this.flameMaterial });
-    lower.setLocalPosition(-0.12, 0.34, 0.08);
-    lower.setLocalScale(0.28, 0.64, 0.28);
+    lower.setLocalPosition(-0.14, 0.32, 0.08);
+    lower.setLocalScale(0.3, 0.7, 0.3);
+    lower.setLocalEulerAngles(0, 0, -8);
     root.addChild(lower);
+
+    const side = new pc.Entity('Flame Side');
+    side.addComponent('render', { type: 'cone', material: this.flameMaterial });
+    side.setLocalPosition(0.18, 0.25, -0.08);
+    side.setLocalScale(0.22, 0.5, 0.22);
+    side.setLocalEulerAngles(0, 0, 11);
+    root.addChild(side);
+
     const core = new pc.Entity('Flame Core');
     core.addComponent('render', { type: 'cone', material: this.flameCoreMaterial });
-    core.setLocalPosition(0.11, 0.28, -0.06);
-    core.setLocalScale(0.2, 0.46, 0.2);
+    core.setLocalPosition(0.02, 0.31, 0.01);
+    core.setLocalScale(0.17, 0.54, 0.17);
     root.addChild(core);
+
     const ember = new pc.Entity('Ember Glow');
-    ember.addComponent('render', { type: 'sphere', material: this.flameMaterial });
-    ember.setLocalPosition(0, 0.12, 0);
-    ember.setLocalScale(0.48, 0.12, 0.48);
+    ember.addComponent('render', { type: 'sphere', material: this.flameCoreMaterial });
+    ember.setLocalPosition(0, 0.1, 0);
+    ember.setLocalScale(0.5, 0.11, 0.5);
     root.addChild(ember);
+
     this.app.root.addChild(root);
     return root;
   }
@@ -167,16 +179,34 @@ export class ElementalRenderBridge {
   }
 
   private spawnLightningNode(position: pc.Vec3, tick: number): void {
-    const entity = new pc.Entity('Lightning Impact');
-    entity.addComponent('render', { type: 'sphere', material: this.lightningMaterial });
-    entity.setPosition(position);
-    entity.setLocalScale(0.44, 0.44, 0.44);
-    this.app.root.addChild(entity);
+    const root = new pc.Entity('Lightning Impact');
+    root.setPosition(position);
+
+    const core = new pc.Entity('Lightning Core');
+    core.addComponent('render', { type: 'sphere', material: this.lightningMaterial });
+    core.setLocalScale(0.38, 0.38, 0.38);
+    root.addChild(core);
+
+    const lance = new pc.Entity('Lightning Lance');
+    lance.addComponent('render', { type: 'box', material: this.lightningMaterial });
+    lance.setLocalPosition(0, .36, 0);
+    lance.setLocalScale(.065, .82, .065);
+    lance.setLocalEulerAngles(0, 0, 8);
+    root.addChild(lance);
+
+    const cross = new pc.Entity('Lightning Cross');
+    cross.addComponent('render', { type: 'box', material: this.lightningMaterial });
+    cross.setLocalScale(.52, .045, .075);
+    cross.setLocalEulerAngles(0, 38, 0);
+    root.addChild(cross);
+
+    this.effects.burst(position.x, position.y, position.z, ELEMENT_TINTS.LIGHTNING, tick, 4, .42);
+    this.app.root.addChild(root);
     this.transient.push({
-      entity,
+      entity: root,
       bornTick: tick,
       expiresTick: tick + 2,
-      baseScale: 0.44,
+      baseScale: 1,
       originY: position.y,
       kind: 'LIGHTNING_NODE',
     });
@@ -221,14 +251,30 @@ export class ElementalRenderBridge {
 
   private spawnWaterRing(x: number, z: number, tick: number): void {
     const originY = 0.12;
-    const entity = new pc.Entity('Water Burst Impact');
-    entity.addComponent('render', { meshInstances: [new pc.MeshInstance(this.rippleMesh, this.waterMaterial)], castShadows: false });
-    this.effects.burst(x, .2, z, ELEMENT_TINTS.WATER, tick, 8, .7);
-    entity.setPosition(x, originY, z);
-    entity.setLocalScale(0.45, 1, 0.45);
-    this.app.root.addChild(entity);
+    const root = new pc.Entity('Water Burst Impact');
+    root.setPosition(x, originY, z);
+
+    const outer = new pc.Entity('Water Outer Ripple');
+    outer.addComponent('render', { meshInstances: [new pc.MeshInstance(this.rippleMesh, this.waterMaterial)], castShadows: false });
+    root.addChild(outer);
+
+    const inner = new pc.Entity('Water Inner Ripple');
+    inner.addComponent('render', { meshInstances: [new pc.MeshInstance(this.rippleMesh, this.waterMaterial)], castShadows: false });
+    inner.setLocalScale(.58, 1, .58);
+    inner.setLocalPosition(0, .035, 0);
+    root.addChild(inner);
+
+    const splash = new pc.Entity('Water Splash Core');
+    splash.addComponent('render', { type: 'sphere', material: this.waterMaterial });
+    splash.setLocalPosition(0, .17, 0);
+    splash.setLocalScale(.34, .22, .34);
+    root.addChild(splash);
+
+    this.effects.burst(x, .2, z, ELEMENT_TINTS.WATER, tick, 9, .78);
+    root.setLocalScale(0.45, 1, 0.45);
+    this.app.root.addChild(root);
     this.transient.push({
-      entity,
+      entity: root,
       bornTick: tick,
       expiresTick: tick + 4,
       baseScale: 0.45,
@@ -239,19 +285,33 @@ export class ElementalRenderBridge {
 
   private spawnIceSpark(x: number, z: number, tick: number): void {
     const originY = 0.16;
-    this.effects.burst(x, .18, z, ELEMENT_TINTS.ICE, tick, 4, .6);
+    this.effects.burst(x, .18, z, ELEMENT_TINTS.ICE, tick, 6, .66);
     const root = new pc.Entity('Ice Formation Spark');
     root.setPosition(x, originY, z);
+
     const slashA = new pc.Entity('Ice Crack A');
     slashA.addComponent('render', { type: 'box', material: this.iceSparkMaterial });
-    slashA.setLocalScale(0.52, 0.035, 0.07);
+    slashA.setLocalScale(0.58, 0.035, 0.065);
     slashA.setEulerAngles(0, 38, 0);
     root.addChild(slashA);
+
     const slashB = new pc.Entity('Ice Crack B');
     slashB.addComponent('render', { type: 'box', material: this.iceSparkMaterial });
-    slashB.setLocalScale(0.38, 0.035, 0.06);
+    slashB.setLocalScale(0.44, 0.035, 0.055);
     slashB.setEulerAngles(0, -42, 0);
     root.addChild(slashB);
+
+    const shardAngles = [18, 112, 208, 302];
+    for (let index = 0; index < shardAngles.length; index += 1) {
+      const angle = shardAngles[index]! * Math.PI / 180;
+      const shard = new pc.Entity(`Ice Shard ${index + 1}`);
+      shard.addComponent('render', { type: 'box', material: this.iceSparkMaterial });
+      shard.setLocalPosition(Math.cos(angle) * .22, .18 + (index % 2) * .08, Math.sin(angle) * .22);
+      shard.setLocalScale(.065, .36 + (index % 2) * .13, .065);
+      shard.setLocalEulerAngles(12 + (index % 2) * 8, shardAngles[index]!, index % 2 === 0 ? 12 : -14);
+      root.addChild(shard);
+    }
+
     this.app.root.addChild(root);
     this.transient.push({
       entity: root,
@@ -298,12 +358,12 @@ export class ElementalRenderBridge {
         visual.entity.setLocalScale(scale, scale * 0.72, scale);
       } else if (visual.kind === 'WATER_RING') {
         const scale = visual.baseScale * (1 + progress * 2.6);
-        visual.entity.setLocalScale(scale, 1 - progress * .9, scale);
+        visual.entity.setLocalScale(scale, Math.max(.15, 1 - progress * .82), scale);
       } else if (visual.kind === 'ICE_SPARK') {
         const scale = 0.72 + Math.sin(progress * Math.PI) * 0.48;
         visual.entity.setLocalScale(scale, scale, scale);
       } else if (visual.kind === 'LIGHTNING_NODE') {
-        const scale = visual.baseScale * (1.15 - progress * 0.35);
+        const scale = 1.18 - progress * 0.42;
         visual.entity.setLocalScale(scale, scale, scale);
       }
     }
