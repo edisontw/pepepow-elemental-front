@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER,
+  DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER,
   SCREEN_FACING_TURNAROUND_FRAME_REMAP,
   IMPOSTOR_ASSET_REVISION,
   IMPOSTOR_DIRECTION_FILENAMES,
@@ -26,12 +26,13 @@ const ALL_SLUGS = [
 ] as const;
 
 describe('batch unit impostor static paths', () => {
-  it('loads every canonical unit with the Vanguard-proven front-diagonal file order', () => {
+  it('loads every canonical unit with the shared front/rear diagonal file order', () => {
     expect(IMPOSTOR_ASSET_REVISION.length).toBeGreaterThan(0);
+    expect(DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER).toEqual([0, 7, 2, 5, 4, 3, 6, 1]);
     for (const slug of ALL_SLUGS) {
-      expect(impostorRuntimeFileOrderForSlug(slug)).toEqual(FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER);
+      expect(impostorRuntimeFileOrderForSlug(slug)).toEqual(DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER);
       expect(impostorFrameFiles(slug)).toEqual(
-        FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER.map((sourceFrame) => {
+        DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER.map((sourceFrame) => {
           const filename = IMPOSTOR_DIRECTION_FILENAMES[sourceFrame] ?? IMPOSTOR_DIRECTION_FILENAMES[0];
           return `assets/impostors/${slug}/${filename}?v=${encodeURIComponent(IMPOSTOR_ASSET_REVISION)}`;
         }),
