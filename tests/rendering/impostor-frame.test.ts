@@ -7,7 +7,7 @@ import {
   stableImpostorFrameForHeading,
 } from '../../src/rendering/impostor-frame';
 import {
-  FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER,
+  DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER,
   SCREEN_FACING_TURNAROUND_FRAME_REMAP,
   impostorRuntimeFileOrderForSlug,
   remapImpostorFrame,
@@ -55,9 +55,10 @@ describe('impostor frame mapping', () => {
     }
   });
 
-  it('uses the Vanguard-proven runtime file order for every unit slug', () => {
+  it('uses one shared diagonal-swap runtime file order for every unit slug', () => {
+    expect(DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER).toEqual([0, 7, 2, 5, 4, 3, 6, 1]);
     for (const slug of ['vanguard', 'ranger', 'elementalist-fire', 'spear-guard', 'scout', 'engineer']) {
-      expect(impostorRuntimeFileOrderForSlug(slug)).toEqual(FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER);
+      expect(impostorRuntimeFileOrderForSlug(slug)).toEqual(DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER);
     }
   });
 
