@@ -13,29 +13,27 @@ export const IDENTITY_IMPOSTOR_FRAME_REMAP = [0, 1, 2, 3, 4, 5, 6, 7] as const;
 export const FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER = [0, 7, 2, 3, 4, 5, 6, 1] as const;
 
 /**
- * Bump whenever canonical public impostor binaries are replaced in-place.
- * The public filenames stay stable, so this query revision prevents stale
- * browser/CDN frames from surviving a visual asset replacement.
+ * Bump whenever canonical public impostor binaries or their runtime file order
+ * changes in-place. The public filenames stay stable, so this query revision
+ * prevents stale browser/CDN frames from surviving a presentation fix.
  */
-export const IMPOSTOR_ASSET_REVISION = '1836f6e7-vanguard-front-diagonal';
+export const IMPOSTOR_ASSET_REVISION = '20260913-shared-vanguard-direction-map';
 
 /**
- * Geometry still resolves one of eight canonical observer-side runtime slots.
- * File-order calibration is presentation-only and is used only when manual
- * WebGL QA proves that an uploaded turnaround pair reads on the opposite
- * screen-facing diagonal. Do not change heading math to compensate for art.
+ * Geometry resolves one of eight canonical observer-side runtime slots. The
+ * heading contract is shared by every unit and remains identity-mapped here;
+ * file-order calibration is presentation-only.
  */
 export const SCREEN_FACING_TURNAROUND_FRAME_REMAP = IDENTITY_IMPOSTOR_FRAME_REMAP;
 
-const CALIBRATED_IMPOSTOR_FILE_ORDER_BY_SLUG: Readonly<Record<string, readonly number[]>> = {
-  // Manual WebGL QA: when Vanguard moves screen-down-left it must use the
-  // uploaded 01 front-left image; screen-down-right must use uploaded 07.
-  // Rear diagonals already read correctly, so only runtime slots 1 and 7 swap.
-  vanguard: FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER,
-};
-
-export function impostorRuntimeFileOrderForSlug(slug: string): readonly number[] {
-  return CALIBRATED_IMPOSTOR_FILE_ORDER_BY_SLUG[slug] ?? IDENTITY_IMPOSTOR_FRAME_REMAP;
+/**
+ * Manual WebGL QA established the Vanguard file order as the correct runtime
+ * presentation for the fixed RTS camera. All approved eight-direction unit
+ * sets use the same canonical naming convention, so every unit must use the
+ * same file-order rule instead of accumulating per-unit direction exceptions.
+ */
+export function impostorRuntimeFileOrderForSlug(_slug: string): readonly number[] {
+  return FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER;
 }
 
 export function impostorFrameFiles(slug: string): readonly string[] {
