@@ -10,14 +10,14 @@ import { IMPOSTOR_ASSET_REVISION } from '../../src/rendering/impostor-frame-asse
 const revision = `?v=${encodeURIComponent(IMPOSTOR_ASSET_REVISION)}`;
 
 describe('Vanguard impostor frame assets', () => {
-  it('uses the WebGL-calibrated front diagonals while preserving the other six directions', () => {
+  it('uses the shared WebGL-calibrated front and rear diagonal order', () => {
     expect(VANGUARD_IMPOSTOR_FRAME_FILES).toEqual([
       `assets/impostors/vanguard/00-front.webp${revision}`,
       `assets/impostors/vanguard/07-front-right.webp${revision}`,
       `assets/impostors/vanguard/02-left.webp${revision}`,
-      `assets/impostors/vanguard/03-rear-left.webp${revision}`,
-      `assets/impostors/vanguard/04-rear.webp${revision}`,
       `assets/impostors/vanguard/05-rear-right.webp${revision}`,
+      `assets/impostors/vanguard/04-rear.webp${revision}`,
+      `assets/impostors/vanguard/03-rear-left.webp${revision}`,
       `assets/impostors/vanguard/06-right.webp${revision}`,
       `assets/impostors/vanguard/01-front-left.webp${revision}`,
     ]);
