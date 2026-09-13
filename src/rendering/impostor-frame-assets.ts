@@ -10,14 +10,14 @@ export const IMPOSTOR_DIRECTION_FILENAMES = [
 ] as const;
 
 export const IDENTITY_IMPOSTOR_FRAME_REMAP = [0, 1, 2, 3, 4, 5, 6, 7] as const;
-export const FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER = [0, 7, 2, 3, 4, 5, 6, 1] as const;
+export const DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER = [0, 7, 2, 5, 4, 3, 6, 1] as const;
 
 /**
  * Bump whenever canonical public impostor binaries or their runtime file order
  * changes in-place. The public filenames stay stable, so this query revision
  * prevents stale browser/CDN frames from surviving a presentation fix.
  */
-export const IMPOSTOR_ASSET_REVISION = '20260913-shared-vanguard-direction-map';
+export const IMPOSTOR_ASSET_REVISION = '20260913-shared-diagonal-direction-map-v2';
 
 /**
  * Geometry resolves one of eight canonical observer-side runtime slots. The
@@ -27,13 +27,14 @@ export const IMPOSTOR_ASSET_REVISION = '20260913-shared-vanguard-direction-map';
 export const SCREEN_FACING_TURNAROUND_FRAME_REMAP = IDENTITY_IMPOSTOR_FRAME_REMAP;
 
 /**
- * Manual WebGL QA established the Vanguard file order as the correct runtime
- * presentation for the fixed RTS camera. All approved eight-direction unit
- * sets use the same canonical naming convention, so every unit must use the
- * same file-order rule instead of accumulating per-unit direction exceptions.
+ * Manual WebGL QA established that the uploaded turnaround diagonals are read
+ * from the opposite screen-facing side by the fixed RTS camera. All approved
+ * eight-direction unit sets use the same canonical naming convention, so every
+ * unit shares one file-order rule: swap front-left/front-right and also
+ * rear-left/rear-right while leaving cardinal views unchanged.
  */
 export function impostorRuntimeFileOrderForSlug(_slug: string): readonly number[] {
-  return FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER;
+  return DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER;
 }
 
 export function impostorFrameFiles(slug: string): readonly string[] {
