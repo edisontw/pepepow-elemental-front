@@ -8,7 +8,6 @@ import {
 } from '../../src/rendering/impostor-frame';
 import {
   FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER,
-  IDENTITY_IMPOSTOR_FRAME_REMAP,
   SCREEN_FACING_TURNAROUND_FRAME_REMAP,
   impostorRuntimeFileOrderForSlug,
   remapImpostorFrame,
@@ -56,10 +55,10 @@ describe('impostor frame mapping', () => {
     }
   });
 
-  it('calibrates only Vanguard front diagonals from manual WebGL QA', () => {
-    expect(impostorRuntimeFileOrderForSlug('vanguard')).toEqual(FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER);
-    expect(impostorRuntimeFileOrderForSlug('ranger')).toEqual(IDENTITY_IMPOSTOR_FRAME_REMAP);
-    expect(impostorRuntimeFileOrderForSlug('elementalist-fire')).toEqual(IDENTITY_IMPOSTOR_FRAME_REMAP);
+  it('uses the Vanguard-proven runtime file order for every unit slug', () => {
+    for (const slug of ['vanguard', 'ranger', 'elementalist-fire', 'spear-guard', 'scout', 'engineer']) {
+      expect(impostorRuntimeFileOrderForSlug(slug)).toEqual(FRONT_DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER);
+    }
   });
 
   it('maps all eight world movement vectors to the matching unit-relative source view', () => {
