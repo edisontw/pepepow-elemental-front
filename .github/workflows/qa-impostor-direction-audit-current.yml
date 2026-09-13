@@ -1,0 +1,63 @@
+name: QA Impostor Direction Audit Current
+
+on:
+  push:
+    branches:
+      - qa/impostor-direction-audit-current
+
+jobs:
+  contact-sheets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pillow
+      - name: Build contact sheets
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageDraw, ImageFont
+
+          root = Path('public/assets/impostors')
+          out = Path('qa-contact-sheets-current')
+          out.mkdir(exist_ok=True)
+          names = [
+              '00-front.webp',
+              '01-front-left.webp',
+              '02-left.webp',
+              '03-rear-left.webp',
+              '04-rear.webp',
+              '05-rear-right.webp',
+              '06-right.webp',
+              '07-front-right.webp',
+          ]
+          font = ImageFont.load_default()
+          cell_w, cell_h = 420, 460
+          image_box_h = 420
+          for unit_dir in sorted(p for p in root.iterdir() if p.is_dir()):
+              sheet = Image.new('RGBA', (cell_w * 4, cell_h * 2), (28, 30, 34, 255))
+              draw = ImageDraw.Draw(sheet)
+              for i, name in enumerate(names):
+                  src = unit_dir / name
+                  im = Image.open(src).convert('RGBA')
+                  im.thumbnail((cell_w - 20, image_box_h - 20), Image.Resampling.LANCZOS)
+                  col, row = i % 4, i // 4
+                  x0, y0 = col * cell_w, row * cell_h
+                  x = x0 + (cell_w - im.width) // 2
+                  y = y0 + 8 + (image_box_h - im.height) // 2
+                  sheet.alpha_composite(im, (x, y))
+                  draw.rectangle((x0, y0, x0 + cell_w - 1, y0 + cell_h - 1), outline=(110, 116, 126, 255), width=1)
+                  draw.rectangle((x0, y0 + image_box_h, x0 + cell_w, y0 + cell_h), fill=(15, 17, 20, 255))
+                  draw.text((x0 + 8, y0 + image_box_h + 12), f'{i}: {name}', fill=(240, 240, 240, 255), font=font)
+              sheet.save(out / f'{unit_dir.name}.png')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: impostor-direction-contact-sheets-current
+          path: qa-contact-sheets-current/*.png
+          retention-days: 1
