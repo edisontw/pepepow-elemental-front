@@ -15,6 +15,7 @@ interface BuildingImpostorResources {
 export interface BuildingImpostorHandle {
   entity: pc.Entity | null;
   shadow: pc.Entity | null;
+  footprint: pc.Entity | null;
   released: boolean;
 }
 
@@ -42,7 +43,12 @@ export class BuildingImpostorLibrary {
     assetId: string,
     onUnavailable: () => void,
   ): BuildingImpostorHandle {
-    const handle: BuildingImpostorHandle = { entity: null, shadow: null, released: false };
+    const handle: BuildingImpostorHandle = {
+      entity: null,
+      shadow: null,
+      footprint: null,
+      released: false,
+    };
     const config = buildingImpostorConfig(assetId);
     if (!config) {
       onUnavailable();
@@ -84,9 +90,16 @@ export class BuildingImpostorLibrary {
       shadow.setLocalScale(config.shadowX, 0.018, config.shadowZ);
       parent.addChild(shadow);
 
+      // The legacy strategic renderer draws a large ownership/footprint cylinder.
+      // The WebP impostor already carries its own readable silhouette and shadow,
+      // so keeping that cylinder creates the oversized cyan discs seen in-game.
+      const footprint = parent.children.find((child) => child.name.endsWith(' Footprint')) as pc.Entity | undefined;
+      if (footprint) footprint.enabled = false;
+
       for (const primitive of fallback) primitive.enabled = false;
       handle.entity = pivot;
       handle.shadow = shadow;
+      handle.footprint = footprint ?? null;
     });
 
     return handle;
@@ -95,6 +108,7 @@ export class BuildingImpostorLibrary {
   release(handle: BuildingImpostorHandle | null): void {
     if (!handle) return;
     handle.released = true;
+    if (handle.footprint) handle.footprint.enabled = true;
     handle.entity?.destroy();
     handle.shadow?.destroy();
   }
