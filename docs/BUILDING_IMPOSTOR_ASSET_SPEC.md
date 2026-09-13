@@ -1,6 +1,6 @@
 # PEPEPOW Elemental Front - Building Impostor Asset Spec
 
-**Status:** ACTIVE VISUAL-PRODUCTION CONTRACT  
+**Status:** RUNTIME INTEGRATED / FINAL ART PENDING  
 **Scope:** player building presentation only  
 **Gameplay authority:** unchanged
 
@@ -100,9 +100,15 @@ When a valid building WebP exists:
 6. preserve current GLB/primitive fallback if the WebP is missing or corrupt;
 7. never change simulation, footprint authority, build rules, health, production, pathing, or replay state to fit the art.
 
-Construction states may temporarily remain on the current primitive/GLB path until a dedicated construction-state visual pass is approved.
+Construction states remain on the current primitive/GLB path until a dedicated construction-state visual pass is approved.
 
-Enemy buildings may remain on the recolorable GLB/primitive path until neutral/masked building art exists. Do not simply tint the whole player WebP red.
+Enemy buildings remain on the recolorable GLB/primitive path until neutral/masked building art exists. Do not simply tint the whole player WebP red.
+
+Runtime implementation is active in:
+
+- `src/rendering/building-impostor-assets.ts`;
+- `src/rendering/building-impostor-library.ts`;
+- `src/rendering/strategic-render-bridge.ts`.
 
 ## 7. Visual acceptance
 
@@ -133,10 +139,14 @@ Generate and approve in this order:
 
 Do not generate the remaining six from unrelated visual styles after Core approval. Use the approved Core and latest accepted building as style references when the image generator supports references.
 
-## 9. Manual upload gate
+## 9. Current gate
 
-After generation and normalization, upload the seven files to the exact canonical paths under `public/assets/buildings/`.
+Runtime integration is complete. The remaining gate is final-art production and visual acceptance.
 
-Do not remove GLB fallback assets.
+After generation and normalization:
 
-After upload, verify all seven binaries on GitHub `main`, then complete runtime integration and one WebGL visual acceptance pass.
+1. upload the seven files to the exact canonical paths under `public/assets/buildings/`;
+2. do not remove GLB fallback assets;
+3. verify all seven binaries on GitHub `main`;
+4. perform one WebGL visual acceptance pass at normal gameplay zoom;
+5. tune only presentation scale/offset if needed; do not change gameplay footprints to fit the art.
