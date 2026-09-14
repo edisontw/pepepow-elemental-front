@@ -12,6 +12,7 @@ import type { M04Simulation } from '../simulation/m04-simulation';
 import { M06Simulation } from '../simulation/m06-simulation';
 import type { EntitySnapshot } from '../simulation/simulation';
 import { CameraFeedback } from './camera-feedback';
+import { CombatPresentationPass } from './combat-presentation-pass';
 import { ElementalRenderBridge } from './elemental-render-bridge';
 import { GeneratedWorldRenderBridge } from './generated-world-render-bridge';
 import { PoiRenderBridge } from './poi-render-bridge';
@@ -216,6 +217,8 @@ export function createSceneShell(
   const visualAssets = new VisualAssetLibrary(app);
   const bridge = new UnitRenderBridge(app, initialSnapshot, unitMaterials, selectionMaterial, healthMaterial, visualAssets, battleVfx);
   const elementalBridge = new ElementalRenderBridge(app, simulation.terrain, initialSnapshot, battleVfx);
+  const initialStrategicSnapshot = simulation instanceof M03Simulation ? simulation.strategy.snapshot() : null;
+  const combatPresentation = new CombatPresentationPass(app, battleVfx, initialStrategicSnapshot);
   const audioFeedback = new AudioFeedback();
   const poiBridge = simulation instanceof M03Simulation
     ? new PoiRenderBridge(app, simulation.generatedWorld, cameraComponent, camera, canvas)
@@ -248,13 +251,14 @@ export function createSceneShell(
     },
     screenToSimulationPosition,
     sync(frame: TickFrame): void {
+      const strategicSnapshot = simulation instanceof M03Simulation ? simulation.strategy.snapshot() : null;
       bridge.sync(frame.previousSnapshot, frame.snapshot, frame.interpolationAlpha);
       elementalBridge.sync(frame.previousSnapshot, frame.snapshot, frame.interpolationAlpha);
+      combatPresentation.sync(frame.previousSnapshot, frame.snapshot, frame.interpolationAlpha, strategicSnapshot);
       cameraFeedback.sync(frame.previousSnapshot, frame.snapshot, frame.interpolationAlpha);
       audioFeedback.sync(frame.previousSnapshot, frame.snapshot);
       controls.syncSelection();
-      if (simulation instanceof M03Simulation) {
-        const strategicSnapshot = simulation.strategy.snapshot();
+      if (strategicSnapshot) {
         strategicBridge?.sync(strategicSnapshot, frame.snapshot.tick);
         territoryBridge?.sync(strategicSnapshot);
         poiBridge?.sync(strategicSnapshot);
@@ -291,6 +295,7 @@ export function createSceneShell(
       poiBridge?.destroy();
       audioFeedback.destroy();
       cameraFeedback.destroy();
+      combatPresentation.destroy();
       bridge.destroy();
       elementalBridge.destroy();
       strategicBridge?.destroy();
