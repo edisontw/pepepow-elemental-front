@@ -7,6 +7,10 @@ import {
   ELEMENTALIST_VIEW_FRAME_SCALES,
   ELEMENTALIST_WATER_SCREEN_FRONT_RIGHT_SCALE,
   ELEMENTALIST_WATER_VIEW_FRAME_SCALES,
+  RANGER_SCREEN_FRONT_LEFT_SCALE,
+  RANGER_SCREEN_FRONT_LEFT_VIEW_FRAME,
+  RANGER_VIEW_FRAME_SCALES,
+  SPEAR_GUARD_SCALE,
   unitImpostorFrameScale,
 } from '../../src/rendering/impostor-frame-normalization';
 
@@ -16,7 +20,7 @@ const STANDARD_ELEMENTALIST_IDS = [
   'unit.elementalist.lightning',
 ] as const;
 
-describe('Elementalist impostor frame normalization', () => {
+describe('unit impostor frame normalization', () => {
   it('maps the player screen-right diagonals to the correct runtime view frames', () => {
     expect(ELEMENTALIST_SCREEN_FRONT_RIGHT_VIEW_FRAME).toBe(1);
     expect(ELEMENTALIST_SCREEN_REAR_RIGHT_VIEW_FRAME).toBe(3);
@@ -67,8 +71,33 @@ describe('Elementalist impostor frame normalization', () => {
     expect(unitImpostorFrameScale('unit.elementalist.water', 7)).toBe(1);
   });
 
-  it('does not resize other unit impostors', () => {
-    for (const id of ['unit.vanguard', 'unit.ranger', 'unit.engineer']) {
+  it('scales Spear Guard to 1.5 at every view', () => {
+    expect(SPEAR_GUARD_SCALE).toBe(1.5);
+    for (let frame = 0; frame < 8; frame += 1) {
+      expect(unitImpostorFrameScale('unit.spear-guard', frame)).toBe(SPEAR_GUARD_SCALE);
+    }
+  });
+
+  it('enlarges Ranger only on screen Front-Left', () => {
+    expect(RANGER_SCREEN_FRONT_LEFT_VIEW_FRAME).toBe(7);
+    expect(RANGER_VIEW_FRAME_SCALES).toEqual([
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      RANGER_SCREEN_FRONT_LEFT_SCALE,
+    ]);
+
+    for (let frame = 0; frame < 8; frame += 1) {
+      expect(unitImpostorFrameScale('unit.ranger', frame)).toBe(RANGER_VIEW_FRAME_SCALES[frame]);
+    }
+  });
+
+  it('does not resize unrelated unit impostors', () => {
+    for (const id of ['unit.vanguard', 'unit.engineer']) {
       for (let frame = 0; frame < 8; frame += 1) expect(unitImpostorFrameScale(id, frame)).toBe(1);
     }
   });
