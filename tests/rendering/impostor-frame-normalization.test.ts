@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
-  ELEMENTALIST_FRONT_RIGHT_SCALE,
-  ELEMENTALIST_FRONT_RIGHT_VIEW_FRAME,
+  ELEMENTALIST_SCREEN_FRONT_RIGHT_SCALE,
+  ELEMENTALIST_SCREEN_FRONT_RIGHT_VIEW_FRAME,
+  ELEMENTALIST_SCREEN_REAR_RIGHT_SCALE,
+  ELEMENTALIST_SCREEN_REAR_RIGHT_VIEW_FRAME,
+  ELEMENTALIST_VIEW_FRAME_SCALES,
   unitImpostorFrameScale,
 } from '../../src/rendering/impostor-frame-normalization';
 
@@ -13,12 +16,37 @@ const ELEMENTALIST_IDS = [
 ] as const;
 
 describe('Elementalist impostor frame normalization', () => {
-  it('compensates only the shared Front-Right view for aligned Elementalists', () => {
+  it('maps the player screen-right diagonals to the correct runtime view frames', () => {
+    expect(ELEMENTALIST_SCREEN_FRONT_RIGHT_VIEW_FRAME).toBe(1);
+    expect(ELEMENTALIST_SCREEN_REAR_RIGHT_VIEW_FRAME).toBe(3);
+  });
+
+  it('uses one explicit eight-view normalization table for all aligned Elementalists', () => {
+    expect(ELEMENTALIST_VIEW_FRAME_SCALES).toEqual([
+      1,
+      ELEMENTALIST_SCREEN_FRONT_RIGHT_SCALE,
+      1,
+      ELEMENTALIST_SCREEN_REAR_RIGHT_SCALE,
+      1,
+      1,
+      1,
+      1,
+    ]);
+
     for (const id of ELEMENTALIST_IDS) {
       for (let frame = 0; frame < 8; frame += 1) {
-        const expected = frame === ELEMENTALIST_FRONT_RIGHT_VIEW_FRAME ? ELEMENTALIST_FRONT_RIGHT_SCALE : 1;
-        expect(unitImpostorFrameScale(id, frame)).toBe(expected);
+        expect(unitImpostorFrameScale(id, frame)).toBe(ELEMENTALIST_VIEW_FRAME_SCALES[frame]);
       }
+    }
+  });
+
+  it('corrects screen Front-Right without enlarging the opposite runtime diagonal', () => {
+    for (const id of ELEMENTALIST_IDS) {
+      expect(unitImpostorFrameScale(id, ELEMENTALIST_SCREEN_FRONT_RIGHT_VIEW_FRAME))
+        .toBe(ELEMENTALIST_SCREEN_FRONT_RIGHT_SCALE);
+      expect(unitImpostorFrameScale(id, ELEMENTALIST_SCREEN_REAR_RIGHT_VIEW_FRAME))
+        .toBe(ELEMENTALIST_SCREEN_REAR_RIGHT_SCALE);
+      expect(unitImpostorFrameScale(id, 7)).toBe(1);
     }
   });
 
