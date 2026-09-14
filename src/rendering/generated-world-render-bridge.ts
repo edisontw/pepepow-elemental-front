@@ -1,7 +1,7 @@
 import * as pc from 'playcanvas';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
 import { SurfaceType, type TerrainState } from '../simulation/terrain-state';
-import { BiomeType, TerrainType, type GeneratedWorld } from '../world/world-definition';
+import { BiomeType, TerrainType, WorldCellFlag, type GeneratedWorld } from '../world/world-definition';
 import { createEnvironmentVisualLayout, type EnvironmentVisualProp } from './environment-visual-layout';
 
 interface RowRun {
@@ -89,6 +89,7 @@ export class GeneratedWorldRenderBridge {
   private readonly groundMaterial = createMaterial(new pc.Color(0.125, 0.215, 0.15));
   private readonly woodlandMaterial = createMaterial(new pc.Color(0.07, 0.255, 0.095));
   private readonly highlandMaterial = createMaterial(new pc.Color(0.32, 0.325, 0.285));
+  private readonly routeMaterial = createMaterial(new pc.Color(0.29, 0.265, 0.215));
   private readonly riverMaterial = createMaterial(
     new pc.Color(0.048, 0.22, 0.405),
     new pc.Color(0.008, 0.045, 0.095),
@@ -110,6 +111,8 @@ export class GeneratedWorldRenderBridge {
   private readonly rockMaterial = createMaterial(new pc.Color(0.37, 0.375, 0.34));
   private readonly rockLightMaterial = createMaterial(new pc.Color(0.45, 0.445, 0.39));
   private readonly reedMaterial = createMaterial(new pc.Color(0.32, 0.48, 0.19));
+  private readonly scrubMaterial = createMaterial(new pc.Color(0.22, 0.34, 0.14));
+  private readonly scrubLightMaterial = createMaterial(new pc.Color(0.31, 0.40, 0.17));
   private lastIceCount = -1;
   private lastNavVersion = -1;
 
@@ -138,7 +141,8 @@ export class GeneratedWorldRenderBridge {
       this.groundMaterial,
       this.woodlandMaterial,
       this.highlandMaterial,
-    this.riverMaterial,
+      this.routeMaterial,
+      this.riverMaterial,
       this.riverHighlightMaterial,
       this.crossingMaterial,
       this.iceMaterial,
@@ -148,6 +152,8 @@ export class GeneratedWorldRenderBridge {
       this.rockMaterial,
       this.rockLightMaterial,
       this.reedMaterial,
+      this.scrubMaterial,
+      this.scrubLightMaterial,
     ]) material.destroy();
   }
 
@@ -186,6 +192,19 @@ export class GeneratedWorldRenderBridge {
       0.018,
       'Generated Woodland',
       this.woodlandMaterial,
+    );
+    this.renderRuns(
+      runsForGrid(
+        this.world.width,
+        this.world.height,
+        (index) => this.world.terrain[index] === TerrainType.GROUND && ((this.world.flags[index] ?? 0) & WorldCellFlag.ROUTE) !== 0,
+      ),
+      originX,
+      originZ,
+      0.024,
+      'Generated Route',
+      this.routeMaterial,
+      0.9,
     );
     this.renderRuns(
       runsForGrid(
@@ -306,6 +325,30 @@ export class GeneratedWorldRenderBridge {
       return;
     }
 
+    if (prop.kind === 'PLAINS_SCRUB') {
+      addChildPrimitive(
+        root,
+        'sphere',
+        'Plains Scrub',
+        new pc.Vec3(0, 0.09 * scale, 0),
+        new pc.Vec3(0.3 * scale, 0.16 * scale, 0.22 * scale),
+        prop.variant < 136 ? this.scrubMaterial : this.scrubLightMaterial,
+      );
+      return;
+    }
+
+    if (prop.kind === 'PLAINS_STONE') {
+      addChildPrimitive(
+        root,
+        'box',
+        'Plains Stone',
+        new pc.Vec3(0, 0.07 * scale, 0),
+        new pc.Vec3(0.26 * scale, 0.12 * scale, 0.19 * scale),
+        prop.variant < 128 ? this.rockMaterial : this.rockLightMaterial,
+      );
+      return;
+    }
+
     for (let index = 0; index < 3; index += 1) {
       const lateral = (index - 1) * 0.13 * scale;
       const forward = ((prop.variant + index * 47) % 5 - 2) * 0.035 * scale;
@@ -375,4 +418,3 @@ export class GeneratedWorldRenderBridge {
     }
   }
 }
-
