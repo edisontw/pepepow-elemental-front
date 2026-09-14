@@ -17,7 +17,7 @@ const ELEMENTALIST_IMPOSTOR_IDS = new Set([
 export const ELEMENTALIST_SCREEN_FRONT_RIGHT_VIEW_FRAME = 1;
 export const ELEMENTALIST_SCREEN_REAR_RIGHT_VIEW_FRAME = 3;
 export const ELEMENTALIST_SCREEN_FRONT_RIGHT_SCALE = 1.12;
-export const ELEMENTALIST_WATER_SCREEN_FRONT_RIGHT_SCALE = 1.32;
+export const ELEMENTALIST_WATER_SCREEN_FRONT_RIGHT_SCALE = 1.75;
 export const ELEMENTALIST_SCREEN_REAR_RIGHT_SCALE = 1;
 
 /**
@@ -25,8 +25,8 @@ export const ELEMENTALIST_SCREEN_REAR_RIGHT_SCALE = 1;
  * Front, Right, Rear, and screen Rear-Right remain the stable references.
  *
  * Fire, Ice, and Lightning share the standard Front-Right correction. Water
- * keeps a stronger asset-specific correction because manual WebGL QA still
- * reads its 07-front-right source as undersized after the shared adjustment.
+ * keeps a much stronger asset-specific correction because repeated manual
+ * WebGL QA still reads its 07-front-right source as substantially undersized.
  * This remains presentation-only and keeps the bottom edge pinned at runtime.
  */
 export const ELEMENTALIST_VIEW_FRAME_SCALES = [
