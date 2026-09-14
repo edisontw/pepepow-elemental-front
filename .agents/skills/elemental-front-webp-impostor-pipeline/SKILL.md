@@ -73,6 +73,27 @@ Each slug requires exactly eight genuine directional frames:
 
 Direction semantics are observer/camera positions around the unit. Never infer left/right only from which way a character appears to point on a 2D image. Use asymmetric equipment landmarks to verify anatomical side.
 
+### Screen movement versus observer-view labels
+
+Do not use player screen-movement names interchangeably with runtime observer-view labels. Under the fixed 45-degree RTS camera, the screen movement cycle maps to runtime view frames as follows:
+
+```text
+screen down       / Front       -> runtime frame 0
+screen down-right / Front-Right -> runtime frame 1
+screen right      / Right       -> runtime frame 2
+screen up-right   / Rear-Right  -> runtime frame 3
+screen up         / Rear        -> runtime frame 4
+screen up-left    / Rear-Left   -> runtime frame 5
+screen left       / Left        -> runtime frame 6
+screen down-left  / Front-Left  -> runtime frame 7
+```
+
+The runtime frame labels in `IMPOSTOR_UNIT_VIEW_LABELS` remain observer-relative. Because the current shared diagonal file-order rule swaps diagonal source files, runtime frame 1 loads `07-front-right.webp`, frame 3 loads `05-rear-right.webp`, frame 5 loads `03-rear-left.webp`, and frame 7 loads `01-front-left.webp`.
+
+When a human WebGL report names a screen direction such as "front-right" or "rear-right", translate that screen direction to the runtime frame first. Never assume screen Front-Right means canonical observer `Front-Right` / frame 7.
+
+Any temporary runtime scale compensation must compare both adjacent diagonal directions against the cardinal Front / Right / Rear references. Do not stack an isolated multiplier onto a frame until the screen-direction-to-runtime-frame mapping is proven.
+
 ## 4. IMAGE_GENERATION_GATE
 
 Generate **eight individual raw images per slug**, not one 4x2 contact sheet.
