@@ -34,6 +34,16 @@
   height: 12.35rem;
 }
 
+/* Keep contextual unit/building details in the open center lane instead of
+   covering the lower-left strategic HUD. The inspector injects its own late
+   runtime style block, so these placement overrides intentionally use !important. */
+.context-inspector {
+  left: 50% !important;
+  right: auto !important;
+  bottom: .55rem !important;
+  transform: translateX(-50%);
+}
+
 @media (max-width: 1100px) {
   #strategy-panel { width: 16.5rem; }
   #run-panel:not(.complete) { left: 17.6rem; right: 12.6rem; }
@@ -54,4 +64,8 @@
   #world-debug { top: .5rem; right: .5rem; width: 10.5rem; }
   #world-debug-canvas { width: 9.5rem; height: 9.5rem; }
   #run-panel:not(.complete) { display: none; }
+  .context-inspector {
+    top: .5rem !important;
+    bottom: auto !important;
+  }
 }
