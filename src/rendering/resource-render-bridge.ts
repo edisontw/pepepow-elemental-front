@@ -4,7 +4,7 @@ import type { GeneratedWorld } from '../world/world-definition';
 import { worldCellToSimulationPosition } from '../world/world-arena';
 
 const RESOURCE_PULSE_BASE_SCALE = 0.68;
-const RESOURCE_PULSE_HEIGHT = 0.012;
+const RESOURCE_PULSE_HEIGHT = 0.018;
 
 type PrimitiveType = 'box' | 'cylinder' | 'sphere';
 
