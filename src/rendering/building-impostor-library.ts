@@ -30,7 +30,7 @@ export class BuildingImpostorLibrary {
     this.shadowMaterial.name = 'BUILDING_IMPOSTOR_SHADOW';
     this.shadowMaterial.useLighting = false;
     this.shadowMaterial.diffuse = new pc.Color(0.02, 0.025, 0.025);
-    this.shadowMaterial.opacity = 0.18;
+    this.shadowMaterial.opacity = 0.07;
     this.shadowMaterial.blendType = pc.BLEND_NORMAL;
     this.shadowMaterial.depthWrite = false;
     this.shadowMaterial.cull = pc.CULLFACE_NONE;
@@ -79,6 +79,8 @@ export class BuildingImpostorLibrary {
       pivot.addChild(billboard);
       parent.addChild(pivot);
 
+      // Keep only a small, faint contact cue. The previous footprint-sized dark
+      // oval read as a second object beneath the pre-rendered building artwork.
       const shadow = new pc.Entity(`${config.label} Building Impostor Shadow`);
       shadow.addComponent('render', {
         type: 'cylinder',
@@ -87,7 +89,7 @@ export class BuildingImpostorLibrary {
         receiveShadows: false,
       });
       shadow.setLocalPosition(0, 0.018, 0);
-      shadow.setLocalScale(config.shadowX, 0.018, config.shadowZ);
+      shadow.setLocalScale(config.shadowX * 0.62, 0.012, config.shadowZ * 0.62);
       parent.addChild(shadow);
 
       // The legacy strategic renderer draws a large ownership/footprint cylinder.
