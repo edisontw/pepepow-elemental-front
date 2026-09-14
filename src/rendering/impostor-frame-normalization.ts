@@ -20,6 +20,13 @@ export const ELEMENTALIST_SCREEN_FRONT_RIGHT_SCALE = 1.12;
 export const ELEMENTALIST_WATER_SCREEN_FRONT_RIGHT_SCALE = 1.75;
 export const ELEMENTALIST_SCREEN_REAR_RIGHT_SCALE = 1;
 
+/** Spear Guard is intentionally larger at every view for battlefield readability. */
+export const SPEAR_GUARD_SCALE = 1.5;
+
+/** Under the fixed camera, screen down-left (player-facing front-left) is frame 7. */
+export const RANGER_SCREEN_FRONT_LEFT_VIEW_FRAME = 7;
+export const RANGER_SCREEN_FRONT_LEFT_SCALE = 1.18;
+
 /**
  * Explicit per-view presentation normalization for aligned Elementalists.
  * Front, Right, Rear, and screen Rear-Right remain the stable references.
@@ -51,9 +58,24 @@ export const ELEMENTALIST_WATER_VIEW_FRAME_SCALES = [
   1,
 ] as const;
 
+export const RANGER_VIEW_FRAME_SCALES = [
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  RANGER_SCREEN_FRONT_LEFT_SCALE,
+] as const;
+
 export function unitImpostorFrameScale(assetId: string, viewFrame: number): number {
   const normalizedFrame = ((Math.round(viewFrame) % 8) + 8) % 8;
+
+  if (assetId === 'unit.spear-guard') return SPEAR_GUARD_SCALE;
+  if (assetId === 'unit.ranger') return RANGER_VIEW_FRAME_SCALES[normalizedFrame] ?? 1;
   if (!ELEMENTALIST_IMPOSTOR_IDS.has(assetId)) return 1;
+
   const scales = assetId === 'unit.elementalist.water'
     ? ELEMENTALIST_WATER_VIEW_FRAME_SCALES
     : ELEMENTALIST_VIEW_FRAME_SCALES;
