@@ -142,14 +142,14 @@ export class GeneratedWorldRenderBridge {
   private readonly iceEntities: pc.Entity[] = [];
 
   private readonly groundMaterial = createMaterial(new pc.Color(0.19, 0.285, 0.17));
-  private readonly groundAccentMaterial = createMaterial(new pc.Color(0.235, 0.325, 0.19));
-  private readonly woodlandTintA = createMaterial(new pc.Color(0.115, 0.235, 0.105));
-  private readonly woodlandTintB = createMaterial(new pc.Color(0.145, 0.27, 0.12));
-  private readonly highlandTintA = createMaterial(new pc.Color(0.315, 0.315, 0.265));
-  private readonly highlandTintB = createMaterial(new pc.Color(0.375, 0.36, 0.295));
-  private readonly riverBankMaterial = createMaterial(new pc.Color(0.29, 0.29, 0.18));
-  private readonly routeShoulderMaterial = createMaterial(new pc.Color(0.275, 0.225, 0.145));
-  private readonly routeMaterial = createMaterial(new pc.Color(0.415, 0.335, 0.205));
+  private readonly groundAccentMaterial = createMaterial(new pc.Color(0.235, 0.325, 0.19), undefined, 0.12);
+  private readonly woodlandTintA = createMaterial(new pc.Color(0.095, 0.205, 0.09), undefined, 0.18);
+  private readonly woodlandTintB = createMaterial(new pc.Color(0.12, 0.23, 0.10), undefined, 0.15);
+  private readonly highlandTintA = createMaterial(new pc.Color(0.34, 0.33, 0.275), undefined, 0.16);
+  private readonly highlandTintB = createMaterial(new pc.Color(0.39, 0.365, 0.30), undefined, 0.13);
+  private readonly riverBankMaterial = createMaterial(new pc.Color(0.285, 0.285, 0.19), undefined, 0.52);
+  private readonly routeShoulderMaterial = createMaterial(new pc.Color(0.34, 0.305, 0.22));
+  private readonly routeMaterial = createMaterial(new pc.Color(0.41, 0.345, 0.225));
   private readonly riverMaterial = createMaterial(
     new pc.Color(0.055, 0.255, 0.39),
     new pc.Color(0.008, 0.055, 0.09),
@@ -257,17 +257,17 @@ export class GeneratedWorldRenderBridge {
     let woodlandPatches = 0;
     let highlandPatches = 0;
 
-    for (let z = 2; z < this.world.height - 2; z += 4) {
-      for (let x = 2; x < this.world.width - 2; x += 4) {
+    for (let z = 3; z < this.world.height - 3; z += 7) {
+      for (let x = 3; x < this.world.width - 3; x += 7) {
         const index = cellIndex(this.world, x, z);
         if (this.world.terrain[index] !== TerrainType.GROUND) continue;
 
         const biome = this.world.biome[index] as BiomeType;
         const variant = this.world.visualVariant[index] ?? 0;
         const neighbors = sameBiomeNeighborCount(this.world, x, z, biome);
-        const jitterX = (((variant & 15) / 15) - 0.5) * 1.2;
-        const jitterZ = ((((variant >> 4) & 15) / 15) - 0.5) * 1.2;
-        const rotation = (variant * 37) % 180;
+        const jitterX = (((variant & 15) / 15) - 0.5) * 2.2;
+        const jitterZ = ((((variant >> 4) & 15) / 15) - 0.5) * 2.2;
+        const rotation = (variant * 41) % 180;
 
         let material: pc.Material | null = null;
         let width = 0;
@@ -275,26 +275,26 @@ export class GeneratedWorldRenderBridge {
         let y = 0.008;
         let label = '';
 
-        if (biome === BiomeType.WOODLAND && neighbors >= 4 && woodlandPatches < 110) {
+        if (biome === BiomeType.WOODLAND && neighbors >= 6 && variant < 150 && woodlandPatches < 24) {
           material = (variant & 1) === 0 ? this.woodlandTintA : this.woodlandTintB;
-          width = 4.0 + (variant % 5) * 0.22;
-          depth = 3.1 + ((variant >> 3) % 5) * 0.18;
-          y = 0.011;
-          label = 'Woodland Tint';
+          width = 1.65 + (variant % 5) * 0.16;
+          depth = 1.15 + ((variant >> 3) % 5) * 0.13;
+          y = 0.010;
+          label = 'Woodland Ground Variation';
           woodlandPatches += 1;
-        } else if (biome === BiomeType.HIGHLANDS && neighbors >= 4 && highlandPatches < 100) {
+        } else if (biome === BiomeType.HIGHLANDS && neighbors >= 6 && variant < 138 && highlandPatches < 20) {
           material = (variant & 1) === 0 ? this.highlandTintA : this.highlandTintB;
-          width = 4.25 + (variant % 5) * 0.24;
-          depth = 3.2 + ((variant >> 3) % 5) * 0.2;
-          y = 0.01;
-          label = 'Highland Tint';
+          width = 1.85 + (variant % 5) * 0.17;
+          depth = 1.22 + ((variant >> 3) % 5) * 0.14;
+          y = 0.009;
+          label = 'Highland Ground Variation';
           highlandPatches += 1;
-        } else if (biome === BiomeType.PLAINS && (variant % 5) === 0 && plainsPatches < 42) {
+        } else if (biome === BiomeType.PLAINS && (variant % 13) === 0 && plainsPatches < 10) {
           material = this.groundAccentMaterial;
-          width = 2.8 + (variant % 7) * 0.14;
-          depth = 1.8 + ((variant >> 2) % 7) * 0.11;
+          width = 1.35 + (variant % 5) * 0.14;
+          depth = 0.86 + ((variant >> 2) % 5) * 0.10;
           y = 0.006;
-          label = 'Plains Accent';
+          label = 'Plains Ground Variation';
           plainsPatches += 1;
         }
 
@@ -304,7 +304,7 @@ export class GeneratedWorldRenderBridge {
           'cylinder',
           `${label} ${x},${z}`,
           new pc.Vec3(originX + x + 0.5 + jitterX, y, originZ + z + 0.5 + jitterZ),
-          new pc.Vec3(width, 0.008, depth),
+          new pc.Vec3(width, 0.006, depth),
           material,
           rotation,
         ));
@@ -337,27 +337,27 @@ export class GeneratedWorldRenderBridge {
     let count = 0;
     for (let z = 1; z < this.world.height - 1; z += 1) {
       for (let x = 1; x < this.world.width - 1; x += 1) {
-        if (count >= 100) return;
+        if (count >= 60) return;
         const index = cellIndex(this.world, x, z);
         if (this.world.terrain[index] !== TerrainType.GROUND) continue;
         const direction = waterDirection(this.world, x, z);
         if (!direction) continue;
         const variant = this.world.visualVariant[index] ?? 0;
-        if ((variant & 3) === 3) continue;
+        if ((variant & 3) >= 2) continue;
 
         const [waterX, waterZ] = direction;
         const magnitude = Math.max(1, Math.abs(waterX) + Math.abs(waterZ));
-        const shiftX = (waterX / magnitude) * 0.24;
-        const shiftZ = (waterZ / magnitude) * 0.24;
+        const shiftX = (waterX / magnitude) * 0.18;
+        const shiftZ = (waterZ / magnitude) * 0.18;
         const rotation = Math.atan2(waterZ, waterX) * 180 / Math.PI;
-        const longAxis = 1.08 + (variant % 5) * 0.06;
+        const longAxis = 0.78 + (variant % 4) * 0.06;
 
         this.staticEntities.push(addPrimitive(
           this.app,
           'cylinder',
           `Soft River Bank ${x},${z}`,
-          new pc.Vec3(originX + x + 0.5 + shiftX, 0.018, originZ + z + 0.5 + shiftZ),
-          new pc.Vec3(longAxis, 0.008, 0.46),
+          new pc.Vec3(originX + x + 0.5 + shiftX, 0.017, originZ + z + 0.5 + shiftZ),
+          new pc.Vec3(longAxis, 0.006, 0.31),
           this.riverBankMaterial,
           rotation,
         ));
@@ -415,24 +415,24 @@ export class GeneratedWorldRenderBridge {
     const dx = endX - startX;
     const dz = endZ - startZ;
     const distance = Math.sqrt(dx * dx + dz * dz);
-    const coreWidth = 0.5 + Math.min(0.28, Math.max(1, widthCells) * 0.08);
-    const shoulderWidth = coreWidth + 0.38;
+    const coreWidth = 0.48 + Math.min(0.22, Math.max(1, widthCells) * 0.07);
+    const shoulderWidth = coreWidth + 0.18;
 
     if (distance < 0.001) {
       this.staticEntities.push(addPrimitive(
         this.app,
         'cylinder',
         `Route Shoulder Joint ${index}`,
-        new pc.Vec3(startX, 0.021, startZ),
-        new pc.Vec3(shoulderWidth, 0.016, shoulderWidth),
+        new pc.Vec3(startX, 0.019, startZ),
+        new pc.Vec3(shoulderWidth, 0.010, shoulderWidth),
         this.routeShoulderMaterial,
       ));
       this.staticEntities.push(addPrimitive(
         this.app,
         'cylinder',
         `Route Core Joint ${index}`,
-        new pc.Vec3(startX, 0.028, startZ),
-        new pc.Vec3(coreWidth, 0.012, coreWidth),
+        new pc.Vec3(startX, 0.024, startZ),
+        new pc.Vec3(coreWidth, 0.008, coreWidth),
         this.routeMaterial,
       ));
       return;
@@ -441,14 +441,14 @@ export class GeneratedWorldRenderBridge {
     const angle = Math.atan2(dx, dz) * 180 / Math.PI;
     const centreX = (startX + endX) * 0.5;
     const centreZ = (startZ + endZ) * 0.5;
-    const length = distance + 0.74;
+    const length = distance + 0.58;
 
     this.staticEntities.push(addPrimitive(
       this.app,
       'box',
       `Route Shoulder ${index}`,
-      new pc.Vec3(centreX, 0.021, centreZ),
-      new pc.Vec3(shoulderWidth, 0.015, length),
+      new pc.Vec3(centreX, 0.019, centreZ),
+      new pc.Vec3(shoulderWidth, 0.009, length),
       this.routeShoulderMaterial,
       angle,
     ));
@@ -456,8 +456,8 @@ export class GeneratedWorldRenderBridge {
       this.app,
       'box',
       `Route Core ${index}`,
-      new pc.Vec3(centreX, 0.029, centreZ),
-      new pc.Vec3(coreWidth, 0.012, length * 0.985),
+      new pc.Vec3(centreX, 0.024, centreZ),
+      new pc.Vec3(coreWidth, 0.007, length * 0.99),
       this.routeMaterial,
       angle,
     ));
@@ -502,11 +502,11 @@ export class GeneratedWorldRenderBridge {
   }
 
   private shouldRenderProp(prop: EnvironmentVisualProp): boolean {
-    if (prop.kind === 'WOODLAND_GROVE') return prop.variant < 172;
-    if (prop.kind === 'WOODLAND_EDGE') return prop.variant < 156;
-    if (prop.kind === 'HIGHLAND_RIDGE') return prop.variant < 158;
-    if (prop.kind === 'HIGHLAND_ROCK') return prop.variant < 128;
-    if (prop.kind === 'PLAINS_STONE') return prop.variant < 150;
+    if (prop.kind === 'WOODLAND_GROVE') return prop.variant < 210;
+    if (prop.kind === 'WOODLAND_EDGE') return prop.variant < 182;
+    if (prop.kind === 'HIGHLAND_RIDGE') return prop.variant < 132;
+    if (prop.kind === 'HIGHLAND_ROCK') return prop.variant < 96;
+    if (prop.kind === 'PLAINS_STONE') return prop.variant < 118;
     return true;
   }
 
@@ -515,8 +515,8 @@ export class GeneratedWorldRenderBridge {
 
     if (prop.kind === 'WOODLAND_GROVE' || prop.kind === 'WOODLAND_EDGE') {
       const offsets = prop.kind === 'WOODLAND_GROVE'
-        ? [[-0.3, -0.16, 1.02], [0.28, 0.12, 0.91], [-0.03, 0.3, 0.82], [0.18, -0.28, 0.72]] as const
-        : [[-0.12, 0, 0.98], [0.24, 0.18, 0.7]] as const;
+        ? [[-0.34, -0.18, 1.04], [0.27, 0.10, 0.98], [-0.04, 0.34, 0.88], [0.22, -0.30, 0.80], [-0.34, 0.30, 0.72]] as const
+        : [[-0.12, 0, 0.98], [0.24, 0.18, 0.72]] as const;
       for (const [offsetX, offsetZ, treeScale] of offsets) {
         const localScale = scale * treeScale;
         addChildPrimitive(
@@ -532,7 +532,7 @@ export class GeneratedWorldRenderBridge {
           'sphere',
           'Tree Crown',
           new pc.Vec3(offsetX * scale, 1.08 * localScale, offsetZ * scale),
-          new pc.Vec3(0.58 * localScale, 0.72 * localScale, 0.58 * localScale),
+          new pc.Vec3(0.64 * localScale, 0.76 * localScale, 0.64 * localScale),
           ((prop.variant + Math.round(offsetX * 100)) & 1) === 0 ? this.canopyMaterial : this.canopyLightMaterial,
         );
       }
