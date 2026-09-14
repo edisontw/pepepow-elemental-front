@@ -97,7 +97,31 @@ Goals: strong top-down silhouettes, clear gameplay-role readability, one coheren
 
 ### Step 2 - Terrain and environment
 
-Improve terrain materials, roads, forest grouping, shoreline / river edges, resource-node clarity, settlement-adjacent props, and environmental dressing.
+Treat this as a complete **Terrain & Environment Pass**, not as a generic prop-scatter pass.
+
+Execution order:
+
+1. **surface material layering** - establish readable plains / woodland / highland ground families with secondary soil, floor, scree, and moisture/value breakup so large areas do not read as flat single-color tiles;
+2. **roads and circulation** - roads require a readable shoulder/core hierarchy, crossings, and restrained roadside cues so the route network reads as intentional infrastructure rather than painted grid cells;
+3. **biome boundaries** - soften abrupt biome transitions with edge vegetation, stones, floor changes, and clustered forms while preserving immediate gameplay classification;
+4. **forest grouping** - prefer groves, edge trees, understory, and canopy massing over evenly distributed isolated trees;
+5. **settlement-adjacent dressing** - add restrained supplies, posts, crates, service clutter, and path-side details around player/enemy settlement areas and villages without blocking unit readability;
+6. **resource / POI surroundings** - make resource sites and points of interest read as deliberately occupied locations with footprints, debris, stones, crystals, stakes, ruins, or other restrained context appropriate to the site;
+7. **shoreline / river / highland detail** - reinforce bank transitions, reeds, stones, scree, ridges, and elevation cues so water and high ground feel integrated into the battlefield instead of being flat color regions.
+
+`PLAINS_SCRUB` / `PLAINS_STONE`-style scatter is only the **first dressing layer**. Its presence does not mean Step 2 is complete.
+
+Step 2 acceptance:
+
+- terrain reads as layered rather than flat-color zoning;
+- roads visually connect settlements, crossings, resources, and strategic spaces;
+- forest reads as grouped woodland mass with visible edges, not evenly scattered trees;
+- shoreline and highland transitions have readable physical edge cues;
+- resource nodes and POIs have clear surrounding context before labels or UI are read;
+- settlement areas feel inhabited / serviced rather than buildings dropped onto empty ground;
+- visual detail remains subordinate to units, selection rings, build footprints, spell footprints, and navigation;
+- dressing is deterministic presentation-only and does not change world-generation/gameplay identity;
+- prop/material cost remains compatible with the browser performance target.
 
 ### Step 3 - HUD and command surfaces
 
@@ -138,5 +162,7 @@ For screen-presentation work, read:
 2. `docs/VISUAL_IMPLEMENTATION_BRIEF.md`
 3. this file
 4. only task-relevant runtime/art files
+
+For Step 2 background work, **this file is the primary visual acceptance reference** after the locked architecture constraints in the first two documents.
 
 Do not reopen closed gameplay milestones merely to chase presentation.
