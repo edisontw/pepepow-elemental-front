@@ -25,7 +25,7 @@ export const SPEAR_GUARD_SCALE = 1.5;
 
 /** Under the fixed camera, screen down-left (player-facing front-left) is frame 7. */
 export const RANGER_SCREEN_FRONT_LEFT_VIEW_FRAME = 7;
-export const RANGER_SCREEN_FRONT_LEFT_SCALE = 1.18;
+export const RANGER_SCREEN_FRONT_LEFT_SCALE = 1.3;
 
 /**
  * Explicit per-view presentation normalization for aligned Elementalists.
