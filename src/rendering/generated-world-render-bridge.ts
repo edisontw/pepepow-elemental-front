@@ -76,8 +76,8 @@ function createVertexMaterial(name: string, transparent = false, unlit = false):
     material.opacityVertexColor = true;
     material.blendType = pc.BLEND_NORMAL;
     material.depthWrite = false;
-    material.cull = pc.CULLFACE_NONE;
   }
+  if (transparent || name.startsWith('ENV_ROAD')) material.cull = pc.CULLFACE_NONE;
   material.update();
   return material;
 }
