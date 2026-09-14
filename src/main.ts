@@ -30,6 +30,7 @@ import {
 } from './simulation/m06-simulation';
 import type { RunMode, RunPace } from './simulation/m06-content';
 import { addMissingVisualQaUnits } from './simulation/visual-qa-roster';
+import { ContextInspector } from './ui/context-inspector';
 import { DebugOverlay } from './ui/debug-overlay';
 import { ManaSystemHud } from './ui/mana-system-hud';
 import { PoiCaptureHint } from './ui/poi-capture-hint';
@@ -180,6 +181,13 @@ async function boot(): Promise<void> {
       canvas,
       (clientX, clientY) => scene.screenToSimulationPosition(clientX, clientY),
     );
+    const contextInspector = new ContextInspector(
+      simulation,
+      () => scene.selectedUnits,
+      canvas,
+      strategyElement,
+      (clientX, clientY) => scene.screenToSimulationPosition(clientX, clientY),
+    );
     const manaSystemHud = new ManaSystemHud(strategyElement, simulation, () => scene.selectedUnits.map((unit) => unit.id));
     const poiCaptureHint = new PoiCaptureHint(strategyElement, simulation, () => scene.selectedUnits);
     const resourceDefensePanel = new ResourceDefensePanel(strategyElement, simulation);
@@ -193,6 +201,7 @@ async function boot(): Promise<void> {
       scene.sync(frame);
       overlay.update(deltaSeconds, frame, scene.selectedUnits);
       strategyPanel.update(deltaSeconds);
+      contextInspector.update(deltaSeconds);
       manaSystemHud.update(deltaSeconds);
       poiCaptureHint.update(deltaSeconds);
       resourceDefensePanel.update(deltaSeconds);
@@ -221,6 +230,7 @@ async function boot(): Promise<void> {
       resourceDefensePanel.destroy();
       poiCaptureHint.destroy();
       manaSystemHud.destroy();
+      contextInspector.destroy();
       strategyPanel.destroy();
       scene.destroy();
     }, { once: true });
