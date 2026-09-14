@@ -17,16 +17,17 @@ const ELEMENTALIST_IMPOSTOR_IDS = new Set([
 export const ELEMENTALIST_SCREEN_FRONT_RIGHT_VIEW_FRAME = 1;
 export const ELEMENTALIST_SCREEN_REAR_RIGHT_VIEW_FRAME = 3;
 export const ELEMENTALIST_SCREEN_FRONT_RIGHT_SCALE = 1.12;
+export const ELEMENTALIST_WATER_SCREEN_FRONT_RIGHT_SCALE = 1.32;
 export const ELEMENTALIST_SCREEN_REAR_RIGHT_SCALE = 1;
 
 /**
  * Explicit per-view presentation normalization for aligned Elementalists.
  * Front, Right, Rear, and screen Rear-Right remain the stable references.
- * Only the demonstrated undersized screen Front-Right view is enlarged.
  *
- * Keep all eight slots explicit so a later visual calibration compares the
- * complete cycle instead of stacking one-off direction patches. Plane scaling
- * remains bottom-pinned in VisualAssetLibrary, preserving the foot baseline.
+ * Fire, Ice, and Lightning share the standard Front-Right correction. Water
+ * keeps a stronger asset-specific correction because manual WebGL QA still
+ * reads its 07-front-right source as undersized after the shared adjustment.
+ * This remains presentation-only and keeps the bottom edge pinned at runtime.
  */
 export const ELEMENTALIST_VIEW_FRAME_SCALES = [
   1,
@@ -39,8 +40,22 @@ export const ELEMENTALIST_VIEW_FRAME_SCALES = [
   1,
 ] as const;
 
+export const ELEMENTALIST_WATER_VIEW_FRAME_SCALES = [
+  1,
+  ELEMENTALIST_WATER_SCREEN_FRONT_RIGHT_SCALE,
+  1,
+  ELEMENTALIST_SCREEN_REAR_RIGHT_SCALE,
+  1,
+  1,
+  1,
+  1,
+] as const;
+
 export function unitImpostorFrameScale(assetId: string, viewFrame: number): number {
   const normalizedFrame = ((Math.round(viewFrame) % 8) + 8) % 8;
   if (!ELEMENTALIST_IMPOSTOR_IDS.has(assetId)) return 1;
-  return ELEMENTALIST_VIEW_FRAME_SCALES[normalizedFrame] ?? 1;
+  const scales = assetId === 'unit.elementalist.water'
+    ? ELEMENTALIST_WATER_VIEW_FRAME_SCALES
+    : ELEMENTALIST_VIEW_FRAME_SCALES;
+  return scales[normalizedFrame] ?? 1;
 }
