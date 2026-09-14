@@ -28,20 +28,35 @@ describe('M08 environment visual layout', () => {
       const index = prop.cellZ * world.width + prop.cellX;
       const terrain = world.terrain[index];
       const biome = world.biome[index];
+      const flags = world.flags[index] ?? 0;
       if (prop.kind === 'WOODLAND_TREE') {
         expect(terrain).toBe(TerrainType.GROUND);
         expect(biome).toBe(BiomeType.WOODLAND);
-        expect((world.flags[index]! & WorldCellFlag.ROUTE) === 0).toBe(true);
+        expect((flags & WorldCellFlag.ROUTE) === 0).toBe(true);
       } else if (prop.kind === 'HIGHLAND_ROCK') {
         expect(terrain).toBe(TerrainType.GROUND);
         expect(biome).toBe(BiomeType.HIGHLANDS);
-        expect((world.flags[index]! & WorldCellFlag.ROUTE) === 0).toBe(true);
+        expect((flags & WorldCellFlag.ROUTE) === 0).toBe(true);
+      } else if (prop.kind === 'PLAINS_SCRUB' || prop.kind === 'PLAINS_STONE') {
+        expect(terrain).toBe(TerrainType.GROUND);
+        expect(biome).toBe(BiomeType.PLAINS);
+        expect((flags & WorldCellFlag.ROUTE) === 0).toBe(true);
       } else {
+        expect(prop.kind).toBe('RIVER_REED');
         expect(terrain).toBe(TerrainType.WATER);
       }
       expect(prop.scale).toBeGreaterThan(0);
       expect(Math.abs(prop.offsetX)).toBeLessThanOrEqual(0.22);
       expect(Math.abs(prop.offsetZ)).toBeLessThanOrEqual(0.22);
     }
+  });
+
+  it('adds restrained visual detail to open plains without consuming gameplay state', () => {
+    const world = generateWorld(42);
+    const plainsDetail = createEnvironmentVisualLayout(world).filter(
+      (prop) => prop.kind === 'PLAINS_SCRUB' || prop.kind === 'PLAINS_STONE',
+    );
+    expect(plainsDetail.length).toBeGreaterThan(0);
+    expect(world.identity.rulesetVersion).toBe('m02-standard-v1');
   });
 });
