@@ -2,6 +2,7 @@ import * as pc from 'playcanvas';
 import manifest from '../../data/assets/manifest.json';
 import { RTS_CAMERA_YAW_DEGREES, stableImpostorFrameForHeading } from './impostor-frame';
 import { impostorFrameFiles } from './impostor-frame-assets';
+import { unitImpostorFrameScale } from './impostor-frame-normalization';
 
 interface ImpostorConfig {
   id: string;
@@ -124,6 +125,9 @@ interface ImpostorHandle {
   plane: pc.Entity;
   shadow: pc.Entity;
   materials: readonly pc.StandardMaterial[];
+  configId: string;
+  baseWidth: number;
+  baseHeight: number;
   facingYawDegrees: number;
   viewFrame: number;
   update: () => void;
@@ -230,8 +234,13 @@ export class VisualAssetLibrary {
     impostor.billboard.setEulerAngles(0, RTS_CAMERA_YAW_DEGREES, 0);
     const viewFrame = stableImpostorFrameForHeading(headingDegrees, impostor.viewFrame);
     if (viewFrame === impostor.viewFrame) return;
+
     const material = impostor.materials[viewFrame];
     if (impostor.plane.render && material) impostor.plane.render.material = material;
+
+    const frameScale = unitImpostorFrameScale(impostor.configId, viewFrame);
+    impostor.plane.setLocalPosition(0, impostor.baseHeight * frameScale * 0.5, 0);
+    impostor.plane.setLocalScale(impostor.baseWidth * frameScale, 1, impostor.baseHeight * frameScale);
     impostor.viewFrame = viewFrame;
   }
 
@@ -325,6 +334,9 @@ export class VisualAssetLibrary {
         plane,
         shadow,
         materials,
+        configId: config.id,
+        baseWidth: config.width,
+        baseHeight: config.height,
         facingYawDegrees: initialFacingYaw,
         viewFrame: -1,
         update,

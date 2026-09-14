@@ -6,7 +6,12 @@ import {
   type GridPoint,
 } from '../world/world-definition';
 
-export type EnvironmentPropKind = 'WOODLAND_TREE' | 'HIGHLAND_ROCK' | 'RIVER_REED';
+export type EnvironmentPropKind =
+  | 'WOODLAND_TREE'
+  | 'HIGHLAND_ROCK'
+  | 'RIVER_REED'
+  | 'PLAINS_SCRUB'
+  | 'PLAINS_STONE';
 
 export interface EnvironmentVisualProp {
   kind: EnvironmentPropKind;
@@ -19,7 +24,7 @@ export interface EnvironmentVisualProp {
   variant: number;
 }
 
-export const MAX_ENVIRONMENT_PROPS = 240;
+export const MAX_ENVIRONMENT_PROPS = 300;
 
 function cellIndex(world: GeneratedWorld, x: number, z: number): number {
   return z * world.width + x;
@@ -97,6 +102,8 @@ export function createEnvironmentVisualLayout(world: GeneratedWorld): readonly E
   const woodland: EnvironmentVisualProp[] = [];
   const highlands: EnvironmentVisualProp[] = [];
   const river: EnvironmentVisualProp[] = [];
+  const plainsScrub: EnvironmentVisualProp[] = [];
+  const plainsStone: EnvironmentVisualProp[] = [];
 
   for (let z = 1; z < world.height - 1; z += 2) {
     for (let x = 1; x < world.width - 1; x += 2) {
@@ -106,21 +113,28 @@ export function createEnvironmentVisualLayout(world: GeneratedWorld): readonly E
       if (terrain === TerrainType.GROUND && !reserved.has(index) && (flags & WorldCellFlag.ROUTE) === 0) {
         const biome = world.biome[index];
         const density = visualByte(world, x, z, 3);
-        if (biome === BiomeType.WOODLAND && density < 92 && woodland.length < 128) {
+        if (biome === BiomeType.WOODLAND && density < 92 && woodland.length < 120) {
           woodland.push(makeProp(world, 'WOODLAND_TREE', x, z, 31));
-        } else if (biome === BiomeType.HIGHLANDS && density < 76 && highlands.length < 72) {
+        } else if (biome === BiomeType.HIGHLANDS && density < 76 && highlands.length < 64) {
           highlands.push(makeProp(world, 'HIGHLAND_ROCK', x, z, 47));
+        } else if (biome === BiomeType.PLAINS) {
+          const plainsDensity = visualByte(world, x, z, 83);
+          if (plainsDensity < 54 && plainsScrub.length < 56) {
+            plainsScrub.push(makeProp(world, 'PLAINS_SCRUB', x, z, 89));
+          } else if (plainsDensity < 92 && plainsStone.length < 28) {
+            plainsStone.push(makeProp(world, 'PLAINS_STONE', x, z, 101));
+          }
         }
       } else if (
         terrain === TerrainType.WATER
         && touchesLand(world, x, z)
         && visualByte(world, x, z, 59) < 92
-        && river.length < 40
+        && river.length < 32
       ) {
         river.push(makeProp(world, 'RIVER_REED', x, z, 67));
       }
     }
   }
 
-  return [...woodland, ...highlands, ...river].slice(0, MAX_ENVIRONMENT_PROPS);
+  return [...woodland, ...highlands, ...river, ...plainsScrub, ...plainsStone].slice(0, MAX_ENVIRONMENT_PROPS);
 }
