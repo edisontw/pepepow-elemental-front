@@ -18,9 +18,11 @@ export const POI_VISUAL_PROFILES: Readonly<Record<PoiType, PoiVisualProfile>> = 
     label: 'Shrine',
     minimapGlyph: 'STAR',
     landmark: [
-      { primitive: 'cylinder', position: [0, 0.18, 0], scale: [0.82, 0.22, 0.82] },
-      { primitive: 'box', position: [0, 0.82, 0], scale: [0.3, 1.08, 0.3] },
-      { primitive: 'sphere', position: [0, 1.48, 0], scale: [0.32, 0.32, 0.32] },
+      { primitive: 'cylinder', position: [0, 0.12, 0], scale: [1.02, 0.16, 1.02] },
+      { primitive: 'box', position: [-0.42, 0.72, 0], scale: [0.2, 1.08, 0.24] },
+      { primitive: 'box', position: [0.42, 0.72, 0], scale: [0.2, 1.08, 0.24] },
+      { primitive: 'box', position: [0, 1.24, 0], scale: [1.08, 0.18, 0.28] },
+      { primitive: 'sphere', position: [0, 1.62, 0], scale: [0.3, 0.3, 0.3] },
     ],
   },
   NEUTRAL_CAMP: {
