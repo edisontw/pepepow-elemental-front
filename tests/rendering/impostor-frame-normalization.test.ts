@@ -5,12 +5,13 @@ import {
   ELEMENTALIST_SCREEN_REAR_RIGHT_SCALE,
   ELEMENTALIST_SCREEN_REAR_RIGHT_VIEW_FRAME,
   ELEMENTALIST_VIEW_FRAME_SCALES,
+  ELEMENTALIST_WATER_SCREEN_FRONT_RIGHT_SCALE,
+  ELEMENTALIST_WATER_VIEW_FRAME_SCALES,
   unitImpostorFrameScale,
 } from '../../src/rendering/impostor-frame-normalization';
 
-const ELEMENTALIST_IDS = [
+const STANDARD_ELEMENTALIST_IDS = [
   'unit.elementalist.fire',
-  'unit.elementalist.water',
   'unit.elementalist.ice',
   'unit.elementalist.lightning',
 ] as const;
@@ -21,7 +22,7 @@ describe('Elementalist impostor frame normalization', () => {
     expect(ELEMENTALIST_SCREEN_REAR_RIGHT_VIEW_FRAME).toBe(3);
   });
 
-  it('uses one explicit eight-view normalization table for all aligned Elementalists', () => {
+  it('keeps the shared eight-view normalization for Fire, Ice, and Lightning', () => {
     expect(ELEMENTALIST_VIEW_FRAME_SCALES).toEqual([
       1,
       ELEMENTALIST_SCREEN_FRONT_RIGHT_SCALE,
@@ -33,21 +34,37 @@ describe('Elementalist impostor frame normalization', () => {
       1,
     ]);
 
-    for (const id of ELEMENTALIST_IDS) {
+    for (const id of STANDARD_ELEMENTALIST_IDS) {
       for (let frame = 0; frame < 8; frame += 1) {
         expect(unitImpostorFrameScale(id, frame)).toBe(ELEMENTALIST_VIEW_FRAME_SCALES[frame]);
       }
     }
   });
 
-  it('corrects screen Front-Right without enlarging the opposite runtime diagonal', () => {
-    for (const id of ELEMENTALIST_IDS) {
-      expect(unitImpostorFrameScale(id, ELEMENTALIST_SCREEN_FRONT_RIGHT_VIEW_FRAME))
-        .toBe(ELEMENTALIST_SCREEN_FRONT_RIGHT_SCALE);
-      expect(unitImpostorFrameScale(id, ELEMENTALIST_SCREEN_REAR_RIGHT_VIEW_FRAME))
-        .toBe(ELEMENTALIST_SCREEN_REAR_RIGHT_SCALE);
-      expect(unitImpostorFrameScale(id, 7)).toBe(1);
+  it('uses a stronger Front-Right correction only for Water', () => {
+    expect(ELEMENTALIST_WATER_SCREEN_FRONT_RIGHT_SCALE)
+      .toBeGreaterThan(ELEMENTALIST_SCREEN_FRONT_RIGHT_SCALE);
+    expect(ELEMENTALIST_WATER_VIEW_FRAME_SCALES).toEqual([
+      1,
+      ELEMENTALIST_WATER_SCREEN_FRONT_RIGHT_SCALE,
+      1,
+      ELEMENTALIST_SCREEN_REAR_RIGHT_SCALE,
+      1,
+      1,
+      1,
+      1,
+    ]);
+
+    for (let frame = 0; frame < 8; frame += 1) {
+      expect(unitImpostorFrameScale('unit.elementalist.water', frame))
+        .toBe(ELEMENTALIST_WATER_VIEW_FRAME_SCALES[frame]);
     }
+  });
+
+  it('does not enlarge Water Rear-Right or the opposite runtime diagonal', () => {
+    expect(unitImpostorFrameScale('unit.elementalist.water', ELEMENTALIST_SCREEN_REAR_RIGHT_VIEW_FRAME))
+      .toBe(ELEMENTALIST_SCREEN_REAR_RIGHT_SCALE);
+    expect(unitImpostorFrameScale('unit.elementalist.water', 7)).toBe(1);
   });
 
   it('does not resize other unit impostors', () => {
