@@ -12,17 +12,20 @@ function material(
   color: pc.Color,
   emissive: pc.Color,
   opacity = 1,
-  emissiveIntensity = 0.78,
+  emissiveIntensity = 0.5,
+  gloss = 0.24,
 ): pc.StandardMaterial {
   const result = new pc.StandardMaterial();
   result.diffuse = color;
   result.emissive = emissive;
   result.emissiveIntensity = emissiveIntensity;
-  result.gloss = 0.32;
+  result.gloss = gloss;
+  result.metalness = 0;
   result.opacity = opacity;
   if (opacity < 1) {
     result.blendType = pc.BLEND_NORMAL;
     result.depthWrite = false;
+    result.cull = pc.CULLFACE_NONE;
   }
   result.update();
   return result;
@@ -61,60 +64,83 @@ export class ResourceRenderBridge {
   private readonly entities: { root: pc.Entity; marker: pc.Entity; rich: boolean }[] = [];
 
   private readonly groundFootprint = material(
-    new pc.Color(0.2, 0.19, 0.14),
-    new pc.Color(0.008, 0.006, 0.003),
+    new pc.Color(0.17, 0.16, 0.12),
+    new pc.Color(0.004, 0.003, 0.002),
     1,
-    0.35,
+    0.2,
+    0.1,
   );
-  private readonly rubble = material(
-    new pc.Color(0.39, 0.37, 0.31),
-    new pc.Color(0.008, 0.007, 0.005),
+  private readonly stoneDark = material(
+    new pc.Color(0.27, 0.27, 0.24),
+    new pc.Color(0.004, 0.004, 0.003),
     1,
-    0.25,
+    0.18,
+    0.16,
+  );
+  private readonly stoneLight = material(
+    new pc.Color(0.4, 0.39, 0.34),
+    new pc.Color(0.006, 0.005, 0.004),
+    1,
+    0.18,
+    0.18,
+  );
+  private readonly timber = material(
+    new pc.Color(0.27, 0.16, 0.075),
+    new pc.Color(0.004, 0.002, 0.001),
+    1,
+    0.18,
+    0.1,
   );
 
-  private readonly materialDeposit = material(
-    new pc.Color(0.35, 0.27, 0.18),
-    new pc.Color(0.025, 0.014, 0.005),
+  private readonly materialRock = material(
+    new pc.Color(0.33, 0.29, 0.23),
+    new pc.Color(0.008, 0.006, 0.004),
     1,
-    0.45,
+    0.24,
+    0.17,
   );
-  private readonly materialAccent = material(
-    new pc.Color(0.82, 0.56, 0.21),
-    new pc.Color(0.18, 0.075, 0.01),
+  private readonly materialOre = material(
+    new pc.Color(0.64, 0.43, 0.16),
+    new pc.Color(0.09, 0.035, 0.004),
     1,
-    0.72,
+    0.5,
+    0.38,
   );
   private readonly materialPulse = material(
-    new pc.Color(0.73, 0.46, 0.14),
-    new pc.Color(0.16, 0.055, 0.008),
-    0.14,
-    0.55,
+    new pc.Color(0.58, 0.38, 0.13),
+    new pc.Color(0.09, 0.03, 0.004),
+    0.08,
+    0.34,
+    0.06,
   );
 
-  private readonly manaDeposit = material(
-    new pc.Color(0.18, 0.21, 0.31),
-    new pc.Color(0.018, 0.022, 0.07),
+  private readonly manaStone = material(
+    new pc.Color(0.18, 0.2, 0.24),
+    new pc.Color(0.008, 0.009, 0.018),
     1,
-    0.55,
+    0.3,
+    0.2,
   );
   private readonly manaAccent = material(
-    new pc.Color(0.43, 0.35, 0.76),
-    new pc.Color(0.12, 0.055, 0.29),
+    new pc.Color(0.34, 0.3, 0.58),
+    new pc.Color(0.07, 0.035, 0.18),
     1,
-    0.76,
+    0.58,
+    0.34,
   );
   private readonly manaCore = material(
-    new pc.Color(0.58, 0.64, 0.88),
-    new pc.Color(0.15, 0.17, 0.42),
+    new pc.Color(0.48, 0.53, 0.72),
+    new pc.Color(0.1, 0.11, 0.27),
     1,
-    0.82,
+    0.64,
+    0.42,
   );
   private readonly manaPulse = material(
-    new pc.Color(0.37, 0.29, 0.68),
-    new pc.Color(0.11, 0.05, 0.3),
-    0.14,
-    0.58,
+    new pc.Color(0.31, 0.27, 0.54),
+    new pc.Color(0.07, 0.03, 0.18),
+    0.08,
+    0.38,
+    0.06,
   );
 
   constructor(app: pc.Application, world: GeneratedWorld) {
@@ -124,33 +150,46 @@ export class ResourceRenderBridge {
       root.setPosition(position.x / WORLD_UNITS_PER_METER, 0.025, position.z / WORLD_UNITS_PER_METER);
       const scale = resource.rich ? 1.18 : 1;
 
-      primitive(root, 'cylinder', 'Resource Ground Footprint', [0, 0.035, 0], [1.08 * scale, 0.035, 0.94 * scale], this.groundFootprint);
-      primitive(root, 'sphere', 'Resource Rubble A', [-0.72 * scale, 0.08, 0.18 * scale], [0.2 * scale, 0.12 * scale, 0.16 * scale], this.rubble);
-      primitive(root, 'sphere', 'Resource Rubble B', [0.68 * scale, 0.07, -0.28 * scale], [0.16 * scale, 0.1 * scale, 0.14 * scale], this.rubble);
-      primitive(root, 'sphere', 'Resource Rubble C', [0.22 * scale, 0.06, 0.7 * scale], [0.14 * scale, 0.08 * scale, 0.12 * scale], this.rubble);
+      primitive(root, 'cylinder', 'Resource Ground Footprint', [0, 0.028, 0], [1.16 * scale, 0.028, 1.0 * scale], this.groundFootprint);
+      primitive(root, 'sphere', 'Resource Ground Stone A', [-0.77 * scale, 0.08, 0.2 * scale], [0.23 * scale, 0.12 * scale, 0.18 * scale], this.stoneDark);
+      primitive(root, 'sphere', 'Resource Ground Stone B', [0.72 * scale, 0.07, -0.3 * scale], [0.19 * scale, 0.1 * scale, 0.15 * scale], this.stoneLight);
+      primitive(root, 'sphere', 'Resource Ground Stone C', [0.26 * scale, 0.055, 0.74 * scale], [0.16 * scale, 0.08 * scale, 0.13 * scale], this.stoneDark);
 
       if (resource.type === 'MATERIAL') {
-        primitive(root, 'cylinder', 'Ore Basin', [0, 0.11 * scale, 0], [0.84 * scale, 0.16 * scale, 0.72 * scale], this.materialDeposit);
-        primitive(root, 'box', 'Ore Chunk A', [-0.3 * scale, 0.46 * scale, 0.05], [0.46 * scale, 0.64 * scale, 0.38 * scale], this.materialAccent, [12, 28, 18]);
-        primitive(root, 'box', 'Ore Chunk B', [0.24 * scale, 0.39 * scale, -0.16 * scale], [0.38 * scale, 0.53 * scale, 0.34 * scale], this.materialAccent, [-8, -18, -12]);
-        primitive(root, 'sphere', 'Ore Nodule', [0.2 * scale, 0.27 * scale, 0.25 * scale], [0.34 * scale, 0.26 * scale, 0.3 * scale], this.materialAccent);
-        primitive(root, 'box', 'Ore Chip A', [-0.48 * scale, 0.17 * scale, -0.34 * scale], [0.18 * scale, 0.22 * scale, 0.15 * scale], this.materialAccent, [4, 16, 20]);
-        primitive(root, 'box', 'Ore Chip B', [0.45 * scale, 0.15 * scale, 0.33 * scale], [0.15 * scale, 0.2 * scale, 0.14 * scale], this.materialAccent, [-6, -24, 8]);
+        primitive(root, 'sphere', 'Ore Outcrop A', [-0.23 * scale, 0.28 * scale, 0.02], [0.6 * scale, 0.44 * scale, 0.5 * scale], this.materialRock, [7, 18, 4]);
+        primitive(root, 'sphere', 'Ore Outcrop B', [0.34 * scale, 0.22 * scale, -0.15 * scale], [0.48 * scale, 0.34 * scale, 0.4 * scale], this.stoneDark, [-5, -21, 8]);
+        primitive(root, 'box', 'Ore Vein A', [-0.28 * scale, 0.43 * scale, 0.05], [0.16 * scale, 0.5 * scale, 0.14 * scale], this.materialOre, [12, 26, 16]);
+        primitive(root, 'box', 'Ore Vein B', [0.22 * scale, 0.34 * scale, -0.16 * scale], [0.13 * scale, 0.4 * scale, 0.12 * scale], this.materialOre, [-8, -20, -11]);
+        primitive(root, 'sphere', 'Ore Nodule', [0.35 * scale, 0.21 * scale, 0.23 * scale], [0.2 * scale, 0.14 * scale, 0.17 * scale], this.materialOre);
+        primitive(root, 'cylinder', 'Mine Stake', [-0.64 * scale, 0.3 * scale, -0.4 * scale], [0.055 * scale, 0.55 * scale, 0.055 * scale], this.timber);
+        primitive(root, 'box', 'Mine Crate', [-0.49 * scale, 0.13 * scale, -0.46 * scale], [0.28 * scale, 0.23 * scale, 0.25 * scale], this.timber, [0, 18, 0]);
       } else {
-        primitive(root, 'cylinder', 'Mana Basin', [0, 0.09 * scale, 0], [0.82 * scale, 0.14 * scale, 0.82 * scale], this.manaDeposit);
-        primitive(root, 'box', 'Mana Crystal A', [-0.27 * scale, 0.45 * scale, 0.06], [0.22 * scale, 0.7 * scale, 0.22 * scale], this.manaAccent, [0, 35, 12]);
-        primitive(root, 'box', 'Mana Crystal B', [0.24 * scale, 0.37 * scale, -0.14 * scale], [0.19 * scale, 0.56 * scale, 0.19 * scale], this.manaAccent, [0, -28, -10]);
-        primitive(root, 'box', 'Mana Crystal C', [0.09 * scale, 0.31 * scale, 0.27 * scale], [0.16 * scale, 0.44 * scale, 0.16 * scale], this.manaAccent, [0, 12, 18]);
-        primitive(root, 'box', 'Mana Shard A', [-0.48 * scale, 0.17 * scale, -0.28 * scale], [0.11 * scale, 0.24 * scale, 0.11 * scale], this.manaAccent, [0, 18, 24]);
-        primitive(root, 'box', 'Mana Shard B', [0.48 * scale, 0.15 * scale, 0.32 * scale], [0.1 * scale, 0.21 * scale, 0.1 * scale], this.manaAccent, [0, -22, -18]);
-        primitive(root, 'sphere', 'Mana Core', [0, 0.76 * scale, 0], [0.18 * scale, 0.18 * scale, 0.18 * scale], this.manaCore);
+        primitive(root, 'cylinder', 'Mana Stone Basin', [0, 0.085 * scale, 0], [0.88 * scale, 0.12 * scale, 0.88 * scale], this.manaStone);
+        for (let ring = 0; ring < 4; ring += 1) {
+          const angle = ring * Math.PI * 0.5 + 0.35;
+          primitive(
+            root,
+            'box',
+            `Mana Ring Stone ${ring + 1}`,
+            [Math.cos(angle) * 0.7 * scale, 0.12 * scale, Math.sin(angle) * 0.7 * scale],
+            [0.34 * scale, 0.18 * scale, 0.22 * scale],
+            ring % 2 === 0 ? this.stoneDark : this.stoneLight,
+            [5, ring * 27, ring % 2 === 0 ? 6 : -5],
+          );
+        }
+        primitive(root, 'box', 'Mana Crystal A', [-0.23 * scale, 0.48 * scale, 0.04], [0.19 * scale, 0.78 * scale, 0.19 * scale], this.manaAccent, [0, 32, 10]);
+        primitive(root, 'box', 'Mana Crystal B', [0.24 * scale, 0.4 * scale, -0.12 * scale], [0.16 * scale, 0.61 * scale, 0.16 * scale], this.manaAccent, [0, -26, -9]);
+        primitive(root, 'box', 'Mana Crystal C', [0.07 * scale, 0.32 * scale, 0.28 * scale], [0.13 * scale, 0.47 * scale, 0.13 * scale], this.manaCore, [0, 10, 16]);
+        primitive(root, 'box', 'Mana Shard A', [-0.46 * scale, 0.18 * scale, -0.25 * scale], [0.09 * scale, 0.27 * scale, 0.09 * scale], this.manaAccent, [0, 18, 22]);
+        primitive(root, 'box', 'Mana Shard B', [0.47 * scale, 0.16 * scale, 0.31 * scale], [0.085 * scale, 0.24 * scale, 0.085 * scale], this.manaAccent, [0, -21, -16]);
+        primitive(root, 'sphere', 'Mana Core', [0, 0.83 * scale, 0], [0.13 * scale, 0.13 * scale, 0.13 * scale], this.manaCore);
       }
 
       const marker = primitive(
         root,
         'cylinder',
         'Resource Pulse',
-        [0, 0.022, 0],
+        [0, 0.018, 0],
         [1, RESOURCE_PULSE_HEIGHT, 1],
         resource.type === 'MATERIAL' ? this.materialPulse : this.manaPulse,
       );
@@ -172,11 +211,13 @@ export class ResourceRenderBridge {
     for (const entity of this.entities) entity.root.destroy();
     this.entities.length = 0;
     this.groundFootprint.destroy();
-    this.rubble.destroy();
-    this.materialDeposit.destroy();
-    this.materialAccent.destroy();
+    this.stoneDark.destroy();
+    this.stoneLight.destroy();
+    this.timber.destroy();
+    this.materialRock.destroy();
+    this.materialOre.destroy();
     this.materialPulse.destroy();
-    this.manaDeposit.destroy();
+    this.manaStone.destroy();
     this.manaAccent.destroy();
     this.manaCore.destroy();
     this.manaPulse.destroy();
