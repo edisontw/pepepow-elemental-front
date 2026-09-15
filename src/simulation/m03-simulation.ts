@@ -3,6 +3,7 @@ import type { M03Command } from './m03-commands';
 import { M03CommandQueue } from './m03-commands';
 import { Simulation, type SimulationSnapshot } from './simulation';
 import { StrategicState, type StrategicSnapshot } from './strategic-state';
+import type { AdditionalVisionSource } from './visibility-state';
 import type { GeneratedWorld } from '../world/world-definition';
 import { generatedWorldToArena } from '../world/world-arena';
 
@@ -20,6 +21,7 @@ export class M03Simulation extends Simulation {
       generatedWorldToArena(generatedWorld),
     );
     this.strategy = new StrategicState(generatedWorld, this.entities, this.navigation);
+    this.visibility.update(this.entities, this.navigation, this.buildingVisionSources());
   }
 
   enqueueStrategicCommand(command: M03Command): void {
@@ -36,7 +38,7 @@ export class M03Simulation extends Simulation {
     this.strategy.advanceResourceCombat(nextTick);
     this.strategy.advanceEconomy(nextTick);
     this.strategy.advanceTerritory();
-    this.visibility.update(this.entities, this.navigation);
+    this.visibility.update(this.entities, this.navigation, this.buildingVisionSources());
     return this.snapshot();
   }
 
@@ -49,5 +51,15 @@ export class M03Simulation extends Simulation {
       queuedCommandCount: base.queuedCommandCount + this.strategicCommands.size,
       strategic,
     };
+  }
+
+  private buildingVisionSources(): AdditionalVisionSource[] {
+    return this.strategy.snapshot().buildings
+      .filter((building) => building.completed && !building.destroyed)
+      .map((building) => ({
+        playerId: building.playerId,
+        x: building.x,
+        z: building.z,
+      }));
   }
 }
