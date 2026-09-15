@@ -26,7 +26,12 @@ interface UnitPresentation {
   hitFlash: pc.Entity;
   deathMarker: pc.Entity;
   hitFlashUntilTick: number;
+  hitRecoilTick: number;
+  hitRecoilX: number;
+  hitRecoilZ: number;
   deathUntilTick: number;
+  deathFallX: number;
+  deathFallZ: number;
 }
 
 type PresentedProjectileStyle = UnitProjectileStyle | 'FIREBOLT';
@@ -64,6 +69,31 @@ function metres(value: number): number {
 
 function facingYawDegrees(fromX: number, fromZ: number, toX: number, toZ: number): number {
   return Math.atan2(toX - fromX, toZ - fromZ) * 180 / Math.PI;
+}
+
+function fallbackImpactDirection(entityId: EntityID): { x: number; z: number } {
+  const angle = entityId * 2.399963229728653;
+  return { x: Math.cos(angle), z: Math.sin(angle) };
+}
+
+function impactDirection(
+  target: EntitySnapshot,
+  previousById: Map<EntityID, EntitySnapshot>,
+  current: SimulationSnapshot,
+): { x: number; z: number } {
+  const attacker = current.entities
+    .filter((candidate) => {
+      if (!candidate.alive || candidate.playerId === target.playerId || candidate.attackTargetEntityId !== target.id) return false;
+      const prior = previousById.get(candidate.id);
+      return prior !== undefined && candidate.nextAttackTick > prior.nextAttackTick;
+    })
+    .sort((left, right) => left.id - right.id)[0];
+  if (!attacker) return fallbackImpactDirection(target.id);
+  const dx = target.x - attacker.x;
+  const dz = target.z - attacker.z;
+  const length = Math.hypot(dx, dz);
+  if (length < 0.001) return fallbackImpactDirection(target.id);
+  return { x: dx / length, z: dz / length };
 }
 
 export class UnitRenderBridge {
@@ -156,11 +186,17 @@ export class UnitRenderBridge {
         const moving = unit.frozenTicks === 0 && (unit.x !== prior.x || unit.z !== prior.z);
         const gait = (current.tick + alpha) * 1.15 + unit.id * .7;
         const action = Math.max(0, 1 - (current.tick + alpha - presentation.actionTick) / 3);
-        const hit = current.tick <= presentation.hitFlashUntilTick;
-        presentation.root.setPosition(x, moving ? Math.abs(Math.sin(gait)) * .055 : Math.sin(gait * .23) * .012, z);
+        const hitAge = current.tick + alpha - presentation.hitRecoilTick;
+        const hitProgress = hitAge >= 0 && hitAge < 2 ? hitAge / 2 : 1;
+        const hitPulse = hitAge >= 0 && hitAge < 2 ? Math.sin(hitProgress * Math.PI) : 0;
+        const heavy = unit.archetype === 'GOLEM' || unit.archetype === 'SIEGE_CONSTRUCT';
+        const recoilDistance = (heavy ? .075 : .13) * hitPulse;
+        const rootX = x + presentation.hitRecoilX * recoilDistance;
+        const rootZ = z + presentation.hitRecoilZ * recoilDistance;
+        presentation.root.setPosition(rootX, moving ? Math.abs(Math.sin(gait)) * .055 : Math.sin(gait * .23) * .012, rootZ);
         const model = presentation.model;
         if (model?.impostor) model.entity?.setLocalEulerAngles(0, 0, 0);
-        else model?.entity?.setLocalEulerAngles(hit ? -9 : action * 9, 0, 0);
+        else model?.entity?.setLocalEulerAngles(action * 9 - hitPulse * (heavy ? 6 : 12), 0, (unit.id % 2 === 0 ? 1 : -1) * hitPulse * 4);
         model?.legL?.setLocalEulerAngles(moving ? Math.sin(gait) * 25 : 0, 0, 0);
         model?.legR?.setLocalEulerAngles(moving ? -Math.sin(gait) * 25 : 0, 0, 0);
         model?.weapon?.setLocalEulerAngles(-Math.sin(action * Math.PI) * 65, 0, 0);
@@ -184,8 +220,6 @@ export class UnitRenderBridge {
         const effectiveFacingYaw = qaFacingYaw ?? naturalFacingYaw;
 
         if (model?.impostor) {
-          // Flat impostors keep their root on the natural presentation facing.
-          // Facing QA overrides only the directional frame, never the billboard root.
           presentation.root.setEulerAngles(0, naturalFacingYaw, 0);
           this.visualAssets.syncImpostor(model, effectiveFacingYaw);
         } else {
@@ -194,9 +228,21 @@ export class UnitRenderBridge {
       }
 
       if (dying) {
-        const fall = Math.min(1, (current.tick + alpha - presentation.deathUntilTick + 6) / 4);
-        presentation.model?.entity?.setLocalEulerAngles(0, 0, fall * 82);
-        presentation.root.setPosition(x, -.15 * fall, z);
+        const fall = Math.min(1, (current.tick + alpha - presentation.deathUntilTick + 7) / 5);
+        const fallYaw = Math.atan2(presentation.deathFallX, presentation.deathFallZ) * 180 / Math.PI;
+        const heavy = unit.archetype === 'GOLEM' || unit.archetype === 'SIEGE_CONSTRUCT';
+        const displacement = (heavy ? .18 : .28) * profile.selectionScale * fall;
+        presentation.model?.entity?.setLocalEulerAngles(0, 0, 0);
+        presentation.root.setPosition(
+          x + presentation.deathFallX * displacement,
+          -(heavy ? .08 : .15) * fall,
+          z + presentation.deathFallZ * displacement,
+        );
+        presentation.root.setEulerAngles(
+          fall * (heavy ? 54 : 72),
+          fallYaw,
+          (unit.id % 2 === 0 ? 1 : -1) * fall * (heavy ? 8 : 14),
+        );
       }
       const statusY = Math.max(0.18, profile.height * 0.08);
       presentation.selection.setPosition(x, 0.055, z);
@@ -377,6 +423,7 @@ export class UnitRenderBridge {
     deathMarker.enabled = false;
     this.app.root.addChild(deathMarker);
 
+    const fallbackDirection = fallbackImpactDirection(unit.id);
     const presentation: UnitPresentation = {
       root,
       model: null,
@@ -395,7 +442,12 @@ export class UnitRenderBridge {
       hitFlash,
       deathMarker,
       hitFlashUntilTick: -1,
+      hitRecoilTick: -100,
+      hitRecoilX: fallbackDirection.x,
+      hitRecoilZ: fallbackDirection.z,
       deathUntilTick: -1,
+      deathFallX: fallbackDirection.x,
+      deathFallZ: fallbackDirection.z,
     };
     this.units.set(unit.id, presentation);
     return presentation;
@@ -431,11 +483,18 @@ export class UnitRenderBridge {
       }
 
       if (prior.alive && prior.currentHealth > unit.currentHealth && prior.visibleToPlayer) {
+        const direction = impactDirection(unit, previousById, current);
         presentation.hitFlashUntilTick = current.tick + 1;
+        presentation.hitRecoilTick = current.tick;
+        presentation.hitRecoilX = direction.x;
+        presentation.hitRecoilZ = direction.z;
         this.effects.burst(metres(unit.x), .95, metres(unit.z), [1, .72, .30], current.tick, 7, .65);
       }
       if (prior.alive && !unit.alive && prior.visibleToPlayer) {
-        presentation.deathUntilTick = current.tick + 6;
+        const direction = impactDirection(unit, previousById, current);
+        presentation.deathUntilTick = current.tick + 7;
+        presentation.deathFallX = direction.x;
+        presentation.deathFallZ = direction.z;
         this.effects.burst(metres(prior.x), .4, metres(prior.z), [.52, .44, .31], current.tick, 10, .9);
       }
 
