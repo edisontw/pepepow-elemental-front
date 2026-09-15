@@ -2,8 +2,8 @@ import { VisibilityLevel } from '../simulation/visibility-state';
 
 export const FOG_ALPHA = {
   visible: 0,
-  explored: 148,
-  unexplored: 232,
+  explored: 104,
+  unexplored: 230,
 } as const;
 
 export function fogAlphaForLevel(level: number): number {
@@ -41,4 +41,3 @@ export function visibilityFingerprint(cells: Uint8Array): number {
   }
   return hash >>> 0;
 }
-
