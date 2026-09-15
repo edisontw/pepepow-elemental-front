@@ -46,7 +46,10 @@ export class FogOfWarRenderBridge {
     this.mesh.setNormals(normals);
     this.mesh.setIndices(indices);
     this.mesh.setColors32(new Array((world.width + 1) * (world.height + 1) * 4).fill(0));
-    this.mesh.update(pc.PRIMITIVE_TRIANGLES, false);
+    // The fog spans the complete battlefield. Its initial bounds must be built
+    // from the positions or PlayCanvas may cull the whole overlay whenever the
+    // camera looks away from the world origin (for example at the north base).
+    this.mesh.update(pc.PRIMITIVE_TRIANGLES, true);
 
     this.material = new pc.StandardMaterial();
     this.material.name = 'FOG_OF_WAR';
@@ -61,9 +64,14 @@ export class FogOfWarRenderBridge {
     this.material.cull = pc.CULLFACE_NONE;
     this.material.update();
 
+    const meshInstance = new pc.MeshInstance(this.mesh, this.material);
+    // This is one inexpensive battlefield-wide overlay. Keeping it alive is
+    // safer than allowing a stale or driver-specific transparent-mesh bound to
+    // reveal unexplored terrain as the RTS camera pans.
+    meshInstance.cull = false;
     this.entity = new pc.Entity('Battlefield Fog of War');
     this.entity.addComponent('render', {
-      meshInstances: [new pc.MeshInstance(this.mesh, this.material)],
+      meshInstances: [meshInstance],
       castShadows: false,
       receiveShadows: false,
     });
