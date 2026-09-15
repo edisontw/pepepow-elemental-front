@@ -158,6 +158,7 @@ export class VisualAssetLibrary {
   private readonly impostorResources = new Map<string, ImpostorResources>();
   private readonly impostorUpdates = new Set<() => void>();
   private readonly impostorShadowMaterial: pc.StandardMaterial;
+  private readonly usePlayerUnitImpostors: boolean = false;
   private disposed = false;
 
   constructor(private readonly app: pc.Application) {
@@ -184,9 +185,11 @@ export class VisualAssetLibrary {
       released: false,
     };
 
-    // Current approved impostor art has baked player ownership color. Keep
-    // enemy units on the recolorable GLB path until neutral/masked art exists.
-    const impostorConfig = playerId === 0 ? IMPOSTOR_CONFIGS.get(id) : undefined;
+    // Keep both factions on the same recolorable GLB presentation baseline for
+    // now. The directional WebP pipeline stays available for a later art pass.
+    const impostorConfig = this.usePlayerUnitImpostors && playerId === 0
+      ? IMPOSTOR_CONFIGS.get(id)
+      : undefined;
     if (impostorConfig) {
       this.attachImpostor(parent, fallback, handle, impostorConfig);
       return handle;
@@ -417,7 +420,6 @@ export class VisualAssetLibrary {
         material.update();
         resources.materials.push(material);
       }
-
       return resources.materials;
     }).catch((error: unknown) => {
       console.warn(`${config.label} impostor frame load failed; using fallback geometry.`, error);
