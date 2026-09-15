@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "python3 scripts/art/build_priority_c_models.py && vite",
-    "build": "python3 scripts/art/build_vanguard_polished.py && python3 scripts/art/build_priority_c_models.py && tsc --noEmit && vite build",
+    "dev": "python3 scripts/art/build_specialist_polished.py && python3 scripts/art/build_priority_c_models.py && vite",
+    "build": "python3 scripts/art/build_vanguard_polished.py && python3 scripts/art/build_specialist_polished.py && python3 scripts/art/build_priority_c_models.py && tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit --pretty false",
     "test": "vitest run",
     "test:watch": "vitest"
