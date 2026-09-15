@@ -36,6 +36,14 @@ function flavorFor(color: Tint): SparkFlavor {
   return 'GENERIC';
 }
 
+function brighten(color: Tint, amount: number): Tint {
+  return [
+    color[0] + (1 - color[0]) * amount,
+    color[1] + (1 - color[1]) * amount,
+    color[2] + (1 - color[2]) * amount,
+  ];
+}
+
 /** Fixed-capacity transient buffer. All sparks, impact signatures, and segmented arcs share one draw. */
 export class BattleVfx {
   private readonly sparks: Spark[] = [];
@@ -148,6 +156,7 @@ export class BattleVfx {
     }
 
     if (flavor !== 'GENERIC') this.spawnElementSignature(x, y, z, flavor, color, tick, force);
+    else if (force >= .42) this.spawnPhysicalImpactSignature(x, y, z, color, tick, force);
   }
 
   bolt(start: pc.Vec3, end: pc.Vec3, tick: number): void {
@@ -234,6 +243,88 @@ export class BattleVfx {
     this.entity.destroy();
     this.mesh.destroy();
     this.material.destroy();
+  }
+
+  private spawnPhysicalImpactSignature(
+    x: number,
+    y: number,
+    z: number,
+    color: Tint,
+    tick: number,
+    force: number,
+  ): void {
+    const groundY = Math.max(.045, Math.min(.16, y * .2));
+    const heavy = force >= .95;
+    const medium = force >= .68;
+    const accent = brighten(color, heavy ? .58 : medium ? .42 : .3);
+    const rayCount = heavy ? 5 : medium ? 4 : 3;
+    const rayRadius = (heavy ? .70 : medium ? .48 : .30) * Math.max(.82, force);
+
+    for (let i = 0; i < rayCount && this.free.length; i++) {
+      const angle = (i / rayCount) * Math.PI * 2 + tick * .23;
+      const length = rayRadius * (.76 + (i % 3) * .12);
+      this.pushBeam(
+        x,
+        groundY + .025,
+        z,
+        Math.cos(angle) * length,
+        .045 + (i % 2) * .035,
+        Math.sin(angle) * length,
+        tick,
+        heavy ? 1.85 : 1.45,
+        i % 2 === 0 ? accent : color,
+        heavy ? .052 : .036,
+        1.28,
+      );
+    }
+
+    if (medium) {
+      const segments = heavy ? 8 : 6;
+      const radius = (heavy ? .62 : .42) * Math.max(.9, force);
+      for (let i = 0; i < segments && this.free.length; i++) {
+        const angleA = (i / segments) * Math.PI * 2 + tick * .11;
+        const angleB = ((i + 1) / segments) * Math.PI * 2 + tick * .11;
+        const startX = x + Math.cos(angleA) * radius;
+        const startZ = z + Math.sin(angleA) * radius;
+        const endX = x + Math.cos(angleB) * radius;
+        const endZ = z + Math.sin(angleB) * radius;
+        this.pushBeam(
+          startX,
+          groundY,
+          startZ,
+          endX - startX,
+          .01,
+          endZ - startZ,
+          tick,
+          heavy ? 1.65 : 1.35,
+          accent,
+          heavy ? .032 : .024,
+          1.48,
+        );
+      }
+    }
+
+    const fragmentCount = heavy ? 5 : medium ? 3 : 2;
+    for (let i = 0; i < fragmentCount && this.free.length; i++) {
+      const angle = tick * .31 + i * 2.17;
+      const outward = (heavy ? .58 : medium ? .40 : .26) * (.86 + (i % 2) * .18);
+      this.pushParticle(
+        x,
+        groundY + .06,
+        z,
+        Math.cos(angle) * outward,
+        (heavy ? .72 : medium ? .54 : .38) + i * .06,
+        Math.sin(angle) * outward,
+        tick,
+        heavy ? 4.8 : medium ? 3.8 : 3.0,
+        i % 2 === 0 ? accent : color,
+        heavy ? .055 : .040,
+        heavy ? 1.25 : 1.10,
+        heavy ? .82 : .92,
+        heavy ? .24 : .18,
+        1.1,
+      );
+    }
   }
 
   private spawnElementSignature(
