@@ -26,32 +26,53 @@ interface BuildingPresentation {
   healthBar: pc.Entity;
   defenseStem: pc.Entity;
   defenseHead: pc.Entity;
+  constructionFrame: pc.Entity;
+  constructionLift: pc.Entity;
+  constructionSpark: pc.Entity;
+  productionRig: pc.Entity;
+  productionRotor: pc.Entity;
+  productionCore: pc.Entity;
+  productionPulse: pc.Entity;
+  wasCompleted: boolean;
+  completedAtTick: number;
+  activeProductionOrderId: number | null;
+  productionCompletedAtTick: number;
   wasDestroyed: boolean;
   destroyedAtTick: number;
   collapsePitch: number;
   collapseRoll: number;
 }
 
-function createMaterial(color: pc.Color, emissive?: pc.Color): pc.StandardMaterial {
+function createMaterial(color: pc.Color, emissive?: pc.Color, opacity = 1): pc.StandardMaterial {
   const material = new pc.StandardMaterial();
   material.diffuse = color;
   material.gloss = 0.34;
+  material.opacity = opacity;
   if (emissive) {
     material.emissive = emissive;
     material.emissiveIntensity = 1.45;
+  }
+  if (opacity < 1) {
+    material.blendType = pc.BLEND_ADDITIVEALPHA;
+    material.depthWrite = false;
+    material.cull = pc.CULLFACE_NONE;
   }
   material.update();
   return material;
 }
 
-function constructionScale(building: StrategicBuilding, tick: number): number {
-  if (building.destroyed) return 0.3;
+function constructionProgress(building: StrategicBuilding, tick: number): number {
+  if (building.destroyed) return 0;
   if (building.completed) return 1;
   const duration = BUILDINGS[building.type].buildTicks;
   if (duration <= 0) return 1;
   const startTick = building.completeTick - duration;
-  const progress = Math.max(0, Math.min(1, (tick - startTick) / duration));
-  return 0.18 + progress * 0.82;
+  return Math.max(0, Math.min(1, (tick - startTick) / duration));
+}
+
+function constructionScale(building: StrategicBuilding, tick: number): number {
+  if (building.destroyed) return 0.3;
+  return 0.18 + constructionProgress(building, tick) * 0.82;
 }
 
 function isResourceSite(building: StrategicBuilding): boolean {
@@ -70,6 +91,11 @@ export class StrategicRenderBridge {
   private readonly constructionMaterial = createMaterial(new pc.Color(0.46, 0.43, 0.3), new pc.Color(0.08, 0.07, 0.03));
   private readonly destroyedMaterial = createMaterial(new pc.Color(0.12, 0.13, 0.13), new pc.Color(0.018, 0.018, 0.018));
   private readonly workMaterial = createMaterial(new pc.Color(.94, .66, .22), new pc.Color(.25, .12, .02));
+  private readonly workGlowMaterial = createMaterial(
+    new pc.Color(.98, .76, .30),
+    new pc.Color(.72, .32, .035),
+    .56,
+  );
   private readonly networkMaterial = createMaterial(new pc.Color(0.18, 0.78, 0.7), new pc.Color(0.04, 0.42, 0.32));
   private readonly healthBackMaterial = createMaterial(new pc.Color(0.035, 0.045, 0.045));
 
@@ -87,6 +113,8 @@ export class StrategicRenderBridge {
         this.entities.set(building.id, presentation);
       }
 
+      if (building.completed && !presentation.wasCompleted) presentation.completedAtTick = tick;
+      presentation.wasCompleted = building.completed;
       if (building.destroyed && !presentation.wasDestroyed) presentation.destroyedAtTick = tick;
       presentation.wasDestroyed = building.destroyed;
 
@@ -140,6 +168,40 @@ export class StrategicRenderBridge {
         && presentation.impostor?.entity == null;
 
       const profile = buildingVisualProfile(building.type);
+      const buildProgress = constructionProgress(building, tick);
+      const constructing = !building.completed && !building.destroyed;
+      const constructionCompletionAge = presentation.completedAtTick < 0
+        ? 99
+        : Math.max(0, tick - presentation.completedAtTick);
+      presentation.constructionFrame.enabled = constructing;
+      presentation.constructionSpark.enabled = constructing;
+      presentation.constructionLift.enabled = constructing || constructionCompletionAge < 4;
+      if (constructing) {
+        const buildHeight = Math.max(0.26, profile.height * (0.22 + buildProgress * 0.72));
+        const orbit = tick * 0.38 + building.id * 1.17;
+        const sparkRadius = profile.footprint * (0.30 + buildProgress * 0.10);
+        presentation.constructionLift.setLocalPosition(0, buildHeight, 0);
+        presentation.constructionLift.setLocalScale(
+          profile.footprint * (0.62 + buildProgress * 0.18),
+          0.024,
+          profile.footprint * (0.62 + buildProgress * 0.18),
+        );
+        presentation.constructionLift.setLocalEulerAngles(0, tick * 5 + building.id * 13, 0);
+        presentation.constructionSpark.setLocalPosition(
+          Math.cos(orbit) * sparkRadius,
+          buildHeight + 0.12 + Math.sin(tick * 0.8) * 0.045,
+          Math.sin(orbit) * sparkRadius,
+        );
+        const sparkScale = 0.09 + Math.abs(Math.sin(tick * 0.9 + building.id)) * 0.07;
+        presentation.constructionSpark.setLocalScale(sparkScale, sparkScale, sparkScale);
+      } else if (constructionCompletionAge < 4) {
+        const completionProgress = Math.max(0, Math.min(1, constructionCompletionAge / 4));
+        const pulseScale = profile.footprint * (0.78 + completionProgress * 0.72);
+        presentation.constructionLift.setLocalPosition(0, 0.11, 0);
+        presentation.constructionLift.setLocalScale(pulseScale, 0.022, pulseScale);
+        presentation.constructionLift.setLocalEulerAngles(0, tick * 8, 0);
+      }
+
       const modelIds: Readonly<Record<string, string>> = {
         ELEMENTAL_CORE: 'building.elemental-core.debug',
         BARRACKS: 'building.barracks',
@@ -185,24 +247,75 @@ export class StrategicRenderBridge {
         }
         presentation.modelId = presentationModelId;
       }
+
+      const order = snapshot.productionQueue.find(
+        (entry) => entry.buildingId === building.id && entry.startTick <= tick && entry.completeTick > tick,
+      );
+      if (order) presentation.activeProductionOrderId = order.id;
+      else if (presentation.activeProductionOrderId !== null) {
+        presentation.productionCompletedAtTick = tick;
+        presentation.activeProductionOrderId = null;
+      }
+      const productionCompletionAge = presentation.productionCompletedAtTick < 0
+        ? 99
+        : Math.max(0, tick - presentation.productionCompletedAtTick);
+      const producing = building.completed && !building.destroyed && order !== undefined;
+      const productionRelease = !building.destroyed && productionCompletionAge < 3;
+      presentation.productionRig.enabled = producing || productionRelease;
+      if (producing && order) {
+        const progress = Math.max(0, Math.min(1, (tick - order.startTick) / Math.max(1, order.durationTicks)));
+        const heavyOrder = order.unitType === 'GOLEM' || order.unitType === 'SIEGE_CONSTRUCT';
+        const arcaneOrder = order.unitType === 'ELEMENTALIST';
+        const rigHeight = profile.height * (heavyOrder ? 0.68 : 0.74);
+        const phase = tick * (arcaneOrder ? 0.58 : 0.42) + building.id * 0.73;
+        const pulse = 0.5 + 0.5 * Math.sin(phase * 2.1);
+        presentation.productionRig.setLocalPosition(0, rigHeight, 0);
+        presentation.productionRotor.setLocalEulerAngles(
+          arcaneOrder ? 24 : 0,
+          tick * (heavyOrder ? 10 : arcaneOrder ? 24 : 17),
+          arcaneOrder ? 18 : 0,
+        );
+        const rotorScale = (heavyOrder ? 0.92 : 0.72) + pulse * 0.10;
+        presentation.productionRotor.setLocalScale(rotorScale, rotorScale, rotorScale);
+        const coreScale = (heavyOrder ? 0.18 : 0.14) + pulse * (heavyOrder ? 0.09 : 0.07);
+        presentation.productionCore.setLocalScale(coreScale, coreScale, coreScale);
+        presentation.productionCore.setLocalPosition(0, 0.08 + Math.sin(phase) * 0.04, 0);
+        const ringScale = profile.footprint * (0.30 + progress * 0.18 + pulse * 0.04);
+        presentation.productionPulse.setLocalPosition(0, -rigHeight + 0.10, 0);
+        presentation.productionPulse.setLocalScale(ringScale, 0.025, ringScale);
+        presentation.productionPulse.setLocalEulerAngles(0, tick * 6, 0);
+      } else if (productionRelease) {
+        const release = Math.max(0, Math.min(1, productionCompletionAge / 3));
+        presentation.productionRig.setLocalPosition(0, profile.height * 0.72, 0);
+        presentation.productionRotor.setLocalEulerAngles(18 * (1 - release), tick * 28, 12 * (1 - release));
+        presentation.productionRotor.setLocalScale(0.78 + release * 0.24, 0.78 + release * 0.24, 0.78 + release * 0.24);
+        const coreScale = 0.30 * (1 - release) + 0.05;
+        presentation.productionCore.setLocalScale(coreScale, coreScale, coreScale);
+        presentation.productionCore.setLocalPosition(0, 0.12 + release * 0.24, 0);
+        const ringScale = profile.footprint * (0.46 + release * 0.42);
+        presentation.productionPulse.setLocalPosition(0, -profile.height * 0.72 + 0.10, 0);
+        presentation.productionPulse.setLocalScale(ringScale, 0.02, ringScale);
+      }
+
       const model = presentation.model;
       if (model?.entity) {
         if (!building.destroyed) {
-          model.reactor?.setLocalEulerAngles(0, tick * 2.5, 0);
-          model.orbit?.setLocalEulerAngles(22, -tick * 1.5, 15);
+          const workMultiplier = producing ? 2.1 : constructing ? 1.45 : 1;
+          model.reactor?.setLocalEulerAngles(0, tick * 2.5 * workMultiplier, 0);
+          model.orbit?.setLocalEulerAngles(22, -tick * 1.5 * workMultiplier, 15);
         }
         for (const render of model.entity.findComponents('render') as pc.RenderComponent[]) {
           if (building.destroyed) for (const mesh of render.meshInstances) mesh.material = this.destroyedMaterial;
         }
       }
-      const order = snapshot.productionQueue.find((entry) => entry.buildingId === building.id && entry.startTick <= tick && entry.completeTick > tick);
+
       const working = !building.completed || order !== undefined;
       const showHealth = !building.destroyed && (working || isResourceSite(building) || building.currentHealth < building.maxHealth);
       presentation.healthBack.enabled = showHealth;
       presentation.healthBar.enabled = showHealth;
       if (showHealth) {
         const ratio = !building.completed
-          ? Math.max(0, Math.min(1, (tick - building.completeTick + BUILDINGS[building.type].buildTicks) / Math.max(1, BUILDINGS[building.type].buildTicks)))
+          ? buildProgress
           : order ? Math.max(0, Math.min(1, (tick - order.startTick) / Math.max(1, order.durationTicks)))
           : Math.max(0, Math.min(1, building.currentHealth / Math.max(1, building.maxHealth)));
         const width = Math.max(1.25, profile.footprint * 1.15);
@@ -263,6 +376,7 @@ export class StrategicRenderBridge {
     }
     this.buildingImpostors.destroy();
     this.workMaterial.destroy();
+    this.workGlowMaterial.destroy();
     this.networkMaterial.destroy();
     this.entities.clear();
     this.playerMaterial.destroy();
@@ -395,6 +509,72 @@ export class StrategicRenderBridge {
     defenseHead.enabled = false;
     root.addChild(defenseHead);
 
+    const constructionFrame = new pc.Entity(`${building.type} ${building.id} Construction Frame`);
+    const half = profile.footprint * 0.46;
+    const frameHeight = Math.max(0.65, profile.height * 0.82);
+    const scaffoldPosts: readonly (readonly [number, number])[] = [
+      [-half, -half],
+      [half, -half],
+      [half, half],
+      [-half, half],
+    ];
+    for (const [index, position] of scaffoldPosts.entries()) {
+      const [x, z] = position;
+      const post = new pc.Entity(`${building.type} ${building.id} Scaffold Post ${index + 1}`);
+      post.addComponent('render', { type: 'box', material: this.constructionMaterial, castShadows: false });
+      post.setLocalPosition(x, frameHeight * 0.5, z);
+      post.setLocalScale(0.055, frameHeight, 0.055);
+      constructionFrame.addChild(post);
+    }
+    const scaffoldBeams: readonly (readonly [number, number, number, number])[] = [
+      [0, -half, profile.footprint * 0.92, 0.055],
+      [0, half, profile.footprint * 0.92, 0.055],
+      [-half, 0, 0.055, profile.footprint * 0.92],
+      [half, 0, 0.055, profile.footprint * 0.92],
+    ];
+    for (const [index, beamSpec] of scaffoldBeams.entries()) {
+      const [x, z, sx, sz] = beamSpec;
+      const beam = new pc.Entity(`${building.type} ${building.id} Scaffold Beam ${index + 1}`);
+      beam.addComponent('render', { type: 'box', material: this.workMaterial, castShadows: false });
+      beam.setLocalPosition(x, frameHeight * 0.82, z);
+      beam.setLocalScale(sx, 0.045, sz);
+      constructionFrame.addChild(beam);
+    }
+    constructionFrame.enabled = !building.completed && !building.destroyed;
+    root.addChild(constructionFrame);
+
+    const constructionLift = new pc.Entity(`${building.type} ${building.id} Construction Lift`);
+    constructionLift.addComponent('render', { type: 'cylinder', material: this.workGlowMaterial, castShadows: false });
+    constructionLift.enabled = !building.completed && !building.destroyed;
+    root.addChild(constructionLift);
+
+    const constructionSpark = new pc.Entity(`${building.type} ${building.id} Construction Spark`);
+    constructionSpark.addComponent('render', { type: 'sphere', material: this.workMaterial, castShadows: false });
+    constructionSpark.enabled = !building.completed && !building.destroyed;
+    root.addChild(constructionSpark);
+
+    const productionRig = new pc.Entity(`${building.type} ${building.id} Production Rig`);
+    const productionRotor = new pc.Entity(`${building.type} ${building.id} Production Rotor`);
+    const rotorA = new pc.Entity(`${building.type} ${building.id} Production Arm A`);
+    rotorA.addComponent('render', { type: 'box', material: this.workMaterial, castShadows: false });
+    rotorA.setLocalScale(profile.footprint * 0.42, 0.035, 0.055);
+    productionRotor.addChild(rotorA);
+    const rotorB = new pc.Entity(`${building.type} ${building.id} Production Arm B`);
+    rotorB.addComponent('render', { type: 'box', material: this.workMaterial, castShadows: false });
+    rotorB.setLocalScale(0.055, 0.035, profile.footprint * 0.42);
+    productionRotor.addChild(rotorB);
+    productionRig.addChild(productionRotor);
+
+    const productionCore = new pc.Entity(`${building.type} ${building.id} Production Core`);
+    productionCore.addComponent('render', { type: 'sphere', material: this.workGlowMaterial, castShadows: false });
+    productionRig.addChild(productionCore);
+
+    const productionPulse = new pc.Entity(`${building.type} ${building.id} Production Pulse`);
+    productionPulse.addComponent('render', { type: 'cylinder', material: this.workGlowMaterial, castShadows: false });
+    productionRig.addChild(productionPulse);
+    productionRig.enabled = false;
+    root.addChild(productionRig);
+
     const collapseAngle = building.id * 2.399963229728653;
     this.app.root.addChild(root);
     return {
@@ -410,8 +590,19 @@ export class StrategicRenderBridge {
       healthBar,
       defenseStem,
       defenseHead,
+      constructionFrame,
+      constructionLift,
+      constructionSpark,
+      productionRig,
+      productionRotor,
+      productionCore,
+      productionPulse,
+      wasCompleted: building.completed,
+      completedAtTick: -1,
+      activeProductionOrderId: null,
+      productionCompletedAtTick: -1,
       wasDestroyed: building.destroyed,
-      destroyedAtTick: building.destroyed ? -1 : -1,
+      destroyedAtTick: -1,
       collapsePitch: Math.cos(collapseAngle) * 15,
       collapseRoll: Math.sin(collapseAngle) * 15,
     };
