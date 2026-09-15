@@ -16,6 +16,14 @@ export interface VisibilityCounts {
   visible: number;
 }
 
+export interface AdditionalVisionSource {
+  playerId: number;
+  x: number;
+  z: number;
+  radius?: number;
+  active?: boolean;
+}
+
 export class VisibilityState {
   private readonly cellsByPlayer = new Map<number, Uint8Array>();
 
@@ -26,31 +34,28 @@ export class VisibilityState {
     }
   }
 
-  update(entities: EntityStore, navigation: NavigationGrid): void {
+  update(
+    entities: EntityStore,
+    navigation: NavigationGrid,
+    additionalSources: readonly AdditionalVisionSource[] = [],
+  ): void {
     for (const cells of this.cellsByPlayer.values()) {
       for (let index = 0; index < cells.length; index += 1) {
         if (cells[index] === VisibilityLevel.VISIBLE) cells[index] = VisibilityLevel.EXPLORED;
       }
     }
 
-    const radiusSquared = VISION_RADIUS * VISION_RADIUS;
     for (const entityId of entities.entityIds()) {
       if (!entities.hasUnit(entityId)) continue;
       const playerId = entities.factions.get(entityId)!.playerId;
-      const cells = this.cellsByPlayer.get(playerId);
       const position = entities.positions.get(entityId);
-      if (!cells || !position) continue;
-      const origin = navigation.worldToCell(position.x, position.z);
-      const cellRadius = Math.ceil(VISION_RADIUS / this.definition.cellSize);
-      for (let row = Math.max(0, origin.row - cellRadius); row <= Math.min(this.definition.rows - 1, origin.row + cellRadius); row += 1) {
-        for (let column = Math.max(0, origin.column - cellRadius); column <= Math.min(this.definition.columns - 1, origin.column + cellRadius); column += 1) {
-          const cell = { column, row };
-          const world = navigation.cellToWorld(cell);
-          const deltaX = world.x - position.x;
-          const deltaZ = world.z - position.z;
-          if (deltaX * deltaX + deltaZ * deltaZ <= radiusSquared) cells[this.index(cell)] = VisibilityLevel.VISIBLE;
-        }
-      }
+      if (!position) continue;
+      this.revealAround(playerId, position.x, position.z, VISION_RADIUS, navigation);
+    }
+
+    for (const source of additionalSources) {
+      if (source.active === false) continue;
+      this.revealAround(source.playerId, source.x, source.z, source.radius ?? VISION_RADIUS, navigation);
     }
   }
 
@@ -81,6 +86,23 @@ export class VisibilityState {
 
   cellsForPlayer(playerId: number): Uint8Array | undefined {
     return this.cellsByPlayer.get(playerId);
+  }
+
+  private revealAround(playerId: number, x: number, z: number, radius: number, navigation: NavigationGrid): void {
+    const cells = this.cellsByPlayer.get(playerId);
+    if (!cells || radius <= 0) return;
+    const radiusSquared = radius * radius;
+    const origin = navigation.worldToCell(x, z);
+    const cellRadius = Math.ceil(radius / this.definition.cellSize);
+    for (let row = Math.max(0, origin.row - cellRadius); row <= Math.min(this.definition.rows - 1, origin.row + cellRadius); row += 1) {
+      for (let column = Math.max(0, origin.column - cellRadius); column <= Math.min(this.definition.columns - 1, origin.column + cellRadius); column += 1) {
+        const cell = { column, row };
+        const world = navigation.cellToWorld(cell);
+        const deltaX = world.x - x;
+        const deltaZ = world.z - z;
+        if (deltaX * deltaX + deltaZ * deltaZ <= radiusSquared) cells[this.index(cell)] = VisibilityLevel.VISIBLE;
+      }
+    }
   }
 
   private inBounds(cell: GridCell): boolean {
