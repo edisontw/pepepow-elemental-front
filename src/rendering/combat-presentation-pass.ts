@@ -9,6 +9,7 @@ import { buildingVisualProfile } from './building-visual-profile';
 import { unitVisualProfile, type UnitProjectileStyle } from './unit-visual-profile';
 
 type Tint = readonly [number, number, number];
+type ElementKey = keyof typeof ELEMENT_TINTS;
 type TransientKind =
   | 'MELEE_SLASH'
   | 'MUZZLE_FLASH'
@@ -31,6 +32,8 @@ interface CombatTransient {
   spin?: pc.Vec3;
   impactTint?: Tint;
   impactForce?: number;
+  element?: ElementKey;
+  yaw?: number;
 }
 
 interface BuildingVisualState {
@@ -84,6 +87,24 @@ function isHeavyMelee(archetype: UnitArchetype): boolean {
   return archetype === 'GOLEM' || archetype === 'VANGUARD';
 }
 
+function addProjectilePart(
+  parent: pc.Entity,
+  name: string,
+  type: 'box' | 'sphere',
+  material: pc.Material,
+  position: readonly [number, number, number],
+  scale: readonly [number, number, number],
+  euler: readonly [number, number, number] = [0, 0, 0],
+): pc.Entity {
+  const part = new pc.Entity(name);
+  part.addComponent('render', { type, material, castShadows: false });
+  part.setLocalPosition(position[0], position[1], position[2]);
+  part.setLocalScale(scale[0], scale[1], scale[2]);
+  part.setLocalEulerAngles(euler[0], euler[1], euler[2]);
+  parent.addChild(part);
+  return part;
+}
+
 /**
  * Presentation-only combat layer. It derives motion and destruction cues from authoritative snapshots
  * but never changes simulation state, timings, damage, targeting, or replay identity.
@@ -125,7 +146,7 @@ export class CombatPresentationPass {
       const color = tintColor(tint);
       return [element, createMaterial(color, color, 0.9)];
     }),
-  ) as Record<keyof typeof ELEMENT_TINTS, pc.StandardMaterial>;
+  ) as Record<ElementKey, pc.StandardMaterial>;
 
   constructor(
     private readonly app: pc.Application,
@@ -255,7 +276,7 @@ export class CombatPresentationPass {
     target: EntitySnapshot,
     style: UnitProjectileStyle,
     tint: Tint,
-    element: keyof typeof ELEMENT_TINTS | null,
+    element: ElementKey | null,
     tick: number,
   ): void {
     const attackerProfile = unitVisualProfile(attacker.archetype);
@@ -269,17 +290,38 @@ export class CombatPresentationPass {
     const muzzle = new pc.Entity(`Muzzle flash ${attacker.id}`);
     muzzle.setPosition(start);
     muzzle.setEulerAngles(0, yaw, 0);
-    const muzzleCore = new pc.Entity('Muzzle core');
-    muzzleCore.addComponent('render', { type: 'sphere', material, castShadows: false });
-    muzzleCore.setLocalPosition(0, 0, 0.18);
-    muzzleCore.setLocalScale(style === 'SHELL' ? 0.26 : 0.18, style === 'SHELL' ? 0.2 : 0.14, style === 'SHELL' ? 0.34 : 0.24);
-    muzzle.addChild(muzzleCore);
-    const muzzleCross = new pc.Entity('Muzzle cross');
-    muzzleCross.addComponent('render', { type: 'box', material, castShadows: false });
-    muzzleCross.setLocalPosition(0, 0, 0.22);
-    muzzleCross.setLocalScale(style === 'SHELL' ? 0.42 : 0.3, 0.035, 0.055);
-    muzzleCross.setLocalEulerAngles(0, 0, 45);
-    muzzle.addChild(muzzleCross);
+    if (element === 'FIRE') {
+      addProjectilePart(muzzle, 'Fire muzzle core', 'sphere', material, [0, 0, .18], [.21, .18, .30]);
+      addProjectilePart(muzzle, 'Fire muzzle tongue', 'box', material, [0, .02, .38], [.11, .08, .44]);
+    } else if (element === 'WATER') {
+      addProjectilePart(muzzle, 'Water muzzle disk', 'sphere', material, [0, 0, .18], [.28, .09, .28]);
+      addProjectilePart(muzzle, 'Water muzzle sheet', 'box', material, [0, 0, .26], [.42, .025, .18], [0, 0, 12]);
+    } else if (element === 'ICE') {
+      addProjectilePart(muzzle, 'Ice muzzle star A', 'box', material, [0, 0, .24], [.08, .08, .38], [0, 0, 45]);
+      addProjectilePart(muzzle, 'Ice muzzle star B', 'box', material, [0, 0, .24], [.08, .08, .38], [0, 0, -45]);
+    } else if (element === 'LIGHTNING') {
+      addProjectilePart(muzzle, 'Lightning muzzle prong A', 'box', material, [-.08, 0, .28], [.04, .04, .38], [0, 18, 0]);
+      addProjectilePart(muzzle, 'Lightning muzzle prong B', 'box', material, [.08, 0, .28], [.04, .04, .38], [0, -18, 0]);
+      addProjectilePart(muzzle, 'Lightning muzzle core', 'sphere', material, [0, 0, .15], [.12, .12, .12]);
+    } else {
+      addProjectilePart(
+        muzzle,
+        'Muzzle core',
+        'sphere',
+        material,
+        [0, 0, .18],
+        style === 'SHELL' ? [.26, .20, .34] : [.18, .14, .24],
+      );
+      addProjectilePart(
+        muzzle,
+        'Muzzle cross',
+        'box',
+        material,
+        [0, 0, .22],
+        style === 'SHELL' ? [.42, .035, .055] : [.30, .035, .055],
+        [0, 0, 45],
+      );
+    }
     this.app.root.addChild(muzzle);
     this.pushTransient({
       entity: muzzle,
@@ -287,40 +329,41 @@ export class CombatPresentationPass {
       bornTick: tick,
       expiresTick: tick + 1,
       baseScale: 1,
+      element: element ?? undefined,
+      yaw,
     });
 
-    const trace = new pc.Entity(`${style} tracer ${attacker.id}`);
+    const trace = new pc.Entity(`${element ?? style} tracer ${attacker.id}`);
     trace.setPosition(start);
     trace.setEulerAngles(0, yaw, 0);
     if (style === 'ORB') {
-      const core = new pc.Entity('Orb tracer core');
-      core.addComponent('render', { type: 'sphere', material, castShadows: false });
-      core.setLocalScale(0.23, 0.23, 0.23);
-      trace.addChild(core);
-      const halo = new pc.Entity('Orb tracer halo');
-      halo.addComponent('render', { type: 'sphere', material, castShadows: false });
-      halo.setLocalScale(0.35, 0.12, 0.35);
-      trace.addChild(halo);
+      if (element === 'FIRE') {
+        addProjectilePart(trace, 'Fire comet core', 'sphere', material, [0, .01, .12], [.19, .17, .28]);
+        addProjectilePart(trace, 'Fire comet flame', 'box', material, [0, -.01, -.28], [.10, .08, .58]);
+        addProjectilePart(trace, 'Fire comet halo', 'sphere', material, [0, 0, -.03], [.28, .10, .24]);
+      } else if (element === 'WATER') {
+        addProjectilePart(trace, 'Water dart core', 'sphere', material, [0, 0, .08], [.23, .13, .34]);
+        addProjectilePart(trace, 'Water wake', 'box', material, [0, 0, -.30], [.30, .025, .50]);
+        addProjectilePart(trace, 'Water wake fin', 'box', material, [0, 0, -.10], [.42, .025, .18], [0, 0, 12]);
+      } else if (element === 'ICE') {
+        addProjectilePart(trace, 'Ice shard core', 'box', material, [0, 0, .08], [.13, .13, .48], [0, 0, 45]);
+        addProjectilePart(trace, 'Ice shard left', 'box', material, [-.11, .01, -.10], [.07, .07, .30], [0, 20, 45]);
+        addProjectilePart(trace, 'Ice shard right', 'box', material, [.11, -.01, -.10], [.07, .07, .30], [0, -20, 45]);
+      } else if (element === 'LIGHTNING') {
+        addProjectilePart(trace, 'Lightning segment A', 'box', material, [-.07, .02, .20], [.045, .045, .30], [0, 22, 0]);
+        addProjectilePart(trace, 'Lightning segment B', 'box', material, [.07, -.02, -.05], [.045, .045, .30], [0, -24, 0]);
+        addProjectilePart(trace, 'Lightning segment C', 'box', material, [-.05, .02, -.30], [.04, .04, .26], [0, 18, 0]);
+        addProjectilePart(trace, 'Lightning pulse core', 'sphere', material, [0, 0, .04], [.10, .10, .10]);
+      } else {
+        addProjectilePart(trace, 'Orb tracer core', 'sphere', material, [0, 0, 0], [.23, .23, .23]);
+        addProjectilePart(trace, 'Orb tracer halo', 'sphere', material, [0, 0, 0], [.35, .12, .35]);
+      }
     } else if (style === 'SHELL') {
-      const shell = new pc.Entity('Shell tracer body');
-      shell.addComponent('render', { type: 'sphere', material, castShadows: false });
-      shell.setLocalScale(0.28, 0.24, 0.34);
-      trace.addChild(shell);
-      const smoke = new pc.Entity('Shell smoke streak');
-      smoke.addComponent('render', { type: 'box', material: this.smokeMaterial, castShadows: false });
-      smoke.setLocalPosition(0, 0, -0.42);
-      smoke.setLocalScale(0.12, 0.1, 0.72);
-      trace.addChild(smoke);
+      addProjectilePart(trace, 'Shell tracer body', 'sphere', material, [0, 0, 0], [.28, .24, .34]);
+      addProjectilePart(trace, 'Shell smoke streak', 'box', this.smokeMaterial, [0, 0, -.42], [.12, .10, .72]);
     } else {
-      const bolt = new pc.Entity('Bolt tracer core');
-      bolt.addComponent('render', { type: 'box', material, castShadows: false });
-      bolt.setLocalScale(0.055, 0.055, 0.66);
-      trace.addChild(bolt);
-      const trail = new pc.Entity('Bolt tracer trail');
-      trail.addComponent('render', { type: 'box', material, castShadows: false });
-      trail.setLocalPosition(0, 0, -0.48);
-      trail.setLocalScale(0.035, 0.035, 0.52);
-      trace.addChild(trail);
+      addProjectilePart(trace, 'Bolt tracer core', 'box', material, [0, 0, 0], [.055, .055, .66]);
+      addProjectilePart(trace, 'Bolt tracer trail', 'box', material, [0, 0, -.48], [.035, .035, .52]);
     }
     this.app.root.addChild(trace);
     this.pushTransient({
@@ -332,10 +375,20 @@ export class CombatPresentationPass {
       end,
       baseScale: 1,
       impactTint: tint,
-      impactForce: style === 'SHELL' ? 0.95 : style === 'ORB' ? 0.68 : 0.52,
+      impactForce: style === 'SHELL' ? 0.95 : element === 'FIRE' ? 0.82 : element === 'ICE' ? 0.74 : style === 'ORB' ? 0.68 : 0.52,
+      element: element ?? undefined,
+      yaw,
     });
 
-    this.effects.burst(start.x, start.y, start.z, tint, tick, style === 'SHELL' ? 5 : 3, style === 'SHELL' ? 0.42 : 0.28);
+    this.effects.burst(
+      start.x,
+      start.y,
+      start.z,
+      tint,
+      tick,
+      style === 'SHELL' ? 5 : element === 'LIGHTNING' ? 5 : 3,
+      style === 'SHELL' ? 0.42 : element === 'FIRE' ? 0.34 : 0.28,
+    );
   }
 
   private spawnUnitDeath(unit: EntitySnapshot, tick: number): void {
@@ -453,9 +506,20 @@ export class CombatPresentationPass {
             transient.end.z,
             transient.impactTint,
             tick,
-            transient.kind === 'SHELL_TRACE' ? 11 : 6,
+            transient.kind === 'SHELL_TRACE' ? 11 : transient.element === 'FIRE' ? 9 : transient.element === 'ICE' ? 8 : 6,
             transient.impactForce ?? 0.58,
           );
+          if (transient.element === 'LIGHTNING') {
+            const branchStart = transient.end.clone();
+            branchStart.x -= 0.24;
+            branchStart.y += 0.18;
+            branchStart.z -= 0.08;
+            const branchEnd = transient.end.clone();
+            branchEnd.x += 0.26;
+            branchEnd.y += 0.03;
+            branchEnd.z += 0.12;
+            this.effects.bolt(branchStart, branchEnd, tick);
+          }
         }
         transient.entity.destroy();
         this.transient.splice(index, 1);
@@ -464,13 +528,53 @@ export class CombatPresentationPass {
 
       if ((transient.kind === 'PROJECTILE_TRACE' || transient.kind === 'SHELL_TRACE') && transient.start && transient.end) {
         const ease = progress * progress * (3 - 2 * progress);
-        const x = pc.math.lerp(transient.start.x, transient.end.x, ease);
-        const z = pc.math.lerp(transient.start.z, transient.end.z, ease);
+        let x = pc.math.lerp(transient.start.x, transient.end.x, ease);
+        let z = pc.math.lerp(transient.start.z, transient.end.z, ease);
         let y = pc.math.lerp(transient.start.y, transient.end.y, ease);
-        if (transient.kind === 'SHELL_TRACE') y += Math.sin(progress * Math.PI) * 1.18;
-        else y += Math.sin(progress * Math.PI) * 0.12;
+        if (transient.kind === 'SHELL_TRACE') {
+          y += Math.sin(progress * Math.PI) * 1.18;
+        } else if (transient.element === 'FIRE') {
+          y += Math.sin(progress * Math.PI) * 0.24;
+        } else if (transient.element === 'WATER') {
+          const dx = transient.end.x - transient.start.x;
+          const dz = transient.end.z - transient.start.z;
+          const length = Math.max(0.001, Math.hypot(dx, dz));
+          const wobble = Math.sin(progress * Math.PI * 4) * 0.11 * (1 - progress * 0.35);
+          x += (-dz / length) * wobble;
+          z += (dx / length) * wobble;
+          y += Math.sin(progress * Math.PI) * 0.08;
+        } else if (transient.element === 'ICE') {
+          y += Math.sin(progress * Math.PI) * 0.045;
+        } else if (transient.element === 'LIGHTNING') {
+          const dx = transient.end.x - transient.start.x;
+          const dz = transient.end.z - transient.start.z;
+          const length = Math.max(0.001, Math.hypot(dx, dz));
+          const zigzag = Math.sin(progress * Math.PI * 10) * 0.14 * (1 - progress * 0.2);
+          x += (-dz / length) * zigzag;
+          z += (dx / length) * zigzag;
+          y += Math.sin(progress * Math.PI * 7) * 0.055;
+        } else {
+          y += Math.sin(progress * Math.PI) * 0.12;
+        }
         transient.entity.setPosition(x, y, z);
-        transient.entity.setLocalScale(1 + Math.sin(progress * Math.PI) * 0.14, 1 + Math.sin(progress * Math.PI) * 0.14, 1);
+
+        const pulse = Math.sin(progress * Math.PI);
+        if (transient.element === 'FIRE') {
+          transient.entity.setLocalScale(1 + pulse * 0.22, 1 + pulse * 0.18, 1 + pulse * 0.08);
+          transient.entity.setEulerAngles(0, transient.yaw ?? 0, progress * 160);
+        } else if (transient.element === 'WATER') {
+          transient.entity.setLocalScale(1 + pulse * 0.16, 0.92 + pulse * 0.08, 1 + pulse * 0.24);
+          transient.entity.setEulerAngles(0, transient.yaw ?? 0, Math.sin(progress * Math.PI * 4) * 8);
+        } else if (transient.element === 'ICE') {
+          transient.entity.setLocalScale(1 + pulse * 0.08, 1 + pulse * 0.08, 1 + pulse * 0.18);
+          transient.entity.setEulerAngles(0, transient.yaw ?? 0, progress * 220);
+        } else if (transient.element === 'LIGHTNING') {
+          const flicker = 0.92 + Math.abs(Math.sin(progress * Math.PI * 12)) * 0.28;
+          transient.entity.setLocalScale(flicker, flicker, 1 + pulse * 0.12);
+          transient.entity.setEulerAngles(0, transient.yaw ?? 0, Math.sin(progress * Math.PI * 8) * 18);
+        } else {
+          transient.entity.setLocalScale(1 + pulse * 0.14, 1 + pulse * 0.14, 1);
+        }
       } else if (transient.kind === 'MELEE_SLASH') {
         const scale = transient.baseScale * (0.72 + Math.sin(progress * Math.PI) * 0.5);
         transient.entity.setLocalScale(scale, scale, scale);
