@@ -17,11 +17,14 @@ const EXPECTED_ARCHETYPES: readonly UnitArchetype[] = [
 ];
 
 describe('visual QA roster', () => {
-  it('requires an explicit visual-QA query instead of changing normal play', () => {
-    expect(visualQaRequested('')).toBe(false);
-    expect(visualQaRequested('?debug=1')).toBe(false);
+  it('defaults ordinary visual-production play to the QA roster and supports an explicit opt-out', () => {
+    expect(visualQaRequested('')).toBe(true);
+    expect(visualQaRequested('?debug=1')).toBe(true);
     expect(visualQaRequested('?visualQa=1')).toBe(true);
     expect(visualQaRequested('?visualQa=on')).toBe(true);
+    expect(visualQaRequested('?visualQa=0')).toBe(false);
+    expect(visualQaRequested('?visualQa=off')).toBe(false);
+    expect(visualQaRequested('?visualQa=false')).toBe(false);
   });
 
   it('adds every visual unit and all four Elementalist alignments without changing the enemy starting army', () => {

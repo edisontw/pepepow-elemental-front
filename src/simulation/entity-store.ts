@@ -50,9 +50,6 @@ export class EntityStore {
       pursuitTargetCellKey: null,
     });
     this.archetypes.set(entityId, spawn.archetype);
-    if (spawn.archetype === 'ELEMENTALIST' && spawn.elementalAlignment) {
-      this.elementalAlignments.set(entityId, { element: spawn.elementalAlignment });
-    }
     return entityId;
   }
 

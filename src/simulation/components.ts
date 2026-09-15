@@ -76,5 +76,4 @@ export interface UnitSpawn {
   attackDamage: number;
   attackIntervalTicks: number;
   attackRange: number;
-  elementalAlignment?: ElementId;
 }

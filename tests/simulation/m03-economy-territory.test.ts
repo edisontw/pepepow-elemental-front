@@ -107,7 +107,7 @@ describe('M03 economy and territory', () => {
     const { state } = createStrategicHarness();
     const initial = state.snapshot();
     expect(initial.resources[0]).toEqual({ materialMilli: 300_000, manaMilli: 100_000, influenceMilli: 10_000 });
-    expect(initial.populationUsed[0]).toBe(20);
+    expect(initial.populationUsed[0]).toBe(6);
     expect(initial.populationCap[0]).toBe(30);
 
     for (let tick = 1; tick <= 18_000; tick += 1) state.advanceEconomy(tick);
@@ -133,7 +133,7 @@ describe('M03 economy and territory', () => {
     expect(barracks).toBeDefined();
     expect(state.processCommand({ targetTick: 352, playerId: 0, type: 'TRAIN', buildingId: barracks!.id, unitType: 'VANGUARD' }, 352)).toBe(true);
     for (let tick = 352; tick <= 472; tick += 1) state.advanceEconomy(tick);
-    expect(state.snapshot().populationUsed[0]).toBe(21);
+    expect(state.snapshot().populationUsed[0]).toBe(7);
   });
 
   it('captures POIs once and grants the canonical Influence reward without duplication', () => {

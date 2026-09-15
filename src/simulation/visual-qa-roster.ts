@@ -7,7 +7,12 @@ const PLAYER_ID = 0;
 
 export function visualQaRequested(search: string): boolean {
   const raw = new URLSearchParams(search).get('visualQa')?.trim().toLowerCase();
-  return raw === '1' || raw === 'true' || raw === 'on';
+  // During the active visual-production pass, ordinary local/direct play boots
+  // with the QA roster so every unit can be inspected immediately. Challenge,
+  // share and replay paths are still excluded by main.ts. `visualQa=0|off|false`
+  // restores the canonical starting roster for an ordinary session.
+  if (raw === undefined) return true;
+  return raw !== '0' && raw !== 'false' && raw !== 'off';
 }
 
 interface VisualQaUnitSpec {

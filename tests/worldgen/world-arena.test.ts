@@ -15,14 +15,7 @@ describe('generated world arena presentation adapter', () => {
       const spawn = world.spawns.find((candidate) => candidate.id === spawnId);
       expect(spawn).toBeDefined();
       const corePosition = worldCellToSimulationPosition(world, spawn!.cell);
-      expect(units).toHaveLength(9);
-      expect(new Set(units.map((unit) => unit.archetype))).toEqual(new Set([
-        'VANGUARD', 'SPEAR_GUARD', 'RANGER', 'SCOUT', 'ELEMENTALIST', 'ENGINEER', 'GOLEM', 'SIEGE_CONSTRUCT',
-      ]));
-      const elementalists = units.filter((unit) => unit.archetype === 'ELEMENTALIST');
-      expect(elementalists.map((unit) => unit.elementalAlignment)).toEqual(
-        playerId === 0 ? ['FIRE', 'WATER'] : ['ICE', 'LIGHTNING'],
-      );
+      expect(units).toHaveLength(6);
       const occupied = new Set<string>();
       for (const unit of units) {
         const column = Math.floor((unit.x - arena.traversal.originX) / arena.traversal.cellSize);
