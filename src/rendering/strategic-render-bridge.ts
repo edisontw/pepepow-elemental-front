@@ -43,6 +43,30 @@ interface BuildingPresentation {
   collapseRoll: number;
 }
 
+interface RelayLinkPresentation {
+  root: pc.Entity;
+  core: pc.Entity;
+  halo: pc.Entity;
+  pulses: readonly pc.Entity[];
+  fromX: number;
+  fromZ: number;
+  toX: number;
+  toZ: number;
+  distance: number;
+  phase: number;
+}
+
+interface RelayAnchorPresentation {
+  root: pc.Entity;
+  ring: pc.Entity;
+  core: pc.Entity;
+  halo: pc.Entity;
+  radius: number;
+  coreY: number;
+  strength: number;
+  phase: number;
+}
+
 function createMaterial(color: pc.Color, emissive?: pc.Color, opacity = 1): pc.StandardMaterial {
   const material = new pc.StandardMaterial();
   material.diffuse = color;
@@ -79,9 +103,17 @@ function isResourceSite(building: StrategicBuilding): boolean {
   return building.type === 'EXTRACTOR' || building.type === 'MANA_WELL';
 }
 
+function isStrategicAnchor(building: StrategicBuilding, supplied: ReadonlySet<number>): boolean {
+  if (building.type === 'ELEMENTAL_CORE') return true;
+  if (!supplied.has(building.regionId)) return false;
+  if (building.type === 'ARCANE_TOWER') return true;
+  return building.type === 'OUTPOST' && building.specialization === 'MANA_BEACON';
+}
+
 export class StrategicRenderBridge {
   private readonly entities = new Map<number, BuildingPresentation>();
-  private readonly networkEntities: pc.Entity[] = [];
+  private readonly networkLinks: RelayLinkPresentation[] = [];
+  private readonly networkAnchors: RelayAnchorPresentation[] = [];
   private readonly buildingImpostors: BuildingImpostorLibrary;
   private networkKey = '';
   private readonly playerMaterial = createMaterial(new pc.Color(0.16, 0.58, 0.5), new pc.Color(0.01, 0.15, 0.1));
@@ -96,7 +128,21 @@ export class StrategicRenderBridge {
     new pc.Color(.72, .32, .035),
     .56,
   );
-  private readonly networkMaterial = createMaterial(new pc.Color(0.18, 0.78, 0.7), new pc.Color(0.04, 0.42, 0.32));
+  private readonly networkMaterial = createMaterial(
+    new pc.Color(0.18, 0.78, 0.7),
+    new pc.Color(0.04, 0.42, 0.32),
+    .72,
+  );
+  private readonly networkGlowMaterial = createMaterial(
+    new pc.Color(.42, 1, .9),
+    new pc.Color(.10, .86, .68),
+    .34,
+  );
+  private readonly networkPulseMaterial = createMaterial(
+    new pc.Color(.78, 1, .94),
+    new pc.Color(.24, 1, .78),
+    .92,
+  );
   private readonly healthBackMaterial = createMaterial(new pc.Color(0.035, 0.045, 0.045));
 
   constructor(private readonly app: pc.Application, private readonly visualAssets: VisualAssetLibrary) {
@@ -363,12 +409,11 @@ export class StrategicRenderBridge {
       presentation.root.destroy();
       this.entities.delete(buildingId);
     }
-    this.syncNetwork(snapshot);
+    this.syncNetwork(snapshot, tick);
   }
 
   destroy(): void {
-    for (const entity of this.networkEntities) entity.destroy();
-    this.networkEntities.length = 0;
+    this.clearNetwork();
     for (const presentation of this.entities.values()) {
       this.visualAssets.release(presentation.model);
       this.buildingImpostors.release(presentation.impostor);
@@ -378,6 +423,8 @@ export class StrategicRenderBridge {
     this.workMaterial.destroy();
     this.workGlowMaterial.destroy();
     this.networkMaterial.destroy();
+    this.networkGlowMaterial.destroy();
+    this.networkPulseMaterial.destroy();
     this.entities.clear();
     this.playerMaterial.destroy();
     this.playerAccentMaterial.destroy();
@@ -388,41 +435,105 @@ export class StrategicRenderBridge {
     this.healthBackMaterial.destroy();
   }
 
-  private syncNetwork(snapshot: StrategicSnapshot): void {
+  private syncNetwork(snapshot: StrategicSnapshot, tick: number): void {
+    const supplied = new Set(snapshot.suppliedRegions[0] ?? []);
     const anchors = snapshot.buildings
       .filter((building) => building.playerId === 0 && building.completed && !building.destroyed)
-      .filter((building) => ['ELEMENTAL_CORE', 'OUTPOST', 'ARCANE_TOWER', 'MANA_WELL'].includes(building.type))
-      .sort((a, b) => a.id - b.id);
-    const key = anchors.map((building) => `${building.id}:${building.x}:${building.z}`).join('|');
-    if (key === this.networkKey) return;
-    this.networkKey = key;
-    for (const entity of this.networkEntities) entity.destroy();
-    this.networkEntities.length = 0;
-    if (anchors.length < 2) return;
+      .filter((building) => isStrategicAnchor(building, supplied))
+      .sort((left, right) => {
+        const leftCore = left.type === 'ELEMENTAL_CORE' ? 0 : 1;
+        const rightCore = right.type === 'ELEMENTAL_CORE' ? 0 : 1;
+        return leftCore - rightCore || left.id - right.id;
+      });
+    const key = anchors
+      .map((building) => `${building.id}:${building.type}:${building.specialization ?? '-'}:${building.regionId}:${building.x}:${building.z}`)
+      .join('|');
+    if (key !== this.networkKey) {
+      this.networkKey = key;
+      this.clearNetwork();
+      for (const building of anchors) this.addNetworkAnchor(building);
 
-    const connected = [anchors[0]!];
-    const remaining = anchors.slice(1);
-    while (remaining.length > 0) {
-      let bestIndex = 0;
-      let bestParent = connected[0]!;
-      let bestDistance = Number.POSITIVE_INFINITY;
-      for (let index = 0; index < remaining.length; index += 1) {
-        const candidate = remaining[index]!;
-        for (const parent of connected) {
-          const dx = candidate.x - parent.x;
-          const dz = candidate.z - parent.z;
-          const distance = dx * dx + dz * dz;
-          if (distance < bestDistance || (distance === bestDistance && candidate.id < remaining[bestIndex]!.id)) {
-            bestIndex = index;
-            bestParent = parent;
-            bestDistance = distance;
+      if (anchors.length >= 2) {
+        const connected = [anchors[0]!];
+        const remaining = anchors.slice(1);
+        while (remaining.length > 0) {
+          let bestIndex = 0;
+          let bestParent = connected[0]!;
+          let bestDistance = Number.POSITIVE_INFINITY;
+          for (let index = 0; index < remaining.length; index += 1) {
+            const candidate = remaining[index]!;
+            for (const parent of connected) {
+              const dx = candidate.x - parent.x;
+              const dz = candidate.z - parent.z;
+              const distance = dx * dx + dz * dz;
+              if (distance < bestDistance || (distance === bestDistance && candidate.id < remaining[bestIndex]!.id)) {
+                bestIndex = index;
+                bestParent = parent;
+                bestDistance = distance;
+              }
+            }
           }
+          const child = remaining.splice(bestIndex, 1)[0]!;
+          connected.push(child);
+          this.addNetworkLink(bestParent, child);
         }
       }
-      const child = remaining.splice(bestIndex, 1)[0]!;
-      connected.push(child);
-      this.addNetworkLink(bestParent, child);
     }
+    this.updateNetwork(tick);
+  }
+
+  private clearNetwork(): void {
+    for (const link of this.networkLinks) link.root.destroy();
+    this.networkLinks.length = 0;
+    for (const anchor of this.networkAnchors) anchor.root.destroy();
+    this.networkAnchors.length = 0;
+  }
+
+  private addNetworkAnchor(building: StrategicBuilding): void {
+    const profile = buildingVisualProfile(building.type);
+    const radius = Math.max(.48, profile.footprint * .46);
+    const strength = building.type === 'ELEMENTAL_CORE'
+      ? 1.25
+      : building.type === 'ARCANE_TOWER'
+        ? 1
+        : .84;
+    const root = new pc.Entity(`Strategic Anchor ${building.id}`);
+    root.setPosition(
+      building.x / WORLD_UNITS_PER_METER,
+      0,
+      building.z / WORLD_UNITS_PER_METER,
+    );
+
+    const ring = new pc.Entity(`Strategic Anchor ${building.id} Ring`);
+    ring.addComponent('render', { type: 'cylinder', material: this.networkGlowMaterial, castShadows: false });
+    ring.setLocalPosition(0, .075, 0);
+    ring.setLocalScale(radius, .018, radius);
+    root.addChild(ring);
+
+    const coreY = profile.height + .38;
+    const halo = new pc.Entity(`Strategic Anchor ${building.id} Halo`);
+    halo.addComponent('render', { type: 'sphere', material: this.networkGlowMaterial, castShadows: false });
+    halo.setLocalPosition(0, coreY, 0);
+    halo.setLocalScale(.24 * strength, .10 * strength, .24 * strength);
+    root.addChild(halo);
+
+    const core = new pc.Entity(`Strategic Anchor ${building.id} Core`);
+    core.addComponent('render', { type: 'sphere', material: this.networkPulseMaterial, castShadows: false });
+    core.setLocalPosition(0, coreY, 0);
+    core.setLocalScale(.11 * strength, .11 * strength, .11 * strength);
+    root.addChild(core);
+
+    this.app.root.addChild(root);
+    this.networkAnchors.push({
+      root,
+      ring,
+      core,
+      halo,
+      radius,
+      coreY,
+      strength,
+      phase: building.id * .619,
+    });
   }
 
   private addNetworkLink(from: StrategicBuilding, to: StrategicBuilding): void {
@@ -434,13 +545,79 @@ export class StrategicRenderBridge {
     const dz = toZ - fromZ;
     const distance = Math.hypot(dx, dz);
     if (distance < 0.1) return;
-    const link = new pc.Entity(`Strategic Relay ${from.id}-${to.id}`);
-    link.addComponent('render', { type: 'box', material: this.networkMaterial });
-    link.setPosition((fromX + toX) * 0.5, 0.14, (fromZ + toZ) * 0.5);
-    link.setLocalScale(0.075, 0.045, distance);
-    link.setEulerAngles(0, Math.atan2(dx, dz) * 180 / Math.PI, 0);
-    this.app.root.addChild(link);
-    this.networkEntities.push(link);
+
+    const root = new pc.Entity(`Strategic Relay ${from.id}-${to.id}`);
+    const midpointX = (fromX + toX) * .5;
+    const midpointZ = (fromZ + toZ) * .5;
+    const yaw = Math.atan2(dx, dz) * 180 / Math.PI;
+
+    const halo = new pc.Entity(`Strategic Relay ${from.id}-${to.id} Halo`);
+    halo.addComponent('render', { type: 'box', material: this.networkGlowMaterial, castShadows: false });
+    halo.setLocalPosition(midpointX, .135, midpointZ);
+    halo.setLocalScale(.13, .018, distance);
+    halo.setLocalEulerAngles(0, yaw, 0);
+    root.addChild(halo);
+
+    const core = new pc.Entity(`Strategic Relay ${from.id}-${to.id} Core`);
+    core.addComponent('render', { type: 'box', material: this.networkMaterial, castShadows: false });
+    core.setLocalPosition(midpointX, .145, midpointZ);
+    core.setLocalScale(.045, .028, distance);
+    core.setLocalEulerAngles(0, yaw, 0);
+    root.addChild(core);
+
+    const pulses: pc.Entity[] = [];
+    for (let index = 0; index < 3; index += 1) {
+      const pulse = new pc.Entity(`Strategic Relay ${from.id}-${to.id} Pulse ${index + 1}`);
+      pulse.addComponent('render', { type: 'sphere', material: this.networkPulseMaterial, castShadows: false });
+      pulse.setLocalScale(.09, .09, .09);
+      root.addChild(pulse);
+      pulses.push(pulse);
+    }
+
+    this.app.root.addChild(root);
+    this.networkLinks.push({
+      root,
+      core,
+      halo,
+      pulses,
+      fromX,
+      fromZ,
+      toX,
+      toZ,
+      distance,
+      phase: ((from.id * 31 + to.id * 17) % 97) / 97,
+    });
+  }
+
+  private updateNetwork(tick: number): void {
+    for (const anchor of this.networkAnchors) {
+      const wave = .5 + .5 * Math.sin(tick * .22 + anchor.phase);
+      const ringScale = anchor.radius * (1 + wave * .11);
+      anchor.ring.setLocalScale(ringScale, .018, ringScale);
+      anchor.ring.setLocalEulerAngles(0, tick * (2.2 + anchor.strength), 0);
+      anchor.core.setLocalPosition(0, anchor.coreY + Math.sin(tick * .18 + anchor.phase) * .06, 0);
+      const coreScale = (.095 + wave * .045) * anchor.strength;
+      anchor.core.setLocalScale(coreScale, coreScale, coreScale);
+      const haloScale = (.20 + wave * .09) * anchor.strength;
+      anchor.halo.setLocalScale(haloScale, haloScale * .42, haloScale);
+    }
+
+    for (const link of this.networkLinks) {
+      const wave = .5 + .5 * Math.sin(tick * .17 + link.phase * Math.PI * 2);
+      link.core.setLocalScale(.045 + wave * .012, .028, link.distance);
+      link.halo.setLocalScale(.12 + wave * .04, .018, link.distance);
+      for (let index = 0; index < link.pulses.length; index += 1) {
+        const pulse = link.pulses[index]!;
+        const raw = tick * .036 + link.phase + index / link.pulses.length;
+        const progress = raw - Math.floor(raw);
+        const x = pc.math.lerp(link.fromX, link.toX, progress);
+        const z = pc.math.lerp(link.fromZ, link.toZ, progress);
+        const y = .18 + Math.sin(progress * Math.PI) * .055;
+        pulse.setLocalPosition(x, y, z);
+        const scale = .065 + Math.sin(progress * Math.PI) * .045;
+        pulse.setLocalScale(scale, scale, scale);
+      }
+    }
   }
 
   private createBuilding(building: StrategicBuilding): BuildingPresentation {
