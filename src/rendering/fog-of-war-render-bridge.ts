@@ -90,13 +90,9 @@ export class FogOfWarRenderBridge {
     for (let z = 0; z <= this.world.height; z += 1) {
       for (let x = 0; x <= this.world.width; x += 1) {
         const alpha = fogCornerAlpha(cells, this.world.width, this.world.height, x, z);
-        const exploredBlend = alpha / 255;
-        colors.push(
-          Math.round(7 + exploredBlend * 2),
-          Math.round(18 + exploredBlend * 5),
-          Math.round(21 + exploredBlend * 7),
-          alpha,
-        );
+        // Keep fog chromatically neutral so visibility changes darken terrain
+        // without making the same biome appear blue/green in another region.
+        colors.push(9, 9, 9, alpha);
       }
     }
     this.mesh.setColors32(colors);
