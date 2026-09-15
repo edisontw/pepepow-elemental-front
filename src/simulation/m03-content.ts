@@ -171,10 +171,15 @@ export const UNITS: Readonly<Record<UnitArchetype, UnitDefinition>> = {
   },
 };
 
+// Visual-production QA roster: keep every combat archetype available immediately.
+// Two Elementalists per side expose both legal starting Attunements without
+// bypassing the immutable-alignment rule.
 export const STARTING_PLAYER_ARCHETYPES: readonly UnitArchetype[] = [
-  'VANGUARD', 'VANGUARD', 'VANGUARD', 'VANGUARD', 'RANGER', 'SCOUT',
+  'VANGUARD', 'SPEAR_GUARD', 'RANGER', 'SCOUT',
+  'ELEMENTALIST', 'ELEMENTALIST', 'ENGINEER', 'GOLEM', 'SIEGE_CONSTRUCT',
 ];
 
 export const STARTING_ENEMY_ARCHETYPES: readonly UnitArchetype[] = [
-  'VANGUARD', 'VANGUARD', 'VANGUARD', 'VANGUARD', 'RANGER', 'RANGER',
+  'VANGUARD', 'SPEAR_GUARD', 'RANGER', 'SCOUT',
+  'ELEMENTALIST', 'ELEMENTALIST', 'ENGINEER', 'GOLEM', 'SIEGE_CONSTRUCT',
 ];

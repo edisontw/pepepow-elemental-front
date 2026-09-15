@@ -6,6 +6,7 @@ import {
   type TraversalPatch,
 } from '../simulation/arena';
 import type { UnitSpawn } from '../simulation/components';
+import type { ElementId } from '../simulation/element-types';
 import { STARTING_ENEMY_ARCHETYPES, STARTING_PLAYER_ARCHETYPES, UNITS } from '../simulation/m03-content';
 import { BiomeType, TerrainType, WorldCellFlag, type GeneratedWorld, type GridPoint } from './world-definition';
 
@@ -20,6 +21,10 @@ const FORMATION_OFFSETS: readonly GridPoint[] = [
   { x: 0, z: 4 },
   { x: 4, z: 3 },
 ];
+const STARTING_ELEMENTAL_ALIGNMENTS: Readonly<Record<'PLAYER' | 'ENEMY', readonly ElementId[]>> = {
+  PLAYER: ['FIRE', 'WATER'],
+  ENEMY: ['ICE', 'LIGHTNING'],
+};
 
 function originCoordinate(cellCount: number): number {
   return -Math.floor((cellCount * CELL_SIZE) / 2);
@@ -127,16 +132,22 @@ function spawnArmy(world: GeneratedWorld, playerId: number, spawnId: 'PLAYER' | 
   if (!spawn) throw new Error(`Generated world is missing ${spawnId} spawn.`);
   const archetypes = spawnId === 'PLAYER' ? STARTING_PLAYER_ARCHETYPES : STARTING_ENEMY_ARCHETYPES;
   const cells = formationSpawnCells(world, spawn.cell, spawn.regionId, archetypes.length);
+  const alignments = STARTING_ELEMENTAL_ALIGNMENTS[spawnId];
+  let elementalistIndex = 0;
   return archetypes.map((archetype, index) => {
     const definition = UNITS[archetype];
     const cell = cells[index] ?? spawn.cell;
     const position = worldCellToSimulationPosition(world, cell);
+    const elementalAlignment = archetype === 'ELEMENTALIST'
+      ? alignments[elementalistIndex++]
+      : undefined;
     return {
       archetype,
       playerId,
       x: position.x,
       z: position.z,
       ...definition.spawn,
+      ...(elementalAlignment ? { elementalAlignment } : {}),
     };
   });
 }
