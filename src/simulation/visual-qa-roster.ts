@@ -5,6 +5,11 @@ import type { M06Simulation } from './m06-simulation';
 
 const PLAYER_ID = 0;
 
+export function visualQaRequested(search: string): boolean {
+  const raw = new URLSearchParams(search).get('visualQa')?.trim().toLowerCase();
+  return raw === '1' || raw === 'true' || raw === 'on';
+}
+
 interface VisualQaUnitSpec {
   archetype: UnitArchetype;
   element?: ElementId;

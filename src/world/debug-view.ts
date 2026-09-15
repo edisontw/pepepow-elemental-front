@@ -310,7 +310,7 @@ export function renderWorldDebug(
         if (level === VisibilityLevel.VISIBLE) continue;
         context.fillStyle = level === VisibilityLevel.EXPLORED
           ? 'rgba(4, 12, 14, .56)'
-          : 'rgba(2, 7, 9, .94)';
+          : '#020709';
         context.fillRect(x * scaleX, z * scaleY, Math.ceil(scaleX), Math.ceil(scaleY));
       }
     }

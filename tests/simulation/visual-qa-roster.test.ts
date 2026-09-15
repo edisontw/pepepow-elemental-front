@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { UnitArchetype } from '../../src/simulation/components';
 import { ELEMENT_IDS } from '../../src/simulation/element-types';
 import { M06Simulation } from '../../src/simulation/m06-simulation';
-import { addMissingVisualQaUnits } from '../../src/simulation/visual-qa-roster';
+import { addMissingVisualQaUnits, visualQaRequested } from '../../src/simulation/visual-qa-roster';
 import { generateWorld } from '../../src/world/generator';
 
 const EXPECTED_ARCHETYPES: readonly UnitArchetype[] = [
@@ -17,6 +17,13 @@ const EXPECTED_ARCHETYPES: readonly UnitArchetype[] = [
 ];
 
 describe('visual QA roster', () => {
+  it('requires an explicit visual-QA query instead of changing normal play', () => {
+    expect(visualQaRequested('')).toBe(false);
+    expect(visualQaRequested('?debug=1')).toBe(false);
+    expect(visualQaRequested('?visualQa=1')).toBe(true);
+    expect(visualQaRequested('?visualQa=on')).toBe(true);
+  });
+
   it('adds every visual unit and all four Elementalist alignments without changing the enemy starting army', () => {
     const simulation = new M06Simulation(generateWorld(1_000_000), { difficulty: 'CASUAL' });
     const enemyBefore = simulation.snapshot().entities.filter((entity) => entity.playerId === 1).length;
