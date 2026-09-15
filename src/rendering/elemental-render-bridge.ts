@@ -1,6 +1,8 @@
 import * as pc from 'playcanvas';
 import { BattleVfx, ELEMENT_TINTS, ringMesh } from './battle-vfx';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
+import type { ActiveStrategicZoneSnapshot, M04SimulationSnapshot } from '../simulation/m04-simulation';
+import { STRATEGIC_PULSE_INTERVAL_TICKS, STRATEGIC_SPELLS } from '../simulation/spell-content';
 import type { TerrainState } from '../simulation/terrain-state';
 import { SurfaceType } from '../simulation/terrain-state';
 import type { EntitySnapshot, SimulationSnapshot } from '../simulation/simulation';
@@ -18,6 +20,18 @@ interface TransientVisual {
   baseScale: number;
   originY: number;
   kind: 'LIGHTNING_NODE' | 'LIGHTNING_BEAM' | 'STEAM' | 'WATER_RING' | 'ICE_SPARK';
+}
+
+type StrategicSpellId = ActiveStrategicZoneSnapshot['spellId'];
+
+interface StrategicZoneVisual {
+  root: pc.Entity;
+  outerRing: pc.Entity;
+  innerRing: pc.Entity;
+  core: pc.Entity;
+  accents: readonly pc.Entity[];
+  spellId: StrategicSpellId;
+  lastPulseTick: number;
 }
 
 function createMaterial(color: pc.Color, emissive: pc.Color, opacity = 1): pc.StandardMaterial {
@@ -44,15 +58,26 @@ function keyForCell(column: number, row: number): string {
   return `${column},${row}`;
 }
 
+function metres(value: number): number {
+  return value / WORLD_UNITS_PER_METER;
+}
+
 export class ElementalRenderBridge {
   private readonly burning = new Map<string, pc.Entity>();
   private readonly transient: TransientVisual[] = [];
+  private readonly strategicZones = new Map<number, StrategicZoneVisual>();
   private readonly flameMaterial = createMaterial(new pc.Color(1, 0.22, 0.02), new pc.Color(1, 0.08, 0.005));
   private readonly flameCoreMaterial = createMaterial(new pc.Color(1, 0.82, 0.18), new pc.Color(1, 0.34, 0.02));
   private readonly waterMaterial = createMaterial(new pc.Color(0.22, 0.7, 1), new pc.Color(0.04, 0.2, 0.5), 0.5);
   private readonly iceSparkMaterial = createMaterial(new pc.Color(0.76, 0.95, 1), new pc.Color(0.22, 0.6, 0.72), 0.78);
   private readonly lightningMaterial = createMaterial(new pc.Color(0.72, 0.9, 1), new pc.Color(0.34, 0.62, 1), 0.88);
   private readonly steamMaterial = createMaterial(new pc.Color(0.72, 0.86, 0.9), new pc.Color(0.12, 0.22, 0.24), 0.32);
+  private readonly strategicMaterials: Readonly<Record<StrategicSpellId, pc.StandardMaterial>> = {
+    INFERNO: createMaterial(new pc.Color(1, .26, .035), new pc.Color(1, .08, .005), .56),
+    DELUGE: createMaterial(new pc.Color(.10, .74, 1), new pc.Color(.03, .38, .86), .48),
+    BLIZZARD: createMaterial(new pc.Color(.74, .94, 1), new pc.Color(.20, .62, .82), .52),
+    THUNDERSTORM: createMaterial(new pc.Color(.68, .48, 1), new pc.Color(.40, .16, 1), .54),
+  };
   private lastIceCells: Set<string>;
   private lastProcessedTick = -1;
   private readonly rippleMesh: pc.Mesh;
@@ -66,14 +91,17 @@ export class ElementalRenderBridge {
     this.rippleMesh = ringMesh(app.graphicsDevice);
     this.lastIceCells = this.currentIceCells();
     this.syncBurning(initialSnapshot, 0);
+    this.syncStrategicZones(initialSnapshot, 0);
   }
 
   sync(previous: SimulationSnapshot, current: SimulationSnapshot, alpha: number): void {
     this.syncBurning(current, alpha);
+    this.syncStrategicZones(current, alpha);
     if (current.tick !== this.lastProcessedTick) {
       this.processLightning(previous, current);
       this.processWater(previous, current);
       this.processIceTransitions(current.tick);
+      this.processStrategicPulses(current);
       this.lastProcessedTick = current.tick;
     }
     this.updateTransient(current.tick, alpha);
@@ -84,6 +112,8 @@ export class ElementalRenderBridge {
     this.burning.clear();
     for (const visual of this.transient) visual.entity.destroy();
     this.transient.length = 0;
+    for (const visual of this.strategicZones.values()) visual.root.destroy();
+    this.strategicZones.clear();
     this.rippleMesh.destroy();
     this.flameMaterial.destroy();
     this.flameCoreMaterial.destroy();
@@ -91,6 +121,7 @@ export class ElementalRenderBridge {
     this.iceSparkMaterial.destroy();
     this.lightningMaterial.destroy();
     this.steamMaterial.destroy();
+    for (const material of Object.values(this.strategicMaterials)) material.destroy();
   }
 
   private syncBurning(snapshot: SimulationSnapshot, alpha: number): void {
@@ -148,6 +179,213 @@ export class ElementalRenderBridge {
 
     this.app.root.addChild(root);
     return root;
+  }
+
+  private syncStrategicZones(snapshot: SimulationSnapshot, alpha: number): void {
+    const authority = (snapshot as Partial<M04SimulationSnapshot>).elementalAuthority;
+    const zones = authority?.activeStrategicZones ?? [];
+    const active = new Set<number>();
+
+    for (const zone of zones) {
+      if (!this.strategicZoneVisible(zone, snapshot)) continue;
+      active.add(zone.id);
+      let visual = this.strategicZones.get(zone.id);
+      if (!visual) {
+        visual = this.createStrategicZone(zone, snapshot.tick);
+        this.strategicZones.set(zone.id, visual);
+        this.spawnStrategicPulse(zone, snapshot.tick, true);
+      }
+      this.animateStrategicZone(visual, zone, snapshot.tick, alpha);
+    }
+
+    for (const [zoneId, visual] of [...this.strategicZones]) {
+      if (active.has(zoneId)) continue;
+      visual.root.destroy();
+      this.strategicZones.delete(zoneId);
+    }
+  }
+
+  private strategicZoneVisible(zone: ActiveStrategicZoneSnapshot, snapshot: SimulationSnapshot): boolean {
+    if (zone.playerId === 0) return true;
+    const radius = STRATEGIC_SPELLS[zone.spellId].radius;
+    const radiusSquared = radius * radius;
+    return snapshot.entities.some((entity) => {
+      if (!entity.visibleToPlayer) return false;
+      const dx = entity.x - zone.targetX;
+      const dz = entity.z - zone.targetZ;
+      return dx * dx + dz * dz <= radiusSquared;
+    });
+  }
+
+  private createStrategicZone(zone: ActiveStrategicZoneSnapshot, tick: number): StrategicZoneVisual {
+    const spell = STRATEGIC_SPELLS[zone.spellId];
+    const material = this.strategicMaterials[zone.spellId];
+    const radius = metres(spell.radius);
+    const root = new pc.Entity(`Strategic ${zone.spellId} Zone ${zone.id}`);
+    root.setPosition(metres(zone.targetX), .08, metres(zone.targetZ));
+
+    const outerRing = new pc.Entity(`${zone.spellId} Outer Footprint`);
+    outerRing.addComponent('render', {
+      meshInstances: [new pc.MeshInstance(this.rippleMesh, material)],
+      castShadows: false,
+    });
+    root.addChild(outerRing);
+
+    const innerRing = new pc.Entity(`${zone.spellId} Inner Footprint`);
+    innerRing.addComponent('render', {
+      meshInstances: [new pc.MeshInstance(this.rippleMesh, material)],
+      castShadows: false,
+    });
+    innerRing.setLocalPosition(0, .025, 0);
+    root.addChild(innerRing);
+
+    const core = new pc.Entity(`${zone.spellId} Strategic Core`);
+    core.addComponent('render', {
+      type: zone.spellId === 'INFERNO' ? 'cone' : 'sphere',
+      material,
+      castShadows: false,
+    });
+    root.addChild(core);
+
+    const accents: pc.Entity[] = [];
+    const accentCount = zone.spellId === 'THUNDERSTORM' ? 6 : zone.spellId === 'BLIZZARD' ? 8 : 6;
+    for (let index = 0; index < accentCount; index += 1) {
+      const angle = (index / accentCount) * Math.PI * 2;
+      const accent = new pc.Entity(`${zone.spellId} Accent ${index + 1}`);
+      const type = zone.spellId === 'INFERNO' ? 'cone'
+        : zone.spellId === 'BLIZZARD' ? 'box'
+          : 'sphere';
+      accent.addComponent('render', { type, material, castShadows: false });
+      const orbitRadius = radius * (zone.spellId === 'THUNDERSTORM' ? .40 : .52);
+      accent.setLocalPosition(
+        Math.cos(angle) * orbitRadius,
+        zone.spellId === 'THUNDERSTORM' ? 2.7 + (index % 2) * .42 : .20,
+        Math.sin(angle) * orbitRadius,
+      );
+      if (zone.spellId === 'INFERNO') accent.setLocalScale(.28, .84 + (index % 2) * .32, .28);
+      else if (zone.spellId === 'DELUGE') accent.setLocalScale(.54, .10, .82);
+      else if (zone.spellId === 'BLIZZARD') {
+        accent.setLocalScale(.10, .78 + (index % 3) * .16, .10);
+        accent.setLocalEulerAngles(18, index * (360 / accentCount), index % 2 === 0 ? 18 : -18);
+      } else accent.setLocalScale(.74 + (index % 2) * .18, .22, .74 + (index % 2) * .18);
+      root.addChild(accent);
+      accents.push(accent);
+    }
+
+    this.app.root.addChild(root);
+    return {
+      root,
+      outerRing,
+      innerRing,
+      core,
+      accents,
+      spellId: zone.spellId,
+      lastPulseTick: tick,
+    };
+  }
+
+  private animateStrategicZone(
+    visual: StrategicZoneVisual,
+    zone: ActiveStrategicZoneSnapshot,
+    tick: number,
+    alpha: number,
+  ): void {
+    const spell = STRATEGIC_SPELLS[zone.spellId];
+    const radius = metres(spell.radius);
+    const age = Math.max(0, tick + alpha - zone.startTick);
+    const duration = Math.max(1, zone.endTick - zone.startTick);
+    const progress = Math.max(0, Math.min(1, age / duration));
+    const pulse = .5 + .5 * Math.sin(age * .62 + zone.id * .73);
+    const ringScale = radius / .48;
+
+    visual.root.setPosition(metres(zone.targetX), .08, metres(zone.targetZ));
+    visual.outerRing.setLocalScale(ringScale * (.985 + pulse * .025), 1, ringScale * (.985 + pulse * .025));
+    visual.innerRing.setLocalScale(ringScale * (.62 + pulse * .035), 1, ringScale * (.62 + pulse * .035));
+    visual.innerRing.setLocalEulerAngles(0, age * (zone.spellId === 'THUNDERSTORM' ? -9 : 6), 0);
+
+    if (zone.spellId === 'INFERNO') {
+      visual.core.setLocalPosition(0, .44 + pulse * .22, 0);
+      visual.core.setLocalScale(.64 + pulse * .20, 1.2 + pulse * .62, .64 + pulse * .20);
+      for (const [index, accent] of visual.accents.entries()) {
+        const angle = (index / visual.accents.length) * Math.PI * 2 + age * .055;
+        accent.setLocalPosition(Math.cos(angle) * radius * .50, .30 + pulse * .18, Math.sin(angle) * radius * .50);
+        accent.setLocalScale(.24 + pulse * .08, .66 + ((index + tick) % 3) * .16 + pulse * .28, .24 + pulse * .08);
+      }
+    } else if (zone.spellId === 'DELUGE') {
+      visual.core.setLocalPosition(0, .20 + pulse * .06, 0);
+      visual.core.setLocalScale(radius * .12, .08 + pulse * .05, radius * .12);
+      for (const [index, accent] of visual.accents.entries()) {
+        const angle = (index / visual.accents.length) * Math.PI * 2 - age * .035;
+        const orbit = radius * (.34 + (index % 2) * .16);
+        accent.setLocalPosition(Math.cos(angle) * orbit, .18 + Math.sin(age * .5 + index) * .08, Math.sin(angle) * orbit);
+        accent.setLocalEulerAngles(0, -angle * 180 / Math.PI, index % 2 === 0 ? 8 : -8);
+      }
+    } else if (zone.spellId === 'BLIZZARD') {
+      visual.root.setLocalEulerAngles(0, age * -2.2, 0);
+      visual.core.setLocalPosition(0, .34 + pulse * .10, 0);
+      visual.core.setLocalScale(.44 + pulse * .12, .30 + pulse * .12, .44 + pulse * .12);
+      for (const [index, accent] of visual.accents.entries()) {
+        const angle = (index / visual.accents.length) * Math.PI * 2 + age * .025;
+        const orbit = radius * (.32 + (index % 3) * .09);
+        accent.setLocalPosition(Math.cos(angle) * orbit, .38 + (index % 2) * .18 + pulse * .10, Math.sin(angle) * orbit);
+        accent.setLocalEulerAngles(18 + Math.sin(age * .22 + index) * 8, age * (7 + (index % 3) * 2) + index * 45, index % 2 === 0 ? 18 : -18);
+      }
+    } else {
+      visual.core.setLocalPosition(0, 3.20 + Math.sin(age * .34) * .18, 0);
+      visual.core.setLocalScale(1.12 + pulse * .28, .26 + pulse * .10, 1.12 + pulse * .28);
+      for (const [index, accent] of visual.accents.entries()) {
+        const angle = (index / visual.accents.length) * Math.PI * 2 + age * .028;
+        const orbit = radius * (.26 + (index % 2) * .10);
+        accent.setLocalPosition(
+          Math.cos(angle) * orbit,
+          2.55 + (index % 2) * .48 + Math.sin(age * .45 + index) * .12,
+          Math.sin(angle) * orbit,
+        );
+      }
+    }
+
+    const endFade = progress > .86 ? Math.max(.16, 1 - (progress - .86) / .14) : 1;
+    visual.root.setLocalScale(endFade, endFade, endFade);
+  }
+
+  private processStrategicPulses(snapshot: SimulationSnapshot): void {
+    const authority = (snapshot as Partial<M04SimulationSnapshot>).elementalAuthority;
+    const zones = authority?.activeStrategicZones ?? [];
+    for (const zone of zones) {
+      const visual = this.strategicZones.get(zone.id);
+      if (!visual) continue;
+      const mostRecentPulseTick = zone.nextPulseTick - STRATEGIC_PULSE_INTERVAL_TICKS;
+      if (mostRecentPulseTick !== snapshot.tick || visual.lastPulseTick === mostRecentPulseTick) continue;
+      visual.lastPulseTick = mostRecentPulseTick;
+      this.spawnStrategicPulse(zone, snapshot.tick, false);
+    }
+  }
+
+  private spawnStrategicPulse(zone: ActiveStrategicZoneSnapshot, tick: number, onset: boolean): void {
+    const spell = STRATEGIC_SPELLS[zone.spellId];
+    const tint = ELEMENT_TINTS[spell.element];
+    const x = metres(zone.targetX);
+    const z = metres(zone.targetZ);
+    const radius = metres(spell.radius);
+    const force = onset ? 1.28 : 1.0;
+    const count = onset ? 18 : 10;
+    this.effects.burst(x, zone.spellId === 'THUNDERSTORM' ? 2.9 : .30, z, tint, tick, count, force);
+
+    const points = zone.spellId === 'THUNDERSTORM' ? 3 : 4;
+    for (let index = 0; index < points; index += 1) {
+      const angle = zone.id * .91 + tick * .13 + index * (Math.PI * 2 / points);
+      const distance = radius * (.26 + (index % 2) * .18);
+      const px = x + Math.cos(angle) * distance;
+      const pz = z + Math.sin(angle) * distance;
+      if (zone.spellId === 'THUNDERSTORM') {
+        const start = new pc.Vec3(px + Math.sin(angle * 1.7) * .55, 5.4 + (index % 2) * .6, pz);
+        const end = new pc.Vec3(px, .22, pz);
+        this.effects.bolt(start, end, tick + index);
+        this.effects.burst(px, .22, pz, tint, tick + index, onset ? 8 : 5, onset ? .92 : .68);
+      } else {
+        this.effects.burst(px, .22, pz, tint, tick + index, onset ? 7 : 4, onset ? .78 : .52);
+      }
+    }
   }
 
   private processLightning(previous: SimulationSnapshot, current: SimulationSnapshot): void {
