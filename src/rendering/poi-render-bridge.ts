@@ -1,6 +1,7 @@
 import * as pc from 'playcanvas';
 import type { RtsCamera } from './rts-camera';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
+import { VisibilityLevel } from '../simulation/visibility-state';
 import type { StrategicSnapshot } from '../simulation/strategic-state';
 import type { GeneratedWorld, PointOfInterest } from '../world/world-definition';
 import { worldCellToSimulationPosition } from '../world/world-arena';
@@ -140,9 +141,15 @@ export class PoiRenderBridge {
     canvas.addEventListener('pointerdown', this.onPointerDown);
   }
 
-  sync(snapshot: StrategicSnapshot): void {
+  sync(snapshot: StrategicSnapshot, visibility?: Uint8Array): void {
     this.latestPoiOwners = snapshot.poiOwners;
     for (const presentation of this.presentations.values()) {
+      const cellIndex = presentation.poi.cell.z * this.world.width + presentation.poi.cell.x;
+      const level = visibility?.[cellIndex] ?? VisibilityLevel.VISIBLE;
+      presentation.root.enabled = level !== VisibilityLevel.UNEXPLORED;
+      presentation.ownershipBase.enabled = level === VisibilityLevel.VISIBLE;
+      presentation.beacon.enabled = level === VisibilityLevel.VISIBLE;
+      presentation.pickAnchor.enabled = level === VisibilityLevel.VISIBLE;
       const ownership = poiOwnershipState(snapshot.poiOwners[presentation.poi.id]);
       if (ownership === presentation.ownership) continue;
       presentation.ownership = ownership;
@@ -150,7 +157,16 @@ export class PoiRenderBridge {
       if (presentation.ownershipBase.render) presentation.ownershipBase.render.material = material;
       if (presentation.beacon.render) presentation.beacon.render.material = material;
     }
-    if (this.hoveredPoiId !== null) this.updateTooltipContent(this.hoveredPoiId);
+    if (this.hoveredPoiId !== null) {
+      const hovered = this.presentations.get(this.hoveredPoiId);
+      if (!hovered?.pickAnchor.enabled) {
+        this.hoveredPoiId = null;
+        this.tooltip.hidden = true;
+        this.canvas.classList.remove('poi-hover');
+      } else {
+        this.updateTooltipContent(this.hoveredPoiId);
+      }
+    }
   }
 
   destroy(): void {
@@ -319,6 +335,7 @@ export class PoiRenderBridge {
     let best: PoiPresentation | null = null;
     let bestDistanceSquared = 30 * 30;
     for (const presentation of this.presentations.values()) {
+      if (!presentation.root.enabled || !presentation.pickAnchor.enabled) continue;
       this.cameraComponent.worldToScreen(presentation.pickAnchor.getPosition(), this.screenPosition);
       if (this.screenPosition.z < 0) continue;
       const dx = this.screenPosition.x - screenX;

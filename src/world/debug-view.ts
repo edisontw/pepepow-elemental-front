@@ -1,5 +1,6 @@
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
 import { SurfaceType } from '../simulation/terrain-state';
+import { VisibilityLevel } from '../simulation/visibility-state';
 import { BiomeType, TerrainType, type GeneratedWorld, type GridPoint, type PointOfInterest } from './world-definition';
 
 export interface TerritoryDebugState {
@@ -32,6 +33,7 @@ export interface MinimapLiveState {
   enemyCore?: MinimapObjectiveState;
   boss?: MinimapBossState;
   surface?: Uint8Array;
+  visibility?: Uint8Array;
   burningCells?: readonly { column: number; row: number }[];
   showStrategicDebug?: boolean;
 }
@@ -193,6 +195,19 @@ function drawSimulationSquare(
   context.strokeRect(x - size / 2, y - size / 2, size, size);
 }
 
+function simulationPositionVisibility(
+  world: GeneratedWorld,
+  visibility: Uint8Array | undefined,
+  x: number,
+  z: number,
+): number {
+  if (!visibility) return VisibilityLevel.VISIBLE;
+  const [fractionX, fractionZ] = simulationPositionToMinimapFraction(world, x, z);
+  const column = Math.max(0, Math.min(world.width - 1, Math.floor(fractionX * world.width)));
+  const row = Math.max(0, Math.min(world.height - 1, Math.floor(fractionZ * world.height)));
+  return visibility[row * world.width + column] ?? VisibilityLevel.UNEXPLORED;
+}
+
 export function renderWorldDebug(
   canvas: HTMLCanvasElement,
   world: GeneratedWorld,
@@ -288,6 +303,19 @@ export function renderWorldDebug(
   drawMarker(context, world.objective.cell, scaleX, scaleY, 4.2, '#fff2a0');
   drawMarker(context, world.boss.cell, scaleX, scaleY, 5, '#e458d2');
 
+  if (live?.visibility) {
+    for (let z = 0; z < world.height; z += 1) {
+      for (let x = 0; x < world.width; x += 1) {
+        const level = live.visibility[z * world.width + x] ?? VisibilityLevel.UNEXPLORED;
+        if (level === VisibilityLevel.VISIBLE) continue;
+        context.fillStyle = level === VisibilityLevel.EXPLORED
+          ? 'rgba(4, 12, 14, .56)'
+          : 'rgba(2, 7, 9, .94)';
+        context.fillRect(x * scaleX, z * scaleY, Math.ceil(scaleX), Math.ceil(scaleY));
+      }
+    }
+  }
+
   if (live) {
     for (const entity of live.entities) {
       if (!entity.alive) continue;
@@ -302,8 +330,12 @@ export function renderWorldDebug(
       );
     }
     if (live.playerCore) drawSimulationSquare(context, world, live.playerCore, 7, '#58e1c1');
-    if (live.enemyCore) drawSimulationSquare(context, world, live.enemyCore, 7, '#f07062');
-    if (live.boss?.active) drawSimulationMarker(context, world, live.boss.x, live.boss.z, 6, '#ff6bea');
+    if (live.enemyCore && simulationPositionVisibility(world, live.visibility, live.enemyCore.x, live.enemyCore.z) === VisibilityLevel.VISIBLE) {
+      drawSimulationSquare(context, world, live.enemyCore, 7, '#f07062');
+    }
+    if (live.boss?.active && simulationPositionVisibility(world, live.visibility, live.boss.x, live.boss.z) === VisibilityLevel.VISIBLE) {
+      drawSimulationMarker(context, world, live.boss.x, live.boss.z, 6, '#ff6bea');
+    }
   } else {
     const player = world.spawns.find((spawn) => spawn.id === 'PLAYER');
     const enemy = world.spawns.find((spawn) => spawn.id === 'ENEMY');

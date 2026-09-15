@@ -162,6 +162,7 @@ async function boot(): Promise<void> {
       enemyCore: initialMinimapSnapshot.run.enemyCore,
       boss: initialMinimapSnapshot.run.boss,
       surface: simulation.terrain.surface,
+      visibility: simulation.visibility.cellsForPlayer(0),
       burningCells: initialMinimapSnapshot.burningCells,
       showStrategicDebug,
     });
@@ -217,6 +218,7 @@ async function boot(): Promise<void> {
           enemyCore: minimapSnapshot.run.enemyCore,
           boss: minimapSnapshot.run.boss,
           surface: simulation.terrain.surface,
+          visibility: simulation.visibility.cellsForPlayer(0),
           burningCells: minimapSnapshot.burningCells,
           showStrategicDebug,
         });

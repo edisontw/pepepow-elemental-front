@@ -2,6 +2,8 @@ import * as pc from 'playcanvas';
 import { VisualAssetLibrary, type VisualModel } from './visual-asset-library';
 import { BuildingImpostorLibrary, type BuildingImpostorHandle } from './building-impostor-library';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
+import type { NavigationGrid } from '../simulation/navigation';
+import type { VisibilityState } from '../simulation/visibility-state';
 import { BUILDINGS } from '../simulation/m03-content';
 import type { StrategicBuilding, StrategicSnapshot } from '../simulation/strategic-state';
 import { buildingVisualProfile, type BuildingVisualMaterialRole } from './building-visual-profile';
@@ -71,7 +73,7 @@ export class StrategicRenderBridge {
     this.buildingImpostors = new BuildingImpostorLibrary(app);
   }
 
-  sync(snapshot: StrategicSnapshot, tick = 0): void {
+  sync(snapshot: StrategicSnapshot, tick = 0, visibility?: VisibilityState, navigation?: NavigationGrid): void {
     const active = new Set<number>();
     for (const building of snapshot.buildings) {
       active.add(building.id);
@@ -86,6 +88,10 @@ export class StrategicRenderBridge {
         building.z / WORLD_UNITS_PER_METER,
       );
       presentation.root.setLocalScale(1, constructionScale(building, tick), 1);
+      presentation.root.enabled = building.playerId === 0
+        || visibility === undefined
+        || navigation === undefined
+        || visibility.isWorldVisible(0, building.x, building.z, navigation);
       for (const part of presentation.parts) {
         if (!part.entity.render) continue;
         part.entity.render.material = building.destroyed

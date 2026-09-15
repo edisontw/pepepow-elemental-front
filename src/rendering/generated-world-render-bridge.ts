@@ -1,9 +1,11 @@
 import * as pc from 'playcanvas';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
 import { SurfaceType, type TerrainState } from '../simulation/terrain-state';
+import { VisibilityLevel } from '../simulation/visibility-state';
 import {
   BiomeType,
   TerrainType,
+  WorldCellFlag,
   type GeneratedWorld,
   type GridPoint,
   type StrategicRoute,
@@ -136,9 +138,36 @@ function cellIndex(world: GeneratedWorld, x: number, z: number): number {
 }
 
 function biomeColor(biome: BiomeType): readonly [number, number, number] {
-  if (biome === BiomeType.WOODLAND) return [36, 64, 34];
-  if (biome === BiomeType.HIGHLANDS) return [82, 77, 61];
-  return [52, 79, 43];
+  if (biome === BiomeType.WOODLAND) return [29, 57, 29];
+  if (biome === BiomeType.HIGHLANDS) return [91, 83, 64];
+  return [54, 86, 44];
+}
+
+function valueNoise(world: GeneratedWorld, x: number, z: number, cellSize: number, salt: number): number {
+  const latticeX = Math.floor(x / cellSize);
+  const latticeZ = Math.floor(z / cellSize);
+  const blendX = smoothstep(0, 1, (x / cellSize) - latticeX);
+  const blendZ = smoothstep(0, 1, (z / cellSize) - latticeZ);
+  const topLeft = hashByte(latticeX, latticeZ, world.identity.masterSeed + salt) / 255;
+  const topRight = hashByte(latticeX + 1, latticeZ, world.identity.masterSeed + salt) / 255;
+  const bottomLeft = hashByte(latticeX, latticeZ + 1, world.identity.masterSeed + salt) / 255;
+  const bottomRight = hashByte(latticeX + 1, latticeZ + 1, world.identity.masterSeed + salt) / 255;
+  const top = topLeft + (topRight - topLeft) * blendX;
+  const bottom = bottomLeft + (bottomRight - bottomLeft) * blendX;
+  return top + (bottom - top) * blendZ;
+}
+
+function settlementWear(world: GeneratedWorld, x: number, z: number): number {
+  let wear = 0;
+  const sites = [
+    ...world.spawns.map((spawn) => ({ cell: spawn.cell, radius: 5.2 })),
+    ...world.pois.filter((poi) => poi.type === 'VILLAGE').map((poi) => ({ cell: poi.cell, radius: 3.5 })),
+  ];
+  for (const site of sites) {
+    const distance = Math.hypot(x - site.cell.x - 0.5, z - site.cell.z - 0.5);
+    wear = Math.max(wear, 1 - Math.min(1, distance / site.radius));
+  }
+  return wear;
 }
 
 function sampledTerrain(world: GeneratedWorld, x: number, z: number): {
@@ -190,20 +219,25 @@ function sampledTerrain(world: GeneratedWorld, x: number, z: number): {
 
 function terrainColorAt(world: GeneratedWorld, x: number, z: number): readonly [number, number, number, number] {
   const sample = sampledTerrain(world, x, z);
-  const lowFrequency = (hashByte(Math.floor(x / 5), Math.floor(z / 5), world.identity.masterSeed + 5) / 255) - 0.5;
-  const midFrequency = (hashByte(Math.floor(x / 2), Math.floor(z / 2), world.identity.masterSeed + 29) / 255) - 0.5;
+  const lowFrequency = valueNoise(world, x, z, 8, 5) - 0.5;
+  const midFrequency = valueNoise(world, x, z, 3.5, 29) - 0.5;
   const fineFrequency = (hashByte(Math.floor(x * 1.2), Math.floor(z * 1.2), world.identity.masterSeed + 71) / 255) - 0.5;
-  const heightShade = ((sample.elevation / 255) - 0.5) * 13;
-  const moistureShade = ((sample.moisture / 255) - 0.5) * 8;
-  const variation = lowFrequency * 10 + midFrequency * 6 + fineFrequency * 3;
+  const heightShade = ((sample.elevation / 255) - 0.5) * 19;
+  const moistureShade = ((sample.moisture / 255) - 0.5) * 12;
+  const variation = lowFrequency * 24 + midFrequency * 12 + fineFrequency * 3;
 
-  const woodlandSoil = sample.biome === BiomeType.WOODLAND ? -3 : 0;
-  const highlandWarmth = sample.biome === BiomeType.HIGHLANDS ? 5 : 0;
+  const woodlandSoil = sample.biome === BiomeType.WOODLAND ? -6 : 0;
+  const highlandWarmth = sample.biome === BiomeType.HIGHLANDS ? 8 : 0;
+  const wear = settlementWear(world, x, z);
+  const nearestX = Math.max(0, Math.min(world.width - 1, Math.round(x)));
+  const nearestZ = Math.max(0, Math.min(world.height - 1, Math.round(z)));
+  const route = ((world.flags[cellIndex(world, nearestX, nearestZ)] ?? 0) & WorldCellFlag.ROUTE) !== 0 ? 0.5 : 0;
+  const earth = Math.max(wear, route);
 
   return [
-    clampByte(sample.red + heightShade + variation - moistureShade * 0.25 + highlandWarmth),
-    clampByte(sample.green + heightShade * 0.45 + variation + moistureShade + woodlandSoil),
-    clampByte(sample.blue + heightShade * 0.25 + variation * 0.45 - moistureShade * 0.18 - highlandWarmth * 0.35),
+    clampByte(sample.red + heightShade + variation - moistureShade * 0.25 + highlandWarmth + earth * 25),
+    clampByte(sample.green + heightShade * 0.45 + variation + moistureShade + woodlandSoil - earth * 18),
+    clampByte(sample.blue + heightShade * 0.25 + variation * 0.45 - moistureShade * 0.18 - highlandWarmth * 0.35 - earth * 13),
     255,
   ];
 }
@@ -342,10 +376,10 @@ function buildShorelineMesh(app: pc.Application, world: GeneratedWorld, originX:
         buffers.positions.push(originX + cornerX, 0.020, originZ + cornerZ);
         buffers.normals.push(0, 1, 0);
         buffers.colors.push(
-          clampByte(78 + variation * 18),
-          clampByte(73 + variation * 15),
-          clampByte(47 + variation * 10),
-          clampByte(alpha * 178),
+          clampByte(72 + variation * 14),
+          clampByte(65 + variation * 12),
+          clampByte(42 + variation * 8),
+          clampByte(alpha * 210),
         );
       }
       buffers.indices.push(base, base + 2, base + 1, base + 1, base + 2, base + 3);
@@ -375,14 +409,15 @@ function buildWaterMesh(app: pc.Application, world: GeneratedWorld, originX: num
       for (let corner = 0; corner < corners.length; corner += 1) {
         const [cornerX, cornerZ] = corners[corner]!;
         const alpha = smoothstep(0.1, 0.9, alphas[corner] ?? 0);
-        const coarse = hashByte(Math.floor(cornerX / 3), Math.floor(cornerZ / 3), world.identity.masterSeed + 97) / 255;
+        const coarse = valueNoise(world, cornerX, cornerZ, 4, 97);
         const fine = hashByte(cornerX, cornerZ, world.identity.masterSeed + 103) / 255;
+        const depth = alphas[corner] ?? 0;
         buffers.positions.push(originX + cornerX, 0.028, originZ + cornerZ);
         buffers.normals.push(0, 1, 0);
         buffers.colors.push(
-          clampByte(18 + coarse * 7),
-          clampByte(72 + coarse * 17 + fine * 7),
-          clampByte(103 + coarse * 22 + fine * 9),
+          clampByte(38 - depth * 23 + coarse * 7),
+          clampByte(75 - depth * 23 + coarse * 13 + fine * 4),
+          clampByte(78 - depth * 7 + coarse * 17 + fine * 5),
           clampByte(alpha * 218),
         );
       }
@@ -401,7 +436,7 @@ function buildSettlementApronMesh(
 ): pc.Mesh {
   const buffers: MeshBuffers = { positions: [], normals: [], colors: [], indices: [] };
   const sites: { cell: GridPoint; radius: number; salt: number }[] = [
-    ...world.spawns.map((spawn, index) => ({ cell: spawn.cell, radius: 3.7, salt: 601 + index * 31 })),
+    ...world.spawns.map((spawn, index) => ({ cell: spawn.cell, radius: 4.35, salt: 601 + index * 31 })),
     ...world.pois
       .filter((poi) => poi.type === 'VILLAGE')
       .map((poi, index) => ({ cell: poi.cell, radius: 2.55, salt: 701 + index * 23 })),
@@ -414,7 +449,7 @@ function buildSettlementApronMesh(
     const centreZ = originZ + site.cell.z + 0.5;
     buffers.positions.push(centreX, 0.019, centreZ);
     buffers.normals.push(0, 1, 0);
-    buffers.colors.push(102, 83, 56, 118);
+    buffers.colors.push(105, 82, 52, 158);
 
     for (let segment = 0; segment < segments; segment += 1) {
       const angle = (segment / segments) * Math.PI * 2;
@@ -518,7 +553,8 @@ function buildRoadMesh(
     for (let pointIndex = 0; pointIndex < points.length; pointIndex += 1) {
       const point = points[pointIndex]!;
       const [normalX, normalZ] = routeNormal(points, pointIndex);
-      const widthScale = 0.91 + (hashByte(point.x, point.z, world.identity.masterSeed + 127) / 255) * 0.18;
+      const approach = Math.min(pointIndex, points.length - 1 - pointIndex) < 3 ? 1.14 : 1;
+      const widthScale = (0.91 + (hashByte(point.x, point.z, world.identity.masterSeed + 127) / 255) * 0.18) * approach;
       const centreWobble = ((hashByte(point.x, point.z, world.identity.masterSeed + 129) / 255) - 0.5) * 0.1;
       const rutShift = layer === 'RUT_LEFT' ? -coreHalf * 0.43 : layer === 'RUT_RIGHT' ? coreHalf * 0.43 : 0;
       const variation = (hashByte(point.x, point.z, world.identity.masterSeed + 131) / 255 - 0.5) * 0.08;
@@ -579,10 +615,11 @@ function propBaseY(kind: EnvironmentVisualProp['kind']): number {
 
 export class GeneratedWorldRenderBridge {
   private readonly entities: pc.Entity[] = [];
+  private readonly fogManagedRoots: { root: pc.Entity; cellIndex: number }[] = [];
   private readonly iceEntities: pc.Entity[] = [];
   private readonly meshes: pc.Mesh[] = [];
 
-  private readonly groundMaterial = createVertexMaterial('ENV_GROUND', false, false, 0.08);
+  private readonly groundMaterial = createVertexMaterial('ENV_GROUND', false, false, 0.055);
   private readonly shorelineMaterial = createVertexMaterial('ENV_SHORELINE', true, false, 0.04);
   private readonly settlementApronMaterial = createVertexMaterial('ENV_SETTLEMENT_APRON', true, false, 0.04);
   private readonly waterMaterial = createVertexMaterial('ENV_WATER', true, false, 0.52);
@@ -626,7 +663,12 @@ export class GeneratedWorldRenderBridge {
     this.renderCuratedDressing();
   }
 
-  sync(navVersion: number, iceCount: number): void {
+  sync(navVersion: number, iceCount: number, visibility?: Uint8Array): void {
+    if (visibility) {
+      for (const presentation of this.fogManagedRoots) {
+        presentation.root.enabled = (visibility[presentation.cellIndex] ?? VisibilityLevel.UNEXPLORED) !== VisibilityLevel.UNEXPLORED;
+      }
+    }
     if (navVersion === this.lastNavVersion && iceCount === this.lastIceCount) return;
     this.lastNavVersion = navVersion;
     this.lastIceCount = iceCount;
@@ -794,10 +836,10 @@ export class GeneratedWorldRenderBridge {
     let groveCount = 0;
     let edgeCount = 0;
 
-    for (let z = 2; z < this.world.height - 2; z += 4) {
-      const stagger = (Math.floor(z / 4) & 1) === 0 ? 0 : 2;
-      for (let x = 2 + stagger; x < this.world.width - 2; x += 4) {
-        if (groveCount >= 40 && edgeCount >= 14) return;
+    for (let z = 2; z < this.world.height - 2; z += 3) {
+      const stagger = (Math.floor(z / 3) & 1) === 0 ? 0 : 1;
+      for (let x = 2 + stagger; x < this.world.width - 2; x += 3) {
+        if (groveCount >= 46 && edgeCount >= 16) return;
         const index = cellIndex(this.world, x, z);
         if (this.world.terrain[index] !== TerrainType.GROUND || this.world.biome[index] !== BiomeType.WOODLAND) continue;
         if (this.isNearStrategicSite(x, z, 3)) continue;
@@ -805,17 +847,18 @@ export class GeneratedWorldRenderBridge {
         const neighbors = sameBiomeNeighborCount(this.world, x, z, BiomeType.WOODLAND);
         const variant = hashByte(x, z, this.world.identity.masterSeed + 211);
         const dense = neighbors >= 6;
-        if (dense && (variant > 214 || groveCount >= 40)) continue;
-        if (!dense && (neighbors < 3 || variant > 122 || edgeCount >= 14)) continue;
+        if (dense && (variant > 180 || groveCount >= 46)) continue;
+        if (!dense && (neighbors < 3 || variant > 108 || edgeCount >= 16)) continue;
 
         const jitterX = ((hashByte(x, z, 223) / 255) - 0.5) * 1.45;
         const jitterZ = ((hashByte(x, z, 227) / 255) - 0.5) * 1.45;
-        const scale = (dense ? 1.18 : 0.86) + (hashByte(x, z, 229) / 255) * (dense ? 0.32 : 0.22);
+        const scale = (dense ? 1.34 : 0.9) + (hashByte(x, z, 229) / 255) * (dense ? 0.38 : 0.24);
         const root = new pc.Entity(dense ? `Woodland Grove ${x},${z}` : `Woodland Edge ${x},${z}`);
         root.setPosition(originX + x + 0.5 + jitterX, 0.022, originZ + z + 0.5 + jitterZ);
         root.setEulerAngles(0, variant * 1.41, 0);
         this.app.root.addChild(root);
         this.entities.push(root);
+        this.fogManagedRoots.push({ root, cellIndex: index });
         this.populateForestMass(root, variant, scale, dense);
         if (dense) groveCount += 1;
         else edgeCount += 1;
@@ -833,7 +876,7 @@ export class GeneratedWorldRenderBridge {
       this.forestShadowMaterial,
     );
 
-    const lobes = dense ? 6 : 3;
+    const lobes = dense ? 7 + (variant % 3) : 3 + (variant % 2);
     for (let index = 0; index < lobes; index += 1) {
       const angle = index * 2.39996 + variant * 0.031;
       const ring = dense ? (index < 2 ? 0.22 : 0.72) : 0.52;
@@ -921,6 +964,7 @@ export class GeneratedWorldRenderBridge {
         root.setEulerAngles(0, variant * 1.17, 0);
         this.app.root.addChild(root);
         this.entities.push(root);
+        this.fogManagedRoots.push({ root, cellIndex: index });
 
         const scale = 0.94 + (variant / 255) * 0.38;
         addChildPrimitive(root, 'box', 'Highland Ridge A', new pc.Vec3(-0.18 * scale, 0.18 * scale, 0), new pc.Vec3(1.08 * scale, 0.34 * scale, 0.55 * scale), this.rockDarkMaterial, new pc.Vec3(6, 17, 5));
@@ -951,6 +995,7 @@ export class GeneratedWorldRenderBridge {
       root.setEulerAngles(0, prop.rotationDegrees, 0);
       this.app.root.addChild(root);
       this.entities.push(root);
+      this.fogManagedRoots.push({ root, cellIndex: cellIndex(this.world, prop.cellX, prop.cellZ) });
       this.populateCuratedProp(root, prop);
     }
   }

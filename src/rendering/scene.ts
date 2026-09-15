@@ -15,6 +15,7 @@ import { CameraFeedback } from './camera-feedback';
 import { CombatPresentationPass } from './combat-presentation-pass';
 import { ElementalRenderBridge } from './elemental-render-bridge';
 import { GeneratedWorldRenderBridge } from './generated-world-render-bridge';
+import { FogOfWarRenderBridge } from './fog-of-war-render-bridge';
 import { PoiRenderBridge } from './poi-render-bridge';
 import { ResourceRenderBridge } from './resource-render-bridge';
 import { RtsCamera } from './rts-camera';
@@ -137,6 +138,9 @@ export function createSceneShell(
   const generatedWorldBridge = simulation instanceof M03Simulation
     ? new GeneratedWorldRenderBridge(app, simulation.generatedWorld, simulation.terrain)
     : null;
+  const fogOfWarBridge = simulation instanceof M03Simulation
+    ? new FogOfWarRenderBridge(app, simulation.generatedWorld, simulation.visibility)
+    : null;
   const resourceBridge = simulation instanceof M03Simulation
     ? new ResourceRenderBridge(app, simulation.generatedWorld)
     : null;
@@ -223,14 +227,19 @@ export function createSceneShell(
   const poiBridge = simulation instanceof M03Simulation
     ? new PoiRenderBridge(app, simulation.generatedWorld, cameraComponent, camera, canvas)
     : null;
-  if (simulation instanceof M03Simulation) poiBridge?.sync(simulation.strategy.snapshot());
+  if (simulation instanceof M03Simulation) poiBridge?.sync(simulation.strategy.snapshot(), simulation.visibility.cellsForPlayer(0));
   const controls = new UnitControls(canvas, cameraComponent, simulation, bridge, selectionBox);
   const minimapCanvas = document.getElementById('world-debug-canvas');
   const minimapControls = simulation instanceof M03Simulation && minimapCanvas instanceof HTMLCanvasElement
     ? new MinimapControls(minimapCanvas, simulation.generatedWorld, camera, controls)
     : null;
   const strategicBridge = simulation instanceof M03Simulation ? new StrategicRenderBridge(app, visualAssets) : null;
-  if (simulation instanceof M03Simulation) strategicBridge?.sync(simulation.strategy.snapshot(), initialSnapshot.tick);
+  if (simulation instanceof M03Simulation) strategicBridge?.sync(
+    simulation.strategy.snapshot(),
+    initialSnapshot.tick,
+    simulation.visibility,
+    simulation.navigation,
+  );
   const runBridge = simulation instanceof M06Simulation ? new RunRenderBridge(app) : null;
   if (simulation instanceof M06Simulation) runBridge?.sync(simulation.run.snapshot(), initialSnapshot.tick, 0);
 
@@ -259,9 +268,9 @@ export function createSceneShell(
       audioFeedback.sync(frame.previousSnapshot, frame.snapshot);
       controls.syncSelection();
       if (strategicSnapshot) {
-        strategicBridge?.sync(strategicSnapshot, frame.snapshot.tick);
+        strategicBridge?.sync(strategicSnapshot, frame.snapshot.tick, simulation.visibility, simulation.navigation);
         territoryBridge?.sync(strategicSnapshot);
-        poiBridge?.sync(strategicSnapshot);
+        poiBridge?.sync(strategicSnapshot, simulation.visibility.cellsForPlayer(0));
       }
       if (simulation instanceof M06Simulation) {
         runBridge?.sync(simulation.run.snapshot(), frame.snapshot.tick, frame.interpolationAlpha);
@@ -280,8 +289,13 @@ export function createSceneShell(
         }
       }
       battleVfx.sync(frame.snapshot.tick, frame.interpolationAlpha);
-      resourceBridge?.sync(frame.snapshot.tick);
-      generatedWorldBridge?.sync(frame.snapshot.navVersion, frame.snapshot.terrain.ice);
+      resourceBridge?.sync(frame.snapshot.tick, simulation.visibility.cellsForPlayer(0));
+      generatedWorldBridge?.sync(
+        frame.snapshot.navVersion,
+        frame.snapshot.terrain.ice,
+        simulation.visibility.cellsForPlayer(0),
+      );
+      fogOfWarBridge?.sync();
       if (freezablePatch?.render) {
         const frozen = frame.snapshot.terrain.ice > 0;
         freezablePatch.enabled = frozen;
@@ -303,6 +317,7 @@ export function createSceneShell(
       runBridge?.destroy();
       resourceBridge?.destroy();
       generatedWorldBridge?.destroy();
+      fogOfWarBridge?.destroy();
       camera.destroy();
       battleVfx.destroy();
       visualAssets.destroy();

@@ -1,5 +1,6 @@
 import * as pc from 'playcanvas';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
+import { VisibilityLevel } from '../simulation/visibility-state';
 import type { GeneratedWorld } from '../world/world-definition';
 import { worldCellToSimulationPosition } from '../world/world-arena';
 
@@ -61,7 +62,7 @@ export function resourcePulseScale(rich: boolean, tick: number, index: number): 
 }
 
 export class ResourceRenderBridge {
-  private readonly entities: { root: pc.Entity; marker: pc.Entity; rich: boolean }[] = [];
+  private readonly entities: { root: pc.Entity; marker: pc.Entity; rich: boolean; cellIndex: number }[] = [];
 
   private readonly groundFootprint = material(
     new pc.Color(0.17, 0.16, 0.12),
@@ -196,12 +197,20 @@ export class ResourceRenderBridge {
       const initialPulseScale = resourcePulseScale(resource.rich, 0, index);
       marker.setLocalScale(initialPulseScale[0], initialPulseScale[1], initialPulseScale[2]);
       app.root.addChild(root);
-      this.entities.push({ root, marker, rich: resource.rich });
+      this.entities.push({
+        root,
+        marker,
+        rich: resource.rich,
+        cellIndex: resource.cell.z * world.width + resource.cell.x,
+      });
     }
   }
 
-  sync(tick: number): void {
+  sync(tick: number, visibility?: Uint8Array): void {
     for (const [index, presentation] of this.entities.entries()) {
+      const level = visibility?.[presentation.cellIndex] ?? VisibilityLevel.VISIBLE;
+      presentation.root.enabled = level !== VisibilityLevel.UNEXPLORED;
+      presentation.marker.enabled = level === VisibilityLevel.VISIBLE;
       const scale = resourcePulseScale(presentation.rich, tick, index);
       presentation.marker.setLocalScale(scale[0], scale[1], scale[2]);
     }
