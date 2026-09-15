@@ -26,6 +26,10 @@ interface BuildingPresentation {
   healthBar: pc.Entity;
   defenseStem: pc.Entity;
   defenseHead: pc.Entity;
+  wasDestroyed: boolean;
+  destroyedAtTick: number;
+  collapsePitch: number;
+  collapseRoll: number;
 }
 
 function createMaterial(color: pc.Color, emissive?: pc.Color): pc.StandardMaterial {
@@ -82,12 +86,30 @@ export class StrategicRenderBridge {
         presentation = this.createBuilding(building);
         this.entities.set(building.id, presentation);
       }
-      presentation.root.setPosition(
-        building.x / WORLD_UNITS_PER_METER,
-        0,
-        building.z / WORLD_UNITS_PER_METER,
-      );
-      presentation.root.setLocalScale(1, constructionScale(building, tick), 1);
+
+      if (building.destroyed && !presentation.wasDestroyed) presentation.destroyedAtTick = tick;
+      presentation.wasDestroyed = building.destroyed;
+
+      const worldX = building.x / WORLD_UNITS_PER_METER;
+      const worldZ = building.z / WORLD_UNITS_PER_METER;
+      if (building.destroyed) {
+        const elapsed = presentation.destroyedAtTick < 0 ? 99 : Math.max(0, tick - presentation.destroyedAtTick);
+        const collapse = Math.max(0, Math.min(1, elapsed / 6));
+        const eased = 1 - (1 - collapse) * (1 - collapse);
+        const settle = Math.sin(collapse * Math.PI) * 0.035;
+        presentation.root.setPosition(worldX, -eased * 0.12, worldZ);
+        presentation.root.setLocalScale(1 + settle, 1 - eased * 0.62, 1 + settle);
+        presentation.root.setEulerAngles(
+          presentation.collapsePitch * eased,
+          0,
+          presentation.collapseRoll * eased,
+        );
+      } else {
+        presentation.root.setPosition(worldX, 0, worldZ);
+        presentation.root.setLocalScale(1, constructionScale(building, tick), 1);
+        presentation.root.setEulerAngles(0, 0, 0);
+      }
+
       presentation.root.enabled = building.playerId === 0
         || visibility === undefined
         || navigation === undefined
@@ -100,6 +122,7 @@ export class StrategicRenderBridge {
             ? this.materialFor(building.playerId, part.role)
             : this.constructionMaterial;
       }
+      presentation.footprint.enabled = !building.destroyed;
       if (presentation.footprint.render) {
         presentation.footprint.render.material = building.destroyed
           ? this.destroyedMaterial
@@ -164,8 +187,10 @@ export class StrategicRenderBridge {
       }
       const model = presentation.model;
       if (model?.entity) {
-        model.reactor?.setLocalEulerAngles(0, tick * 2.5, 0);
-        model.orbit?.setLocalEulerAngles(22, -tick * 1.5, 15);
+        if (!building.destroyed) {
+          model.reactor?.setLocalEulerAngles(0, tick * 2.5, 0);
+          model.orbit?.setLocalEulerAngles(22, -tick * 1.5, 15);
+        }
         for (const render of model.entity.findComponents('render') as pc.RenderComponent[]) {
           if (building.destroyed) for (const mesh of render.meshInstances) mesh.material = this.destroyedMaterial;
         }
@@ -370,6 +395,7 @@ export class StrategicRenderBridge {
     defenseHead.enabled = false;
     root.addChild(defenseHead);
 
+    const collapseAngle = building.id * 2.399963229728653;
     this.app.root.addChild(root);
     return {
       root,
@@ -384,6 +410,10 @@ export class StrategicRenderBridge {
       healthBar,
       defenseStem,
       defenseHead,
+      wasDestroyed: building.destroyed,
+      destroyedAtTick: building.destroyed ? -1 : -1,
+      collapsePitch: Math.cos(collapseAngle) * 15,
+      collapseRoll: Math.sin(collapseAngle) * 15,
     };
   }
 
