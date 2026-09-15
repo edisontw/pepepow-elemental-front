@@ -15,16 +15,26 @@ interface PoiPresentation {
   ownership: PoiOwnershipState;
 }
 
-function createMaterial(color: pc.Color, emissive?: pc.Color, opacity = 1): pc.StandardMaterial {
+function createMaterial(
+  color: pc.Color,
+  emissive?: pc.Color,
+  opacity = 1,
+  emissiveIntensity = 0.55,
+  gloss = 0.26,
+): pc.StandardMaterial {
   const material = new pc.StandardMaterial();
   material.diffuse = color;
-  material.gloss = 0.42;
-  material.metalness = 0.04;
+  material.gloss = gloss;
+  material.metalness = 0.02;
   material.opacity = opacity;
-  if (opacity < 1) material.blendType = pc.BLEND_NORMAL;
+  if (opacity < 1) {
+    material.blendType = pc.BLEND_NORMAL;
+    material.depthWrite = false;
+    material.cull = pc.CULLFACE_NONE;
+  }
   if (emissive) {
     material.emissive = emissive;
-    material.emissiveIntensity = 1.35;
+    material.emissiveIntensity = emissiveIntensity;
   }
   material.update();
   return material;
@@ -37,11 +47,13 @@ function addPrimitive(
   position: readonly [number, number, number],
   scale: readonly [number, number, number],
   material: pc.Material,
+  rotation: readonly [number, number, number] = [0, 0, 0],
 ): pc.Entity {
   const entity = new pc.Entity(name);
-  entity.addComponent('render', { type, material });
+  entity.addComponent('render', { type, material, castShadows: false, receiveShadows: false });
   entity.setLocalPosition(position[0], position[1], position[2]);
   entity.setLocalScale(scale[0], scale[1], scale[2]);
+  entity.setLocalEulerAngles(rotation[0], rotation[1], rotation[2]);
   parent.addChild(entity);
   return entity;
 }
@@ -49,34 +61,64 @@ function addPrimitive(
 export class PoiRenderBridge {
   private readonly presentations = new Map<string, PoiPresentation>();
   private readonly screenPosition = new pc.Vec3();
+
   private readonly neutralOwnershipMaterial = createMaterial(
-    new pc.Color(0.76, 0.78, 0.72),
-    new pc.Color(0.16, 0.17, 0.14),
+    new pc.Color(0.48, 0.5, 0.46),
+    new pc.Color(0.025, 0.028, 0.022),
+    0.68,
+    0.28,
+    0.16,
   );
   private readonly playerOwnershipMaterial = createMaterial(
-    new pc.Color(0.2, 0.82, 0.7),
-    new pc.Color(0.03, 0.5, 0.4),
+    new pc.Color(0.12, 0.52, 0.43),
+    new pc.Color(0.015, 0.19, 0.15),
+    0.72,
+    0.42,
+    0.2,
   );
   private readonly enemyOwnershipMaterial = createMaterial(
-    new pc.Color(0.92, 0.29, 0.23),
-    new pc.Color(0.5, 0.04, 0.025),
+    new pc.Color(0.56, 0.18, 0.15),
+    new pc.Color(0.18, 0.018, 0.012),
+    0.72,
+    0.42,
+    0.2,
   );
+
+  private readonly stoneBaseMaterial = createMaterial(new pc.Color(0.28, 0.29, 0.27), undefined, 1, 0, 0.12);
+  private readonly stoneLightMaterial = createMaterial(new pc.Color(0.44, 0.44, 0.4), undefined, 1, 0, 0.16);
+  private readonly timberMaterial = createMaterial(new pc.Color(0.29, 0.18, 0.085), undefined, 1, 0, 0.12);
+  private readonly darkTimberMaterial = createMaterial(new pc.Color(0.18, 0.105, 0.052), undefined, 1, 0, 0.08);
+  private readonly clothMaterial = createMaterial(new pc.Color(0.36, 0.25, 0.15), undefined, 1, 0, 0.12);
+
   private readonly shrineMaterial = createMaterial(
-    new pc.Color(0.62, 0.46, 0.9),
-    new pc.Color(0.27, 0.12, 0.55),
+    new pc.Color(0.38, 0.31, 0.56),
+    new pc.Color(0.065, 0.035, 0.16),
+    1,
+    0.5,
+    0.3,
   );
   private readonly campMaterial = createMaterial(
-    new pc.Color(0.66, 0.42, 0.19),
-    new pc.Color(0.22, 0.08, 0.02),
+    new pc.Color(0.47, 0.31, 0.16),
+    new pc.Color(0.02, 0.008, 0.002),
+    1,
+    0.22,
+    0.14,
   );
   private readonly villageMaterial = createMaterial(
-    new pc.Color(0.78, 0.7, 0.5),
-    new pc.Color(0.18, 0.13, 0.06),
+    new pc.Color(0.55, 0.48, 0.34),
+    new pc.Color(0.02, 0.014, 0.006),
+    1,
+    0.22,
+    0.16,
   );
   private readonly ruinMaterial = createMaterial(
-    new pc.Color(0.5, 0.51, 0.48),
-    new pc.Color(0.12, 0.12, 0.11),
+    new pc.Color(0.36, 0.37, 0.35),
+    new pc.Color(0.012, 0.012, 0.011),
+    1,
+    0.2,
+    0.13,
   );
+
   private readonly tooltip: HTMLDivElement;
   private hoveredPoiId: string | null = null;
   private latestPoiOwners: Readonly<Record<string, number>> = {};
@@ -118,13 +160,21 @@ export class PoiRenderBridge {
     this.tooltip.remove();
     for (const presentation of this.presentations.values()) presentation.root.destroy();
     this.presentations.clear();
-    this.neutralOwnershipMaterial.destroy();
-    this.playerOwnershipMaterial.destroy();
-    this.enemyOwnershipMaterial.destroy();
-    this.shrineMaterial.destroy();
-    this.campMaterial.destroy();
-    this.villageMaterial.destroy();
-    this.ruinMaterial.destroy();
+
+    for (const material of [
+      this.neutralOwnershipMaterial,
+      this.playerOwnershipMaterial,
+      this.enemyOwnershipMaterial,
+      this.stoneBaseMaterial,
+      this.stoneLightMaterial,
+      this.timberMaterial,
+      this.darkTimberMaterial,
+      this.clothMaterial,
+      this.shrineMaterial,
+      this.campMaterial,
+      this.villageMaterial,
+      this.ruinMaterial,
+    ]) material.destroy();
   }
 
   private createPresentation(poi: PointOfInterest): void {
@@ -136,6 +186,16 @@ export class PoiRenderBridge {
       0.025,
       position.z / WORLD_UNITS_PER_METER,
     );
+
+    addPrimitive(
+      root,
+      'cylinder',
+      `${profile.label} Stone Apron`,
+      [0, 0.035, 0],
+      [1.34, 0.04, 1.16],
+      this.stoneBaseMaterial,
+    );
+
     const landmarkMaterial = this.landmarkMaterial(poi.type);
     for (const [index, part] of profile.landmark.entries()) {
       addPrimitive(
@@ -147,22 +207,25 @@ export class PoiRenderBridge {
         landmarkMaterial,
       );
     }
+    this.addLandmarkDressing(root, poi);
+
     const ownershipBase = addPrimitive(
       root,
       'cylinder',
-      `${profile.label} Ownership Ring`,
-      [0, 0.055, 0],
-      [1.18, 0.055, 1.18],
+      `${profile.label} Ownership Marker`,
+      [0, 0.052, 0],
+      [0.82, 0.025, 0.82],
       this.neutralOwnershipMaterial,
     );
     const beacon = addPrimitive(
       root,
       'sphere',
       `${profile.label} Beacon`,
-      [0, 1.95, 0],
-      [0.22, 0.22, 0.22],
+      [0, 1.76, 0],
+      [0.105, 0.105, 0.105],
       this.neutralOwnershipMaterial,
     );
+
     const pickAnchor = new pc.Entity(`${profile.label} Pick Anchor`);
     pickAnchor.setLocalPosition(0, 1.05, 0);
     root.addChild(pickAnchor);
@@ -175,6 +238,45 @@ export class PoiRenderBridge {
       pickAnchor,
       ownership: 'NEUTRAL',
     });
+  }
+
+  private addLandmarkDressing(root: pc.Entity, poi: PointOfInterest): void {
+    if (poi.type === 'SHRINE') {
+      for (let index = 0; index < 4; index += 1) {
+        const angle = index * Math.PI * 0.5 + Math.PI * 0.25;
+        addPrimitive(
+          root,
+          'box',
+          `Shrine Boundary Stone ${index + 1}`,
+          [Math.cos(angle) * 0.88, 0.13, Math.sin(angle) * 0.7],
+          [0.24, 0.22, 0.18],
+          index % 2 === 0 ? this.stoneLightMaterial : this.stoneBaseMaterial,
+          [5, index * 24, index % 2 === 0 ? 7 : -6],
+        );
+      }
+      addPrimitive(root, 'box', 'Shrine Fallen Tablet', [0.58, 0.09, 0.5], [0.38, 0.12, 0.22], this.stoneLightMaterial, [9, 31, 14]);
+      return;
+    }
+
+    if (poi.type === 'NEUTRAL_CAMP') {
+      addPrimitive(root, 'box', 'Camp Crate', [-0.68, 0.14, -0.32], [0.34, 0.27, 0.3], this.timberMaterial, [0, 18, 0]);
+      addPrimitive(root, 'cylinder', 'Camp Barrel', [0.56, 0.15, 0.42], [0.16, 0.28, 0.16], this.darkTimberMaterial);
+      addPrimitive(root, 'box', 'Camp Bedroll', [0.45, 0.07, -0.5], [0.48, 0.1, 0.25], this.clothMaterial, [0, -22, 0]);
+      addPrimitive(root, 'cylinder', 'Camp Fire Ring', [-0.15, 0.055, 0.63], [0.3, 0.05, 0.3], this.stoneLightMaterial);
+      return;
+    }
+
+    if (poi.type === 'VILLAGE') {
+      addPrimitive(root, 'box', 'Village Store', [-0.68, 0.2, -0.42], [0.48, 0.36, 0.42], this.timberMaterial, [0, 18, 0]);
+      addPrimitive(root, 'box', 'Village Roof', [-0.68, 0.45, -0.42], [0.56, 0.12, 0.5], this.darkTimberMaterial, [0, 18, 8]);
+      addPrimitive(root, 'cylinder', 'Village Barrel', [0.62, 0.13, 0.48], [0.14, 0.24, 0.14], this.darkTimberMaterial);
+      addPrimitive(root, 'box', 'Village Bench', [0.58, 0.11, -0.48], [0.46, 0.1, 0.16], this.timberMaterial, [0, -15, 0]);
+      return;
+    }
+
+    addPrimitive(root, 'box', 'Ruin Fallen Column', [0.58, 0.1, 0.34], [0.22, 0.18, 0.78], this.ruinMaterial, [18, 32, 72]);
+    addPrimitive(root, 'box', 'Ruin Broken Block A', [-0.55, 0.09, 0.44], [0.42, 0.18, 0.28], this.stoneLightMaterial, [8, 21, 11]);
+    addPrimitive(root, 'box', 'Ruin Broken Block B', [0.48, 0.055, -0.5], [0.28, 0.11, 0.22], this.stoneBaseMaterial, [-4, -27, 6]);
   }
 
   private readonly onPointerMove = (event: PointerEvent): void => {
