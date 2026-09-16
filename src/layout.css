@@ -1,4 +1,13 @@
 /* Final responsive layout layer. Keep component styling in styles.css. */
+/* Positioning is layout authority. Keep these overlays fixed even when the later
+   visual-skin layer adds decorative pseudo-elements to the same panels. */
+#app #strategy-panel,
+#app #world-debug,
+#app #run-panel,
+#app #roguelite-panel {
+  position: fixed;
+}
+
 #strategy-panel {
   top: .55rem;
   bottom: .55rem;
