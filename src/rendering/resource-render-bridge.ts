@@ -154,6 +154,8 @@ export class ResourceRenderBridge {
       root.setPosition(position.x / WORLD_UNITS_PER_METER, 0.025, position.z / WORLD_UNITS_PER_METER);
       const scale = resource.rich ? 1.18 : 1;
 
+      primitive(root, 'cylinder', 'Resource Disturbed Ground A', [0, 0.012, 0], [1.65 * scale, 0.015, 1.36 * scale], this.groundFootprint);
+      primitive(root, 'cylinder', 'Resource Disturbed Ground B', [0.48 * scale, 0.014, -0.36 * scale], [0.76 * scale, 0.013, 0.52 * scale], this.groundFootprint, [0, 18, 0]);
       primitive(root, 'cylinder', 'Resource Ground Footprint', [0, 0.028, 0], [1.16 * scale, 0.028, 1.0 * scale], this.groundFootprint);
       primitive(root, 'sphere', 'Resource Ground Stone A', [-0.77 * scale, 0.08, 0.2 * scale], [0.23 * scale, 0.12 * scale, 0.18 * scale], this.stoneDark);
       primitive(root, 'sphere', 'Resource Ground Stone B', [0.72 * scale, 0.07, -0.3 * scale], [0.19 * scale, 0.1 * scale, 0.15 * scale], this.stoneLight);
@@ -170,10 +172,14 @@ export class ResourceRenderBridge {
         primitive(root, 'cylinder', 'Mine Gantry Left', [-0.63 * scale, 0.47 * scale, 0.38 * scale], [0.055 * scale, 0.82 * scale, 0.055 * scale], this.timber, [0, 0, -4]);
         primitive(root, 'cylinder', 'Mine Gantry Right', [0.58 * scale, 0.43 * scale, 0.35 * scale], [0.055 * scale, 0.74 * scale, 0.055 * scale], this.timber, [0, 0, 5]);
         primitive(root, 'box', 'Mine Gantry Beam', [-0.03 * scale, 0.78 * scale, 0.37 * scale], [1.3 * scale, 0.065 * scale, 0.075 * scale], this.timber, [0, 0, 2]);
+        primitive(root, 'box', 'Mine Service Timber A', [-0.28 * scale, 0.055, -0.68 * scale], [0.08 * scale, 0.07 * scale, 0.82 * scale], this.timber, [0, 12, 0]);
+        primitive(root, 'box', 'Mine Service Timber B', [0.08 * scale, 0.052, -0.7 * scale], [0.07 * scale, 0.065 * scale, 0.7 * scale], this.timber, [0, 12, 0]);
         primitive(root, 'sphere', 'Ore Chip A', [-0.82 * scale, 0.055, -0.02], [0.13 * scale, 0.07 * scale, 0.1 * scale], this.materialOre);
         primitive(root, 'sphere', 'Ore Chip B', [0.74 * scale, 0.048, 0.23 * scale], [0.11 * scale, 0.06 * scale, 0.09 * scale], this.materialOre);
       } else {
         primitive(root, 'cylinder', 'Mana Stone Basin', [0, 0.085 * scale, 0], [0.88 * scale, 0.12 * scale, 0.88 * scale], this.manaStone);
+        primitive(root, 'box', 'Mana Channel A', [-0.72 * scale, 0.055, 0.05], [0.62 * scale, 0.07 * scale, 0.12 * scale], this.manaStone, [0, 18, 0]);
+        primitive(root, 'box', 'Mana Channel B', [0.62 * scale, 0.052, -0.36 * scale], [0.54 * scale, 0.065 * scale, 0.11 * scale], this.manaStone, [0, -27, 0]);
         for (let ring = 0; ring < 4; ring += 1) {
           const angle = ring * Math.PI * 0.5 + 0.35;
           primitive(

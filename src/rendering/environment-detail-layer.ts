@@ -378,7 +378,7 @@ export class EnvironmentDetailLayer {
   }
 
   private renderHighlandEdges(): void {
-    const maxGroups = this.lowQuality ? 8 : 18;
+    const maxGroups = this.lowQuality ? 9 : 22;
     let groups = 0;
     for (let z = 2; z < this.world.height - 2 && groups < maxGroups; z += 4) {
       for (let x = 2; x < this.world.width - 2 && groups < maxGroups; x += 4) {
@@ -386,12 +386,13 @@ export class EnvironmentDetailLayer {
         if (this.world.terrain[index] !== TerrainType.GROUND || this.world.biome[index] !== BiomeType.HIGHLANDS) continue;
         if (isNearSite(this.world, x, z, 2)) continue;
         const variant = hashByte(this.world, x, z, 967);
-        if (variant > 182) continue;
+        if (variant > 204) continue;
 
         const root = new pc.Entity(`Highland Edge Accent ${x},${z}`);
         const base = worldPosition(this.world, x, z);
         root.setPosition(base.x, 0.02, base.z);
         root.setEulerAngles(0, variant * 1.13, 0);
+        addPrimitive(root, 'cylinder', 'Highland Scree Bed', [0, -0.004, 0], [1.02, 0.012, 0.68], this.highlandFloorMaterial);
         addPrimitive(root, 'box', 'Highland Accent Rock A', [-0.28, 0.15, 0.02], [0.72, 0.29, 0.38], this.rockDarkMaterial, [8, 16, 8]);
         addPrimitive(root, 'box', 'Highland Accent Rock B', [0.35, 0.1, -0.2], [0.38, 0.2, 0.27], this.rockLightMaterial, [-6, -24, 11]);
         addPrimitive(root, 'box', 'Highland Accent Rock C', [0.08, 0.065, 0.36], [0.24, 0.12, 0.18], this.rockMidMaterial, [7, 31, -6]);
@@ -445,7 +446,7 @@ export class EnvironmentDetailLayer {
     ];
     const used = new Set<number>();
     for (const site of sites) {
-      const count = this.lowQuality ? 1 : 2;
+      const count = this.lowQuality ? 1 : 3;
       for (let item = 0; item < count; item += 1) {
         const start = hashByte(this.world, site.cell.x, site.cell.z, site.salt + item * 13) % SERVICE_OFFSETS.length;
         let chosen: GridPoint | null = null;
@@ -466,7 +467,8 @@ export class EnvironmentDetailLayer {
         const base = worldPosition(this.world, chosen.x, chosen.z);
         root.setPosition(base.x, 0.023, base.z);
         root.setEulerAngles(0, variant * 1.29, 0);
-        addPrimitive(root, 'cylinder', 'Service Ground Wear', [0, 0, 0], [0.82, 0.012, 0.62], this.settlementFloorMaterial);
+        addPrimitive(root, 'cylinder', 'Service Ground Wear', [0, 0, 0], [0.9, 0.012, 0.68], this.settlementFloorMaterial);
+        if (!this.lowQuality) addPrimitive(root, 'cylinder', 'Service Track Wear', [0.38, 0.001, -0.28], [0.62, 0.009, 0.34], variant < 128 ? this.mudMaterial : this.plainsFloorMaterial);
         addPrimitive(root, 'box', 'Service Crate A', [-0.22, 0.12, -0.08], [0.36, 0.23, 0.31], this.supplyMaterial, [0, 12, 0]);
         addPrimitive(root, 'box', 'Service Crate B', [0.16, 0.085, 0.2], [0.27, 0.16, 0.23], this.supplyMaterial, [0, -18, 0]);
         addPrimitive(root, 'box', 'Service Crate Band', [-0.22, 0.13, -0.08], [0.055, 0.25, 0.33], this.metalMaterial);
