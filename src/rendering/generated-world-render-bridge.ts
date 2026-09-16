@@ -1,4 +1,5 @@
 import * as pc from 'playcanvas';
+import { TerrainMaterialSet } from './terrain-material-set';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
 import { SurfaceType, type TerrainState } from '../simulation/terrain-state';
 import { VisibilityLevel } from '../simulation/visibility-state';
@@ -10,7 +11,6 @@ import {
   type GridPoint,
   type StrategicRoute,
 } from '../world/world-definition';
-import { createEnvironmentVisualLayout, type EnvironmentVisualProp } from './environment-visual-layout';
 
 interface RowRun {
   row: number;
@@ -104,24 +104,6 @@ function addPrimitive(
   entity.setLocalScale(scale);
   if (rotation) entity.setEulerAngles(rotation);
   app.root.addChild(entity);
-  return entity;
-}
-
-function addChildPrimitive(
-  parent: pc.Entity,
-  type: Exclude<PrimitiveType, 'plane'>,
-  name: string,
-  position: pc.Vec3,
-  scale: pc.Vec3,
-  material: pc.Material,
-  rotation?: pc.Vec3,
-): pc.Entity {
-  const entity = new pc.Entity(name);
-  entity.addComponent('render', { type, material, castShadows: false, receiveShadows: false });
-  entity.setLocalPosition(position);
-  entity.setLocalScale(scale);
-  if (rotation) entity.setLocalEulerAngles(rotation);
-  parent.addChild(entity);
   return entity;
 }
 
@@ -258,21 +240,6 @@ function terrainVisualHeightAt(world: GeneratedWorld, x: number, z: number): num
   return Math.max(-0.003, Math.min(0.016, normalized * 0.011 + biomeLift + micro));
 }
 
-function sameBiomeNeighborCount(world: GeneratedWorld, x: number, z: number, biome: BiomeType): number {
-  let count = 0;
-  for (let dz = -1; dz <= 1; dz += 1) {
-    for (let dx = -1; dx <= 1; dx += 1) {
-      if (dx === 0 && dz === 0) continue;
-      const nx = x + dx;
-      const nz = z + dz;
-      if (!inBounds(world, nx, nz)) continue;
-      const index = cellIndex(world, nx, nz);
-      if (world.terrain[index] === TerrainType.GROUND && world.biome[index] === biome) count += 1;
-    }
-  }
-  return count;
-}
-
 function touchesWater(world: GeneratedWorld, x: number, z: number): boolean {
   for (const [dx, dz] of ORTHOGONAL_NEIGHBORS) {
     const nx = x + dx;
@@ -322,6 +289,7 @@ function createMesh(app: pc.Application, buffers: MeshBuffers): pc.Mesh {
   const mesh = new pc.Mesh(app.graphicsDevice);
   mesh.setPositions(buffers.positions);
   mesh.setNormals(buffers.normals);
+  mesh.setUvs(0, buffers.positions.flatMap((_, i, a) => i % 3 === 0 ? [a[i]! / 3.6, a[i + 2]! / 3.6] : []));
   mesh.setColors32(buffers.colors);
   mesh.setIndices(buffers.indices);
   mesh.update(pc.PRIMITIVE_TRIANGLES);
@@ -637,13 +605,6 @@ function runsForGrid(width: number, height: number, predicate: (index: number) =
   return runs;
 }
 
-function propBaseY(kind: EnvironmentVisualProp['kind']): number {
-  if (kind === 'RIVER_REED') return 0.05;
-  if (kind === 'RIVER_BANK_STONE') return 0.036;
-  if (kind === 'ROUTE_EDGE_POST') return 0.032;
-  return 0.025;
-}
-
 export class GeneratedWorldRenderBridge {
   private readonly entities: pc.Entity[] = [];
   private readonly fogManagedRoots: { root: pc.Entity; cellIndex: number }[] = [];
@@ -663,23 +624,7 @@ export class GeneratedWorldRenderBridge {
   private readonly bridgeStoneMaterial = createMaterial(new pc.Color(0.34, 0.33, 0.28), 1, 0.08);
   private readonly iceMaterial = createMaterial(new pc.Color(0.53, 0.79, 0.86), 0.8, 0.48);
 
-  private readonly trunkMaterial = createMaterial(new pc.Color(0.14, 0.08, 0.042));
-  private readonly canopyDarkMaterial = createMaterial(new pc.Color(0.028, 0.13, 0.043), 1, 0.09);
-  private readonly canopyMidMaterial = createMaterial(new pc.Color(0.048, 0.20, 0.065), 1, 0.09);
-  private readonly canopyLightMaterial = createMaterial(new pc.Color(0.085, 0.285, 0.095), 1, 0.09);
-  private readonly forestShadowMaterial = createMaterial(new pc.Color(0.02, 0.065, 0.025), 0.17, 0.02);
-  private readonly understoryMaterial = createMaterial(new pc.Color(0.105, 0.23, 0.075));
-
-  private readonly rockDarkMaterial = createMaterial(new pc.Color(0.26, 0.26, 0.235));
-  private readonly rockMidMaterial = createMaterial(new pc.Color(0.36, 0.35, 0.30));
-  private readonly rockLightMaterial = createMaterial(new pc.Color(0.46, 0.43, 0.35));
-  private readonly dryGrassMaterial = createMaterial(new pc.Color(0.40, 0.36, 0.17));
-  private readonly scrubMaterial = createMaterial(new pc.Color(0.17, 0.29, 0.105));
-  private readonly reedMaterial = createMaterial(new pc.Color(0.25, 0.43, 0.13));
-  private readonly routePostMaterial = createMaterial(new pc.Color(0.23, 0.14, 0.07));
-  private readonly supplyMaterial = createMaterial(new pc.Color(0.31, 0.19, 0.095));
-  private readonly metalBandMaterial = createMaterial(new pc.Color(0.28, 0.29, 0.27));
-
+  private readonly terrainMaterials: TerrainMaterialSet;
   private lastIceCount = -1;
   private lastNavVersion = -1;
 
@@ -688,10 +633,12 @@ export class GeneratedWorldRenderBridge {
     private readonly world: GeneratedWorld,
     private readonly terrain: TerrainState,
   ) {
+    this.terrainMaterials = new TerrainMaterialSet(app, world, [
+      [this.groundMaterial, -1], [this.shorelineMaterial, 5],
+      [this.settlementApronMaterial, 2], [this.roadShoulderMaterial, 2],
+      [this.roadCoreMaterial, 4], [this.roadRutMaterial, 5],
+    ]);
     this.renderTerrainArt();
-    this.renderForestMasses();
-    this.renderHighlandMasses();
-    this.renderCuratedDressing();
   }
 
   sync(navVersion: number, iceCount: number, visibility?: Uint8Array): void {
@@ -707,6 +654,7 @@ export class GeneratedWorldRenderBridge {
   }
 
   destroy(): void {
+    this.terrainMaterials.destroy();
     for (const entity of this.iceEntities) entity.destroy();
     for (const entity of this.entities) entity.destroy();
     for (const mesh of this.meshes) mesh.destroy();
@@ -726,21 +674,6 @@ export class GeneratedWorldRenderBridge {
       this.bridgeBeamMaterial,
       this.bridgeStoneMaterial,
       this.iceMaterial,
-      this.trunkMaterial,
-      this.canopyDarkMaterial,
-      this.canopyMidMaterial,
-      this.canopyLightMaterial,
-      this.forestShadowMaterial,
-      this.understoryMaterial,
-      this.rockDarkMaterial,
-      this.rockMidMaterial,
-      this.rockLightMaterial,
-      this.dryGrassMaterial,
-      this.scrubMaterial,
-      this.reedMaterial,
-      this.routePostMaterial,
-      this.supplyMaterial,
-      this.metalBandMaterial,
     ]) material.destroy();
   }
 
@@ -846,330 +779,6 @@ export class GeneratedWorldRenderBridge {
           new pc.Vec3(0.018, 0.012, 1.02),
           this.bridgeBeamMaterial,
         ));
-      }
-    }
-  }
-
-  private isNearStrategicSite(x: number, z: number, radius: number): boolean {
-    const sites: GridPoint[] = [
-      ...this.world.spawns.map((spawn) => spawn.cell),
-      ...this.world.resources.map((resource) => resource.cell),
-      ...this.world.pois.map((poi) => poi.cell),
-      this.world.objective.cell,
-      this.world.boss.cell,
-    ];
-    return sites.some((site) => Math.abs(site.x - x) <= radius && Math.abs(site.z - z) <= radius);
-  }
-
-  private isNearRoute(x: number, z: number, radius: number): boolean {
-    for (let dz = -radius; dz <= radius; dz += 1) {
-      for (let dx = -radius; dx <= radius; dx += 1) {
-        const nx = x + dx;
-        const nz = z + dz;
-        if (!inBounds(this.world, nx, nz)) continue;
-        if (((this.world.flags[cellIndex(this.world, nx, nz)] ?? 0) & WorldCellFlag.ROUTE) !== 0) return true;
-      }
-    }
-    return false;
-  }
-
-  private renderForestMasses(): void {
-    const originX = originMetres(this.world.width);
-    const originZ = originMetres(this.world.height);
-    let groveCount = 0;
-    let edgeCount = 0;
-
-    for (let z = 2; z < this.world.height - 2; z += 1) {
-      for (let x = 2; x < this.world.width - 2; x += 1) {
-        if (groveCount >= 120 && edgeCount >= 48) return;
-        const index = cellIndex(this.world, x, z);
-        const flags = this.world.flags[index] ?? 0;
-        if (this.world.terrain[index] !== TerrainType.GROUND || this.world.biome[index] !== BiomeType.WOODLAND) continue;
-        if ((flags & WorldCellFlag.ROUTE) !== 0 || this.isNearStrategicSite(x, z, 2)) continue;
-
-        const neighbors = sameBiomeNeighborCount(this.world, x, z, BiomeType.WOODLAND);
-        const variant = hashByte(x, z, this.world.identity.masterSeed + 211);
-        const routeEdge = this.isNearRoute(x, z, 1);
-        const dense = neighbors >= 6 && !routeEdge;
-        // Coarse deterministic cluster noise creates dense woodland pockets separated
-        // by small openings, instead of accepting nearly every cell in visible rows.
-        const patchX = Math.floor((x + ((z & 1) * 2)) / 5);
-        const patchZ = Math.floor(z / 4);
-        const cluster = hashByte(patchX, patchZ, this.world.identity.masterSeed + 239);
-        const opening = hashByte(x, z, this.world.identity.masterSeed + 241);
-        const clusterLimit = cluster < 86 ? 224 : cluster < 168 ? 184 : cluster < 226 ? 126 : 54;
-        const clearingPatch = hashByte(
-          Math.floor((x + 1) / 4),
-          Math.floor((z + 2) / 4),
-          this.world.identity.masterSeed + 251,
-        );
-        if (opening > clusterLimit || clearingPatch > 226) continue;
-        if (dense && (variant > 220 || groveCount >= 112)) continue;
-        if (!dense && (neighbors < 3 || variant > (routeEdge ? 90 : 184) || edgeCount >= 48)) continue;
-
-        const jitterX = ((hashByte(x, z, 223) / 255) - 0.5) * (routeEdge ? 1.05 : 1.68);
-        const jitterZ = ((hashByte(x, z, 227) / 255) - 0.5) * (routeEdge ? 1.05 : 1.68);
-        const baseScale = (dense ? 0.82 : 0.64) + (hashByte(x, z, 229) / 255) * (dense ? 0.24 : 0.18);
-        const scale = baseScale * (routeEdge ? 0.66 : 1);
-        const root = new pc.Entity(dense ? `Woodland Grove ${x},${z}` : `Woodland Edge ${x},${z}`);
-        root.setPosition(originX + x + 0.5 + jitterX, 0.022, originZ + z + 0.5 + jitterZ);
-        root.setEulerAngles(0, variant * 1.41, 0);
-        this.app.root.addChild(root);
-        this.entities.push(root);
-        this.fogManagedRoots.push({ root, cellIndex: index });
-        this.populateForestMass(root, variant, scale, dense);
-        if (dense) groveCount += 1;
-        else edgeCount += 1;
-      }
-    }
-  }
-
-  private populateForestMass(root: pc.Entity, variant: number, scale: number, dense: boolean): void {
-    addChildPrimitive(
-      root,
-      'cylinder',
-      'Forest Contact Shadow',
-      new pc.Vec3(0, 0.016, 0),
-      new pc.Vec3((dense ? 2.4 : 1.55) * scale, 0.016, (dense ? 1.78 : 1.08) * scale),
-      this.forestShadowMaterial,
-    );
-
-    const lobes = dense ? 8 + (variant % 4) : 4 + (variant % 3);
-    for (let index = 0; index < lobes; index += 1) {
-      const angle = index * 2.39996 + variant * 0.031;
-      const ring = dense
-        ? index < 2 ? 0.16 : index < 6 ? 0.64 : 1.04
-        : index < 2 ? 0.28 : 0.72;
-      const radialJitter = 0.82 + ((variant + index * 53) % 37) / 100;
-      const x = Math.cos(angle) * ring * radialJitter * scale;
-      const z = Math.sin(angle) * ring * (0.68 + ((variant + index * 17) % 24) / 100) * scale;
-      const tier = (variant + index * 17) % 7;
-      const tierScale = tier < 2 ? 1.3 : tier < 5 ? 0.96 : 0.72;
-      const treeScale = scale * tierScale * (0.78 + ((variant + index * 41) % 34) / 100);
-      const height = 1.18 + ((variant + index * 29) % 78) / 100;
-      const crownVariance = 0.9 + ((variant + index * 47) % 23) / 100;
-      const crownWidth = (tier < 2 ? 0.6 : tier < 5 ? 0.68 : 0.74) * crownVariance;
-      const crownHeight = (tier < 2 ? 0.78 : tier < 5 ? 0.66 : 0.56) * (1.08 - (crownVariance - 0.9) * 0.45);
-      const crownDepth = (tier < 2 ? 0.54 : tier < 5 ? 0.61 : 0.67) * (0.94 + ((variant + index * 19) % 17) / 100);
-      const crownOffsetX = (((variant + index * 13) % 17) - 8) * 0.012 * treeScale;
-      const crownOffsetZ = (((variant + index * 23) % 19) - 9) * 0.011 * treeScale;
-
-      if (index < (dense ? 7 : 4)) {
-        addChildPrimitive(
-          root,
-          'cylinder',
-          'Forest Trunk',
-          new pc.Vec3(x, 0.39 * treeScale, z),
-          new pc.Vec3(0.11 * treeScale, 0.82 * treeScale, 0.11 * treeScale),
-          this.trunkMaterial,
-        );
-      }
-
-      const canopyTone = (variant + index * 31) % 7;
-      const canopyMaterial = canopyTone < 2
-        ? this.canopyDarkMaterial
-        : canopyTone < 6
-          ? this.canopyMidMaterial
-          : this.canopyLightMaterial;
-      addChildPrimitive(
-        root,
-        'sphere',
-        'Forest Lower Crown',
-        new pc.Vec3(
-          x + crownOffsetX,
-          (height - (tier < 2 ? 0.08 : 0.16)) * treeScale,
-          z + crownOffsetZ,
-        ),
-        new pc.Vec3(crownWidth * treeScale, crownHeight * treeScale, crownDepth * treeScale),
-        canopyMaterial,
-      );
-
-      if (index < (dense ? 6 : 3)) {
-        addChildPrimitive(
-          root,
-          'sphere',
-          'Forest Upper Crown',
-          new pc.Vec3(
-            x + Math.cos(angle + 0.8) * (0.11 + (index % 3) * 0.045) * treeScale,
-            (height + 0.58 + (index % 2) * 0.11) * treeScale,
-            z + Math.sin(angle + 0.8) * (0.09 + (index % 2) * 0.04) * treeScale,
-          ),
-          new pc.Vec3(0.45 * treeScale, 0.58 * treeScale, 0.4 * treeScale),
-          index % 2 === 0 ? this.canopyDarkMaterial : this.canopyMidMaterial,
-        );
-      }
-      if (dense && index < 4) {
-        addChildPrimitive(
-          root,
-          'sphere',
-          'Forest Side Crown',
-          new pc.Vec3(
-            x + Math.cos(angle - 0.95) * 0.34 * treeScale,
-            (height + 0.18) * treeScale,
-            z + Math.sin(angle - 0.95) * 0.27 * treeScale,
-          ),
-          new pc.Vec3(0.42 * treeScale, 0.39 * treeScale, 0.38 * treeScale),
-          index % 2 === 0 ? this.canopyMidMaterial : this.canopyLightMaterial,
-        );
-      }
-    }
-
-    const understoryCount = dense ? 7 : 4;
-    for (let index = 0; index < understoryCount; index += 1) {
-      const angle = index * 2.05 + variant * 0.043;
-      const radius = (0.52 + ((variant + index * 31) % 55) / 100) * scale;
-      const shrubScale = 0.78 + ((variant + index * 19) % 36) / 100;
-      addChildPrimitive(
-        root,
-        'sphere',
-        'Forest Understory',
-        new pc.Vec3(Math.cos(angle) * radius, 0.1 * scale, Math.sin(angle) * radius * 0.72),
-        new pc.Vec3(0.42 * shrubScale * scale, 0.16 * shrubScale * scale, 0.3 * shrubScale * scale),
-        this.understoryMaterial,
-      );
-    }
-  }
-
-  private renderHighlandMasses(): void {
-    const originX = originMetres(this.world.width);
-    const originZ = originMetres(this.world.height);
-    let count = 0;
-
-    for (let z = 3; z < this.world.height - 3 && count < 24; z += 5) {
-      const stagger = (Math.floor(z / 5) & 1) === 0 ? 0 : 2;
-      for (let x = 3 + stagger; x < this.world.width - 3 && count < 24; x += 5) {
-        const index = cellIndex(this.world, x, z);
-        if (this.world.terrain[index] !== TerrainType.GROUND || this.world.biome[index] !== BiomeType.HIGHLANDS) continue;
-        if (this.isNearStrategicSite(x, z, 2)) continue;
-        const neighbors = sameBiomeNeighborCount(this.world, x, z, BiomeType.HIGHLANDS);
-        const variant = hashByte(x, z, this.world.identity.masterSeed + 311);
-        if (neighbors < 5 || variant > 156) continue;
-
-        const root = new pc.Entity(`Highland Ridge Group ${x},${z}`);
-        root.setPosition(
-          originX + x + 0.5 + ((hashByte(x, z, 313) / 255) - 0.5) * 1.2,
-          0.022,
-          originZ + z + 0.5 + ((hashByte(x, z, 317) / 255) - 0.5) * 1.2,
-        );
-        root.setEulerAngles(0, variant * 1.17, 0);
-        this.app.root.addChild(root);
-        this.entities.push(root);
-        this.fogManagedRoots.push({ root, cellIndex: index });
-
-        const scale = 0.94 + (variant / 255) * 0.38;
-        addChildPrimitive(root, 'box', 'Highland Ridge A', new pc.Vec3(-0.18 * scale, 0.18 * scale, 0), new pc.Vec3(1.08 * scale, 0.34 * scale, 0.55 * scale), this.rockDarkMaterial, new pc.Vec3(6, 17, 5));
-        addChildPrimitive(root, 'box', 'Highland Ridge B', new pc.Vec3(0.48 * scale, 0.13 * scale, -0.22 * scale), new pc.Vec3(0.58 * scale, 0.25 * scale, 0.38 * scale), this.rockMidMaterial, new pc.Vec3(-5, -22, 10));
-        addChildPrimitive(root, 'box', 'Highland Scree A', new pc.Vec3(-0.52 * scale, 0.08 * scale, 0.34 * scale), new pc.Vec3(0.28 * scale, 0.14 * scale, 0.22 * scale), this.rockLightMaterial, new pc.Vec3(4, 33, -8));
-        if ((variant & 1) === 0) {
-          addChildPrimitive(root, 'box', 'Highland Scree B', new pc.Vec3(0.18 * scale, 0.07 * scale, 0.46 * scale), new pc.Vec3(0.23 * scale, 0.12 * scale, 0.18 * scale), this.rockLightMaterial, new pc.Vec3(-3, -29, 7));
-        }
-        addChildPrimitive(root, 'sphere', 'Highland Grass', new pc.Vec3(-0.48 * scale, 0.055 * scale, -0.32 * scale), new pc.Vec3(0.29 * scale, 0.1 * scale, 0.19 * scale), this.dryGrassMaterial);
-        count += 1;
-      }
-    }
-  }
-
-  private renderCuratedDressing(): void {
-    const originX = originMetres(this.world.width);
-    const originZ = originMetres(this.world.height);
-    const layout = createEnvironmentVisualLayout(this.world);
-
-    for (const prop of layout) {
-      if (!this.shouldRenderCuratedProp(prop)) continue;
-      const root = new pc.Entity(`${prop.kind} ${prop.cellX},${prop.cellZ}`);
-      root.setPosition(
-        originX + prop.cellX + 0.5 + prop.offsetX,
-        propBaseY(prop.kind),
-        originZ + prop.cellZ + 0.5 + prop.offsetZ,
-      );
-      root.setEulerAngles(0, prop.rotationDegrees, 0);
-      this.app.root.addChild(root);
-      this.entities.push(root);
-      this.fogManagedRoots.push({ root, cellIndex: cellIndex(this.world, prop.cellX, prop.cellZ) });
-      this.populateCuratedProp(root, prop);
-    }
-  }
-
-  private shouldRenderCuratedProp(prop: EnvironmentVisualProp): boolean {
-    if (prop.kind === 'WOODLAND_GROVE' || prop.kind === 'WOODLAND_EDGE') return false;
-    if (prop.kind === 'HIGHLAND_RIDGE' || prop.kind === 'HIGHLAND_ROCK') return false;
-    if (prop.kind === 'PLAINS_SCRUB') return prop.variant < 48;
-    if (prop.kind === 'PLAINS_STONE') return prop.variant < 34;
-    if (prop.kind === 'BIOME_EDGE_SCRUB' || prop.kind === 'BIOME_EDGE_STONE') return prop.variant < 116;
-    return true;
-  }
-
-  private populateCuratedProp(root: pc.Entity, prop: EnvironmentVisualProp): void {
-    const scale = prop.scale;
-
-    if (prop.kind === 'RIVER_REED') {
-      for (let index = 0; index < 5; index += 1) {
-        const lateral = (index - 2) * 0.085 * scale;
-        addChildPrimitive(
-          root,
-          'cylinder',
-          'River Reed',
-          new pc.Vec3(lateral, (0.2 + index * 0.022) * scale, ((prop.variant + index * 31) % 5 - 2) * 0.03 * scale),
-          new pc.Vec3(0.026 * scale, (0.38 + index * 0.05) * scale, 0.026 * scale),
-          this.reedMaterial,
-        );
-      }
-      return;
-    }
-
-    if (prop.kind === 'RIVER_BANK_STONE' || prop.kind === 'PLAINS_STONE' || prop.kind === 'BIOME_EDGE_STONE') {
-      addChildPrimitive(
-        root,
-        'box',
-        'Ground Stone',
-        new pc.Vec3(0, 0.07 * scale, 0),
-        new pc.Vec3(0.28 * scale, 0.13 * scale, 0.2 * scale),
-        prop.variant < 128 ? this.rockDarkMaterial : this.rockMidMaterial,
-        new pc.Vec3(5, 21, 7),
-      );
-      if (prop.kind === 'RIVER_BANK_STONE') {
-        addChildPrimitive(root, 'sphere', 'Bank Grass', new pc.Vec3(0.22 * scale, 0.05 * scale, -0.1 * scale), new pc.Vec3(0.16 * scale, 0.08 * scale, 0.12 * scale), this.reedMaterial);
-      }
-      return;
-    }
-
-    if (prop.kind === 'PLAINS_SCRUB' || prop.kind === 'BIOME_EDGE_SCRUB') {
-      addChildPrimitive(root, 'sphere', 'Ground Scrub', new pc.Vec3(0, 0.09 * scale, 0), new pc.Vec3(0.3 * scale, 0.16 * scale, 0.23 * scale), this.scrubMaterial);
-      return;
-    }
-
-    if (prop.kind === 'ROUTE_EDGE_POST') {
-      addChildPrimitive(root, 'cylinder', 'Route Post', new pc.Vec3(0, 0.23 * scale, 0), new pc.Vec3(0.055 * scale, 0.43 * scale, 0.055 * scale), this.routePostMaterial);
-      addChildPrimitive(root, 'box', 'Route Post Cap', new pc.Vec3(0, 0.43 * scale, 0), new pc.Vec3(0.15 * scale, 0.07 * scale, 0.11 * scale), this.rockLightMaterial);
-      return;
-    }
-
-    if (prop.kind === 'SETTLEMENT_SUPPLIES') {
-      addChildPrimitive(root, 'box', 'Supply Crate A', new pc.Vec3(-0.18 * scale, 0.12 * scale, 0), new pc.Vec3(0.36 * scale, 0.24 * scale, 0.31 * scale), this.supplyMaterial);
-      addChildPrimitive(root, 'box', 'Supply Crate B', new pc.Vec3(0.2 * scale, 0.085 * scale, 0.12 * scale), new pc.Vec3(0.26 * scale, 0.17 * scale, 0.23 * scale), this.supplyMaterial, new pc.Vec3(0, 18, 0));
-      addChildPrimitive(root, 'box', 'Supply Band', new pc.Vec3(-0.18 * scale, 0.14 * scale, 0), new pc.Vec3(0.055 * scale, 0.26 * scale, 0.33 * scale), this.metalBandMaterial);
-      addChildPrimitive(root, 'cylinder', 'Supply Barrel', new pc.Vec3(0.39 * scale, 0.12 * scale, -0.16 * scale), new pc.Vec3(0.14 * scale, 0.24 * scale, 0.14 * scale), this.supplyMaterial);
-      if (prop.variant > 118) {
-        addChildPrimitive(root, 'cylinder', 'Work Stake', new pc.Vec3(-0.44 * scale, 0.24 * scale, -0.18 * scale), new pc.Vec3(0.045 * scale, 0.46 * scale, 0.045 * scale), this.routePostMaterial);
-        addChildPrimitive(root, 'box', 'Work Rack', new pc.Vec3(-0.33 * scale, 0.35 * scale, -0.18 * scale), new pc.Vec3(0.24 * scale, 0.07 * scale, 0.06 * scale), this.metalBandMaterial);
-      }
-      return;
-    }
-
-    if (prop.kind === 'RESOURCE_FRINGE') {
-      addChildPrimitive(root, 'sphere', 'Resource Stone A', new pc.Vec3(-0.18 * scale, 0.055 * scale, 0.06 * scale), new pc.Vec3(0.21 * scale, 0.1 * scale, 0.16 * scale), this.rockDarkMaterial);
-      addChildPrimitive(root, 'sphere', 'Resource Stone B', new pc.Vec3(0.18 * scale, 0.045 * scale, -0.12 * scale), new pc.Vec3(0.15 * scale, 0.08 * scale, 0.12 * scale), this.rockLightMaterial);
-      addChildPrimitive(root, 'sphere', 'Resource Grass', new pc.Vec3(0.04 * scale, 0.04 * scale, 0.2 * scale), new pc.Vec3(0.17 * scale, 0.07 * scale, 0.12 * scale), this.dryGrassMaterial);
-      return;
-    }
-
-    if (prop.kind === 'POI_FRINGE') {
-      if (prop.variant < 128) {
-        addChildPrimitive(root, 'box', 'POI Broken Stone', new pc.Vec3(0, 0.1 * scale, 0), new pc.Vec3(0.38 * scale, 0.2 * scale, 0.24 * scale), this.rockMidMaterial, new pc.Vec3(11, 31, 17));
-        addChildPrimitive(root, 'box', 'POI Stone Chip', new pc.Vec3(0.28 * scale, 0.045 * scale, -0.18 * scale), new pc.Vec3(0.15 * scale, 0.09 * scale, 0.11 * scale), this.rockLightMaterial, new pc.Vec3(-5, -24, 9));
-      } else {
-        addChildPrimitive(root, 'cylinder', 'POI Stake', new pc.Vec3(0, 0.2 * scale, 0), new pc.Vec3(0.05 * scale, 0.38 * scale, 0.05 * scale), this.routePostMaterial);
-        addChildPrimitive(root, 'box', 'POI Marker', new pc.Vec3(0.09 * scale, 0.34 * scale, 0), new pc.Vec3(0.2 * scale, 0.08 * scale, 0.06 * scale), this.metalBandMaterial);
       }
     }
   }

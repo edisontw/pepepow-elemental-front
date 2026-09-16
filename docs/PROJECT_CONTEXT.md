@@ -233,3 +233,15 @@ For presentation-only batches:
 - avoid repeated full-repo audits, exhaustive visual inspection, repeated verification of unchanged systems, and long closure reports.
 
 After the visual-production pass reaches a satisfactory baseline, resume the deferred post-roadmap army-control / targeting / balance work only when explicitly requested.
+
+### Environment art upgrade B0–B5 (2026-09-17)
+
+- Asset-driven runtime implementation is complete; manual visual/FPS acceptance is pending.
+- Three original WebP atlases provide eight ground materials, six tree archetypes,
+  and twelve ruin/settlement/roadside props. Environment art now uses spatially
+  batched fixed-camera impostors, soft contact shadows, per-cell fog and low-quality thinning.
+- Removed old primitive woodland/highland/scatter paths. Gameplay, navigation,
+  `m02-standard-v1`, and replay authority are unchanged.
+- See `docs/ENVIRONMENT_ASSET_NOTES.md` for assets, representation and validation.
+- Hard gate 4: cloud browser reports `WebGL not supported`; manual screen/FPS
+  acceptance must precede declaring reference-quality completion.
