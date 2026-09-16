@@ -1,0 +1,67 @@
+name: Forest Grove Shape One Shot
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/forest-grove-shape-one-shot.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Shape woodland into separated groves
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/rendering/generated-world-render-bridge.ts')
+          text = path.read_text()
+          replacements = {
+            "if (groveCount >= 132 && edgeCount >= 42) return;": "if (groveCount >= 120 && edgeCount >= 48) return;",
+            "const clusterLimit = cluster < 86 ? 238 : cluster < 168 ? 204 : cluster < 226 ? 148 : 72;\n        if (opening > clusterLimit) continue;\n        if (dense && (variant > 224 || groveCount >= 124)) continue;\n        if (!dense && (neighbors < 3 || variant > (routeEdge ? 94 : 178) || edgeCount >= 44)) continue;": "const clusterLimit = cluster < 86 ? 224 : cluster < 168 ? 184 : cluster < 226 ? 126 : 54;\n        const clearingPatch = hashByte(\n          Math.floor((x + 1) / 4),\n          Math.floor((z + 2) / 4),\n          this.world.identity.masterSeed + 251,\n        );\n        if (opening > clusterLimit || clearingPatch > 226) continue;\n        if (dense && (variant > 220 || groveCount >= 112)) continue;\n        if (!dense && (neighbors < 3 || variant > (routeEdge ? 90 : 184) || edgeCount >= 48)) continue;",
+            "const baseScale = (dense ? 0.94 : 0.7) + (hashByte(x, z, 229) / 255) * (dense ? 0.29 : 0.21);\n        const scale = baseScale * (routeEdge ? 0.72 : 1);": "const baseScale = (dense ? 0.82 : 0.64) + (hashByte(x, z, 229) / 255) * (dense ? 0.24 : 0.18);\n        const scale = baseScale * (routeEdge ? 0.66 : 1);",
+            "new pc.Vec3((dense ? 2.7 : 1.7) * scale, 0.016, (dense ? 2.0 : 1.2) * scale),": "new pc.Vec3((dense ? 2.4 : 1.55) * scale, 0.016, (dense ? 1.78 : 1.08) * scale),",
+            "const tierScale = tier < 2 ? 1.18 : tier < 5 ? 0.96 : 0.74;": "const tierScale = tier < 2 ? 1.3 : tier < 5 ? 0.96 : 0.72;",
+          }
+          for old, new in replacements.items():
+            if old not in text:
+              raise SystemExit(f'missing generated-world pattern: {old[:90]!r}')
+            text = text.replace(old, new, 1)
+          path.write_text(text)
+
+          path = Path('src/rendering/environment-detail-layer.ts')
+          text = path.read_text()
+          replacements = {
+            "const maxGroups = this.lowQuality ? 28 : 72;": "const maxGroups = this.lowQuality ? 24 : 58;",
+            "const openingLimit = patch < 96 ? 238 : patch < 188 ? 204 : 138;\n        if (neighbors < 3 || variant > 242 || opening > openingLimit) continue;": "const openingLimit = patch < 96 ? 220 : patch < 188 ? 180 : 116;\n        const clearingPatch = hashByte(this.world, Math.floor((x + 1) / 4), Math.floor((z + 2) / 4), 251);\n        if (neighbors < 3 || variant > 242 || opening > openingLimit || clearingPatch > 226) continue;",
+            "const contactScale = 0.92 + (variant / 255) * 0.34;": "const contactScale = 0.84 + (variant / 255) * 0.28;",
+            "const tierScale = tier < 2 ? 1.16 : tier < 4 ? 0.96 : 0.76;": "const tierScale = tier < 2 ? 1.26 : tier < 4 ? 0.96 : 0.74;",
+          }
+          for old, new in replacements.items():
+            if old not in text:
+              raise SystemExit(f'missing environment-detail pattern: {old[:90]!r}')
+            text = text.replace(old, new, 1)
+          path.write_text(text)
+          PY
+      - run: npm run build
+      - run: git diff --check
+      - name: Commit refinement and remove temporary workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/rendering/generated-world-render-bridge.ts src/rendering/environment-detail-layer.ts
+          git rm .github/workflows/forest-grove-shape-one-shot.yml
+          git commit -m 'visual: split dense woodland into layered groves'
+          git push
