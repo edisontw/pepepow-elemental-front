@@ -59,6 +59,18 @@ function metres(value: number): number {
   return value / WORLD_UNITS_PER_METER;
 }
 
+function suppressLegacyWoodlandMasses(app: pc.Application): void {
+  // The generated-world bridge still contains the historical broadleaf/sphere
+  // woodland mass pass. The dedicated environment-detail layer now owns the
+  // visible forest language, so keep the legacy roots disabled until that old
+  // pass is removed from the bridge itself.
+  for (const child of app.root.children) {
+    if (child.name.startsWith('Woodland Grove ') || child.name.startsWith('Woodland Edge ')) {
+      child.enabled = false;
+    }
+  }
+}
+
 function renderZone(app: pc.Application, zone: ArenaZone, materials: Record<string, pc.Material>): pc.Entity | null {
   const position = new pc.Vec3(metres(zone.centerX), 0, metres(zone.centerZ));
   const scale = new pc.Vec3(metres(zone.width), 1, metres(zone.depth));
@@ -144,6 +156,7 @@ export function createSceneShell(
   const resourceBridge = simulation instanceof M03Simulation
     ? new ResourceRenderBridge(app, simulation.generatedWorld)
     : null;
+  suppressLegacyWoodlandMasses(app);
   const territoryBridge = simulation instanceof M03Simulation
     ? new TerritoryRenderBridge(app, simulation.generatedWorld)
     : null;
@@ -295,6 +308,7 @@ export function createSceneShell(
         frame.snapshot.terrain.ice,
         simulation.visibility.cellsForPlayer(0),
       );
+      suppressLegacyWoodlandMasses(app);
       fogOfWarBridge?.sync();
       if (freezablePatch?.render) {
         const frozen = frame.snapshot.terrain.ice > 0;
