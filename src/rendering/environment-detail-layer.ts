@@ -1,4 +1,5 @@
 import * as pc from 'playcanvas';
+import { environmentAtlasUv } from './environment-atlas';
 import { VisibilityLevel } from '../simulation/visibility-state';
 import type { GeneratedWorld } from '../world/world-definition';
 import { EnvironmentAssetLibrary } from './environment-asset-library';
@@ -103,7 +104,7 @@ export class EnvironmentDetailLayer {
           positions.push(p.x + right[0]! * sx! * p.width + up[0]! * y, 0.025 + up[1]! * y, p.z + right[2]! * sx! * p.width + up[2]! * y);
           normals.push(0.65, 0.39, 0.65);
           const u = p.flip ? 0.5 - sx! : sx! + 0.5;
-          uv.push((p.frame % columns + 0.008 + u * 0.984) / columns, 1 - (Math.floor(p.frame / columns) + 0.008 + (1 - sy!) * 0.984) / rows);
+          uv.push(...environmentAtlasUv(p.frame, columns, rows, u, 1 - sy!));
           colors.push(255, 255, 255, 0);
         }
         indices.push(base, base + 1, base + 2, base + 2, base + 1, base + 3);

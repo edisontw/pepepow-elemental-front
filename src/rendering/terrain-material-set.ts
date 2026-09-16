@@ -43,7 +43,8 @@ export class TerrainMaterialSet {
       const atlas = this.asset.resource as pc.Texture;
       atlas.addressU = atlas.addressV = pc.ADDRESS_CLAMP_TO_EDGE;
       atlas.anisotropy = 4;
-      atlas.flipY = true;
+      // ImageBitmap ignores unpack flipping: use top-left UVs everywhere.
+      atlas.flipY = false;
       for (const [material, tile] of surfaces) {
         material.diffuseMap = atlas;
         material.setParameter('environmentControl', this.control);
@@ -77,7 +78,6 @@ vec3 groundTile(float tile, vec2 p) {
     vec2 q = abs(fract(p * 0.5) * 2.0 - 1.0);
     q = mix(vec2(0.018), vec2(0.982), q);
     vec2 uv = (vec2(mod(tile, 4.0), floor(tile / 4.0)) + q) / vec2(4.0, 2.0);
-    uv.y = 1.0 - uv.y;
     return {STD_DIFFUSE_TEXTURE_DECODE}(texture2DBias({STD_DIFFUSE_TEXTURE_NAME}, uv, textureBias)).rgb;
 }
 void getAlbedo() {

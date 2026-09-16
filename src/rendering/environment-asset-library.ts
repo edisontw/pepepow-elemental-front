@@ -19,7 +19,8 @@ export class EnvironmentAssetLibrary {
         const texture = asset.resource as pc.Texture;
         texture.addressU = texture.addressV = pc.ADDRESS_CLAMP_TO_EDGE;
         texture.anisotropy = 2;
-        texture.flipY = true;
+        // Match top-left UVs for both ImageBitmap and HTMLImageElement.
+        texture.flipY = false;
         const material = new pc.StandardMaterial();
         material.name = id;
         // Baked diffuse art, like existing unit impostors. Alpha test writes depth

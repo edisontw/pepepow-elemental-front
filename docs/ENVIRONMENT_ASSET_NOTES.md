@@ -64,3 +64,14 @@ acceptance solely from build/test success. Hard gate 4 applies if WebGL is unava
 
 Cloud browser smoke: live Pages shell loads, but graphics initialization fails with
 `WebGL not supported` in this browser. This is hard gate 4; no visual/FPS PASS claimed.
+
+## Screenshot regression correction
+
+User screenshots rejected the first visual pass: grass occupied roads, meadow
+sampled dirt, flower scatter selected grave markers, and trees appeared inverted.
+Cause: ImageBitmap texture upload ignores UNPACK_FLIP_Y_WEBGL while the atlas UVs
+were inverted as though the source had flipped. All environment textures now use
+flipY=false and top-left atlas coordinates, including terrain shader sampling.
+Targeted frame tests cover road/grass separation, flower/marker rows, and upright
+fir apex/base ordering. This corrects mapping; manual appearance/FPS acceptance
+remains pending and the screenshots are not recorded as a visual PASS.
