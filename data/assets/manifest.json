@@ -103,7 +103,7 @@
       "status": "NEEDS_MANUAL_GENERATION",
       "path": "assets/models/unit-vanguard.glb",
       "canonicalFilename": "unit-vanguard.glb",
-      "notes": "Original faceted model. Y up, +Z forward; TEAM independent of ELEMENT. Rebuild: python scripts/art/build_frontier_models.py"
+      "notes": "Animated rigid-node U1 fallback with embedded Idle/Move/Attack/Hit/Death clips, ModelRoot and WeaponTip. Final concept-quality skinned GLB still pending manual generation/approval. Y up, +Z forward; TEAM independent of ELEMENT. Rebuild: python scripts/art/build_vanguard_polished.py"
     },
     {
       "id": "unit.elementalist.fire",
