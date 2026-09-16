@@ -861,6 +861,18 @@ export class GeneratedWorldRenderBridge {
     return sites.some((site) => Math.abs(site.x - x) <= radius && Math.abs(site.z - z) <= radius);
   }
 
+  private isNearRoute(x: number, z: number, radius: number): boolean {
+    for (let dz = -radius; dz <= radius; dz += 1) {
+      for (let dx = -radius; dx <= radius; dx += 1) {
+        const nx = x + dx;
+        const nz = z + dz;
+        if (!inBounds(this.world, nx, nz)) continue;
+        if (((this.world.flags[cellIndex(this.world, nx, nz)] ?? 0) & WorldCellFlag.ROUTE) !== 0) return true;
+      }
+    }
+    return false;
+  }
+
   private renderForestMasses(): void {
     const originX = originMetres(this.world.width);
     const originZ = originMetres(this.world.height);
@@ -871,26 +883,29 @@ export class GeneratedWorldRenderBridge {
       for (let x = 2; x < this.world.width - 2; x += 1) {
         if (groveCount >= 132 && edgeCount >= 42) return;
         const index = cellIndex(this.world, x, z);
+        const flags = this.world.flags[index] ?? 0;
         if (this.world.terrain[index] !== TerrainType.GROUND || this.world.biome[index] !== BiomeType.WOODLAND) continue;
-        if (this.isNearStrategicSite(x, z, 2)) continue;
+        if ((flags & WorldCellFlag.ROUTE) !== 0 || this.isNearStrategicSite(x, z, 2)) continue;
 
         const neighbors = sameBiomeNeighborCount(this.world, x, z, BiomeType.WOODLAND);
         const variant = hashByte(x, z, this.world.identity.masterSeed + 211);
-        const dense = neighbors >= 6;
+        const routeEdge = this.isNearRoute(x, z, 1);
+        const dense = neighbors >= 6 && !routeEdge;
         // Coarse deterministic cluster noise creates dense woodland pockets separated
         // by small openings, instead of accepting nearly every cell in visible rows.
         const patchX = Math.floor((x + ((z & 1) * 2)) / 5);
         const patchZ = Math.floor(z / 4);
         const cluster = hashByte(patchX, patchZ, this.world.identity.masterSeed + 239);
         const opening = hashByte(x, z, this.world.identity.masterSeed + 241);
-        const clusterLimit = cluster < 86 ? 246 : cluster < 168 ? 214 : cluster < 226 ? 156 : 88;
+        const clusterLimit = cluster < 86 ? 238 : cluster < 168 ? 204 : cluster < 226 ? 148 : 72;
         if (opening > clusterLimit) continue;
-        if (dense && (variant > 228 || groveCount >= 132)) continue;
-        if (!dense && (neighbors < 3 || variant > 188 || edgeCount >= 42)) continue;
+        if (dense && (variant > 224 || groveCount >= 124)) continue;
+        if (!dense && (neighbors < 3 || variant > (routeEdge ? 94 : 178) || edgeCount >= 44)) continue;
 
-        const jitterX = ((hashByte(x, z, 223) / 255) - 0.5) * 1.72;
-        const jitterZ = ((hashByte(x, z, 227) / 255) - 0.5) * 1.72;
-        const scale = (dense ? 0.96 : 0.72) + (hashByte(x, z, 229) / 255) * (dense ? 0.31 : 0.23);
+        const jitterX = ((hashByte(x, z, 223) / 255) - 0.5) * (routeEdge ? 1.05 : 1.68);
+        const jitterZ = ((hashByte(x, z, 227) / 255) - 0.5) * (routeEdge ? 1.05 : 1.68);
+        const baseScale = (dense ? 0.94 : 0.7) + (hashByte(x, z, 229) / 255) * (dense ? 0.29 : 0.21);
+        const scale = baseScale * (routeEdge ? 0.72 : 1);
         const root = new pc.Entity(dense ? `Woodland Grove ${x},${z}` : `Woodland Edge ${x},${z}`);
         root.setPosition(originX + x + 0.5 + jitterX, 0.022, originZ + z + 0.5 + jitterZ);
         root.setEulerAngles(0, variant * 1.41, 0);
@@ -914,7 +929,7 @@ export class GeneratedWorldRenderBridge {
       this.forestShadowMaterial,
     );
 
-    const lobes = dense ? 10 + (variant % 4) : 5 + (variant % 3);
+    const lobes = dense ? 8 + (variant % 4) : 4 + (variant % 3);
     for (let index = 0; index < lobes; index += 1) {
       const angle = index * 2.39996 + variant * 0.031;
       const ring = dense
@@ -927,9 +942,10 @@ export class GeneratedWorldRenderBridge {
       const tierScale = tier < 2 ? 1.18 : tier < 5 ? 0.96 : 0.74;
       const treeScale = scale * tierScale * (0.78 + ((variant + index * 41) % 34) / 100);
       const height = 1.18 + ((variant + index * 29) % 78) / 100;
-      const crownWidth = tier < 2 ? 0.62 : tier < 5 ? 0.7 : 0.76;
-      const crownHeight = tier < 2 ? 0.76 : tier < 5 ? 0.67 : 0.58;
-      const crownDepth = tier < 2 ? 0.56 : tier < 5 ? 0.63 : 0.69;
+      const crownVariance = 0.9 + ((variant + index * 47) % 23) / 100;
+      const crownWidth = (tier < 2 ? 0.6 : tier < 5 ? 0.68 : 0.74) * crownVariance;
+      const crownHeight = (tier < 2 ? 0.78 : tier < 5 ? 0.66 : 0.56) * (1.08 - (crownVariance - 0.9) * 0.45);
+      const crownDepth = (tier < 2 ? 0.54 : tier < 5 ? 0.61 : 0.67) * (0.94 + ((variant + index * 19) % 17) / 100);
       const crownOffsetX = (((variant + index * 13) % 17) - 8) * 0.012 * treeScale;
       const crownOffsetZ = (((variant + index * 23) % 19) - 9) * 0.011 * treeScale;
 
@@ -944,11 +960,12 @@ export class GeneratedWorldRenderBridge {
         );
       }
 
-      const canopyMaterial = index % 3 === 0
-        ? this.canopyLightMaterial
-        : index % 3 === 1
+      const canopyTone = (variant + index * 31) % 7;
+      const canopyMaterial = canopyTone < 2
+        ? this.canopyDarkMaterial
+        : canopyTone < 6
           ? this.canopyMidMaterial
-          : this.canopyDarkMaterial;
+          : this.canopyLightMaterial;
       addChildPrimitive(
         root,
         'sphere',

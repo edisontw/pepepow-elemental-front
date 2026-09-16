@@ -287,7 +287,7 @@ export class EnvironmentDetailLayer {
   }
 
   private renderForestDepth(): void {
-    const maxGroups = this.lowQuality ? 34 : 92;
+    const maxGroups = this.lowQuality ? 28 : 72;
     let groups = 0;
     for (let z = 2; z < this.world.height - 2 && groups < maxGroups; z += 2) {
       const stagger = (Math.floor(z / 2) & 1) === 0 ? 0 : 1;
@@ -295,12 +295,12 @@ export class EnvironmentDetailLayer {
         const index = cellIndex(this.world, x, z);
         const flags = this.world.flags[index] ?? 0;
         if (this.world.terrain[index] !== TerrainType.GROUND || this.world.biome[index] !== BiomeType.WOODLAND) continue;
-        if ((flags & WorldCellFlag.ROUTE) !== 0 || isNearSite(this.world, x, z, 2)) continue;
+        if ((flags & WorldCellFlag.ROUTE) !== 0 || touchesRoute(this.world, x, z) || isNearSite(this.world, x, z, 2)) continue;
         const neighbors = sameBiomeNeighborCount(this.world, x, z, BiomeType.WOODLAND);
         const variant = hashByte(this.world, x, z, 901);
         const patch = hashByte(this.world, Math.floor(x / 5), Math.floor(z / 4), 887);
         const opening = hashByte(this.world, x, z, 889);
-        const openingLimit = patch < 96 ? 250 : patch < 188 ? 220 : 148;
+        const openingLimit = patch < 96 ? 238 : patch < 188 ? 204 : 138;
         if (neighbors < 3 || variant > 242 || opening > openingLimit) continue;
 
         const root = new pc.Entity(`Forest Depth Accent ${x},${z}`);
@@ -316,7 +316,7 @@ export class EnvironmentDetailLayer {
           addPrimitive(root, 'cylinder', 'Forest Leaf Litter', [0.22, -0.002, -0.12], [0.92 * contactScale, 0.009, 0.68 * contactScale], this.mudMaterial);
         }
 
-        const treeCount = this.lowQuality ? 3 + (variant % 2) : 5 + (variant % 3);
+        const treeCount = this.lowQuality ? 3 + (variant % 2) : 4 + (variant % 3);
         for (let tree = 0; tree < treeCount; tree += 1) {
           const angle = tree * 2.39996 + variant * 0.019;
           const radius = tree === 0 ? 0.08 : 0.3 + ((variant + tree * 37) % 74) / 100;
@@ -332,11 +332,12 @@ export class EnvironmentDetailLayer {
           const crownShiftX = (((variant + tree * 29) % 13) - 6) * 0.012 * size;
           const crownShiftZ = (((variant + tree * 31) % 15) - 7) * 0.011 * size;
           addPrimitive(root, 'cylinder', `Forest Accent Trunk ${tree + 1}`, [tx, trunkHeight * 0.35, tz], [0.082 * size, trunkHeight * 0.7, 0.082 * size], tree % 2 === 0 ? this.trunkMaterial : this.barkLightMaterial);
-          const canopyMaterial = tree % 3 === 0
-            ? this.canopyLightMaterial
-            : tree % 3 === 1
+          const canopyTone = (variant + tree * 29) % 7;
+          const canopyMaterial = canopyTone < 2
+            ? this.canopyDarkMaterial
+            : canopyTone < 6
               ? this.canopyMidMaterial
-              : this.canopyDarkMaterial;
+              : this.canopyLightMaterial;
           addPrimitive(
             root,
             'sphere',
