@@ -11,6 +11,7 @@ import { M03Simulation } from '../simulation/m03-simulation';
 import type { M04Simulation } from '../simulation/m04-simulation';
 import { M06Simulation } from '../simulation/m06-simulation';
 import type { EntitySnapshot } from '../simulation/simulation';
+import { AnimatedUnitRenderBridge } from './animated-unit-render-bridge';
 import { CameraFeedback } from './camera-feedback';
 import { CombatPresentationPass } from './combat-presentation-pass';
 import { ElementalRenderBridge } from './elemental-render-bridge';
@@ -22,7 +23,6 @@ import { RtsCamera } from './rts-camera';
 import { RunRenderBridge } from './run-render-bridge';
 import { StrategicRenderBridge } from './strategic-render-bridge';
 import { TerritoryRenderBridge } from './territory-render-bridge';
-import { UnitRenderBridge } from './unit-render-bridge';
 
 function createMaterial(color: pc.Color, emissive?: pc.Color, opacity = 1): pc.StandardMaterial {
   const material = new pc.StandardMaterial();
@@ -219,7 +219,7 @@ export function createSceneShell(
   const healthMaterial = createMaterial(new pc.Color(0.18, 0.9, 0.25), new pc.Color(0.03, 0.2, 0.04));
   const battleVfx = new BattleVfx(app);
   const visualAssets = new VisualAssetLibrary(app);
-  const bridge = new UnitRenderBridge(app, initialSnapshot, unitMaterials, selectionMaterial, healthMaterial, visualAssets, battleVfx);
+  const bridge = new AnimatedUnitRenderBridge(app, initialSnapshot, unitMaterials, selectionMaterial, healthMaterial, visualAssets, battleVfx);
   const elementalBridge = new ElementalRenderBridge(app, simulation.terrain, initialSnapshot, battleVfx);
   const initialStrategicSnapshot = simulation instanceof M03Simulation ? simulation.strategy.snapshot() : null;
   const combatPresentation = new CombatPresentationPass(app, battleVfx, initialStrategicSnapshot);
