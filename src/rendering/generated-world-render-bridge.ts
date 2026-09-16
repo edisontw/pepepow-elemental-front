@@ -927,14 +927,19 @@ export class GeneratedWorldRenderBridge {
       const tierScale = tier < 2 ? 1.18 : tier < 5 ? 0.96 : 0.74;
       const treeScale = scale * tierScale * (0.78 + ((variant + index * 41) % 34) / 100);
       const height = 1.18 + ((variant + index * 29) % 78) / 100;
+      const crownWidth = tier < 2 ? 0.62 : tier < 5 ? 0.7 : 0.76;
+      const crownHeight = tier < 2 ? 0.76 : tier < 5 ? 0.67 : 0.58;
+      const crownDepth = tier < 2 ? 0.56 : tier < 5 ? 0.63 : 0.69;
+      const crownOffsetX = (((variant + index * 13) % 17) - 8) * 0.012 * treeScale;
+      const crownOffsetZ = (((variant + index * 23) % 19) - 9) * 0.011 * treeScale;
 
       if (index < (dense ? 7 : 4)) {
         addChildPrimitive(
           root,
           'cylinder',
           'Forest Trunk',
-          new pc.Vec3(x, 0.5 * treeScale, z),
-          new pc.Vec3(0.09 * treeScale, 1.06 * treeScale, 0.09 * treeScale),
+          new pc.Vec3(x, 0.39 * treeScale, z),
+          new pc.Vec3(0.11 * treeScale, 0.82 * treeScale, 0.11 * treeScale),
           this.trunkMaterial,
         );
       }
@@ -948,8 +953,12 @@ export class GeneratedWorldRenderBridge {
         root,
         'sphere',
         'Forest Lower Crown',
-        new pc.Vec3(x, height * treeScale, z),
-        new pc.Vec3(0.66 * treeScale, 0.72 * treeScale, 0.59 * treeScale),
+        new pc.Vec3(
+          x + crownOffsetX,
+          (height - (tier < 2 ? 0.08 : 0.16)) * treeScale,
+          z + crownOffsetZ,
+        ),
+        new pc.Vec3(crownWidth * treeScale, crownHeight * treeScale, crownDepth * treeScale),
         canopyMaterial,
       );
 

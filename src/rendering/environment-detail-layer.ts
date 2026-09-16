@@ -326,15 +326,27 @@ export class EnvironmentDetailLayer {
           const tierScale = tier < 2 ? 1.16 : tier < 4 ? 0.96 : 0.76;
           const size = tierScale * (0.9 + (hashByte(this.world, x + tree, z, 919) / 255) * 0.42);
           const trunkHeight = 1.02 + size * 0.62;
-          addPrimitive(root, 'cylinder', `Forest Accent Trunk ${tree + 1}`, [tx, trunkHeight * 0.47, tz], [0.07 * size, trunkHeight * 0.9, 0.07 * size], tree % 2 === 0 ? this.trunkMaterial : this.barkLightMaterial);
+          const crownWidth = tier < 2 ? 0.46 : tier < 4 ? 0.54 : 0.61;
+          const crownHeight = tier < 2 ? 0.72 : tier < 4 ? 0.62 : 0.52;
+          const crownDepth = tier < 2 ? 0.42 : tier < 4 ? 0.49 : 0.56;
+          const crownShiftX = (((variant + tree * 29) % 13) - 6) * 0.012 * size;
+          const crownShiftZ = (((variant + tree * 31) % 15) - 7) * 0.011 * size;
+          addPrimitive(root, 'cylinder', `Forest Accent Trunk ${tree + 1}`, [tx, trunkHeight * 0.35, tz], [0.082 * size, trunkHeight * 0.7, 0.082 * size], tree % 2 === 0 ? this.trunkMaterial : this.barkLightMaterial);
           const canopyMaterial = tree % 3 === 0
             ? this.canopyLightMaterial
             : tree % 3 === 1
               ? this.canopyMidMaterial
               : this.canopyDarkMaterial;
-          addPrimitive(root, 'sphere', `Forest Accent Crown ${tree + 1}`, [tx, trunkHeight + 0.3 * size, tz], [0.5 * size, 0.68 * size, 0.45 * size], canopyMaterial);
+          addPrimitive(
+            root,
+            'sphere',
+            `Forest Accent Crown ${tree + 1}`,
+            [tx + crownShiftX, trunkHeight * 0.78 + 0.38 * size, tz + crownShiftZ],
+            [crownWidth * size, crownHeight * size, crownDepth * size],
+            canopyMaterial,
+          );
           if (!this.lowQuality && (tree < 2 || (tree === 2 && variant > 112))) {
-            addPrimitive(root, 'sphere', `Forest Accent Crown Lobe ${tree + 1}`, [tx - 0.18 * size, trunkHeight + 0.42 * size, tz + 0.08 * size], [0.33 * size, 0.38 * size, 0.3 * size], tree === 0 ? this.canopyDarkMaterial : this.canopyMidMaterial);
+            addPrimitive(root, 'sphere', `Forest Accent Crown Lobe ${tree + 1}`, [tx - 0.2 * size + crownShiftX, trunkHeight * 0.82 + 0.5 * size, tz + 0.09 * size + crownShiftZ], [0.36 * size, 0.34 * size, 0.32 * size], tree === 0 ? this.canopyDarkMaterial : this.canopyMidMaterial);
             addPrimitive(root, 'sphere', `Forest Accent Upper Crown ${tree + 1}`, [tx + 0.1 * size, trunkHeight + 0.86 * size, tz - 0.05 * size], [0.34 * size, 0.42 * size, 0.3 * size], tree === 0 ? this.canopyMidMaterial : this.canopyLightMaterial);
           }
         }
