@@ -138,9 +138,11 @@ function cellIndex(world: GeneratedWorld, x: number, z: number): number {
 }
 
 function biomeColor(biome: BiomeType): readonly [number, number, number] {
-  if (biome === BiomeType.WOODLAND) return [29, 57, 29];
-  if (biome === BiomeType.HIGHLANDS) return [91, 83, 64];
-  return [54, 86, 44];
+  // Keep biome identity readable, but hold the palettes close enough that
+  // interpolation reads as natural ground variation rather than map-sized blocks.
+  if (biome === BiomeType.WOODLAND) return [43, 68, 39];
+  if (biome === BiomeType.HIGHLANDS) return [83, 78, 62];
+  return [58, 82, 50];
 }
 
 function valueNoise(world: GeneratedWorld, x: number, z: number, cellSize: number, salt: number): number {
@@ -176,32 +178,39 @@ function sampledTerrain(world: GeneratedWorld, x: number, z: number): {
   blue: number;
   elevation: number;
   moisture: number;
-  biome: BiomeType;
+  woodlandWeight: number;
+  highlandWeight: number;
 } {
   let red = 0;
   let green = 0;
   let blue = 0;
   let elevation = 0;
   let moisture = 0;
+  let woodlandWeight = 0;
+  let highlandWeight = 0;
   let weightTotal = 0;
   const centreX = Math.max(0, Math.min(world.width - 1, Math.round(x)));
   const centreZ = Math.max(0, Math.min(world.height - 1, Math.round(z)));
-  const centreIndex = cellIndex(world, centreX, centreZ);
 
-  for (let dz = -2; dz <= 2; dz += 1) {
-    for (let dx = -2; dx <= 2; dx += 1) {
+  // A wider, distance-weighted presentation sample removes abrupt categorical
+  // biome steps without touching authoritative world-generation cells.
+  for (let dz = -3; dz <= 3; dz += 1) {
+    for (let dx = -3; dx <= 3; dx += 1) {
       const sampleX = centreX + dx;
       const sampleZ = centreZ + dz;
       if (!inBounds(world, sampleX, sampleZ)) continue;
       const index = cellIndex(world, sampleX, sampleZ);
-      const distance = Math.sqrt(dx * dx + dz * dz);
-      const weight = dx === 0 && dz === 0 ? 3.4 : Math.max(0.12, 2.5 - distance);
-      const [r, g, b] = biomeColor(world.biome[index] as BiomeType);
+      const distanceSquared = dx * dx + dz * dz;
+      const weight = (dx === 0 && dz === 0 ? 1.7 : 1) / (1 + distanceSquared * 0.62);
+      const biome = world.biome[index] as BiomeType;
+      const [r, g, b] = biomeColor(biome);
       red += r * weight;
       green += g * weight;
       blue += b * weight;
       elevation += (world.elevation[index] ?? 128) * weight;
       moisture += (world.moisture[index] ?? 128) * weight;
+      if (biome === BiomeType.WOODLAND) woodlandWeight += weight;
+      if (biome === BiomeType.HIGHLANDS) highlandWeight += weight;
       weightTotal += weight;
     }
   }
@@ -213,31 +222,30 @@ function sampledTerrain(world: GeneratedWorld, x: number, z: number): {
     blue: blue / safeWeight,
     elevation: elevation / safeWeight,
     moisture: moisture / safeWeight,
-    biome: world.biome[centreIndex] as BiomeType,
+    woodlandWeight: woodlandWeight / safeWeight,
+    highlandWeight: highlandWeight / safeWeight,
   };
 }
 
 function terrainColorAt(world: GeneratedWorld, x: number, z: number): readonly [number, number, number, number] {
   const sample = sampledTerrain(world, x, z);
-  const lowFrequency = valueNoise(world, x, z, 8, 5) - 0.5;
-  const midFrequency = valueNoise(world, x, z, 3.5, 29) - 0.5;
+  const lowFrequency = valueNoise(world, x, z, 10, 5) - 0.5;
+  const midFrequency = valueNoise(world, x, z, 4.5, 29) - 0.5;
   const fineFrequency = (hashByte(Math.floor(x * 1.2), Math.floor(z * 1.2), world.identity.masterSeed + 71) / 255) - 0.5;
-  const heightShade = ((sample.elevation / 255) - 0.5) * 19;
-  const moistureShade = ((sample.moisture / 255) - 0.5) * 12;
-  const variation = lowFrequency * 24 + midFrequency * 12 + fineFrequency * 3;
+  const heightShade = ((sample.elevation / 255) - 0.5) * 14;
+  const moistureShade = ((sample.moisture / 255) - 0.5) * 8;
+  const variation = lowFrequency * 14 + midFrequency * 7 + fineFrequency * 2;
 
-  const woodlandSoil = sample.biome === BiomeType.WOODLAND ? -6 : 0;
-  const highlandWarmth = sample.biome === BiomeType.HIGHLANDS ? 8 : 0;
   const wear = settlementWear(world, x, z);
   const nearestX = Math.max(0, Math.min(world.width - 1, Math.round(x)));
   const nearestZ = Math.max(0, Math.min(world.height - 1, Math.round(z)));
-  const route = ((world.flags[cellIndex(world, nearestX, nearestZ)] ?? 0) & WorldCellFlag.ROUTE) !== 0 ? 0.5 : 0;
-  const earth = Math.max(wear, route);
+  const route = ((world.flags[cellIndex(world, nearestX, nearestZ)] ?? 0) & WorldCellFlag.ROUTE) !== 0 ? 0.26 : 0;
+  const earth = Math.max(wear * 0.58, route);
 
   return [
-    clampByte(sample.red + heightShade + variation - moistureShade * 0.25 + highlandWarmth + earth * 25),
-    clampByte(sample.green + heightShade * 0.45 + variation + moistureShade + woodlandSoil - earth * 18),
-    clampByte(sample.blue + heightShade * 0.25 + variation * 0.45 - moistureShade * 0.18 - highlandWarmth * 0.35 - earth * 13),
+    clampByte(sample.red + heightShade + variation - moistureShade * 0.18 + sample.highlandWeight * 5 + earth * 14),
+    clampByte(sample.green + heightShade * 0.42 + variation + moistureShade - sample.woodlandWeight * 2 - earth * 8),
+    clampByte(sample.blue + heightShade * 0.22 + variation * 0.42 - moistureShade * 0.12 - sample.highlandWeight * 2 - earth * 6),
     255,
   ];
 }
@@ -245,9 +253,9 @@ function terrainColorAt(world: GeneratedWorld, x: number, z: number): readonly [
 function terrainVisualHeightAt(world: GeneratedWorld, x: number, z: number): number {
   const sample = sampledTerrain(world, x, z);
   const normalized = (sample.elevation - 110) / 145;
-  const biomeLift = sample.biome === BiomeType.HIGHLANDS ? 0.006 : sample.biome === BiomeType.WOODLAND ? 0.002 : 0;
-  const micro = ((hashByte(Math.round(x), Math.round(z), world.identity.masterSeed + 401) / 255) - 0.5) * 0.003;
-  return Math.max(-0.003, Math.min(0.018, normalized * 0.012 + biomeLift + micro));
+  const biomeLift = sample.highlandWeight * 0.004 + sample.woodlandWeight * 0.0015;
+  const micro = ((hashByte(Math.round(x), Math.round(z), world.identity.masterSeed + 401) / 255) - 0.5) * 0.0018;
+  return Math.max(-0.003, Math.min(0.016, normalized * 0.011 + biomeLift + micro));
 }
 
 function sameBiomeNeighborCount(world: GeneratedWorld, x: number, z: number, biome: BiomeType): number {
@@ -436,44 +444,67 @@ function buildSettlementApronMesh(
 ): pc.Mesh {
   const buffers: MeshBuffers = { positions: [], normals: [], colors: [], indices: [] };
   const sites: { cell: GridPoint; radius: number; salt: number }[] = [
-    ...world.spawns.map((spawn, index) => ({ cell: spawn.cell, radius: 4.35, salt: 601 + index * 31 })),
+    ...world.spawns.map((spawn, index) => ({ cell: spawn.cell, radius: 3.65, salt: 601 + index * 31 })),
     ...world.pois
       .filter((poi) => poi.type === 'VILLAGE')
-      .map((poi, index) => ({ cell: poi.cell, radius: 2.55, salt: 701 + index * 23 })),
+      .map((poi, index) => ({ cell: poi.cell, radius: 2.3, salt: 701 + index * 23 })),
   ];
 
   for (const site of sites) {
-    const segments = 12;
+    const segments = 20;
+    const ringScales = [0.34, 0.7, 1] as const;
     const centre = buffers.positions.length / 3;
     const centreX = originX + site.cell.x + 0.5;
     const centreZ = originZ + site.cell.z + 0.5;
     buffers.positions.push(centreX, 0.019, centreZ);
     buffers.normals.push(0, 1, 0);
-    buffers.colors.push(105, 82, 52, 158);
+    buffers.colors.push(97, 80, 59, 82);
 
-    for (let segment = 0; segment < segments; segment += 1) {
-      const angle = (segment / segments) * Math.PI * 2;
-      const radiusJitter = 0.82 + (hashByte(site.cell.x + segment, site.cell.z, site.salt) / 255) * 0.26;
-      const radius = site.radius * radiusJitter;
-      const edgeVariation = hashByte(site.cell.x, site.cell.z + segment, site.salt + 13) / 255;
-      buffers.positions.push(
-        centreX + Math.cos(angle) * radius,
-        0.018,
-        centreZ + Math.sin(angle) * radius * 0.82,
-      );
-      buffers.normals.push(0, 1, 0);
-      buffers.colors.push(
-        clampByte(91 + edgeVariation * 12),
-        clampByte(77 + edgeVariation * 10),
-        clampByte(53 + edgeVariation * 8),
-        0,
-      );
+    const ringBases: number[] = [];
+    for (let ringIndex = 0; ringIndex < ringScales.length; ringIndex += 1) {
+      const ringBase = buffers.positions.length / 3;
+      ringBases.push(ringBase);
+      const ringScale = ringScales[ringIndex]!;
+      const alpha = ringIndex === 0 ? 64 : ringIndex === 1 ? 28 : 0;
+
+      for (let segment = 0; segment < segments; segment += 1) {
+        const angle = (segment / segments) * Math.PI * 2;
+        const jitter = 0.94 + (hashByte(site.cell.x + segment, site.cell.z + ringIndex * 7, site.salt) / 255) * 0.12;
+        const radius = site.radius * ringScale * jitter;
+        const variation = hashByte(site.cell.x + ringIndex * 11, site.cell.z + segment, site.salt + 13) / 255;
+        buffers.positions.push(
+          centreX + Math.cos(angle) * radius,
+          0.018 + ringIndex * 0.0002,
+          centreZ + Math.sin(angle) * radius * 0.84,
+        );
+        buffers.normals.push(0, 1, 0);
+        buffers.colors.push(
+          clampByte(92 + variation * 7),
+          clampByte(77 + variation * 6),
+          clampByte(55 + variation * 5),
+          alpha,
+        );
+      }
     }
 
+    const innerBase = ringBases[0]!;
     for (let segment = 0; segment < segments; segment += 1) {
-      const current = centre + 1 + segment;
-      const next = centre + 1 + ((segment + 1) % segments);
+      const current = innerBase + segment;
+      const next = innerBase + ((segment + 1) % segments);
       buffers.indices.push(centre, current, next);
+    }
+
+    for (let ringIndex = 0; ringIndex < ringBases.length - 1; ringIndex += 1) {
+      const inner = ringBases[ringIndex]!;
+      const outer = ringBases[ringIndex + 1]!;
+      for (let segment = 0; segment < segments; segment += 1) {
+        const nextSegment = (segment + 1) % segments;
+        const a = inner + segment;
+        const b = inner + nextSegment;
+        const c = outer + segment;
+        const d = outer + nextSegment;
+        buffers.indices.push(a, c, b, b, c, d);
+      }
     }
   }
 
@@ -507,23 +538,23 @@ function routeNormal(points: readonly GridPoint[], index: number): readonly [num
 function roadCrossSection(layer: RoadLayer, halfWidth: number): readonly { offset: number; shade: number; alpha: number }[] {
   if (layer === 'SHOULDER') {
     return [
-      { offset: -halfWidth, shade: 0.86, alpha: 0 },
-      { offset: -halfWidth * 0.58, shade: 0.94, alpha: 116 },
-      { offset: halfWidth * 0.58, shade: 0.98, alpha: 116 },
-      { offset: halfWidth, shade: 0.86, alpha: 0 },
+      { offset: -halfWidth, shade: 0.84, alpha: 0 },
+      { offset: -halfWidth * 0.6, shade: 0.93, alpha: 72 },
+      { offset: halfWidth * 0.6, shade: 0.96, alpha: 72 },
+      { offset: halfWidth, shade: 0.84, alpha: 0 },
     ];
   }
   if (layer === 'CORE') {
     return [
-      { offset: -halfWidth, shade: 0.82, alpha: 170 },
-      { offset: -halfWidth * 0.45, shade: 1.02, alpha: 246 },
-      { offset: halfWidth * 0.45, shade: 0.98, alpha: 246 },
-      { offset: halfWidth, shade: 0.80, alpha: 170 },
+      { offset: -halfWidth, shade: 0.82, alpha: 132 },
+      { offset: -halfWidth * 0.45, shade: 1.0, alpha: 224 },
+      { offset: halfWidth * 0.45, shade: 0.97, alpha: 224 },
+      { offset: halfWidth, shade: 0.80, alpha: 132 },
     ];
   }
   return [
     { offset: -halfWidth, shade: 0.76, alpha: 0 },
-    { offset: 0, shade: 0.68, alpha: 44 },
+    { offset: 0, shade: 0.67, alpha: 38 },
     { offset: halfWidth, shade: 0.76, alpha: 0 },
   ];
 }
@@ -537,16 +568,16 @@ function buildRoadMesh(
 ): pc.Mesh {
   const buffers: MeshBuffers = { positions: [], normals: [], colors: [], indices: [] };
   const baseColor = layer === 'SHOULDER'
-    ? [82, 75, 54] as const
-    : layer === 'CORE'
-      ? [104, 80, 49] as const
-      : [63, 51, 36] as const;
+  ? [72, 67, 50] as const
+  : layer === 'CORE'
+    ? [96, 76, 50] as const
+    : [54, 47, 35] as const;
 
   for (const route of world.routes) {
     const points = normalizedRoutePoints(route);
     if (points.length < 2) continue;
     const coreHalf = 0.5 + Math.min(0.2, Math.max(1, route.widthCells) * 0.07);
-    const halfWidth = layer === 'SHOULDER' ? coreHalf + 0.52 : layer === 'CORE' ? coreHalf : 0.075;
+    const halfWidth = layer === 'SHOULDER' ? coreHalf + 0.36 : layer === 'CORE' ? coreHalf : 0.075;
     const section = roadCrossSection(layer, halfWidth);
     const routeBase = buffers.positions.length / 3;
 
