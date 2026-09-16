@@ -881,7 +881,7 @@ export class GeneratedWorldRenderBridge {
 
     for (let z = 2; z < this.world.height - 2; z += 1) {
       for (let x = 2; x < this.world.width - 2; x += 1) {
-        if (groveCount >= 132 && edgeCount >= 42) return;
+        if (groveCount >= 120 && edgeCount >= 48) return;
         const index = cellIndex(this.world, x, z);
         const flags = this.world.flags[index] ?? 0;
         if (this.world.terrain[index] !== TerrainType.GROUND || this.world.biome[index] !== BiomeType.WOODLAND) continue;
@@ -897,15 +897,20 @@ export class GeneratedWorldRenderBridge {
         const patchZ = Math.floor(z / 4);
         const cluster = hashByte(patchX, patchZ, this.world.identity.masterSeed + 239);
         const opening = hashByte(x, z, this.world.identity.masterSeed + 241);
-        const clusterLimit = cluster < 86 ? 238 : cluster < 168 ? 204 : cluster < 226 ? 148 : 72;
-        if (opening > clusterLimit) continue;
-        if (dense && (variant > 224 || groveCount >= 124)) continue;
-        if (!dense && (neighbors < 3 || variant > (routeEdge ? 94 : 178) || edgeCount >= 44)) continue;
+        const clusterLimit = cluster < 86 ? 224 : cluster < 168 ? 184 : cluster < 226 ? 126 : 54;
+        const clearingPatch = hashByte(
+          Math.floor((x + 1) / 4),
+          Math.floor((z + 2) / 4),
+          this.world.identity.masterSeed + 251,
+        );
+        if (opening > clusterLimit || clearingPatch > 226) continue;
+        if (dense && (variant > 220 || groveCount >= 112)) continue;
+        if (!dense && (neighbors < 3 || variant > (routeEdge ? 90 : 184) || edgeCount >= 48)) continue;
 
         const jitterX = ((hashByte(x, z, 223) / 255) - 0.5) * (routeEdge ? 1.05 : 1.68);
         const jitterZ = ((hashByte(x, z, 227) / 255) - 0.5) * (routeEdge ? 1.05 : 1.68);
-        const baseScale = (dense ? 0.94 : 0.7) + (hashByte(x, z, 229) / 255) * (dense ? 0.29 : 0.21);
-        const scale = baseScale * (routeEdge ? 0.72 : 1);
+        const baseScale = (dense ? 0.82 : 0.64) + (hashByte(x, z, 229) / 255) * (dense ? 0.24 : 0.18);
+        const scale = baseScale * (routeEdge ? 0.66 : 1);
         const root = new pc.Entity(dense ? `Woodland Grove ${x},${z}` : `Woodland Edge ${x},${z}`);
         root.setPosition(originX + x + 0.5 + jitterX, 0.022, originZ + z + 0.5 + jitterZ);
         root.setEulerAngles(0, variant * 1.41, 0);
@@ -925,7 +930,7 @@ export class GeneratedWorldRenderBridge {
       'cylinder',
       'Forest Contact Shadow',
       new pc.Vec3(0, 0.016, 0),
-      new pc.Vec3((dense ? 2.7 : 1.7) * scale, 0.016, (dense ? 2.0 : 1.2) * scale),
+      new pc.Vec3((dense ? 2.4 : 1.55) * scale, 0.016, (dense ? 1.78 : 1.08) * scale),
       this.forestShadowMaterial,
     );
 
@@ -939,7 +944,7 @@ export class GeneratedWorldRenderBridge {
       const x = Math.cos(angle) * ring * radialJitter * scale;
       const z = Math.sin(angle) * ring * (0.68 + ((variant + index * 17) % 24) / 100) * scale;
       const tier = (variant + index * 17) % 7;
-      const tierScale = tier < 2 ? 1.18 : tier < 5 ? 0.96 : 0.74;
+      const tierScale = tier < 2 ? 1.3 : tier < 5 ? 0.96 : 0.72;
       const treeScale = scale * tierScale * (0.78 + ((variant + index * 41) % 34) / 100);
       const height = 1.18 + ((variant + index * 29) % 78) / 100;
       const crownVariance = 0.9 + ((variant + index * 47) % 23) / 100;

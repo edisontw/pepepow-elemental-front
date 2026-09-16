@@ -287,7 +287,7 @@ export class EnvironmentDetailLayer {
   }
 
   private renderForestDepth(): void {
-    const maxGroups = this.lowQuality ? 28 : 72;
+    const maxGroups = this.lowQuality ? 24 : 58;
     let groups = 0;
     for (let z = 2; z < this.world.height - 2 && groups < maxGroups; z += 2) {
       const stagger = (Math.floor(z / 2) & 1) === 0 ? 0 : 1;
@@ -300,8 +300,9 @@ export class EnvironmentDetailLayer {
         const variant = hashByte(this.world, x, z, 901);
         const patch = hashByte(this.world, Math.floor(x / 5), Math.floor(z / 4), 887);
         const opening = hashByte(this.world, x, z, 889);
-        const openingLimit = patch < 96 ? 238 : patch < 188 ? 204 : 138;
-        if (neighbors < 3 || variant > 242 || opening > openingLimit) continue;
+        const openingLimit = patch < 96 ? 220 : patch < 188 ? 180 : 116;
+        const clearingPatch = hashByte(this.world, Math.floor((x + 1) / 4), Math.floor((z + 2) / 4), 251);
+        if (neighbors < 3 || variant > 242 || opening > openingLimit || clearingPatch > 226) continue;
 
         const root = new pc.Entity(`Forest Depth Accent ${x},${z}`);
         const base = worldPosition(this.world, x, z);
@@ -310,7 +311,7 @@ export class EnvironmentDetailLayer {
         root.setPosition(base.x + jitterX, 0.022, base.z + jitterZ);
         root.setEulerAngles(0, variant * 1.37, 0);
 
-        const contactScale = 0.92 + (variant / 255) * 0.34;
+        const contactScale = 0.84 + (variant / 255) * 0.28;
         addPrimitive(root, 'cylinder', 'Forest Floor Contact', [0, -0.004, 0], [1.45 * contactScale, 0.012, 1.02 * contactScale], this.woodlandFloorMaterial);
         if (!this.lowQuality) {
           addPrimitive(root, 'cylinder', 'Forest Leaf Litter', [0.22, -0.002, -0.12], [0.92 * contactScale, 0.009, 0.68 * contactScale], this.mudMaterial);
@@ -323,7 +324,7 @@ export class EnvironmentDetailLayer {
           const tx = Math.cos(angle) * radius;
           const tz = Math.sin(angle) * radius * (0.62 + ((variant + tree * 13) % 30) / 100);
           const tier = (variant + tree * 11) % 6;
-          const tierScale = tier < 2 ? 1.16 : tier < 4 ? 0.96 : 0.76;
+          const tierScale = tier < 2 ? 1.26 : tier < 4 ? 0.96 : 0.74;
           const size = tierScale * (0.9 + (hashByte(this.world, x + tree, z, 919) / 255) * 0.42);
           const trunkHeight = 1.02 + size * 0.62;
           const crownWidth = tier < 2 ? 0.46 : tier < 4 ? 0.54 : 0.61;
