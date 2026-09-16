@@ -287,18 +287,18 @@ export class EnvironmentDetailLayer {
   }
 
   private renderForestDepth(): void {
-    const maxGroups = this.lowQuality ? 20 : 46;
+    const maxGroups = this.lowQuality ? 34 : 92;
     let groups = 0;
-    for (let z = 2; z < this.world.height - 2 && groups < maxGroups; z += 3) {
-      const stagger = (Math.floor(z / 3) & 1) === 0 ? 0 : 1;
-      for (let x = 2 + stagger; x < this.world.width - 2 && groups < maxGroups; x += 3) {
+    for (let z = 2; z < this.world.height - 2 && groups < maxGroups; z += 2) {
+      const stagger = (Math.floor(z / 2) & 1) === 0 ? 0 : 1;
+      for (let x = 2 + stagger; x < this.world.width - 2 && groups < maxGroups; x += 2) {
         const index = cellIndex(this.world, x, z);
         const flags = this.world.flags[index] ?? 0;
         if (this.world.terrain[index] !== TerrainType.GROUND || this.world.biome[index] !== BiomeType.WOODLAND) continue;
         if ((flags & WorldCellFlag.ROUTE) !== 0 || isNearSite(this.world, x, z, 2)) continue;
         const neighbors = sameBiomeNeighborCount(this.world, x, z, BiomeType.WOODLAND);
         const variant = hashByte(this.world, x, z, 901);
-        if (neighbors < 4 || variant > 228) continue;
+        if (neighbors < 3 || variant > 238) continue;
 
         const root = new pc.Entity(`Forest Depth Accent ${x},${z}`);
         const base = worldPosition(this.world, x, z);
@@ -313,24 +313,24 @@ export class EnvironmentDetailLayer {
           addPrimitive(root, 'cylinder', 'Forest Leaf Litter', [0.22, -0.002, -0.12], [0.92 * contactScale, 0.009, 0.68 * contactScale], this.mudMaterial);
         }
 
-        const treeCount = this.lowQuality ? 2 + (variant % 2) : 3 + (variant % 3);
+        const treeCount = this.lowQuality ? 3 + (variant % 2) : 5 + (variant % 3);
         for (let tree = 0; tree < treeCount; tree += 1) {
           const angle = tree * 2.39996 + variant * 0.019;
           const radius = tree === 0 ? 0.1 : 0.42 + tree * 0.09;
           const tx = Math.cos(angle) * radius;
           const tz = Math.sin(angle) * radius * 0.78;
-          const size = 0.78 + (hashByte(this.world, x + tree, z, 919) / 255) * 0.42;
-          const trunkHeight = 0.86 + size * 0.44;
-          addPrimitive(root, 'cylinder', `Forest Accent Trunk ${tree + 1}`, [tx, trunkHeight * 0.43, tz], [0.065 * size, trunkHeight * 0.82, 0.065 * size], tree % 2 === 0 ? this.trunkMaterial : this.barkLightMaterial);
+          const size = 0.9 + (hashByte(this.world, x + tree, z, 919) / 255) * 0.55;
+          const trunkHeight = 1.05 + size * 0.58;
+          addPrimitive(root, 'cylinder', `Forest Accent Trunk ${tree + 1}`, [tx, trunkHeight * 0.47, tz], [0.07 * size, trunkHeight * 0.9, 0.07 * size], tree % 2 === 0 ? this.trunkMaterial : this.barkLightMaterial);
           const canopyMaterial = tree % 3 === 0
             ? this.canopyLightMaterial
             : tree % 3 === 1
               ? this.canopyMidMaterial
               : this.canopyDarkMaterial;
-          addPrimitive(root, 'sphere', `Forest Accent Crown ${tree + 1}`, [tx, trunkHeight + 0.22 * size, tz], [0.48 * size, 0.61 * size, 0.43 * size], canopyMaterial);
-          if (!this.lowQuality && (tree === 0 || (tree === 1 && variant > 112))) {
+          addPrimitive(root, 'sphere', `Forest Accent Crown ${tree + 1}`, [tx, trunkHeight + 0.3 * size, tz], [0.5 * size, 0.68 * size, 0.45 * size], canopyMaterial);
+          if (!this.lowQuality && (tree < 2 || (tree === 2 && variant > 112))) {
             addPrimitive(root, 'sphere', `Forest Accent Crown Lobe ${tree + 1}`, [tx - 0.18 * size, trunkHeight + 0.42 * size, tz + 0.08 * size], [0.33 * size, 0.38 * size, 0.3 * size], tree === 0 ? this.canopyDarkMaterial : this.canopyMidMaterial);
-            addPrimitive(root, 'sphere', `Forest Accent Upper Crown ${tree + 1}`, [tx + 0.08 * size, trunkHeight + 0.72 * size, tz - 0.04 * size], [0.31 * size, 0.36 * size, 0.28 * size], tree === 0 ? this.canopyMidMaterial : this.canopyLightMaterial);
+            addPrimitive(root, 'sphere', `Forest Accent Upper Crown ${tree + 1}`, [tx + 0.1 * size, trunkHeight + 0.86 * size, tz - 0.05 * size], [0.34 * size, 0.42 * size, 0.3 * size], tree === 0 ? this.canopyMidMaterial : this.canopyLightMaterial);
           }
         }
         addPrimitive(root, 'sphere', 'Forest Accent Understory A', [-0.42, 0.085, 0.32], [0.38, 0.13, 0.28], this.undergrowthMaterial);

@@ -867,10 +867,9 @@ export class GeneratedWorldRenderBridge {
     let groveCount = 0;
     let edgeCount = 0;
 
-    for (let z = 2; z < this.world.height - 2; z += 2) {
-      const stagger = (Math.floor(z / 2) & 1) === 0 ? 0 : 1;
-      for (let x = 2 + stagger; x < this.world.width - 2; x += 2) {
-        if (groveCount >= 72 && edgeCount >= 24) return;
+    for (let z = 2; z < this.world.height - 2; z += 1) {
+      for (let x = 2; x < this.world.width - 2; x += 1) {
+        if (groveCount >= 132 && edgeCount >= 42) return;
         const index = cellIndex(this.world, x, z);
         if (this.world.terrain[index] !== TerrainType.GROUND || this.world.biome[index] !== BiomeType.WOODLAND) continue;
         if (this.isNearStrategicSite(x, z, 2)) continue;
@@ -878,12 +877,12 @@ export class GeneratedWorldRenderBridge {
         const neighbors = sameBiomeNeighborCount(this.world, x, z, BiomeType.WOODLAND);
         const variant = hashByte(x, z, this.world.identity.masterSeed + 211);
         const dense = neighbors >= 6;
-        if (dense && (variant > 218 || groveCount >= 72)) continue;
-        if (!dense && (neighbors < 3 || variant > 154 || edgeCount >= 24)) continue;
+        if (dense && (variant > 196 || groveCount >= 132)) continue;
+        if (!dense && (neighbors < 3 || variant > 142 || edgeCount >= 42)) continue;
 
         const jitterX = ((hashByte(x, z, 223) / 255) - 0.5) * 1.05;
         const jitterZ = ((hashByte(x, z, 227) / 255) - 0.5) * 1.05;
-        const scale = (dense ? 1.12 : 0.82) + (hashByte(x, z, 229) / 255) * (dense ? 0.34 : 0.22);
+        const scale = (dense ? 1.0 : 0.76) + (hashByte(x, z, 229) / 255) * (dense ? 0.3 : 0.2);
         const root = new pc.Entity(dense ? `Woodland Grove ${x},${z}` : `Woodland Edge ${x},${z}`);
         root.setPosition(originX + x + 0.5 + jitterX, 0.022, originZ + z + 0.5 + jitterZ);
         root.setEulerAngles(0, variant * 1.41, 0);
@@ -907,24 +906,24 @@ export class GeneratedWorldRenderBridge {
       this.forestShadowMaterial,
     );
 
-    const lobes = dense ? 10 + (variant % 3) : 5 + (variant % 2);
+    const lobes = dense ? 10 + (variant % 4) : 5 + (variant % 3);
     for (let index = 0; index < lobes; index += 1) {
       const angle = index * 2.39996 + variant * 0.031;
       const ring = dense
-        ? index < 2 ? 0.18 : index < 6 ? 0.62 : 0.96
-        : index < 2 ? 0.32 : 0.68;
+        ? index < 2 ? 0.16 : index < 6 ? 0.64 : 1.04
+        : index < 2 ? 0.28 : 0.72;
       const x = Math.cos(angle) * ring * scale;
       const z = Math.sin(angle) * ring * 0.78 * scale;
-      const treeScale = scale * (0.72 + ((variant + index * 41) % 42) / 100);
-      const height = 1.0 + ((variant + index * 29) % 58) / 100;
+      const treeScale = scale * (0.82 + ((variant + index * 41) % 46) / 100);
+      const height = 1.3 + ((variant + index * 29) % 76) / 100;
 
-      if (index < (dense ? 4 : 3)) {
+      if (index < (dense ? 7 : 4)) {
         addChildPrimitive(
           root,
           'cylinder',
           'Forest Trunk',
-          new pc.Vec3(x, 0.35 * treeScale, z),
-          new pc.Vec3(0.085 * treeScale, 0.78 * treeScale, 0.085 * treeScale),
+          new pc.Vec3(x, 0.5 * treeScale, z),
+          new pc.Vec3(0.09 * treeScale, 1.06 * treeScale, 0.09 * treeScale),
           this.trunkMaterial,
         );
       }
@@ -939,27 +938,41 @@ export class GeneratedWorldRenderBridge {
         'sphere',
         'Forest Lower Crown',
         new pc.Vec3(x, height * treeScale, z),
-        new pc.Vec3(0.75 * treeScale, 0.58 * treeScale, 0.67 * treeScale),
+        new pc.Vec3(0.72 * treeScale, 0.66 * treeScale, 0.64 * treeScale),
         canopyMaterial,
       );
 
-      if (index < (dense ? 3 : 2)) {
+      if (index < (dense ? 5 : 3)) {
         addChildPrimitive(
           root,
           'sphere',
           'Forest Upper Crown',
           new pc.Vec3(
             x + Math.cos(angle + 0.8) * 0.12 * treeScale,
-            (height + 0.48) * treeScale,
+            (height + 0.6) * treeScale,
             z + Math.sin(angle + 0.8) * 0.1 * treeScale,
           ),
-          new pc.Vec3(0.5 * treeScale, 0.52 * treeScale, 0.45 * treeScale),
+          new pc.Vec3(0.48 * treeScale, 0.55 * treeScale, 0.43 * treeScale),
           index % 2 === 0 ? this.canopyDarkMaterial : this.canopyMidMaterial,
+        );
+      }
+      if (dense && index < 3) {
+        addChildPrimitive(
+          root,
+          'sphere',
+          'Forest Side Crown',
+          new pc.Vec3(
+            x + Math.cos(angle - 0.95) * 0.34 * treeScale,
+            (height + 0.18) * treeScale,
+            z + Math.sin(angle - 0.95) * 0.27 * treeScale,
+          ),
+          new pc.Vec3(0.42 * treeScale, 0.39 * treeScale, 0.38 * treeScale),
+          index % 2 === 0 ? this.canopyMidMaterial : this.canopyLightMaterial,
         );
       }
     }
 
-    const understoryCount = dense ? 4 : 3;
+    const understoryCount = dense ? 6 : 4;
     for (let index = 0; index < understoryCount; index += 1) {
       const angle = index * 2.05 + variant * 0.043;
       addChildPrimitive(
