@@ -134,6 +134,16 @@ function directionToTerrain(world: GeneratedWorld, x: number, z: number, terrain
   return [0, 1];
 }
 
+function directionToRoute(world: GeneratedWorld, x: number, z: number): readonly [number, number] {
+  for (const [dx, dz] of ORTHOGONAL_NEIGHBORS) {
+    const nx = x + dx;
+    const nz = z + dz;
+    if (!inBounds(world, nx, nz)) continue;
+    if (((world.flags[cellIndex(world, nx, nz)] ?? 0) & WorldCellFlag.ROUTE) !== 0) return [dx, dz];
+  }
+  return [0, 1];
+}
+
 function isNearSite(world: GeneratedWorld, x: number, z: number, radius: number): boolean {
   const sites: GridPoint[] = [
     ...world.spawns.map((spawn) => spawn.cell),
@@ -277,7 +287,7 @@ export class EnvironmentDetailLayer {
   }
 
   private renderForestDepth(): void {
-    const maxGroups = this.lowQuality ? 18 : 38;
+    const maxGroups = this.lowQuality ? 20 : 46;
     let groups = 0;
     for (let z = 2; z < this.world.height - 2 && groups < maxGroups; z += 3) {
       const stagger = (Math.floor(z / 3) & 1) === 0 ? 0 : 1;
@@ -288,7 +298,7 @@ export class EnvironmentDetailLayer {
         if ((flags & WorldCellFlag.ROUTE) !== 0 || isNearSite(this.world, x, z, 2)) continue;
         const neighbors = sameBiomeNeighborCount(this.world, x, z, BiomeType.WOODLAND);
         const variant = hashByte(this.world, x, z, 901);
-        if (neighbors < 4 || variant > 212) continue;
+        if (neighbors < 4 || variant > 228) continue;
 
         const root = new pc.Entity(`Forest Depth Accent ${x},${z}`);
         const base = worldPosition(this.world, x, z);
@@ -296,6 +306,12 @@ export class EnvironmentDetailLayer {
         const jitterZ = (hashByte(this.world, x, z, 911) / 255 - 0.5) * 0.95;
         root.setPosition(base.x + jitterX, 0.022, base.z + jitterZ);
         root.setEulerAngles(0, variant * 1.37, 0);
+
+        const contactScale = 0.92 + (variant / 255) * 0.34;
+        addPrimitive(root, 'cylinder', 'Forest Floor Contact', [0, -0.004, 0], [1.45 * contactScale, 0.012, 1.02 * contactScale], this.woodlandFloorMaterial);
+        if (!this.lowQuality) {
+          addPrimitive(root, 'cylinder', 'Forest Leaf Litter', [0.22, -0.002, -0.12], [0.92 * contactScale, 0.009, 0.68 * contactScale], this.mudMaterial);
+        }
 
         const treeCount = this.lowQuality ? 2 + (variant % 2) : 3 + (variant % 3);
         for (let tree = 0; tree < treeCount; tree += 1) {
@@ -319,6 +335,7 @@ export class EnvironmentDetailLayer {
         }
         addPrimitive(root, 'sphere', 'Forest Accent Understory A', [-0.42, 0.085, 0.32], [0.38, 0.13, 0.28], this.undergrowthMaterial);
         addPrimitive(root, 'sphere', 'Forest Accent Understory B', [0.46, 0.075, -0.28], [0.31, 0.11, 0.24], this.undergrowthMaterial);
+        if (!this.lowQuality) addPrimitive(root, 'sphere', 'Forest Accent Understory C', [0.08, 0.065, -0.56], [0.28, 0.09, 0.21], this.undergrowthMaterial);
         if (!this.lowQuality && (variant & 3) === 0) {
           addPrimitive(root, 'cylinder', 'Fallen Log', [0.08, 0.075, 0.55], [0.07, 0.86, 0.07], this.trunkMaterial, [86, 22, 0]);
           addPrimitive(root, 'sphere', 'Fallen Log Brush', [-0.28, 0.07, 0.6], [0.24, 0.1, 0.19], this.undergrowthMaterial);
@@ -330,7 +347,7 @@ export class EnvironmentDetailLayer {
   }
 
   private renderRiverBanks(): void {
-    const maxGroups = this.lowQuality ? 12 : 26;
+    const maxGroups = this.lowQuality ? 14 : 34;
     let groups = 0;
     for (let z = 1; z < this.world.height - 1 && groups < maxGroups; z += 2) {
       for (let x = 1; x < this.world.width - 1 && groups < maxGroups; x += 2) {
@@ -338,15 +355,17 @@ export class EnvironmentDetailLayer {
         if (this.world.terrain[index] !== TerrainType.GROUND || !touchesTerrain(this.world, x, z, TerrainType.WATER)) continue;
         if (((this.world.flags[index] ?? 0) & WorldCellFlag.ROUTE) !== 0) continue;
         const variant = hashByte(this.world, x, z, 941);
-        if (variant > 176) continue;
+        if (variant > 208) continue;
         const [waterDx, waterDz] = directionToTerrain(this.world, x, z, TerrainType.WATER);
         const root = new pc.Entity(`River Bank Accent ${x},${z}`);
         const base = worldPosition(this.world, x, z);
         root.setPosition(base.x, 0.026, base.z);
         root.setEulerAngles(0, Math.atan2(waterDx, waterDz) * 180 / Math.PI, 0);
-        addPrimitive(root, 'cylinder', 'River Mud Shelf', [0, 0.004, 0.24], [0.82, 0.012, 0.42], this.mudMaterial);
+        addPrimitive(root, 'cylinder', 'River Mud Shelf', [0, 0.004, 0.23], [0.98, 0.012, 0.48], this.mudMaterial);
+        addPrimitive(root, 'cylinder', 'River Wet Edge', [0, 0.006, 0.45], [0.76, 0.009, 0.17], this.woodlandFloorMaterial);
         addPrimitive(root, 'box', 'River Bank Stone', [-0.26, 0.075, 0.03], [0.28, 0.14, 0.2], variant < 128 ? this.rockDarkMaterial : this.rockLightMaterial, [6, 19, 7]);
         if ((variant & 1) === 0) addPrimitive(root, 'box', 'River Bank Stone Small', [0.34, 0.055, 0.16], [0.18, 0.1, 0.14], this.rockMidMaterial, [-4, -24, 8]);
+        if (!this.lowQuality) addPrimitive(root, 'sphere', 'River Bank Grass', [0.38, 0.05, -0.12], [0.27, 0.08, 0.19], this.undergrowthMaterial);
         const reedCount = this.lowQuality ? 3 : 5;
         for (let reed = 0; reed < reedCount; reed += 1) {
           const lateral = (reed - (reedCount - 1) * 0.5) * 0.085;
@@ -388,7 +407,7 @@ export class EnvironmentDetailLayer {
   }
 
   private renderRouteEdges(): void {
-    const maxGroups = this.lowQuality ? 8 : 18;
+    const maxGroups = this.lowQuality ? 10 : 26;
     let groups = 0;
     for (let z = 1; z < this.world.height - 1 && groups < maxGroups; z += 3) {
       for (let x = 1; x < this.world.width - 1 && groups < maxGroups; x += 3) {
@@ -396,17 +415,20 @@ export class EnvironmentDetailLayer {
         if (this.world.terrain[index] !== TerrainType.GROUND || !touchesRoute(this.world, x, z)) continue;
         if (((this.world.flags[index] ?? 0) & WorldCellFlag.ROUTE) !== 0 || isNearSite(this.world, x, z, 2)) continue;
         const variant = hashByte(this.world, x, z, 991);
-        if (variant > 118) continue;
+        if (variant > 154) continue;
 
         const root = new pc.Entity(`Route Edge Accent ${x},${z}`);
         const base = worldPosition(this.world, x, z);
+        const [routeDx, routeDz] = directionToRoute(this.world, x, z);
         root.setPosition(base.x, 0.024, base.z);
-        root.setEulerAngles(0, variant * 1.41, 0);
+        root.setEulerAngles(0, Math.atan2(routeDx, routeDz) * 180 / Math.PI + ((variant % 13) - 6), 0);
+        addPrimitive(root, 'cylinder', 'Route Shoulder Wear', [0, -0.004, 0.12], [0.76, 0.01, 0.31], variant < 96 ? this.mudMaterial : this.plainsFloorMaterial);
         if ((variant & 3) !== 0) {
           addPrimitive(root, 'cylinder', 'Route Edge Post', [0, 0.22, 0], [0.05, 0.42, 0.05], this.routePostMaterial);
           addPrimitive(root, 'box', 'Route Edge Cap', [0, 0.42, 0], [0.14, 0.065, 0.1], this.rockLightMaterial, [0, 9, 0]);
         }
-        addPrimitive(root, 'sphere', 'Route Verge Grass', [-0.2, 0.05, 0.18], [0.23, 0.08, 0.16], this.dryGrassMaterial);
+        addPrimitive(root, 'sphere', 'Route Verge Grass', [-0.24, 0.05, 0.18], [0.28, 0.08, 0.18], this.dryGrassMaterial);
+        if (!this.lowQuality && (variant & 3) === 0) addPrimitive(root, 'sphere', 'Route Verge Scrub', [0.32, 0.055, 0.25], [0.22, 0.09, 0.16], this.undergrowthMaterial);
         if ((variant & 1) === 0) addPrimitive(root, 'box', 'Route Edge Stone', [0.27, 0.055, -0.12], [0.18, 0.1, 0.14], this.rockDarkMaterial, [4, 27, 6]);
         this.register(root, x, z);
         groups += 1;
