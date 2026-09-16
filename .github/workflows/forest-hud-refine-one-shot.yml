@@ -22,7 +22,9 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Apply forest naturalization and compact HUD pass
-        run: python scripts/tmp_forest_hud_refine.py
+        run: |
+          python scripts/tmp_forest_hud_refine.py
+          python scripts/tmp_forest_hud_buildfix.py
       - run: npm run build
       - run: git diff --check
       - name: Commit visual pass and remove temporary files
@@ -30,6 +32,6 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add src/rendering/generated-world-render-bridge.ts src/rendering/environment-detail-layer.ts src/ui/context-inspector.ts src/layout.css
-          git rm scripts/tmp_forest_hud_refine.py .github/workflows/forest-hud-refine-one-shot.yml
+          git rm scripts/tmp_forest_hud_refine.py scripts/tmp_forest_hud_buildfix.py .github/workflows/forest-hud-refine-one-shot.yml
           git commit -m 'visual: naturalize forest masses and compact unit inspector'
           git push
