@@ -19,6 +19,11 @@
   z-index: 7;
 }
 
+/* Selection detail now lives in the compact inspector beneath the minimap. */
+#app #strategy-panel .selection-card {
+  display: none;
+}
+
 #app .strategy-buttons,
 #app .strategy-buttons.compact {
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -89,7 +94,7 @@
 }
 
 #app #elemental-jobs {
-  top: 25.25rem;
+  top: 23.35rem;
   right: .55rem;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -181,6 +186,11 @@
   line-height: 1.35;
 }
 
+/* QA-only facing controls stay out of the production HUD unless explicitly active. */
+#app #facing-qa-mode[data-active="false"] {
+  display: none;
+}
+
 /* Compact right-side context stack: minimap -> unit/building inspector -> tactics.
    The inspector injects a late runtime style block, so placement and compact sizing
    intentionally use !important here as the final layout authority. */
@@ -191,7 +201,7 @@
   left: auto !important;
   width: 13.35rem !important;
   max-width: calc(100vw - 1.1rem) !important;
-  max-height: 9.2rem !important;
+  max-height: 7.55rem !important;
   padding: .52rem .58rem .56rem !important;
   overflow-x: hidden !important;
   overflow-y: auto !important;
@@ -282,14 +292,14 @@
   #app #run-panel:not(.complete) { left: 16.85rem; right: 12.6rem; }
   #app #world-debug { width: 11.5rem; }
   #app #world-debug-canvas { width: 10.5rem; height: 10.5rem; }
-  #app #elemental-jobs { top: 22.75rem; width: 11.5rem; padding: .5rem; }
+  #app #elemental-jobs { top: 21.25rem; width: 11.5rem; padding: .5rem; }
   #app #elemental-jobs > span { padding: .32rem; }
   #app #camera-help { left: 16.85rem; right: 12.6rem; }
   #app .army-counts > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .context-inspector {
     top: 13.6rem !important;
     width: 11.5rem !important;
-    max-height: 8.55rem !important;
+    max-height: 7.15rem !important;
   }
 }
 
@@ -320,7 +330,7 @@
     bottom: auto !important;
     left: auto !important;
     width: 10.5rem !important;
-    max-height: 8.4rem !important;
+    max-height: 7rem !important;
   }
 }
 
