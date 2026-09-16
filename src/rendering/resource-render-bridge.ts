@@ -3,6 +3,7 @@ import { WORLD_UNITS_PER_METER } from '../simulation/arena';
 import { VisibilityLevel } from '../simulation/visibility-state';
 import type { GeneratedWorld } from '../world/world-definition';
 import { worldCellToSimulationPosition } from '../world/world-arena';
+import { EnvironmentDetailLayer } from './environment-detail-layer';
 
 const RESOURCE_PULSE_BASE_SCALE = 0.68;
 const RESOURCE_PULSE_HEIGHT = 0.018;
@@ -63,6 +64,7 @@ export function resourcePulseScale(rich: boolean, tick: number, index: number): 
 
 export class ResourceRenderBridge {
   private readonly entities: { root: pc.Entity; marker: pc.Entity; rich: boolean; cellIndex: number }[] = [];
+  private readonly environmentDetails: EnvironmentDetailLayer;
 
   private readonly groundFootprint = material(
     new pc.Color(0.17, 0.16, 0.12),
@@ -145,6 +147,7 @@ export class ResourceRenderBridge {
   );
 
   constructor(app: pc.Application, world: GeneratedWorld) {
+    this.environmentDetails = new EnvironmentDetailLayer(app, world);
     for (const [index, resource] of world.resources.entries()) {
       const position = worldCellToSimulationPosition(world, resource.cell);
       const root = new pc.Entity(`${resource.type === 'MATERIAL' ? 'Material Deposit' : 'Mana Spring'} ${resource.id}`);
@@ -164,6 +167,11 @@ export class ResourceRenderBridge {
         primitive(root, 'sphere', 'Ore Nodule', [0.35 * scale, 0.21 * scale, 0.23 * scale], [0.2 * scale, 0.14 * scale, 0.17 * scale], this.materialOre);
         primitive(root, 'cylinder', 'Mine Stake', [-0.64 * scale, 0.3 * scale, -0.4 * scale], [0.055 * scale, 0.55 * scale, 0.055 * scale], this.timber);
         primitive(root, 'box', 'Mine Crate', [-0.49 * scale, 0.13 * scale, -0.46 * scale], [0.28 * scale, 0.23 * scale, 0.25 * scale], this.timber, [0, 18, 0]);
+        primitive(root, 'cylinder', 'Mine Gantry Left', [-0.63 * scale, 0.47 * scale, 0.38 * scale], [0.055 * scale, 0.82 * scale, 0.055 * scale], this.timber, [0, 0, -4]);
+        primitive(root, 'cylinder', 'Mine Gantry Right', [0.58 * scale, 0.43 * scale, 0.35 * scale], [0.055 * scale, 0.74 * scale, 0.055 * scale], this.timber, [0, 0, 5]);
+        primitive(root, 'box', 'Mine Gantry Beam', [-0.03 * scale, 0.78 * scale, 0.37 * scale], [1.3 * scale, 0.065 * scale, 0.075 * scale], this.timber, [0, 0, 2]);
+        primitive(root, 'sphere', 'Ore Chip A', [-0.82 * scale, 0.055, -0.02], [0.13 * scale, 0.07 * scale, 0.1 * scale], this.materialOre);
+        primitive(root, 'sphere', 'Ore Chip B', [0.74 * scale, 0.048, 0.23 * scale], [0.11 * scale, 0.06 * scale, 0.09 * scale], this.materialOre);
       } else {
         primitive(root, 'cylinder', 'Mana Stone Basin', [0, 0.085 * scale, 0], [0.88 * scale, 0.12 * scale, 0.88 * scale], this.manaStone);
         for (let ring = 0; ring < 4; ring += 1) {
@@ -184,6 +192,9 @@ export class ResourceRenderBridge {
         primitive(root, 'box', 'Mana Shard A', [-0.46 * scale, 0.18 * scale, -0.25 * scale], [0.09 * scale, 0.27 * scale, 0.09 * scale], this.manaAccent, [0, 18, 22]);
         primitive(root, 'box', 'Mana Shard B', [0.47 * scale, 0.16 * scale, 0.31 * scale], [0.085 * scale, 0.24 * scale, 0.085 * scale], this.manaAccent, [0, -21, -16]);
         primitive(root, 'sphere', 'Mana Core', [0, 0.83 * scale, 0], [0.13 * scale, 0.13 * scale, 0.13 * scale], this.manaCore);
+        primitive(root, 'box', 'Mana Outer Shard A', [-0.83 * scale, 0.18 * scale, 0.12], [0.08 * scale, 0.28 * scale, 0.08 * scale], this.manaAccent, [0, 21, 17]);
+        primitive(root, 'box', 'Mana Outer Shard B', [0.72 * scale, 0.16 * scale, -0.46 * scale], [0.07 * scale, 0.24 * scale, 0.07 * scale], this.manaCore, [0, -17, -14]);
+        primitive(root, 'box', 'Mana Outer Shard C', [0.35 * scale, 0.13 * scale, 0.74 * scale], [0.065 * scale, 0.2 * scale, 0.065 * scale], this.manaAccent, [0, 9, 20]);
       }
 
       const marker = primitive(
@@ -207,6 +218,7 @@ export class ResourceRenderBridge {
   }
 
   sync(tick: number, visibility?: Uint8Array): void {
+    this.environmentDetails.sync(visibility);
     for (const [index, presentation] of this.entities.entries()) {
       const level = visibility?.[presentation.cellIndex] ?? VisibilityLevel.VISIBLE;
       presentation.root.enabled = level !== VisibilityLevel.UNEXPLORED;
@@ -217,6 +229,7 @@ export class ResourceRenderBridge {
   }
 
   destroy(): void {
+    this.environmentDetails.destroy();
     for (const entity of this.entities) entity.root.destroy();
     this.entities.length = 0;
     this.groundFootprint.destroy();
