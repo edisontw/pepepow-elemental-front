@@ -23,27 +23,107 @@ jobs:
       - run: npm ci
       - name: Apply presentation-only environment depth pass
         run: |
-          echo 'ZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCgpwYXRoID0gUGF0aCgic3JjL3JlbmRlcmluZy9lbnZpcm9ubWVudC1kZXRhaWwtbGF5ZXIudHMiKQp0ZXh0ID0gcGF0aC5yZWFkX3RleHQoKQoKZGVmIHJlcGxhY2Vfb25jZShvbGQ6IHN0ciwgbmV3OiBzdHIsIGxhYmVsOiBzdHIpIC0+IE5vbmU6CiAgICBnbG9iYWwgdGV4dAogICAgY291bnQgPSB0ZXh0LmNvdW50KG9sZCkKICAgIGlmIGNvdW50ICE9IDE6CiAgICAgICAgcmFpc2UgU3lzdGVtRXhpdChmIntsbGFiZWx9OiBleHBlY3RlZCBvbmUgbWF0Y2gsIGdvdCB7Y291bnR9IikKICAgIHRleHQgPSB0ZXh0LnJlcGxhY2Uob2xkLCBuZXcsIDEpCgpyZXBsYWNlX29uY2UoCiIiImZ1bmN0aW9uIGRpcmVjdGlvblRvVGVycmFpbigKd29ybGQ6IEdlbmVyYXRlZFdvcmxkLCB4OiBudW1iZXIsIHo6IG51bWJlciwgdGVycmFpbjogVGVycmFpblR5cGUpOiByZWFkb25seSBbbnVtYmVyLCBudW1iZXJdIHsKICBmb3IgKGNvbnN0IFtkeCwgZHpdIG9mIE9SVEhPR09OQUxfTkVJR0hCT1JTKSB7CiAgICBjb25zdCBueCA9IHggKyBkeDsKICAgIGNvbnN0IG56ID0geiArIGR6OwogICAgaWYgKCFpbkJvdW5kcyh3b3JsZCwgbngsIG56KSkgY29udGludWU7CiAgICBpZiAod29ybGQudGVycmFpbltjZWxsSW5kZXgod29ybGQsIG54LCBueildID09PSB0ZXJyYWluKSByZXR1cm4gW2R4LCBkel07CiAgfQogIHJldHVybiBbMCwgMV07Cn0KIiIiLAoiIiJmdW5jdGlvbiBkaXJlY3Rpb25Ub1RlcnJhaW4od29ybGQ6IEdlbmVyYXRlZFdvcmxkLCB4OiBudW1iZXIsIHo6IG51bWJlciwgdGVycmFpbjogVGVycmFpblR5cGUpOiByZWFkb25seSBbbnVtYmVyLCBudW1iZXJdIHsKICBmb3IgKGNvbnN0IFtkeCwgZHpdIG9mIE9SVEhPR09OQUxfTkVJR0hCT1JTKSB7CiAgICBjb25zdCBueCA9IHggKyBkeDsKICAgIGNvbnN0IG56ID0geiArIGR6OwogICAgaWYgKCFpbkJvdW5kcyh3b3JsZCwgbngsIG56KSkgY29udGludWU7CiAgICBpZiAod29ybGQudGVycmFpbltjZWxsSW5kZXgod29ybGQsIG54LCBueildID09PSB0ZXJyYWluKSByZXR1cm4gW2R4LCBkel07CiAgfQogIHJldHVybiBbMCwgMV07Cn0KCmZ1bmN0aW9uIGRpcmVjdGlvblRvUm91dGUod29ybGQ6IEdlbmVyYXRlZFdvcmxkLCB4OiBudW1iZXIsIHo6IG51bWJlcik6IHJlYWRvbmx5IFtudW1iZXIsIG51bWJlcl0gewogIGZvciAoY29uc3QgW2R4LCBkeldiIG9mIE9SVEhPR09OQUxfTkVJR0hCT1JTKSB7CiAgICBjb25zdCBueCA9IHggKyBkeDsKICAgIGNvbnN0IG56ID0geiArIGR6OwogICAgaWYgKCFpbkJvdW5kcyh3b3JsZCwgbngsIG56KSkgY29udGludWU7CiAgICBpZiAoKCh3b3JsZC5mbGFnc1tjZWxsSW5kZXhod29ybGQsIG54LCBueildID8/IDApICYgV29ybGRDZWxsRmxhZy5ST1VURSkgIT09IDApIHJldHVybiBbZHgsIGR6XTsKICB9CiAgcmV0dXJuIFswLCAxXTsKfQoiIiIsCiJyb3V0ZSBkaXJlY3Rpb24gaGVscGVyIiwKKQoKcmVwbGFjZV9vbmNlKCJjb25zdCBtYXhHcm91cHMgPSB0aGlzLmxvd1F1YWxpdHkgPyAxOCA6IDM4OyIsICJjb25zdCBtYXhHcm91cHMgPSB0aGlzLmxvd1F1YWxpdHkgPyAyMCA6IDQ2OyIsICJmb3Jlc3QgZ3JvdXAgY2FwIikKcmVwbGFjZV9vbmNlKCJpZiAobmVpZ2hib3JzIDwgNCB8fCB2YXJpYW50ID4gMjEyKSBjb250aW51ZTsiLCAiaWYgKG5laWdoYm9ycyA8IDQgfHwgdmFyaWFudCA+IDIyOCkgY29udGludWU7IiwgImZvcmVzdCBkZW5zaXR5IGdhdGUiKQpyZXBsYWNlX29uY2UoCiIiIiAgICAgICAgcm9vdC5zZXRQb3NpdGlvbihiYXNlLnggKyBqaXR0ZXJYLCAwLjAyMiwgYmFzZS56ICsgaml0dGVyWik7CiAgICAgICAgcm9vdC5zZXRFdWxlckFuZ2xlcygwLCB2YXJpYW50ICogMS4zNywgMCk7CgogICAgICAgIGNvbnN0IHRyZWVDb3VudCA9IHRoaXMubG93UXVhbGl0eSA/IDIgKyAodmFyaWFudCAlIDIpIDogMyArICh2YXJpYW50ICUgMyk7CiIiIiwKIiIiICAgICAgICByb290LnNldFBvc2l0aW9uKGJhc2UueCArIGppdHRlclgsIDAuMDIyLCBiYXNlLnogKyBqaXR0ZXJaKTsKICAgICAgICByb290LnNldEV1bGVyQW5nbGVzKDAsIHZhcmlhbnQgKiAxLjM3LCAwKTsKCiAgICAgICAgY29uc3QgY29udGFjdFNjYWxlID0gMC45MiArICh2YXJpYW50IC8gMjU1KSAqIDAuMzQ7CiAgICAgICAgYWRkUHJpbWl0aXZlKHJvb3QsICdjeWxpbmRlcicsICdGb3Jlc3QgRmxvb3IgQ29udGFjdCcsIFswLCAtMC4wMDQsIDBdLCBbMS40NSAqIGNvbnRhY3RTY2FsZSwgMC4wMTIsIDEuMDIgKiBjb250YWN0U2NhbGVdLCB0aGlzLndvb2RsYW5kRmxvb3JNYXRlcmlhbCk7CiAgICAgICAgaWYgKCF0aGlzLmxvd1F1YWxpdHkpIHsKICAgICAgICAgIGFkZFByaW1pdGl2ZShyb290LCAnY3lsaW5kZXInLCAnRm9yZXN0IExlYWYgTGl0dGVyJywgWzAuMjIsIC0wLjAwMiwgLTAuMTJdLCBbMC45MiAqIGNvbnRhY3RTY2FsZSwgMC4wMDksIDAuNjggKiBjb250YWN0U2NhbGVdLCB0aGlzLm11ZE1hdGVyaWFsKTsKICAgICAgICB9CgogICAgICAgIGNvbnN0IHRyZWVDb3VudCA9IHRoaXMubG93UXVhbGl0eSA/IDIgKyAodmFyaWFudCAlIDIpIDogMyArICh2YXJpYW50ICUgMyk7CiIiIiwKImZvcmVzdCBjb250YWN0IHBhdGNoZXMiLAopCnJlcGxhY2Vfb25jZSgKIiIiICAgICAgICBhZGRQcmltaXRpdmUocm9vdCwgJ3NwaGVyZScsICdGb3Jlc3QgQWNjZW50IFVuZGVyc3RvcnkgQScsIFstMC40MiwgMC4wODUsIDAuMzJdLCBbMC4zOCwgMC4xMywgMC4yOF0sIHRoaXMudW5kZXJncm93dGhNYXRlcmlhbCk7CiAgICAgICAgYWRkUHJpbWl0aXZlKHJvb3QsICdzcGhlcmUnLCAnRm9yZXN0IEFjY2VudCBVbmRlcnN0b3J5IEInLCBbMC40NiwgMC4wNzUsIC0wLjI4XSwgWzAuMzEsIDAuMTEsIDAuMjRdLCB0aGlzLnVuZGVyZ3Jvd3RoTWF0ZXJpYWwpOwoiIiIsCiIiIiAgICAgICAgYWRkUHJpbWl0aXZlKHJvb3QsICdzcGhlcmUnLCAnRm9yZXN0IEFjY2VudCBVbmRlcnN0b3J5IEEnLCBbLTAuNDIsIDAuMDg1LCAwLjMyXSwgWzAuMzgsIDAuMTMsIDAuMjhdLCB0aGlzLnVuZGVyZ3Jvd3RoTWF0ZXJpYWwpOwogICAgICAgIGFkZFByaW1pdGl2ZShyb290LCAnc3BoZXJlJywgJ0ZvcmVzdCBBY2NlbnQgVW5kZXJzdG9yeSBCJywgWzAuNDYsIDAuMDc1LCAtMC4yOF0sIFswLjMxLCAwLjExLCAwLjI0XSwgdGhpcy51bmRlcmdyb3d0aE1hdGVyaWFsKTsKICAgICAgICBpZiAoIXRoaXMubG93UXVhbGl0eSkgYWRkUHJpbWl0aXZlKHJvb3QsICdzcGhlcmUnLCAnRm9yZXN0IEFjY2VudCBVbmRlcnN0b3J5IEMnLCBbMC4wOCwgMC4wNjUsIC0wLjU2XSwgWzAuMjgsIDAuMDksIDAuMjFdLCB0aGlzLnVuZGVyZ3Jvd3RoTWF0ZXJpYWwpOwoiIiIsCiJmb3Jlc3QgdW5kZXJzdG9yeSIsCikKcmVwbGFjZV9vbmNlKCJjb25zdCBtYXhHcm91cHMgPSB0aGlzLmxvd1F1YWxpdHkgPyAxMiA6IDI2OyIsICJjb25zdCBtYXhHcm91cHMgPSB0aGlzLmxvd1F1YWxpdHkgPyAxNCA6IDM0OyIsICJyaXZlciBncm91cCBjYXAiKQpyZXBsYWNlX29uY2UoImlmICh2YXJpYW50ID4gMTc2KSBjb250aW51ZTsiLCAiaWYgKHZhcmlhbnQgPiAyMDgpIGNvbnRpbnVlOyIsICJyaXZlciBkZW5zaXR5IGdhdGUiKQpyZXBsYWNlX29uY2UoCiIiIiAgICAgICAgYWRkUHJpbWl0aXZlKHJvb3QsICdjeWxpbmRlcicsICdSaXZlciBNdWQgU2hlbGYnLCBbMCwgMC4wMDQsIDAuMjRdLCBbMC44MiwgMC4wMTIsIDAuNDJdLCB0aGlzLm11ZE1hdGVyaWFsKTsKICAgICAgICBhZGRQcmltaXRpdmUocm9vdCwgJ2JveCcsICdSaXZlciBCYW5rIFN0b25lJywgWy0wLjI2LCAwLjA3NSwgMC4wM10sIFswLjI4LCAwLjE0LCAwLjJdLCB2YXJpYW50IDwgMTI4ID8gdGhpcy5yb2NrRGFya01hdGVyaWFsIDogdGhpcy5yb2NrTGlnaHRNYXRlcmlhbCwgWzYsIDE5LCA3XSk7CiIiIiwKIiIiICAgICAgICBhZGRQcmltaXRpdmUocm9vdCwgJ2N5bGluZGVyJywgJ1JpdmVyIE11ZCBTaGVsZicsIFswLCAwLjAwNCwgMC4yM10sIFswLjk4LCAwLjAxMiwgMC40OF0sIHRoaXMubXVkTWF0ZXJpYWwpOwogICAgICAgIGFkZFByaW1pdGl2ZShyb290LCAnY3lsaW5kZXInLCAnUml2ZXIgV2V0IEVkZ2UnLCBbMCwgMC4wMDYsIDAuNDVdLCBbMC43NiwgMC4wMDksIDAuMTddLCB0aGlzLndvb2RsYW5kRmxvb3JNYXRlcmlhbCk7CiAgICAgICAgYWRkUHJpbWl0aXZlKHJvb3QsICdib3gnLCAnUml2ZXIgQmFuayBTdG9uZScsIFstMC4yNiwgMC4wNzUsIDAuMDNdLCBbMC4yOCwgMC4xNCwgMC4yXSwgdmFyaWFudCA8IDEyOCA/IHRoaXMucm9ja0RhcmtNYXRlcmlhbCA6IHRoaXMucm9ja0xpZ2h0TWF0ZXJpYWwsIFs2LCAxOSwgN10pOwoiIiIsCiJyaXZlciBiYW5rIGNvbnRhY3QiLAopCnJlcGxhY2Vfb25jZSgKIiIiICAgICAgICBjb25zdCByZWVkQ291bnQgPSB0aGlzLmxvd1F1YWxpdHkgPyAzIDogNTsKICAgICAgICBmb3IgKGxldCByZWVkID0gMDsgcmVlZCA8IHJlZWRDb3VudDsgcmVlZCArPSAxKSB7CiIiIiwKIiIiICAgICAgICBpZiAoIXRoaXMubG93UXVhbGl0eSkgYWRkUHJpbWl0aXZlKHJvb3QsICdzcGhlcmUnLCAnUml2ZXIgQmFuayBHcmFzcycsIFswLjM4LCAwLjA1LCAtMC4xMl0sIFswLjI3LCAwLjA4LCAwLjE5XSwgdGhpcy51bmRlcmdyb3d0aE1hdGVyaWFsKTsKICAgICAgICBjb25zdCByZWVkQ291bnQgPSB0aGlzLmxvd1F1YWxpdHkgPyAzIDogNTsKICAgICAgICBmb3IgKGxldCByZWVkID0gMDsgcmVlZCA8IHJlZWRDb3VudDsgcmVlZCArPSAxKSB7CiIiIiwKInJpdmVyIGJhbmsgZ3Jhc3MiLAopCnJlcGxhY2Vfb25jZSgKIiIiICAgIGNvbnN0IG1heEdyb3VwcyA9IHRoaXMubG93UXVhbGl0eSA/IDggOiAxODsKICAgIGxldCBncm91cHMgPSAwOwogICAgZm9yIChsZXQgeiA9IDE7IHogPCB0aGlzLndvcmxkLmhlaWdodCAtIDEgJiYgZ3JvdXBzIDwgbWF4R3JvdXBzOyB6ICs9IDMpIHsKIiIiLAoiIiIgICAgY29uc3QgbWF4R3JvdXBzID0gdGhpcy5sb3dRdWFsaXR5ID8gMTAgOiAyNjsKICAgIGxldCBncm91cHMgPSAwOwogICAgZm9yIChsZXQgeiA9IDE7IHogPCB0aGlzLndvcmxkLmhlaWdodCAtIDEgJiYgZ3JvdXBzIDwgbWF4R3JvdXBzOyB6ICs9IDMpIHsKIiIiLAoicm91dGUgZ3JvdXAgY2FwIiwKKQpyZXBsYWNlX29uY2UoImlmICh2YXJpYW50ID4gMTE4KSBjb250aW51ZTsiLCAiaWYgKHZhcmlhbnQgPiAxNTQpIGNvbnRpbnVlOyIsICJyb3V0ZSBkZW5zaXR5IGdhdGUiKQpyZXBsYWNlX29uY2UoCiIiIiAgICAgICAgY29uc3Qgcm9vdCA9IG5ldyBwYy5FbnRpdHkoYFJvdXRlIEVkZ2UgQWNjZW50ICR7eH0sJHt6fWApOwogICAgICAgIGNvbnN0IGJhc2UgPSB3b3JsZFBvc2l0aW9uKHRoaXMud29ybGQsIHgsIHopOwogICAgICAgIHJvb3Quc2V0UG9zaXRpb24oYmFzZS54LCAwLjAyNCwgYmFzZS56KTsKICAgICAgICByb290LnNldEV1bGVyQW5nbGVzKDAsIHZhcmlhbnQgKiAxLjQxLCAwKTsKIiIiLAoiIiIgICAgICAgIGNvbnN0IHJvb3QgPSBuZXcgcGMuRW50aXR5KGBSb3V0ZSBFZGdlIEFjY2VudCAke3h9LCR7en1gKTsKICAgICAgICBjb25zdCBiYXNlID0gd29ybGRQb3NpdGlvbih0aGlzLndvcmxkLCB4LCB6KTsKICAgICAgICBjb25zdCBbcm91dGVEeCwgcm91dGVEel0gPSBkaXJlY3Rpb25Ub1JvdXRlKHRoaXMud29ybGQsIHgsIHopOwogICAgICAgIHJvb3Quc2V0UG9zaXRpb24oYmFzZS54LCAwLjAyNCwgYmFzZS56KTsKICAgICAgICByb290LnNldEV1bGVyQW5nbGVzKDAsIE1hdGguYXRhbjIocm91dGVEeCwgcm91dGVEeikgKiAxODAgLyBNYXRoLlBJICsgKCh2YXJpYW50ICUgMTMpIC0gNiksIDApOwogICAgICAgIGFkZFByaW1pdGl2ZShyb290LCAnY3lsaW5kZXInLCAnUm91dGUgU2hvdWxkZXIgV2VhcicsIFswLCAtMC4wMDQsIDAuMTJdLCBbMC43NiwgMC4wMSwgMC4zMV0sIHZhcmlhbnQgPCA5NiA/IHRoaXMubXVkTWF0ZXJpYWwgOiB0aGlzLnBsYWluc0Zsb29yTWF0ZXJpYWwpOwoiIiIsCiJyb3V0ZSBhbGlnbm1lbnQgYW5kIHNob3VsZGVyIiwKKQpyZXBsYWNlX29uY2UoCiIiIiAgICAgICAgYWRkUHJpbWl0aXZlKHJvb3QsICdzcGhlcmUnLCAnUm91dGUgVmVyZ2UgR3Jhc3MnLCBbLTAuMiwgMC4wNSwgMC4xOF0sIFswLjIzLCAwLjA4LCAwLjE2XSwgdGhpcy5kcnlHcmFzc01hdGVyaWFsKTsKICAgICAgICBpZiAoKHZhcmlhbnQgJiAxKSA9PT0gMCkgYWRkUHJpbWl0aXZlKHJvb3QsICdib3gnLCAnUm91dGUgRWRnZSBTdG9uZScsIFswLjI3LCAwLjA1NSwgLTAuMTJdLCBbMC4xOCwgMC4xLCAwLjE0XSwgdGhpcy5yb2NrRGFya01hdGVyaWFsLCBbNCwgMjcsIDZdKTsKIiIiLAoiIiIgICAgICAgIGFkZFByaW1pdGl2ZShyb290LCAnc3BoZXJlJywgJ1JvdXRlIFZlcmdlIEdyYXNzJywgWy0wLjI0LCAwLjA1LCAwLjE4XSwgWzAuMjgsIDAuMDgsIDAuMThdLCB0aGlzLmRyeUdyYXNzTWF0ZXJpYWwpOwogICAgICAgIGlmICghdGhpcy5sb3dRdWFsaXR5ICYmICh2YXJpYW50ICYgMykgPT09IDApIGFkZFByaW1pdGl2ZShyb290LCAnc3BoZXJlJywgJ1JvdXRlIFZlcmdlIFNjcnViJywgWzAuMzIsIDAuMDU1LCAwLjI1XSwgWzAuMjIsIDAuMDksIDAuMTZdLCB0aGlzLnVuZGVyZ3Jvd3RoTWF0ZXJpYWwpOwogICAgICAgIGlmICgodmFyaWFudCAmIDEpID09PSAwKSBhZGRQcmltaXRpdmUocm9vdCwgJ2JveCcsICdSb3V0ZSBFZGdlIFN0b25lJywgWzAuMjcsIDAuMDU1LCAtMC4xMl0sIFswLjE4LCAwLjEsIDAuMTRdLCB0aGlzLnJvY2tEYXJrTWF0ZXJpYWwsIFs0LCAyNywgNl0pOwoiIiIsCiJyb3V0ZSB2ZXJnZSBkcmVzc2luZyIsCikKCnBhdGgud3JpdGVfdGV4dCh0ZXh0KQo=' | base64 -d > /tmp/environment-depth-patch.py[0m
-2026-09-16T11:28:40.4738679Z [36;1msed -i 's/{llabel}/{label}/g' /tmp/environment-depth-patch.py[0m
-2026-09-16T11:28:40.4739182Z [36;1mpython /tmp/environment-depth-patch.py[0m
-2026-09-16T11:28:40.4761078Z shell: /usr/bin/bash -e {0}
-2026-09-16T11:28:40.4761483Z ##[endgroup]
-2026-09-16T11:28:40.5006089Z route direction helper: expected one match, got 0
-2026-09-16T11:28:40.5047544Z ##[error]Process completed with exit code 1.
-2026-09-16T11:28:40.5172131Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
-2026-09-16T11:28:40.5173127Z Post job cleanup.
-2026-09-16T11:28:40.5808562Z [command]/usr/bin/git version
-2026-09-16T11:28:40.5838562Z git version 2.55.0
-2026-09-16T11:28:40.5865538Z Temporarily overriding HOME='/home/runner/work/_temp/ffa57668-f6da-44d9-9e2c-966edee70550' before making global git config changes
-2026-09-16T11:28:40.5867114Z Adding repository directory to the temporary git global config as a safe directory
-2026-09-16T11:28:40.5869646Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/pepepow-elemental-front/pepepow-elemental-front
-2026-09-16T11:28:40.5899103Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
-2026-09-16T11:28:40.5926945Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
-2026-09-16T11:28:40.6097352Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
-2026-09-16T11:28:40.6117079Z http.https://github.com/.extraheader
-2026-09-16T11:28:40.6125726Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
-2026-09-16T11:28:40.6149395Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
-2026-09-16T11:28:40.6315846Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
-2026-09-16T11:28:40.6343218Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
-2026-09-16T11:28:40.6620687Z Cleaning up orphan processes
-2026-09-16T11:28:40.6812717Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('src/rendering/environment-detail-layer.ts')
+          text = path.read_text()
+
+          def rep(old: str, new: str, label: str) -> None:
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected one match, got {count}')
+              text = text.replace(old, new, 1)
+
+          helper_pattern = re.compile(
+              r'(function directionToTerrain\(world: GeneratedWorld, x: number, z: number, terrain: TerrainType\): readonly \[number, number\] \{.*?\n\})\n\nfunction isNearSite',
+              re.S,
+          )
+          helper_match = helper_pattern.search(text)
+          if not helper_match:
+              raise SystemExit('route direction helper: source block not found')
+          helper = helper_match.group(1)
+          route_helper = '''function directionToRoute(world: GeneratedWorld, x: number, z: number): readonly [number, number] {
+            for (const [dx, dz] of ORTHOGONAL_NEIGHBORS) {
+              const nx = x + dx;
+              const nz = z + dz;
+              if (!inBounds(world, nx, nz)) continue;
+              if (((world.flags[cellIndex(world, nx, nz)] ?? 0) & WorldCellFlag.ROUTE) !== 0) return [dx, dz];
+            }
+            return [0, 1];
+          }'''
+          text = helper_pattern.sub(f'{helper}\n\n{route_helper}\n\nfunction isNearSite', text, count=1)
+
+          rep('const maxGroups = this.lowQuality ? 18 : 38;', 'const maxGroups = this.lowQuality ? 20 : 46;', 'forest group cap')
+          rep('if (neighbors < 4 || variant > 212) continue;', 'if (neighbors < 4 || variant > 228) continue;', 'forest density gate')
+          rep(
+              '''        root.setPosition(base.x + jitterX, 0.022, base.z + jitterZ);
+                  root.setEulerAngles(0, variant * 1.37, 0);
+
+                  const treeCount = this.lowQuality ? 2 + (variant % 2) : 3 + (variant % 3);''',
+              '''        root.setPosition(base.x + jitterX, 0.022, base.z + jitterZ);
+                  root.setEulerAngles(0, variant * 1.37, 0);
+
+                  const contactScale = 0.92 + (variant / 255) * 0.34;
+                  addPrimitive(root, 'cylinder', 'Forest Floor Contact', [0, -0.004, 0], [1.45 * contactScale, 0.012, 1.02 * contactScale], this.woodlandFloorMaterial);
+                  if (!this.lowQuality) {
+                    addPrimitive(root, 'cylinder', 'Forest Leaf Litter', [0.22, -0.002, -0.12], [0.92 * contactScale, 0.009, 0.68 * contactScale], this.mudMaterial);
+                  }
+
+                  const treeCount = this.lowQuality ? 2 + (variant % 2) : 3 + (variant % 3);''',
+              'forest contact patches',
+          )
+          rep(
+              "        addPrimitive(root, 'sphere', 'Forest Accent Understory B', [0.46, 0.075, -0.28], [0.31, 0.11, 0.24], this.undergrowthMaterial);",
+              "        addPrimitive(root, 'sphere', 'Forest Accent Understory B', [0.46, 0.075, -0.28], [0.31, 0.11, 0.24], this.undergrowthMaterial);\n        if (!this.lowQuality) addPrimitive(root, 'sphere', 'Forest Accent Understory C', [0.08, 0.065, -0.56], [0.28, 0.09, 0.21], this.undergrowthMaterial);",
+              'forest understory',
+          )
+
+          rep('const maxGroups = this.lowQuality ? 12 : 26;', 'const maxGroups = this.lowQuality ? 14 : 34;', 'river group cap')
+          rep('if (variant > 176) continue;', 'if (variant > 208) continue;', 'river density gate')
+          rep(
+              "        addPrimitive(root, 'cylinder', 'River Mud Shelf', [0, 0.004, 0.24], [0.82, 0.012, 0.42], this.mudMaterial);",
+              "        addPrimitive(root, 'cylinder', 'River Mud Shelf', [0, 0.004, 0.23], [0.98, 0.012, 0.48], this.mudMaterial);\n        addPrimitive(root, 'cylinder', 'River Wet Edge', [0, 0.006, 0.45], [0.76, 0.009, 0.17], this.woodlandFloorMaterial);",
+              'river bank contact',
+          )
+          rep(
+              '        const reedCount = this.lowQuality ? 3 : 5;',
+              "        if (!this.lowQuality) addPrimitive(root, 'sphere', 'River Bank Grass', [0.38, 0.05, -0.12], [0.27, 0.08, 0.19], this.undergrowthMaterial);\n        const reedCount = this.lowQuality ? 3 : 5;",
+              'river bank grass',
+          )
+
+          rep('const maxGroups = this.lowQuality ? 8 : 18;', 'const maxGroups = this.lowQuality ? 10 : 26;', 'route group cap')
+          rep('if (variant > 118) continue;', 'if (variant > 154) continue;', 'route density gate')
+          rep(
+              '''        const root = new pc.Entity(`Route Edge Accent ${x},${z}`);
+                  const base = worldPosition(this.world, x, z);
+                  root.setPosition(base.x, 0.024, base.z);
+                  root.setEulerAngles(0, variant * 1.41, 0);''',
+              '''        const root = new pc.Entity(`Route Edge Accent ${x},${z}`);
+                  const base = worldPosition(this.world, x, z);
+                  const [routeDx, routeDz] = directionToRoute(this.world, x, z);
+                  root.setPosition(base.x, 0.024, base.z);
+                  root.setEulerAngles(0, Math.atan2(routeDx, routeDz) * 180 / Math.PI + ((variant % 13) - 6), 0);
+                  addPrimitive(root, 'cylinder', 'Route Shoulder Wear', [0, -0.004, 0.12], [0.76, 0.01, 0.31], variant < 96 ? this.mudMaterial : this.plainsFloorMaterial);''',
+              'route alignment and shoulder',
+          )
+          rep(
+              "        addPrimitive(root, 'sphere', 'Route Verge Grass', [-0.2, 0.05, 0.18], [0.23, 0.08, 0.16], this.dryGrassMaterial);",
+              "        addPrimitive(root, 'sphere', 'Route Verge Grass', [-0.24, 0.05, 0.18], [0.28, 0.08, 0.18], this.dryGrassMaterial);\n        if (!this.lowQuality && (variant & 3) === 0) addPrimitive(root, 'sphere', 'Route Verge Scrub', [0.32, 0.055, 0.25], [0.22, 0.09, 0.16], this.undergrowthMaterial);",
+              'route verge dressing',
+          )
+
+          path.write_text(text)
+          PY
+      - run: npm run build
+      - run: git diff --check
+      - name: Commit environment polish and remove one-shot workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/rendering/environment-detail-layer.ts
+          git rm .github/workflows/environment-depth-one-shot.yml
+          git commit -m 'visual: deepen forest river and route integration'
+          git push
