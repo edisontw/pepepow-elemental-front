@@ -298,12 +298,15 @@ export class EnvironmentDetailLayer {
         if ((flags & WorldCellFlag.ROUTE) !== 0 || isNearSite(this.world, x, z, 2)) continue;
         const neighbors = sameBiomeNeighborCount(this.world, x, z, BiomeType.WOODLAND);
         const variant = hashByte(this.world, x, z, 901);
-        if (neighbors < 3 || variant > 238) continue;
+        const patch = hashByte(this.world, Math.floor(x / 5), Math.floor(z / 4), 887);
+        const opening = hashByte(this.world, x, z, 889);
+        const openingLimit = patch < 96 ? 250 : patch < 188 ? 220 : 148;
+        if (neighbors < 3 || variant > 242 || opening > openingLimit) continue;
 
         const root = new pc.Entity(`Forest Depth Accent ${x},${z}`);
         const base = worldPosition(this.world, x, z);
-        const jitterX = (hashByte(this.world, x, z, 907) / 255 - 0.5) * 0.95;
-        const jitterZ = (hashByte(this.world, x, z, 911) / 255 - 0.5) * 0.95;
+        const jitterX = (hashByte(this.world, x, z, 907) / 255 - 0.5) * 1.62;
+        const jitterZ = (hashByte(this.world, x, z, 911) / 255 - 0.5) * 1.62;
         root.setPosition(base.x + jitterX, 0.022, base.z + jitterZ);
         root.setEulerAngles(0, variant * 1.37, 0);
 
@@ -316,11 +319,13 @@ export class EnvironmentDetailLayer {
         const treeCount = this.lowQuality ? 3 + (variant % 2) : 5 + (variant % 3);
         for (let tree = 0; tree < treeCount; tree += 1) {
           const angle = tree * 2.39996 + variant * 0.019;
-          const radius = tree === 0 ? 0.1 : 0.42 + tree * 0.09;
+          const radius = tree === 0 ? 0.08 : 0.3 + ((variant + tree * 37) % 74) / 100;
           const tx = Math.cos(angle) * radius;
-          const tz = Math.sin(angle) * radius * 0.78;
-          const size = 0.9 + (hashByte(this.world, x + tree, z, 919) / 255) * 0.55;
-          const trunkHeight = 1.05 + size * 0.58;
+          const tz = Math.sin(angle) * radius * (0.62 + ((variant + tree * 13) % 30) / 100);
+          const tier = (variant + tree * 11) % 6;
+          const tierScale = tier < 2 ? 1.16 : tier < 4 ? 0.96 : 0.76;
+          const size = tierScale * (0.9 + (hashByte(this.world, x + tree, z, 919) / 255) * 0.42);
+          const trunkHeight = 1.02 + size * 0.62;
           addPrimitive(root, 'cylinder', `Forest Accent Trunk ${tree + 1}`, [tx, trunkHeight * 0.47, tz], [0.07 * size, trunkHeight * 0.9, 0.07 * size], tree % 2 === 0 ? this.trunkMaterial : this.barkLightMaterial);
           const canopyMaterial = tree % 3 === 0
             ? this.canopyLightMaterial

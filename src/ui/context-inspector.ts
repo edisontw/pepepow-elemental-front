@@ -47,11 +47,6 @@ function formatMetres(worldUnits: number): string {
   return metres >= 10 ? metres.toFixed(0) : metres.toFixed(1);
 }
 
-function formatSpeed(unitType: UnitArchetype): string {
-  const worldUnitsPerSecond = UNITS[unitType].spawn.speedPerTick * TICKS_PER_SECOND;
-  return (worldUnitsPerSecond / WORLD_UNITS_PER_METER).toFixed(1);
-}
-
 function statusText(unit: EntitySnapshot): string {
   const statuses: string[] = [];
   if (unit.frozenTicks > 0) statuses.push('Frozen');
@@ -332,9 +327,6 @@ export class ContextInspector {
         <div class="context-stat"><small>Damage</small><b>${unit.attackDamage}</b></div>
         <div class="context-stat"><small>Range</small><b>${formatMetres(unit.attackRange)} m</b></div>
         <div class="context-stat"><small>Attack cycle</small><b>${attackCycleSeconds.toFixed(1)} s</b></div>
-        <div class="context-stat"><small>Move speed</small><b>${formatSpeed(unit.archetype)} m/s</b></div>
-        <div class="context-stat"><small>Population</small><b>${definition.population}</b></div>
-        <div class="context-stat"><small>Capture</small><b>${(definition.capturePowerTenths / 10).toFixed(1)}</b></div>
       </div>
     `;
   }

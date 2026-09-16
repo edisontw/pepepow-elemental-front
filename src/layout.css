@@ -89,7 +89,7 @@
 }
 
 #app #elemental-jobs {
-  top: 15.45rem;
+  top: 25.25rem;
   right: .55rem;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -181,17 +181,78 @@
   line-height: 1.35;
 }
 
-/* Keep contextual unit/building details in the open center lane instead of
-   covering either persistent side HUD. The inspector injects a late runtime
-   style block, so these placement constraints intentionally use !important. */
+/* Compact right-side context stack: minimap -> unit/building inspector -> tactics.
+   The inspector injects a late runtime style block, so placement and compact sizing
+   intentionally use !important here as the final layout authority. */
 .context-inspector {
-  left: 50% !important;
-  right: auto !important;
-  bottom: .55rem !important;
-  width: min(25rem, calc(100vw - 39rem)) !important;
-  max-width: 25rem !important;
-  transform: translateX(-50%);
+  top: 15.45rem !important;
+  right: .55rem !important;
+  bottom: auto !important;
+  left: auto !important;
+  width: 13.35rem !important;
+  max-width: calc(100vw - 1.1rem) !important;
+  max-height: 9.2rem !important;
+  padding: .52rem .58rem .56rem !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  transform: none !important;
   z-index: 9 !important;
+}
+
+.context-inspector .context-kicker {
+  font-size: .48rem !important;
+  letter-spacing: .11em !important;
+}
+
+.context-inspector h3 {
+  margin: .08rem 0 .12rem !important;
+  font-size: .76rem !important;
+  line-height: 1.15 !important;
+}
+
+.context-inspector .context-subtitle {
+  margin-bottom: .28rem !important;
+  font-size: .54rem !important;
+  line-height: 1.28 !important;
+}
+
+.context-inspector .context-health {
+  height: .24rem !important;
+  margin: .26rem 0 .16rem !important;
+}
+
+.context-inspector .context-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: .22rem !important;
+  margin: .32rem 0 .08rem !important;
+}
+
+.context-inspector .context-stat {
+  padding: .24rem .28rem !important;
+}
+
+.context-inspector .context-stat small {
+  font-size: .42rem !important;
+  letter-spacing: .055em !important;
+}
+
+.context-inspector .context-stat b {
+  font-size: .56rem !important;
+}
+
+.context-inspector .context-production {
+  margin-top: .38rem !important;
+  padding-top: .34rem !important;
+}
+
+.context-inspector .context-actions {
+  gap: .22rem !important;
+}
+
+.context-inspector button {
+  min-height: 1.7rem !important;
+  padding: .24rem .32rem !important;
+  font-size: .52rem !important;
 }
 
 #app #roguelite-panel {
@@ -212,7 +273,7 @@
   #app #run-panel:not(.complete) { left: 18.1rem; }
   #app #camera-help { left: 18.1rem; }
   .context-inspector {
-    width: min(23rem, calc(100vw - 36rem)) !important;
+    width: 13.35rem !important;
   }
 }
 
@@ -221,19 +282,22 @@
   #app #run-panel:not(.complete) { left: 16.85rem; right: 12.6rem; }
   #app #world-debug { width: 11.5rem; }
   #app #world-debug-canvas { width: 10.5rem; height: 10.5rem; }
-  #app #elemental-jobs { top: 13.6rem; width: 11.5rem; padding: .5rem; }
+  #app #elemental-jobs { top: 22.75rem; width: 11.5rem; padding: .5rem; }
   #app #elemental-jobs > span { padding: .32rem; }
   #app #camera-help { left: 16.85rem; right: 12.6rem; }
   #app .army-counts > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .context-inspector {
-    width: min(21rem, calc(100vw - 30rem)) !important;
+    top: 13.6rem !important;
+    width: 11.5rem !important;
+    max-height: 8.55rem !important;
   }
 }
 
 @media (max-width: 900px) {
   #app #camera-help { display: none; }
   .context-inspector {
-    width: min(22rem, calc(100vw - 18rem)) !important;
+    right: .55rem !important;
+    width: 11.5rem !important;
   }
 }
 
@@ -251,9 +315,12 @@
   #app #elemental-jobs { display: none; }
   #app #run-panel:not(.complete) { display: none; }
   .context-inspector {
-    top: .5rem !important;
+    top: 12.35rem !important;
+    right: .5rem !important;
     bottom: auto !important;
-    width: min(22rem, calc(100vw - 12rem)) !important;
+    left: auto !important;
+    width: 10.5rem !important;
+    max-height: 8.4rem !important;
   }
 }
 
