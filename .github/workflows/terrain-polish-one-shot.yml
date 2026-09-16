@@ -254,19 +254,15 @@ jobs:
               'road cross-section',
           )
 
-          old = """  const baseColor = layer === 'SHOULDER'
-            ? [82, 75, 54] as const
-            : layer === 'CORE'
-              ? [104, 80, 49] as const
-              : [63, 51, 36] as const;"""
-          new = """  const baseColor = layer === 'SHOULDER'
+          sub_once(
+              r"  const baseColor = layer === 'SHOULDER'\n\s*\? \[82, 75, 54\] as const\n\s*: layer === 'CORE'\n\s*\? \[104, 80, 49\] as const\n\s*: \[63, 51, 36\] as const;",
+              """  const baseColor = layer === 'SHOULDER'
             ? [72, 67, 50] as const
             : layer === 'CORE'
               ? [96, 76, 50] as const
-              : [54, 47, 35] as const;"""
-          if old not in text:
-              raise SystemExit('road palette: source block not found')
-          text = text.replace(old, new, 1)
+              : [54, 47, 35] as const;""",
+              'road palette',
+          )
 
           old = "const halfWidth = layer === 'SHOULDER' ? coreHalf + 0.52 : layer === 'CORE' ? coreHalf : 0.075;"
           new = "const halfWidth = layer === 'SHOULDER' ? coreHalf + 0.36 : layer === 'CORE' ? coreHalf : 0.075;"
