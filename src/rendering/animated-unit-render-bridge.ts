@@ -118,12 +118,13 @@ export class AnimatedUnitRenderBridge extends UnitRenderBridge {
         // Locomotion now comes from clips (or, for missing clips, named-node gait).
         unitRoot.setPosition(position.x, 0, position.z);
         this.lastFacingYaw.set(unit.id, unitRoot.getEulerAngles().y);
-      } else if (controller.hasClip('DEATH')) {
+      } else if (unitRoot.enabled && controller.hasClip('DEATH')) {
+        // Keep the existing renderer cleanup window authoritative. The clip may
+        // pose a dying unit, but it must not resurrect a root after cleanup.
         const x = pc.math.lerp(prior.x, unit.x, alpha) / WORLD_UNITS_PER_METER;
         const z = pc.math.lerp(prior.z, unit.z, alpha) / WORLD_UNITS_PER_METER;
         unitRoot.setPosition(x, 0, z);
         unitRoot.setEulerAngles(0, this.lastFacingYaw.get(unit.id) ?? 0, 0);
-        unitRoot.enabled = controller.state === 'DEATH';
       }
 
       if (controller.hasAnyClip) {
