@@ -1,0 +1,201 @@
+{
+  "archiveSha256": "2110fcd23194dd26f283ae6436966ac1e204b34809420a993dca7f112221e5d1",
+  "references": [
+    {
+      "unit": "Vanguard",
+      "status": "canonical",
+      "package_path": "canonical/vanguard/vanguard_concept.png",
+      "md5": "261ee9614a833018b59d3fbf3761a5bf",
+      "notes": "Primary concept reference."
+    },
+    {
+      "unit": "Vanguard",
+      "status": "canonical",
+      "package_path": "canonical/vanguard/vanguard_turnaround.png",
+      "md5": "acbd78738443ad96d52d2ad19fdd33fd",
+      "notes": "Preferred turnaround and equipment/material reference."
+    },
+    {
+      "unit": "Spear Guard",
+      "status": "canonical",
+      "package_path": "canonical/spear_guard/spear_guard_concept.png",
+      "md5": "5ae0936941127be4b3d0388ce812fc28",
+      "notes": "Primary concept reference."
+    },
+    {
+      "unit": "Spear Guard",
+      "status": "canonical",
+      "package_path": "canonical/spear_guard/spear_guard_turnaround.png",
+      "md5": "21683597af0e5a3d457d0e7e5cfc0909",
+      "notes": "Preferred turnaround and weapon/shield reference."
+    },
+    {
+      "unit": "Ranger",
+      "status": "canonical",
+      "package_path": "canonical/ranger/ranger_concept.png",
+      "md5": "6245abd16b63f6861b08a74be3929623",
+      "notes": "Primary concept reference."
+    },
+    {
+      "unit": "Ranger",
+      "status": "canonical",
+      "package_path": "canonical/ranger/ranger_turnaround.png",
+      "md5": "c306ba2f598e3a692e31457399db6383",
+      "notes": "Preferred turnaround and bow/quiver reference."
+    },
+    {
+      "unit": "Scout",
+      "status": "canonical",
+      "package_path": "canonical/scout/scout_concept_primary.png",
+      "md5": "10613e3bb38f77b785393a6f940c4b25",
+      "notes": "Primary scout concept reference."
+    },
+    {
+      "unit": "Scout",
+      "status": "canonical",
+      "package_path": "canonical/scout/scout_concept_alt.png",
+      "md5": "a9cc59238d991e92feb7a9c8cbe05958",
+      "notes": "Secondary scout concept; same file as imagegen.png, duplicate omitted."
+    },
+    {
+      "unit": "Scout",
+      "status": "canonical",
+      "package_path": "canonical/scout/scout_hand_crossbow_sheet_01.png",
+      "md5": "a3f88a2f92d62489699dad318db73782",
+      "notes": "Hand-crossbow + dagger role sheet."
+    },
+    {
+      "unit": "Scout",
+      "status": "canonical",
+      "package_path": "canonical/scout/scout_hand_crossbow_sheet_02.png",
+      "md5": "4f74d6c8a5d394e526fe062447421b4d",
+      "notes": "Hand-crossbow + dagger turnaround/animation reference."
+    },
+    {
+      "unit": "Scout",
+      "status": "canonical",
+      "package_path": "canonical/scout/scout_hand_crossbow_sheet_03.png",
+      "md5": "f5f03fc79bde51d549ff25e8a5a68d59",
+      "notes": "Hand-crossbow + dagger alternate turnaround/animation sheet."
+    },
+    {
+      "unit": "Engineer",
+      "status": "canonical",
+      "package_path": "canonical/engineer/engineer_concept.png",
+      "md5": "8fef71851ab751f055ec2cd0efadfa61",
+      "notes": "Primary concept reference."
+    },
+    {
+      "unit": "Engineer",
+      "status": "canonical",
+      "package_path": "canonical/engineer/engineer_turnaround.png",
+      "md5": "76b55cf67b3e307760aefb2180111ad5",
+      "notes": "Preferred turnaround, tools, pack, and animation reference."
+    },
+    {
+      "unit": "Fire Elementalist",
+      "status": "canonical",
+      "package_path": "canonical/elementalist/fire/fire_elementalist_concept.png",
+      "md5": "cee672890a140162908cda268dffcd90",
+      "notes": "Concept reference. VFX should not be baked into geometry."
+    },
+    {
+      "unit": "Water Elementalist",
+      "status": "canonical",
+      "package_path": "canonical/elementalist/water/water_elementalist_concept.png",
+      "md5": "4a0223acd14fe5c9d1661f31b3b6d221",
+      "notes": "Concept reference. Fluid effects should remain runtime VFX."
+    },
+    {
+      "unit": "Ice Elementalist",
+      "status": "canonical",
+      "package_path": "canonical/elementalist/ice/ice_elementalist_concept.png",
+      "md5": "d837f6dfac89780ed1edea463905e8be",
+      "notes": "Concept reference. Crystals should be separate attachments where practical."
+    },
+    {
+      "unit": "Lightning Elementalist",
+      "status": "canonical",
+      "package_path": "canonical/elementalist/lightning/lightning_elementalist_concept.png",
+      "md5": "f7b1e35fe5089e22d103d3c1f4f6f976",
+      "notes": "Concept reference. Lightning arcs should remain runtime VFX."
+    },
+    {
+      "unit": "Golem",
+      "status": "canonical",
+      "package_path": "canonical/golem/golem_concept.png",
+      "md5": "c47f6055e70adcb2e24736cd5fbfc802",
+      "notes": "Primary single-character concept reference."
+    },
+    {
+      "unit": "Golem",
+      "status": "canonical",
+      "package_path": "canonical/golem/golem_turnaround.png",
+      "md5": "12ce8d1fdcb132850550534b2c86b116",
+      "notes": "Preferred turnaround and mechanical animation reference."
+    },
+    {
+      "unit": "Siege Construct",
+      "status": "canonical",
+      "package_path": "canonical/siege_construct/siege_construct_concept.png",
+      "md5": "d6d979baba09b594e7e8ab120559221d",
+      "notes": "Primary single-machine concept reference."
+    },
+    {
+      "unit": "Siege Construct",
+      "status": "canonical",
+      "package_path": "canonical/siege_construct/siege_construct_turnaround.png",
+      "md5": "cf6e554123e81f9b24e9e6317d6c6847",
+      "notes": "Preferred chassis/cannon/recoil/reactor reference."
+    },
+    {
+      "unit": "Scout",
+      "status": "superseded",
+      "package_path": "alternates/scout/scout_bow_turnaround_SUPERSEDED.png",
+      "md5": "c5a7d403af37da4d65563af8a79aac32",
+      "notes": "Superseded bow-based Scout; do not use for final 3D."
+    },
+    {
+      "unit": "Scout",
+      "status": "alternate",
+      "package_path": "alternates/scout/scout_alt_sheet_04.png",
+      "md5": "ea8f905b4038025cca84a3832dcbe146",
+      "notes": "Alternate scout sheet; use only for details, not identity."
+    },
+    {
+      "unit": "Golem",
+      "status": "alternate",
+      "package_path": "alternates/golem/golem_alt_sheet_01.png",
+      "md5": "ca96a397c837fdfba9bdf1897c98566f",
+      "notes": "Alternate Golem design; do not average with canonical turnaround."
+    },
+    {
+      "unit": "Golem",
+      "status": "alternate",
+      "package_path": "alternates/golem/golem_alt_sheet_02.png",
+      "md5": "629fe2b4f1cf526ce562478762f491fa",
+      "notes": "Alternate Golem design; secondary reference only."
+    },
+    {
+      "unit": "Golem",
+      "status": "alternate",
+      "package_path": "alternates/golem/golem_alt_sheet_03.png",
+      "md5": "fc06de377d13236c0254ef941d2abe63",
+      "notes": "Alternate Golem design; secondary reference only."
+    },
+    {
+      "unit": "Golem",
+      "status": "duplicate_reference",
+      "package_path": "alternates/golem/golem_alt_sheet_03.png",
+      "md5": "fc06de377d13236c0254ef941d2abe63",
+      "notes": "Duplicate pointer retained in manifest only; file not copied twice. (duplicate bytes; mapped to existing package file)"
+    },
+    {
+      "unit": "Golem",
+      "status": "duplicate_reference",
+      "package_path": "alternates/golem/golem_alt_sheet_02.png",
+      "md5": "629fe2b4f1cf526ce562478762f491fa",
+      "notes": "Duplicate pointer retained in manifest only; file not copied twice. (duplicate bytes; mapped to existing package file)"
+    }
+  ]
+}
