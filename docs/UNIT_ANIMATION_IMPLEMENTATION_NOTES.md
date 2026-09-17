@@ -1,18 +1,38 @@
-# Unit animation implementation notes — U0/U1
+# Unit animation implementation notes — 2.5D impostor production path
 
-Status: U0 runtime plumbing implemented; U1 Vanguard animated fallback implemented; final skinned art and manual WebGL acceptance remain pending.
+Status: legacy GLB animation plumbing remains implemented, but the authoritative final-art direction has returned to high-quality 2.5D animated impostors.
 
-## U0 runtime path
+## Current production decision
+
+The default unit-art path is now:
+
+```text
+canonical character art
+→ 8-direction consistent character
+→ Idle / Move / Attack / Hit / Death
+→ WebP sprite / atlas
+→ PlayCanvas billboard / impostor
+```
+
+For Elementalists, add `Cast` where useful.
+
+The prior Blender / reconstruction / rigging / skinned-GLB route is no longer the default production path and must not be treated as a hard gate for standard unit art.
+
+## Existing GLB runtime work
+
+The following work remains valid as compatibility/fallback infrastructure:
 
 - `unit-animation-profile.ts` defines presentation-only `IDLE / MOVE / ATTACK / CAST / HIT / DEATH` states and canonical clip names.
 - `unit-animation-controller.ts` binds embedded GLB animation tracks, loops Idle/Move, plays Attack/Cast/Hit as one-shots, persists Death, cross-fades safely, and tolerates missing clips.
 - `animated-unit-render-bridge.ts` derives animation intent only from authoritative snapshots: movement delta, `nextAttackTick`, cast result, health delta and alive/dead state.
-- Root motion is not used. Simulation interpolation still owns world X/Z and presentation facing remains subordinate to the existing facing resolver.
-- The legacy directional WebP path remains disabled as the primary runtime path and can remain available for later far/low-quality LOD work.
+- Root motion is not used. Simulation interpolation owns world X/Z and presentation facing remains subordinate to the facing resolver.
+- Build-time protection for promoted GLBs remains useful and should not be removed merely because GLB is no longer the primary final-art route.
 
-## U1 Vanguard proof slice
+This infrastructure may remain in the repository for fallback, experiments, buildings, future special units, or alternate quality paths. It is not the authoritative standard-unit production requirement.
 
-The reproducible Vanguard generator now embeds five canonical rotation-only clips:
+## Previous U1 Vanguard GLB proof slice
+
+The reproducible Vanguard generator embedded five canonical rotation-only clips:
 
 - `Idle`
 - `Move`
@@ -20,34 +40,134 @@ The reproducible Vanguard generator now embeds five canonical rotation-only clip
 - `Hit`
 - `Death`
 
-It also exports `ModelRoot` and `WeaponTip` nodes. The current asset is intentionally still a rigid-node fallback, not the final concept-quality skinned mesh. Its purpose is to prove clip loading/state transitions and remove the full-body sinusoidal locomotion bob before the final rigged asset is introduced.
+It also exported `ModelRoot` and `WeaponTip` nodes. That asset remains a rigid-node fallback and technical proof only. It is not final Vanguard art and no longer defines the production route.
 
-`npm run build` regenerates fallback assets only while their manifest status is `NEEDS_MANUAL_GENERATION`. Promoted assets are preserved, and a missing promoted file fails the build instead of silently creating a substitute. The guard covers Vanguard, specialists, Elementalists and heavy-unit build generators.
-
-## Validation
+Validation previously completed:
 
 - U0 CI run `35134006893`: tests PASS, production build PASS.
 - U1 CI run `35134213700`: tests PASS, production build PASS.
 - Pages run `35134213840`: deployment PASS.
 - Automated animation-state tests cover priority, Frozen locomotion suppression, canonical Vanguard clip names and one-shot classification.
 
-## Remaining hard gate
+These results document working fallback infrastructure only; they do not create a requirement to finish a skinned Vanguard GLB.
 
-U1 is not complete as final art until a concept-quality Vanguard is converted to one coherent rigged/skinned GLB with in-place `Idle / Move / Attack / Hit / Death` clips and manually accepted at normal gameplay zoom. The repository runtime plumbing and stable `unit.vanguard` manifest path are ready for that replacement.
+## Retired 3D production attempt — 2026-09-17
 
-## Canonical production attempt — 2026-09-17
+Historical record:
 
-- Verified all 28 source-manifest entries against the uploaded archive. English-path provenance and checksums: `media/unit-production/reference-manifest.json`.
-- Derived Vanguard references from the canonical turnaround using built-in image generation: `media/unit-production/vanguard/modeling-plate.jpg` and `body-reconstruction-input.jpg`. These are modeling inputs, not final meshes. The multi-view plate's side arm pose is not perfectly matched; use the canonical turnaround to resolve details. Do not submit the entire plate to single-image reconstruction.
-- Submitted the isolated body input to the available to3D service (`gltf`, high quality, game usage). It returned HTTP 400, `Failed to generate 3D model`, without a job ID or output. No generated mesh, skin or final GLB exists from this attempt. Blender executable, `bpy` and local reconstruction models were not available in this environment.
-- Hard gate: a functioning reconstruction/modeling toolchain must produce the actual mesh before topology, skinning, animation and final runtime replacement can proceed. This is not merely a manual WebGL gate. Do not promote the current fallback or mass-produce subsequent units.
-- Fixed consecutive same-state action restart and locomotion-speed application on transition. Gameplay authority remains untouched.
+- all 28 source-manifest entries were verified against the uploaded archive;
+- Vanguard modeling inputs were derived under `media/unit-production/vanguard/`;
+- the available to3D service returned HTTP 400 and produced no mesh/job ID;
+- Blender, `bpy`, and local reconstruction models were unavailable in that environment.
 
-### Resume contract
+Under the previous plan this became a production hard gate. Under the current plan it is **not a hard gate** because final standard-unit production no longer depends on a reconstructed mesh, topology, skin, skeleton, or animated GLB.
 
-1. Use the committed isolated Vanguard body reference with a working reconstruction service or model the canonical design in a suitable DCC. Add the canonical sword and shield as separate attachments; the body input intentionally omits equipment.
-2. Retopologize/UV as needed, use a compact humanoid skin, and provide an identity `ModelRoot` node for existing model discovery. Export metres, Y-up, +Z forward. Keep global root X/Z fixed throughout clips; local joint motion is presentation only.
-3. Embed `Idle`, `Move`, `Attack`, `Hit`, `Death`; loop only locomotion. Provide `WeaponTip` when practical. Use a separate neutral-textured material named exactly `TEAM` for faction recoloring, distinct from steel/cloth. Prefer two materials and 512–1024 textures. Inspect actual triangles/draw calls before acceptance.
-4. Replace `public/assets/models/unit-vanguard.glb`, retain `unit.vanguard`, and change its manifest status away from `NEEDS_MANUAL_GENERATION` (for example `READY`) in the same commit. The legacy generator will then preserve it. This status records import readiness, not manual visual acceptance.
-5. Run targeted animation tests and build; inspect clip structure, silhouette, team panel, grounding, attachments and in-place motion in WebGL at RTS zoom. Check target-device FPS. Final quality and performance are not yet accepted.
-6. After Vanguard acceptance, continue Golem, Siege Construct, Spear Guard, Ranger, Scout, Engineer, shared Elementalist body, then its four variants. Scout uses hand crossbow + dagger; elemental effects stay runtime VFX.
+Do not resume that path by default.
+
+## Active resume contract
+
+### 1. Restore/productionize the directional impostor path
+
+Use the existing directional WebP renderer as the starting point where practical.
+
+Required runtime behavior:
+
+- shared eight-direction mapping across all units;
+- animation-state selection for Idle / Move / Attack / Cast / Hit / Death;
+- per-action frame timing and loop/non-loop behavior;
+- stable world anchor and foot baseline;
+- authoritative simulation continues to own movement, facing, attack/cast outcome, health, and death;
+- GLB path remains available as a safe fallback during migration.
+
+### 2. Use the canonical Vanguard design as the first vertical slice
+
+The canonical Vanguard art/reference package remains authoritative for identity.
+
+Produce one coherent eight-direction Vanguard set and verify before animation expansion:
+
+- same apparent height and mass;
+- same helmet/armor design;
+- same shield shape/size;
+- same sword length;
+- stable foot baseline/pivot;
+- correct front/rear/left/right/diagonal mapping.
+
+Do not average alternates into the canonical design.
+
+### 3. Produce the minimum animation set
+
+Required:
+
+- `Idle`
+- `Move`
+- `Attack`
+- `Hit`
+- `Death`
+
+For each action, preserve character identity and directional consistency. Animation is presentation-only and must not move the authoritative world position.
+
+### 4. Normalize before atlas packing
+
+Before export:
+
+- correct any per-direction scale drift;
+- normalize foot baseline and pivot;
+- verify weapon/shield reach;
+- remove background cleanly;
+- inspect alpha edges for dark/black fringe;
+- verify the same direction convention as the runtime.
+
+Per-view normalization is acceptable when needed. Do not relabel a correct direction merely to hide a scale problem.
+
+### 5. Export WebP atlas + metadata
+
+Preferred deliverable:
+
+- WebP atlas/sprite sheet with alpha;
+- metadata for action, direction, frame order, frame timing, loop state, pivot/ground anchor;
+- optional release/contact frame and projectile/focus offset;
+- optional per-view scale correction only where necessary.
+
+Use a stable asset path/ID and avoid creating many independent runtime texture/material instances.
+
+### 6. Integrate and validate at RTS zoom
+
+Run only targeted rendering/direction/atlas tests plus one build at the end of a coherent batch.
+
+Manual acceptance should check:
+
+- directional correctness during actual movement;
+- stable apparent size in all eight directions;
+- grounded movement;
+- distinct Attack/Hit/Death readability;
+- team-color readability;
+- selection ring, health bar, fog, Wet/Freeze overlays, and VFX layering;
+- target-device performance when available.
+
+### 7. Continue the roster only after Vanguard passes
+
+Recommended order:
+
+```text
+Vanguard
+→ shared Elementalist family
+→ Spear Guard → Ranger → Scout → Engineer
+→ Golem → Siege Construct
+```
+
+Elemental effects remain runtime VFX. Scout uses hand crossbow + dagger as already established.
+
+## Hard-gate rule
+
+The following are **not** hard gates anymore:
+
+- no Blender executable;
+- failed image-to-3D service;
+- unavailable local reconstruction model;
+- no retopology/UV tool;
+- no auto-rigger;
+- no skinned GLB.
+
+A real hard gate is limited to missing/ambiguous canonical art that prevents a coherent eight-direction set, required external paid generation/approval, materially different unresolved art directions, or final manual WebGL/FPS acceptance.
+
+See `docs/UNIT_ART_ANIMATION_UPGRADE_PLAN.md` for the authoritative execution plan.
