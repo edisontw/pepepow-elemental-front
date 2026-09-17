@@ -1,262 +1,374 @@
 ---
 name: elemental-front-webp-impostor-pipeline
-description: Produce, normalize, manually upload, integrate, and validate canonical eight-direction WebP unit impostors for PEPEPOW Elemental Front.
+description: Produce, QA, normalize, package, integrate, and validate canonical eight-direction animated WebP unit impostors for PEPEPOW Elemental Front.
 ---
 
-# Elemental Front Canonical WebP Impostor Pipeline
+# Elemental Front Animated WebP Impostor Pipeline
 
-Use this skill for player-unit WebP impostor production and integration.
+Use this skill for player-unit 2.5D animated impostor production and integration.
 
-This workflow is presentation-only. Do not change simulation, gameplay rules, deterministic state, replay identity, navigation, combat authority, or world generation to make art fit.
+This workflow is presentation-only. Never change simulation, gameplay rules, deterministic state, replay identity, navigation, combat authority, or world generation to make art fit.
 
 ## 1. Mandatory read order
 
 Read only:
 
 1. `docs/PROJECT_CONTEXT.md`
-2. `docs/UNIT_IMPOSTOR_ASSET_SPEC.md`
-3. `media/prompts/images/WEBP_IMPOSTOR_BATCH_PROMPTS.md` when art must be generated
-4. this skill
-5. only task-relevant rendering files after binary upload
+2. `docs/UNIT_ART_ANIMATION_UPGRADE_PLAN.md`
+3. `docs/UNIT_ANIMATION_IMPLEMENTATION_NOTES.md`
+4. `docs/UNIT_IMPOSTOR_ASSET_SPEC.md`
+5. `media/prompts/images/WEBP_IMPOSTOR_BATCH_PROMPTS.md` when generation is required
+6. this skill
+7. only task-relevant rendering files after binary upload
 
 GitHub `main` is the only source of truth. Repository and in-game UI remain English-only.
 
-For the current approved WebP workflow, `docs/UNIT_IMPOSTOR_ASSET_SPEC.md` is the canonical asset-production contract and overrides older source-sheet / derived-from-3D recommendations for these eleven impostor sets.
-
-## 2. Core rule: asset first, integration second
-
-Do not repair bad source art with direction remaps, mirrored substitutions, repeated cardinal frames, or fallback directions.
-
-The required order is:
-
-1. audit the complete target visual roster;
-2. generate all canonical raw directional images;
-3. visually reject/regenerate inconsistent directions;
-4. normalize/crop/export locally;
-5. manually upload the complete replacement batch;
-6. verify all binaries on GitHub `main`;
-7. only then simplify/integrate runtime mapping;
-8. perform narrow automated checks and one final WebGL visual acceptance pass.
-
-Existing remaps/fallbacks are historical compatibility code only until replacement art is uploaded. They are not a production template.
-
-## 3. Canonical visual roster
-
-The complete batch contains eleven visual slugs:
+## 2. Authoritative production path
 
 ```text
-vanguard
-spear-guard
-ranger
-scout
-elementalist-fire
-elementalist-ice
-elementalist-lightning
-elementalist-water
-engineer
-golem
-siege-construct
+canonical character art
+→ identity lock
+→ 8-direction Idle anchors
+→ directional QA + LOCK
+→ Move animation
+→ QA + LOCK
+→ Attack animation
+→ QA + LOCK
+→ Hit animation
+→ QA + LOCK
+→ Death animation
+→ QA + LOCK
+→ deterministic frame extraction / normalization
+→ 192×256 RGBA WebP frames / atlas + metadata
+→ manual GitHub upload
+→ runtime integration
+→ WebGL acceptance
 ```
 
-Each slug requires exactly eight genuine directional frames:
+Elementalists add `Cast` between Attack and Hit.
+
+The minimum standard-unit vocabulary is:
 
 ```text
-00-front.webp
-01-front-left.webp
-02-left.webp
-03-rear-left.webp
-04-rear.webp
-05-rear-right.webp
-06-right.webp
-07-front-right.webp
+Idle
+Move
+Attack
+Hit
+Death
 ```
 
-Direction semantics are observer/camera positions around the unit. Never infer left/right only from which way a character appears to point on a 2D image. Use asymmetric equipment landmarks to verify anatomical side.
+## 3. Anti-loop rule
 
-### Screen movement versus observer-view labels
+Image generation is nondeterministic and must not be allowed to loop.
 
-Do not use player screen-movement names interchangeably with runtime observer-view labels. Under the fixed 45-degree RTS camera, the screen movement cycle maps to runtime view frames as follows:
+Hard rules:
+
+- Never ask the image model to generate all five actions in one request.
+- Work on exactly one action at a time.
+- Never regenerate an action that has passed QA unless a concrete defect is later identified.
+- Never regenerate the full eight-direction set merely because one direction failed.
+- If one direction/frame fails, repair only that direction/frame where possible.
+- Maximum two repair generations for the same failed target in one pass. If it still fails, stop at `WAITING_FOR_ART_REPAIR` and report the exact defect.
+- Do not silently restart from canonical art after an accepted identity lock.
+- Do not use image generation for cropping, scale normalization, baseline alignment, filename ordering, WebP conversion, or atlas packing. Those steps must be deterministic scripts/tools.
+
+## 4. Identity lock gate
+
+Before animation production, establish one accepted Vanguard/target-unit identity.
+
+The lock must preserve:
+
+- helmet/head design;
+- armor/clothing proportions;
+- weapon and shield/staff dimensions;
+- weapon handedness;
+- asymmetric equipment landmarks;
+- team-color surfaces;
+- camera elevation/projection character;
+- material/lighting language.
+
+Once accepted, later actions must derive from this identity. Do not redesign the unit during Move/Attack/Hit/Death generation.
+
+## 5. Canonical direction order
+
+Every action requires exactly eight genuine observer views in this canonical asset order:
 
 ```text
-screen down       / Front       -> runtime frame 0
-screen down-right / Front-Right -> runtime frame 1
-screen right      / Right       -> runtime frame 2
-screen up-right   / Rear-Right  -> runtime frame 3
-screen up         / Rear        -> runtime frame 4
-screen up-left    / Rear-Left   -> runtime frame 5
-screen left       / Left        -> runtime frame 6
-screen down-left  / Front-Left  -> runtime frame 7
+0  00-front
+1  01-front-left
+2  02-left
+3  03-rear-left
+4  04-rear
+5  05-rear-right
+6  06-right
+7  07-front-right
 ```
 
-The runtime frame labels in `IMPOSTOR_UNIT_VIEW_LABELS` remain observer-relative. Because the current shared diagonal file-order rule swaps diagonal source files, runtime frame 1 loads `07-front-right.webp`, frame 3 loads `05-rear-right.webp`, frame 5 loads `03-rear-left.webp`, and frame 7 loads `01-front-left.webp`.
+Direction names describe camera/observer position around the unit.
 
-When a human WebGL report names a screen direction such as "front-right" or "rear-right", translate that screen direction to the runtime frame first. Never assume screen Front-Right means canonical observer `Front-Right` / frame 7.
+No final direction may be mirrored, substituted, duplicated, or replaced with a nearby cardinal view.
 
-Any temporary runtime scale compensation must compare both adjacent diagonal directions against the cardinal Front / Right / Rear references. Do not stack an isolated multiplier onto a frame until the screen-direction-to-runtime-frame mapping is proven.
+Use the stable asymmetric landmark (shield side, sword hand, staff fitting, backpack, quiver, etc.) to verify left/right and diagonals.
 
-## 4. IMAGE_GENERATION_GATE
+### Screen-movement mapping warning
 
-Generate **eight individual raw images per slug**, not one 4x2 contact sheet.
+Do not confuse screen movement labels with observer-view asset labels.
 
-Use:
+Under the fixed RTS camera, translate human reports through the shared runtime mapping before modifying art or code. Never fix a reported diagonal issue by swapping files until the movement heading, selected frame index, and loaded filename have been verified.
 
-- `docs/UNIT_IMPOSTOR_ASSET_SPEC.md`
-- `media/prompts/images/WEBP_IMPOSTOR_BATCH_PROMPTS.md`
+## 6. Per-action generation gates
 
-Recommended sequence per slug:
+### A1 — Idle
 
-1. generate and approve `00-front` as the identity anchor;
-2. generate the other seven directions using the accepted front image as a visual reference when supported;
-3. compare stable asymmetric landmarks across all eight;
-4. reject any mirrored, duplicated, missing, or mutated direction before crop/export.
+Purpose: establish the eight-direction identity anchors and subtle breathing/weight-shift loop.
 
-Do not use runtime code to compensate for a failed direction.
+Target: 3–4 frames per direction.
 
-A source set is ready only when all eight images preserve the same unit identity, equipment, handedness, camera elevation, pose family, proportions, and lighting.
+Requirements:
 
-## 5. Local frame preparation
+- same character/equipment in all directions;
+- minimal motion;
+- stable feet and baseline;
+- no world displacement;
+- no dramatic weapon movement.
 
-Use the repository tool:
+After Idle QA passes, lock the eight directional identity anchors. Later actions must reference them.
 
-```bash
-python -m pip install -r scripts/art/requirements-impostors.txt
-python scripts/art/build_unit_impostors.py --init
-```
+### A2 — Move
 
-Put canonical raw sources under:
+Target: 4–6 frames per direction.
+
+Requirements:
+
+- grounded armored walk/jog;
+- clear leg/weight change;
+- in-place animation only;
+- no camera drift;
+- same shield/sword dimensions and handedness as locked Idle.
+
+### A3 — Attack
+
+Target: 4–6 frames per direction.
+
+Required readable phases:
 
 ```text
-art/impostor-source/<slug>/
+anticipation → strike/contact → recovery
 ```
 
-Use the canonical direction basename. PNG with alpha is preferred; WebP/JPEG inputs are accepted when a flat removable background is required.
+The renderer may align a designated contact/release frame to authoritative combat timing, but sprite motion never changes simulation timing.
 
-Build all eleven sets:
+### A4 — Hit
 
-```bash
-python scripts/art/build_unit_impostors.py --clean
-```
+Target: 2–3 frames per direction.
 
-The converter:
+Requirements:
 
-- removes a transparent or flat keyed background;
-- computes alpha bounds for all eight views of one slug;
-- derives one shared scale factor for that whole set;
-- keeps all eight directions at that same scale;
-- horizontally centers the visible bounds;
-- aligns a shared lower baseline;
-- exports `192x256` transparent lossless WebP;
-- never mirrors, rotates, remaps, or substitutes a direction;
-- validates exact filenames, dimensions, transparency, and non-empty output.
+- brief impact response;
+- no equipment mutation;
+- no large displacement;
+- fast recovery to authoritative next state.
 
-For sources that already have correct alpha and must not use key removal:
+### A5 — Death
 
-```bash
-python scripts/art/build_unit_impostors.py --background transparent --clean
-```
+Target: 5–6 frames per direction.
 
-For a known flat source background:
+Requirements:
 
-```bash
-python scripts/art/build_unit_impostors.py --background '#00FF00' --clean
-```
+- readable collapse;
+- final pose remains stable;
+- no gameplay displacement;
+- keep equipment recognizable throughout the fall.
 
-The upload tree is:
+### Elementalist Cast
+
+Target: 4–6 frames per direction.
+
+Keep elemental effect intensity restrained in baked art; runtime VFX owns the main spell effect.
+
+## 7. QA before accepting any action
+
+An action passes only when all eight directions satisfy:
+
+- exactly eight genuine directions are present;
+- front/rear and left/right are correct;
+- all four diagonals are distinct and correctly oriented;
+- same identity, weapon hand, equipment, and shield/staff side;
+- no unexpected costume/armor mutation;
+- camera elevation and projection remain coherent;
+- no direction-specific dramatic relighting;
+- apparent body scale is consistent;
+- feet/ground contact remains in a stable vertical region;
+- frames form a plausible motion sequence rather than unrelated poses;
+- no text, labels, borders, logos, scenery, or baked contact shadow;
+- transparent background is preferred and alpha edges are usable.
+
+If one direction/action fails, repair only the failed target. Do not restart accepted actions.
+
+## 8. Deterministic frame preparation
+
+After an action passes visual QA, use deterministic tooling for frame preparation.
+
+Final per-frame contract:
+
+- `192×256` pixels;
+- RGBA WebP with transparency;
+- one shared scale policy for the whole unit/action family;
+- stable horizontal pivot;
+- shared lower foot baseline;
+- transparent safety padding;
+- no baked contact shadow;
+- no mirroring/rotation/remapping during crop/export.
+
+Do not independently rescale each direction to fill the canvas.
+
+Recommended working tree:
 
 ```text
-art/impostor-upload/public/assets/impostors/<slug>/
+art/impostor-source/<slug>/<Action>/<direction>/frame-00.png
+art/impostor-source/<slug>/<Action>/<direction>/frame-01.png
+...
 ```
 
-Validate an already built batch with:
-
-```bash
-python scripts/art/build_unit_impostors.py --check-only
-```
-
-## 6. MANUAL_BINARY_UPLOAD_GATE
-
-The user manually uploads the output directories into:
+Recommended output tree:
 
 ```text
-public/assets/impostors/<slug>/
+art/impostor-upload/public/assets/impostors/<slug>/<action>/<direction>/00.webp
+art/impostor-upload/public/assets/impostors/<slug>/<action>/<direction>/01.webp
+...
 ```
 
-Do not change runtime integration while any of the 88 required binaries is missing, empty, incorrectly named, or known to contain a bad direction.
+Exact runtime layout may instead use a packed atlas if the renderer/metadata contract requires it. Preserve explicit action, direction, frame order, timing, loop state, pivot, and optional contact/release frame metadata.
 
-After the user reports upload completion, verify GitHub `main` directly. User confirmation alone is not binary verification.
+## 9. Frame-count policy
 
-Required gate:
+Do not inflate frame counts merely because generation can produce more images.
 
-- 11 directories;
-- 8 canonical WebP files in each directory;
-- 88 files total;
-- every file non-empty;
-- no temporary alternate filename required.
+Use the smallest sequence that reads clearly at RTS scale:
 
-## 7. Runtime integration after upload
+```text
+Idle   3–4
+Move   4–6
+Attack 4–6
+Hit    2–3
+Death  5–6
+Cast   4–6 (Elementalists only)
+```
 
-Only after the complete binary gate passes:
+Fewer coherent frames are preferred over many inconsistent frames.
 
-1. audit `src/rendering/impostor-frame-assets.ts` and `src/rendering/visual-asset-library.ts`;
-2. remove temporary Engineer/Water/Golem/Siege source-order workarounds that are no longer required;
-3. remove Fire diagonal fallback mapping when the replacement Fire set is verified;
-4. converge all eleven assets on canonical identity frame order wherever the new art permits;
-5. retain camera-relative heading selection, billboard camera-facing behavior, and angular hysteresis;
-6. keep presentation code renderer-side only;
-7. do not rotate the billboard plane itself merely to express unit facing;
-8. do not preserve a per-asset remap simply because the old asset needed it;
-9. once the canonical batch is verified, all eleven runtime variants must load frames directly through `impostorFrameFiles(slug)` and use the same frame-selection path; do not reintroduce per-unit runtime remaps, heading offsets, or specialized direction modules;
-10. keep billboard orientation independent from unit-root facing: set billboard world yaw from the shared `RTS_CAMERA_YAW_DEGREES` convention rather than reading the parent Euler Y angle and counter-rotating a child;
-11. never use Euler decomposition of the rotating unit root as billboard compensation, because equivalent quaternion rotations can decompose into different Euler triples and break the rear half of the eight-direction cycle;
-12. if a human WebGL check still reports a direction mismatch after canonical assets pass QA, instrument the selected unit's movement delta, world heading, chosen frame index, and filename before changing assets or introducing a remap.
+## 10. Runtime ownership
 
-A new per-asset remap is acceptable only if a mathematically necessary runtime convention is proven after canonical assets pass visual QA. It must not be the first response to bad source art.
+Sprite animation is presentation-only.
 
-## 8. Narrow validation
+Simulation remains authoritative for:
 
-For presentation-only integration:
+- world X/Z translation;
+- facing/heading;
+- movement state;
+- attack/cast outcome and timing;
+- damage;
+- target selection;
+- health/death state;
+- replay/hash identity.
 
-1. update/add targeted canonical-path and mapping tests;
-2. run those targeted tests;
-3. run TypeScript/build once;
-4. let CI/Pages deploy normally;
-5. perform one final human WebGL all-direction check.
+Recommended presentation priority:
 
-Do not rerun broad simulation/replay/world-generation suites unless authoritative gameplay code changed or a concrete regression requires them.
+```text
+DEATH > HIT > CAST/ATTACK > MOVE > IDLE
+```
 
-Final WebGL acceptance checks:
+Movement animation is in-place. Root motion is forbidden.
 
-- each of the eleven intended visual variants uses the replacement art;
-- all eight headings show the matching genuine direction;
-- front/rear and left/right are not inverted;
-- no direction duplicates another direction;
-- no frame-size pulsing;
-- feet/chassis remain grounded;
-- billboard remains camera-facing;
-- scale is readable beside other units/buildings;
-- selection, health, and status presentation remains readable;
-- no unexpected GLB/primitive fallback remains due to load failure.
+## 11. Vanguard vertical-slice gate
 
-## 9. Gate states
+Do not mass-produce the roster until Vanguard passes the full animated pipeline.
 
-Use these states when a task must stop for user action:
+Vanguard acceptance requires:
 
-- `WAITING_FOR_IMAGE_GENERATION`
+- canonical identity preserved;
+- all eight observer directions correct;
+- Idle / Move / Attack / Hit / Death all visibly distinct;
+- no distracting scale pulse between directions/actions;
+- stable baseline and pivot;
+- broad asymmetric teal shield remains readable;
+- compact one-handed sword remains consistent;
+- selection ring, health bar, fog, Wet/Freeze overlays, and VFX remain readable;
+- one manual WebGL acceptance pass succeeds.
+
+After Vanguard passes, recommended roster order is:
+
+```text
+shared Elementalist family
+→ Spear Guard
+→ Ranger
+→ Scout
+→ Engineer
+→ Golem
+→ Siege Construct
+```
+
+## 12. Manual binary upload gate
+
+Binary assets may be packaged locally for manual upload.
+
+After the user uploads them, verify GitHub `main` directly before changing runtime integration. User confirmation alone is not binary verification.
+
+Do not integrate known-bad directions or incomplete actions.
+
+## 13. Runtime integration
+
+After Vanguard assets are verified:
+
+1. use the existing directional impostor renderer where practical;
+2. support per-action frame timing and loop/non-loop behavior;
+3. preserve the established shared eight-direction heading resolver;
+4. keep GLB presentation as compatibility fallback during migration;
+5. keep billboard camera-facing behavior independent of unit facing;
+6. do not introduce per-unit direction remaps as a first response to bad source art;
+7. use metadata for action/direction/frame selection, timing, pivot, optional contact/release frame, and optional per-view correction only when demonstrated necessary.
+
+If a human WebGL report finds a direction mismatch after canonical asset QA, instrument movement delta, heading, selected frame index, and loaded filename before changing mapping.
+
+## 14. Narrow validation
+
+For presentation-only work:
+
+1. run targeted impostor/action/mapping tests;
+2. run TypeScript/build once at the end of a coherent batch;
+3. allow normal CI/Pages deployment;
+4. perform one short manual WebGL acceptance pass.
+
+Do not rerun broad simulation/replay/world-generation regressions unless authoritative gameplay code changed or a concrete regression requires them.
+
+## 15. Gate states
+
+Use exactly these states when stopping:
+
+- `WAITING_FOR_IDENTITY_LOCK`
+- `READY_FOR_IDLE`
+- `READY_FOR_MOVE`
+- `READY_FOR_ATTACK`
+- `READY_FOR_HIT`
+- `READY_FOR_DEATH`
+- `WAITING_FOR_ART_REPAIR`
 - `READY_FOR_FRAME_PREP`
 - `WAITING_FOR_MANUAL_UPLOAD`
 - `READY_FOR_RUNTIME_INTEGRATION`
 - `WAITING_FOR_WEBGL_ACCEPTANCE`
 - `COMPLETE`
 
-At a gate, provide only the exact missing action and paths needed to resume. Do not loop on already completed steps.
+At a gate, report the exact completed actions and the one next required action. Do not loop on already accepted work.
 
-## 10. Completion criteria
+## 16. Completion criteria
 
-Mark the pipeline complete only when:
+The animated impostor pipeline is complete only when:
 
-- all 88 canonical replacement WebP binaries are present on GitHub `main`;
-- temporary art-recovery remaps/fallbacks are removed where no longer needed;
-- runtime uses canonical static paths;
-- targeted mapping/path tests and build pass;
+- Vanguard first, then the intended roster, has coherent eight-direction animated action assets;
+- frames are deterministically normalized and exported to browser-friendly WebP/atlas assets;
+- metadata explicitly preserves action, direction, frame timing, loop state, and anchor information;
+- uploaded binaries are verified on GitHub `main`;
+- runtime action selection follows authoritative state without root motion;
+- targeted tests and build pass;
 - Pages deployment passes;
-- one human WebGL check confirms direction, scale, grounding, billboard behavior, and readability.
+- manual WebGL acceptance confirms direction, animation readability, scale, grounding, billboard behavior, overlays, and performance.
