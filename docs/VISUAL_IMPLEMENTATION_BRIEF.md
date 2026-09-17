@@ -22,9 +22,10 @@ For visual-production tasks, read only:
 
 1. `docs/PROJECT_CONTEXT.md`
 2. this file
-3. the specific runtime files being changed
-4. `media/prompts/images/POST_ROADMAP_UNIT_BUILDING_ART_PROMPTS.md` only when unit/building art direction is relevant
-5. other canonical documents only when a concrete ambiguity requires them
+3. `docs/UNIT_ART_ANIMATION_UPGRADE_PLAN.md` when unit art/animation is involved
+4. the specific runtime files being changed
+5. `media/prompts/images/POST_ROADMAP_UNIT_BUILDING_ART_PROMPTS.md` only when unit/building art direction is relevant
+6. other canonical documents only when a concrete ambiguity requires them
 
 Do not repeatedly reread the full roadmap, historical closure reports, or obsolete implementation history.
 
@@ -49,13 +50,13 @@ Preserve:
 
 Presentation may freely improve:
 
-- models and materials;
+- sprites, impostors, models, and materials;
 - animation;
 - particles, trails, beams, decals, shaders, and lighting;
 - UI layout and styling;
 - camera feedback;
 - audio hooks and visual timing;
-- terrain and environment dressing;
+- terrain and environment dressing.
 
 Rendering presents simulation truth; it does not invent gameplay outcomes.
 
@@ -76,7 +77,7 @@ Use:
 - constructs and heavy machinery for Golem / Siege roles;
 - strong silhouettes readable from an elevated RTS camera;
 - broad forms before small detail;
-- restrained PBR materials and emissive elemental accents.
+- restrained materials and emissive elemental accents.
 
 Avoid:
 
@@ -89,7 +90,7 @@ Avoid:
 Ownership and element identity must remain separate:
 
 - team color = faction ownership;
-- elemental glow/material = Fire / Water / Ice / Lightning state or alignment.
+- elemental glow/material/VFX = Fire / Water / Ice / Lightning state or alignment.
 
 The existing unit/building concept specification remains:
 
@@ -121,7 +122,7 @@ Work in coherent visual slices rather than replacing the entire game at once.
 
 - Golem and Siege Construct;
 - advanced destruction / construction states;
-- final LOD and quality-setting pass;
+- final atlas/LOD/quality-setting pass;
 - remaining high-value environment and VFX polish.
 
 Do not block a coherent slice waiting for every final asset.
@@ -130,33 +131,40 @@ Do not block a coherent slice waiting for every final asset.
 
 ## 6. Unit and building asset pipeline
 
-Preferred final runtime format is GLB unless the existing asset pipeline documents another format.
+### Units — authoritative production path
 
-Preferred production path:
+Standard combat units use a **high-quality 2.5D animated impostor pipeline** as the primary production and runtime target.
 
 ```text
-approved concept
-→ consistent turnaround / multi-view reference
-→ 3D model generation or modeling
-→ cleanup / retopology / UV / PBR material pass
-→ rig + small animation set for units
-→ GLB
-→ stable manifest asset ID
-→ PlayCanvas runtime replacement
+canonical character art
+→ 8-direction consistent character
+→ Idle / Move / Attack / Hit / Death
+→ WebP sprite / atlas
+→ PlayCanvas billboard / impostor
 ```
 
-Do not generate independent AI images for eight gameplay directions and treat them as a canonical unit set; directional inconsistencies are unacceptable. If sprite/impostor output is useful, derive it from one approved 3D source where practical.
+Elementalists may add `Cast`.
 
-For units, prioritize a small useful animation vocabulary:
+Requirements:
 
-- Idle
-- Move
-- Attack
-- Cast where relevant
-- Hit
-- Death
+- all eight views must preserve one canonical identity;
+- use the shared runtime direction convention;
+- normalize scale, pivot, and foot baseline across views/actions;
+- verify front/rear and diagonals before animation production;
+- pack final frames into browser-friendly WebP atlases with explicit metadata;
+- simulation remains authoritative for movement, facing, attack/cast results, health, and death.
 
-Buildings should communicate function from above and may use restrained production, relay, construction, or machinery animation.
+Do not make Blender modeling, retopology, UV work, rigging, skinning, or animated GLB export a prerequisite for standard unit production.
+
+A true-3D intermediate may be used privately as an optional art-generation aid if it is genuinely efficient, but it is not a required repository deliverable and must not become the default Work pipeline.
+
+Existing GLB unit assets and animation plumbing may remain as compatibility fallbacks or experiments. They do not define final-art acceptance.
+
+### Buildings and non-character assets
+
+GLB remains appropriate for buildings and other assets where true 3D materially improves the elevated RTS presentation and is efficient to author/runtime-render.
+
+Use stable manifest asset IDs and browser-friendly geometry/material budgets. Building animation may remain restrained and mechanical.
 
 ---
 
@@ -168,7 +176,7 @@ A strong attack may combine:
 
 ```text
 anticipation / wind-up
-→ release or muzzle/cast flash
+→ release frame / pose
 → projectile / beam / weapon motion
 → trail
 → impact
@@ -237,27 +245,39 @@ Environmental detail must not obscure units, selection markers, spell footprints
 
 Maintain the mature-alpha target of roughly 100 active units, roughly 200 total entities, and a 60 FPS rendering target on the intended desktop browser class.
 
-Prefer:
+For unit impostors, prefer:
+
+- shared WebP atlases and materials across instances;
+- bounded atlas dimensions and predictable texture memory;
+- reduced update rate for distant/off-screen/fog-hidden units;
+- optional lower-resolution/animation-sampling quality tiers;
+- soft contact/blob shadows instead of expensive per-unit real-time shadows;
+- restrained transparent overdraw.
+
+For buildings/environment, prefer:
 
 - shared materials and texture atlases where practical;
-- approximately one or two material slots for ordinary units where practical;
-- sensible 512–1024 class unit textures and larger textures only for justified hero/core assets;
-- LOD for units, buildings, and expensive environment assets where useful;
-- instancing for repeated props / meshes;
-- pooled transient VFX where repeated creation becomes expensive;
-- compressed textures suitable for web delivery;
+- sensible mesh complexity;
+- LOD/instancing for repeated or expensive assets;
 - restrained shadow casters;
-- limited transparent overdraw.
+- compressed textures suitable for web delivery.
+
+For VFX, prefer:
+
+- pooled transient effects;
+- bounded particle counts;
+- readable timing and shape over brute-force particle density.
 
 Avoid:
 
 - film-quality geometry invisible at RTS scale;
-- many unique materials per unit;
+- many unique materials/textures per repeated unit;
 - thousands of overlapping transparent particles;
 - expensive full-screen effects that obscure tactical information;
-- visual randomness that perturbs gameplay RNG.
+- visual randomness that perturbs gameplay RNG;
+- token-intensive 3D production steps that do not materially improve the normal gameplay view.
 
-Visual sophistication should come primarily from silhouette, animation, materials, lighting, timing, layering, and impact feedback rather than brute-force geometry or particle counts.
+Visual sophistication should come primarily from silhouette, directional consistency, animation, materials, lighting, timing, layering, and impact feedback.
 
 ---
 
@@ -273,7 +293,8 @@ During implementation:
 - do not repeatedly narrate the repository state;
 - do not generate long audit or closure reports;
 - do not ask for handoff after every small visual change;
-- prefer a coherent implementation batch over many tiny checkpoints.
+- prefer a coherent implementation batch over many tiny checkpoints;
+- do not default to Blender/mesh/rigging iteration for standard unit art.
 
 Validation for presentation-only changes is intentionally light:
 
@@ -300,19 +321,22 @@ Keep the final Work response short:
 
 Do not produce a long milestone narrative for routine visual-production work.
 
+---
 
-## 13. Priority A implementation notes
+## 13. Existing GLB baseline notes
 
-- Models: `public/assets/models/`; rebuild with `python scripts/art/build_frontier_models.py` (standard library only).
-- Original faceted geometry, no third-party asset license dependency. This is a coherent runtime baseline, not final artist-approved concept/rig completion.
-- Format: GLB, metres, Y up, +Z forward. `SURFACE` uses vertex colors; `TEAM` is replaced per faction; `ELEMENT` remains independent. No texture download required.
-- Optional motion nodes: `LegL`, `LegR`, `Weapon`, `Reactor`, `Orbit`. Missing nodes safely omit that motion; the manifest loader retains primitive fallback on load failure.
-- Unit models have 470–832 triangles / 5–6 primitives; Core has 1,136 triangles / 4 primitives. Geometry and materials are shared across instances. Ordinary-unit draw-count/LOD reduction remains Priority C.
-- Validation: build/typecheck, 10 targeted rendering tests, six GLB structural checks. Browser smoke blocked by unavailable WebGL. Actual appearance, animation and target-device FPS still need manual acceptance.
+The repository already contains original faceted GLB fallbacks for several units/buildings and animation/runtime experiments. Preserve them where useful for compatibility and fallback behavior.
 
-## 14. Priority B implementation notes
+For standard combat units, these assets are no longer the final production target. Do not interpret `NEEDS_MANUAL_GENERATION`, GLB clip plumbing, model generators, or previous rigging notes as a requirement to finish a true-3D character pipeline.
 
-- Added original faceted GLBs for Spear Guard, Ranger, Scout, Engineer, Barracks, Arcane Tower, Workshop, Outpost, Extractor, and Mana Well.
-- Stable manifest IDs drive runtime replacement with primitive fallback. The model language keeps team-color surfaces separate from elemental materials.
-- Resource sites now have a restrained deterministic pulse marker to improve Material Deposit and Mana Spring recognition without adding gameplay state.
-- The model generator remains the single reproducible source for this baseline; final artist-approved topology, textures, rigging, and LOD are still later production work.
+Buildings may continue to use GLB where appropriate.
+
+---
+
+## 14. Environment implementation notes
+
+The asset-driven environment pass remains valid and independent of the unit representation decision.
+
+- environment presentation may use textured meshes, impostors, decals, and other efficient rendering techniques;
+- gameplay, navigation, `m02-standard-v1`, replay, and deterministic simulation remain unchanged;
+- manual WebGL/FPS acceptance remains the final visual-performance gate where automated browser rendering is unavailable.
