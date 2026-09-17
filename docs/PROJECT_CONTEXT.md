@@ -21,6 +21,11 @@ For the current visual-production pass, read next:
 
 - `docs/VISUAL_IMPLEMENTATION_BRIEF.md`
 
+For unit art/animation work, also read:
+
+- `docs/UNIT_ART_ANIMATION_UPGRADE_PLAN.md`
+- `docs/UNIT_ANIMATION_IMPLEMENTATION_NOTES.md`
+
 Then read only task-relevant sections of:
 
 1. `docs/GAME_DESIGN_SPEC.md`
@@ -65,7 +70,7 @@ Current version separation:
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
-Presentation-only replacement of UI, models, materials, animations, terrain dressing, particles, decals, lighting, camera feedback, or audio hooks does not require a gameplay/replay version bump.
+Presentation-only replacement of UI, sprites, models, materials, animations, terrain dressing, particles, decals, lighting, camera feedback, or audio hooks does not require a gameplay/replay version bump.
 
 ---
 
@@ -177,7 +182,7 @@ Primary scope:
 4. battlefield terrain, water, forest, ice, resources, POIs, and environment dressing;
 5. combat feedback, projectiles, hit/death/destruction presentation;
 6. Fire / Water / Ice / Lightning Tactical and Strategic VFX readability;
-7. browser-friendly asset, material, VFX, LOD, and draw-call optimization.
+7. browser-friendly asset, material, VFX, atlas/LOD, and draw-call optimization.
 
 Visual direction:
 
@@ -185,12 +190,36 @@ Visual direction:
 - 2.5D / stylized-3D RTS presentation;
 - strong elevated-camera silhouettes;
 - team color communicates ownership;
-- elemental material/glow communicates elemental identity/state;
-- final or production-quality runtime models should prefer GLB unless the asset pipeline documents another format.
+- elemental material/glow/VFX communicates elemental identity/state;
+- **standard combat units use high-quality 2.5D animated impostors as the authoritative final-art path**;
+- GLB remains appropriate for buildings and other assets where true 3D materially improves the RTS view.
 
-Canonical production constraint:
+### Authoritative standard-unit production path
+
+```text
+canonical character art
+→ 8-direction consistent character
+→ Idle / Move / Attack / Hit / Death
+→ WebP sprite / atlas
+→ PlayCanvas billboard / impostor
+```
+
+Elementalists may add `Cast`.
+
+This replaces the previous Blender-first / rigged animated-GLB production target for standard units.
+
+Implications:
+
+- do not require Blender, mesh reconstruction, retopology, UV work, rigging, skinning, or animated GLB export for standard unit completion;
+- prioritize canonical identity, eight-direction consistency, action readability, scale/pivot/foot-baseline normalization, alpha quality, atlas efficiency, and runtime integration;
+- a true-3D intermediate is optional only when it is genuinely efficient as an art-generation aid;
+- existing unit GLBs and animation plumbing remain compatibility fallbacks/experiments, not final-art authority;
+- a failed image-to-3D/Blender toolchain is not a unit-production hard gate.
+
+Canonical production constraints:
 
 - `docs/VISUAL_IMPLEMENTATION_BRIEF.md`
+- `docs/UNIT_ART_ANIMATION_UPGRADE_PLAN.md`
 
 Existing concept reference:
 
@@ -211,24 +240,36 @@ Rules for current work:
 
 Priority A/B implementation is complete; manual WebGL acceptance remains pending.
 
-- Manifest-loaded original GLBs: Vanguard, four aligned Elementalists, and Elemental Core (53–123 KiB per model). Stable Core asset ID preserved.
-- Named rigid-node movement, attack/cast, hit/death, and reactor motion; artist-authored skeletal animation remains a follow-up.
+- Legacy/fallback manifest-loaded original GLBs exist for Vanguard, four aligned Elementalists, and other units/buildings. They remain useful compatibility assets and technical baselines, but standard-unit final art is now targeted at animated 2.5D impostors.
+- Existing GLB named-node/embedded animation plumbing for movement, attack/cast, hit/death, and reactor motion remains valid fallback infrastructure and does not need to be deleted.
 - Gunmetal/brass HUD, construction/army categories, selected-army health, selected-caster Tactical readiness, and in-world work progress.
 - Hollow selection/Wet rings, freeze shell, Water ripples, segmented Lightning, and pooled single-draw combat sparks; 192-spark/64-projectile/96-transient caps.
-- TypeScript/build and 10 targeted rendering tests pass; GLB structure checks pass. Work browser cannot boot WebGL (`WebGL not supported`); no visual or 100-unit FPS pass is claimed.
-- Priority B is implemented: four additional unit models, six building models, and pulsing resource-site markers. Strategic relay links, river material highlights, terrain shadow-pass suppression, and a high-DPI pixel-ratio cap are also in `main`.
-- Terrain/environment depth integration is now in `main`: denser forest grouping and ground contact, richer river-bank wet/mud/grass transitions, and route-aligned shoulder/verge dressing. This remains presentation-only and does not change world generation or gameplay authority.
-- Canonical AI final-art prompts are now available at `media/prompts/images/VISUAL_PRODUCTION_PRIORITY_A_B_PROMPTS.md`. Current GLBs remain fallbacks and model entries are queued as `NEEDS_MANUAL_GENERATION` until the user manually approves and uploads final art.
-- Next: manual final-art generation/approval and WebGL readability/FPS acceptance. Do not reopen gameplay authority.
+- TypeScript/build and targeted rendering tests have passed for the implemented baseline. Work browser may report `WebGL not supported`; automated visual acceptance must not be claimed when WebGL is unavailable.
+- Priority B is implemented: additional unit/building fallbacks and pulsing resource-site markers. Strategic relay links, river material highlights, terrain shadow-pass suppression, and a high-DPI pixel-ratio cap are also in `main`.
+- Terrain/environment depth integration is in `main`: denser forest grouping and ground contact, richer river-bank wet/mud/grass transitions, and route-aligned shoulder/verge dressing. This remains presentation-only and does not change world generation or gameplay authority.
+- Canonical AI final-art prompts are available at `media/prompts/images/VISUAL_PRODUCTION_PRIORITY_A_B_PROMPTS.md`.
+- Next unit-art step: restore/productionize the animated directional impostor path and complete Vanguard as the 2.5D vertical slice before mass-producing the roster.
+
+### Unit-production decision — 2026-09-17
+
+The previous true-3D unit-production attempt is retired as the default route.
+
+Historical record:
+
+- canonical package checksums and derived Vanguard modeling inputs remain under `media/unit-production/`;
+- the to3D attempt failed with HTTP 400 and produced no mesh/job ID;
+- GLB animation playback/fallback work remains in the repository.
+
+Current decision:
+
+- those 3D artifacts are historical/reference/fallback material only;
+- do not resume Blender-first modeling by default;
+- use the canonical art to build coherent eight-direction animated WebP atlases;
+- preserve the shared direction convention and previously corrected diagonal/rear mappings;
+- fix scale drift with per-view normalization where necessary rather than relabeling directions;
+- see `docs/UNIT_ANIMATION_IMPLEMENTATION_NOTES.md` for the exact active resume contract.
 
 ### Token-efficient validation policy
-
-Current unit 3D production (2026-09-17): canonical package checksums and derived
-Vanguard modeling inputs are under `media/unit-production/`. The to3D attempt
-failed with HTTP 400 and produced no mesh/job ID; final Vanguard remains blocked
-before rigging/import. See `docs/UNIT_ANIMATION_IMPLEMENTATION_NOTES.md` for the
-exact resume contract. U0 playback fixes and build-time protection for promoted
-GLBs are implemented. Do not treat the existing rigid-node fallback as final art.
 
 For presentation-only batches:
 
@@ -237,7 +278,8 @@ For presentation-only batches:
 - run only directly relevant targeted tests when necessary;
 - perform one short browser/WebGL smoke when available;
 - fix obvious local blockers, then stop;
-- avoid repeated full-repo audits, exhaustive visual inspection, repeated verification of unchanged systems, and long closure reports.
+- avoid repeated full-repo audits, exhaustive visual inspection, repeated verification of unchanged systems, and long closure reports;
+- do not spend Work tokens on iterative Blender modeling/rigging for standard units.
 
 After the visual-production pass reaches a satisfactory baseline, resume the deferred post-roadmap army-control / targeting / balance work only when explicitly requested.
 
