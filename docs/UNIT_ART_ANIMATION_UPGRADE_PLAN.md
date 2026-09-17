@@ -1,7 +1,7 @@
 # PEPEPOW Elemental Front — Unit Art & Animation Upgrade Plan
 
 **Status:** ACTIVE — execution plan  
-**Scope:** final unit art, rigging, animation, action timing, combat feedback integration, LOD, and browser-performance safeguards  
+**Scope:** final unit art, directional animation, action timing, combat feedback integration, atlas/runtime optimization, and browser-performance safeguards  
 **Authority:** presentation only; no gameplay, simulation, navigation, replay, AI, or deterministic-state changes  
 **Primary target:** raise unit presentation to the quality level of the upgraded battlefield while preserving RTS readability and the existing authoritative ruleset
 
@@ -9,25 +9,41 @@
 
 ## 1. Mission
 
-Upgrade the current unit presentation from static/faceted runtime models and legacy directional impostor behavior to a **production-quality animated stylized-3D RTS unit system** consistent with the current Arcane-Industrial Frontier environment.
+Upgrade combat-unit presentation to a **high-quality 2.5D animated impostor system** consistent with the Arcane-Industrial Frontier environment.
 
-The visual target is the current approved concept direction:
+The authoritative production flow is:
 
-- weathered dark steel, leather, cloth, timber, restrained brass;
-- teal team-color surfaces clearly separated from elemental materials;
-- strong top-down/elevated silhouettes;
+```text
+canonical character art
+→ 8-direction consistent character
+→ Idle / Move / Attack / Hit / Death
+→ WebP sprite / atlas
+→ PlayCanvas billboard / impostor
+```
+
+For Elementalists, add `Cast` where useful.
+
+This is the default and authoritative unit-art path. A Blender-first modeling, rigging, skinning, or animated-GLB pipeline is **not** the default production target for standard combat units.
+
+At the current RTS camera distance and projected unit size, a polished 2.5D impostor can preserve the approved character design more reliably than a low-cost true-3D reconstruction while also reducing content-production risk and browser rendering cost.
+
+The visual target remains:
+
+- weathered dark steel, leather, cloth, timber, and restrained brass;
+- teal team-color surfaces clearly separated from elemental identity;
+- strong elevated-camera silhouettes;
 - human-scale soldiers for infantry roles;
 - engineered elemental equipment for Elementalists;
 - heavy stone/metal construction for Golem and Siege Construct;
-- readable motion and combat timing at normal RTS zoom;
-- no floating/sliding appearance during movement;
+- readable movement and combat timing at normal RTS zoom;
+- stable scale and foot grounding across all directions;
 - visible attack, cast, hit, and death actions rather than projectile-only feedback.
 
-The target is not to reproduce a concept image literally at close-up cinematic fidelity. The target is to preserve its silhouette, material language, equipment identity, and character while producing a browser-friendly rigged asset readable at approximately 64–128 projected pixels.
+The target is not cinematic close-up fidelity. The target is a coherent character that remains convincing and readable at approximately 64–128 projected pixels.
 
 ---
 
-## 2. Source-of-truth and read order
+## 2. Source of truth and read order
 
 GitHub `main` is the only source of truth.
 
@@ -36,10 +52,11 @@ Read in this order:
 1. `docs/PROJECT_CONTEXT.md`
 2. `docs/VISUAL_IMPLEMENTATION_BRIEF.md`
 3. this file
-4. only the runtime files directly touched by the implementation
-5. `media/prompts/images/VISUAL_PRODUCTION_PRIORITY_A_B_PROMPTS.md` when final unit art generation is involved
-6. `docs/TECH_ARCHITECTURE.md` only for rendering/simulation separation and performance constraints
-7. `docs/GAME_DESIGN_SPEC.md` only for unit roles and attack identities
+4. `docs/UNIT_ANIMATION_IMPLEMENTATION_NOTES.md` when touching the current unit renderer
+5. only runtime files directly involved in the implementation
+6. `media/prompts/images/VISUAL_PRODUCTION_PRIORITY_A_B_PROMPTS.md` when final unit art generation is involved
+7. `docs/TECH_ARCHITECTURE.md` only for rendering/simulation separation and performance constraints
+8. `docs/GAME_DESIGN_SPEC.md` only for unit roles and attack identities
 
 Do not reopen M00–M08 or post-roadmap gameplay authority.
 
@@ -49,19 +66,17 @@ Repository content and current in-game/debug UI remain English-only.
 
 ## 3. Current diagnosis
 
-The environment is now substantially more sophisticated than the units. The main remaining visual mismatch is therefore unit presentation.
+The environment is substantially more sophisticated than the units. Unit presentation is therefore the main remaining visual mismatch.
 
 Current runtime characteristics:
 
-- the player-unit directional WebP impostor path still exists, but is disabled as the primary runtime path;
-- units primarily use manifest-loaded GLB fallback models;
-- current GLBs are low-detail faceted baseline assets marked `NEEDS_MANUAL_GENERATION`;
-- movement is presented mainly through simple named-node leg rotation plus procedural root bob;
-- attack/cast presentation is driven by simple weapon-node rotation and combat VFX rather than authored character animation;
-- hit and death use renderer-side procedural recoil/fall effects;
-- the simulation already provides authoritative movement, attack timing, cast timing, health/state, facing, and death information needed to drive proper presentation.
+- the repository already contains a directional WebP impostor path that previously proved workable;
+- current primary unit rendering uses low-detail manifest-loaded GLB fallbacks and procedural/embedded animation plumbing;
+- those GLBs remain useful compatibility fallbacks and technical experiments, but they are not the final-art production direction;
+- the simulation already provides authoritative movement, attack timing, cast timing, health/state, facing, and death information required to drive presentation;
+- prior eight-direction work established the importance of shared direction mapping, per-view normalization, stable foot baselines, and consistent scale.
 
-This means the next quality step is **not** another eight-direction sprite pass and not more procedural bobbing. It is a rigged/skinned animated GLB pipeline with renderer-side state selection.
+The next quality step is therefore to **restore and productionize the directional impostor path**, not to continue spending production budget on mesh reconstruction, retopology, skinning, Blender authoring, or animated-GLB cleanup.
 
 ---
 
@@ -77,133 +92,136 @@ Preserve all of the following:
 - current movement, attack, damage, spell, status, death, and formation semantics;
 - existing team-color versus elemental-identity separation;
 - browser-first desktop RTS target;
-- stable manifest asset IDs.
+- stable asset IDs and manifest-driven replacement where applicable.
 
-### Non-negotiable animation rule
+### Non-negotiable presentation rule
 
-**Animation must never own authoritative translation, rotation, attack timing, damage, projectile timing, target selection, or death state.**
+**Sprite animation must never own authoritative translation, facing, attack timing, damage, projectile timing, target selection, cast result, or death state.**
 
-The renderer may visually anticipate and follow an authoritative action, but the simulation remains the source of truth.
+The renderer selects and displays frames based on simulation truth. Presentation may visually anticipate/follow an action but must not alter gameplay.
 
-### Root-motion rule
+### Movement rule
 
-Final gameplay unit clips must use **in-place animation**.
+World X/Z position continues to come from interpolated simulation coordinates.
 
-Do not use animation root motion for movement. Unit world position continues to come from interpolated simulation coordinates.
+A directional Move animation must animate the character **within the frame**. It must not move the billboard independently through the world.
 
-This prevents:
+### Facing rule
 
-- drift;
-- replay divergence;
-- unit/path desynchronization;
-- visible snapping after clip completion;
-- animation-speed dependence on frame rate.
+The existing presentation-facing resolver remains authoritative for visual direction selection. All units must share the same eight-direction convention unless a documented exception is required.
 
 ---
 
-## 5. Target unit pipeline
+## 5. Authoritative unit production pipeline
 
-Preferred production path:
+### 5.1 Canonical art
+
+Each unit begins from one approved canonical character design.
+
+Canonical art defines:
+
+- silhouette;
+- armor/clothing/material language;
+- equipment;
+- ownership surfaces;
+- elemental focus where relevant;
+- proportions and distinguishing features.
+
+Alternates may be used for provenance or detail reference only. Do not average materially different alternate designs into the canonical identity.
+
+### 5.2 Eight-direction set
+
+Produce one coherent eight-direction set using the repository's established direction convention.
+
+Required properties:
+
+- same character identity in all directions;
+- same apparent body height and mass;
+- consistent weapon/shield/staff dimensions;
+- consistent armor and accessory placement;
+- stable ground/foot baseline;
+- no accidental costume or equipment mutations between views;
+- front/rear and diagonal mapping verified before animation production.
+
+Do not accept eight unrelated generations merely because each image looks good in isolation.
+
+### 5.3 Animation vocabulary
+
+Default minimum set:
 
 ```text
-approved concept
-→ consistent turnaround / orthographic references
-→ clean 3D mesh
-→ retopology / UV / PBR materials
-→ shared or role-specific skeleton
-→ skin weights
-→ small authored animation set
-→ GLB with embedded clips
-→ stable manifest ID
-→ runtime animation controller
-→ combat/VFX timing integration
-→ LOD/performance pass
+Idle
+Move
+Attack
+Hit
+Death
 ```
 
-Concept images are art-direction references, not runtime assets by themselves.
+For Elementalists:
 
-### Asset format
+```text
+Idle
+Move
+Attack
+Cast
+Hit
+Death
+```
 
-Preferred final format:
+Additional states such as `Repair`, `Work`, or `Special` are optional and must reflect already-authoritative gameplay state.
 
-- GLB;
-- Y-up;
-- +Z forward;
-- metres;
-- one skeleton root;
-- one or two materials for ordinary units where practical;
-- shared material textures where possible;
-- team-color region separable from elemental emissive region;
-- animation clips embedded or loaded through the existing asset path without gameplay dependencies.
+### 5.4 Atlas output
 
-### Texture target
+Preferred final unit runtime assets:
 
-At normal gameplay scale, prefer:
+- lossless or high-quality WebP with alpha;
+- sprite sheets / atlases rather than many tiny independent files where practical;
+- explicit metadata for action, direction, frame count, timing, pivot, and foot baseline;
+- consistent frame canvas/pivot policy within a unit family;
+- trimmed transparent bounds only when runtime metadata preserves stable grounding;
+- no black matte/fringe around alpha edges.
 
-- ordinary infantry: 512–1024 texture class;
-- hero-like or visually critical units: up to 1024 where justified;
-- packed ORM or equivalent channel packing where practical;
-- restrained alpha usage;
-- no detail that is invisible from gameplay zoom.
+Atlas packing must not alter the canonical directional order.
+
+### 5.5 Runtime representation
+
+Preferred runtime representation:
+
+- PlayCanvas camera-facing billboard / impostor;
+- direction selected from presentation-facing yaw;
+- animation state selected from authoritative snapshot transitions;
+- stable world-space anchor at the unit's ground position;
+- shared atlas/material resources across instances;
+- optional soft contact shadow under the unit;
+- selection rings, health bars, fog, Wet/Freeze overlays, and VFX layered independently.
+
+Existing GLB unit assets may remain as compatibility fallback or experimental alternate representation. Do not require them for final unit-art acceptance.
 
 ---
 
-# 6. U0–U5 execution plan
+# 6. I0–I5 execution plan
 
-The agent should execute these phases in order and continue autonomously until a hard gate is reached.
+Execute these phases in order and continue autonomously until a hard gate is reached.
 
 ---
 
-## U0 — Runtime animation architecture
+## I0 — Restore the production impostor runtime
 
 ### Goal
 
-Create a generic renderer-side animation system before replacing many unit assets.
+Make the directional WebP path a robust primary unit presentation path again without changing simulation authority.
 
-### U0.1 Add a presentation animation state
+### Required work
 
-Introduce a presentation-only state vocabulary such as:
+- reuse the existing directional sprite/impostor renderer where practical instead of replacing it wholesale;
+- preserve the already-correct shared eight-direction mapping;
+- support state selection for Idle / Move / Attack / Cast / Hit / Death;
+- support per-action frame timing and looping rules;
+- preserve authoritative movement interpolation and presentation facing;
+- keep the current GLB path as a safe fallback during migration;
+- tolerate missing optional actions without crashing.
 
-```text
-IDLE
-MOVE
-ATTACK
-CAST
-HIT
-DEATH
-```
-
-Optional later states:
-
-```text
-BUILD
-REPAIR
-SPECIAL
-```
-
-Do not add these states to authoritative simulation unless gameplay semantics genuinely require them in a separately approved change.
-
-### U0.2 Animation controller
-
-Prefer a narrow module, for example:
-
-- `src/rendering/unit-animation-controller.ts`
-
-Responsibilities:
-
-- bind available clips on a loaded GLB;
-- select the active presentation state from authoritative snapshot changes;
-- cross-fade between locomotion states;
-- play one-shot action clips;
-- recover safely to Idle/Move;
-- expose normalized action progress when useful for VFX release timing;
-- tolerate missing clips and use a safe fallback.
-
-Do not place gameplay logic inside the controller.
-
-### U0.3 State priority
-
-Recommended presentation priority:
+### Recommended state priority
 
 ```text
 DEATH
@@ -213,52 +231,25 @@ DEATH
 > IDLE
 ```
 
-Use short controlled interruption rules. For example, a hit reaction may be visually reduced during a major cast rather than completely destroying action readability.
+### I0 acceptance
 
-### U0.4 Movement animation
-
-Movement state is derived from authoritative positional delta / movement truth.
-
-Required behavior:
-
-- root world translation remains interpolated simulation position;
-- walk/run clip plays in place;
-- animation playback speed may scale visually with movement speed within safe bounds;
-- feet should appear planted enough to avoid skating;
-- no full-body sinusoidal root bounce as the primary locomotion effect.
-
-### U0.5 Facing
-
-Keep the current presentation-facing logic.
-
-The animated model turns to the authoritative/presentation-facing yaw; the animation system does not independently rotate the unit toward targets.
-
-### U0.6 Legacy fallback
-
-Current procedural-node GLB motion and directional WebP code may remain only as fallback paths during migration.
-
-Do not remove a working fallback until the corresponding final animated asset is stable.
-
-### U0 acceptance
-
-- one test unit can switch Idle ↔ Move without changing simulation state;
-- one-shot Attack can play and return to locomotion;
-- Hit and Death can override correctly;
-- animation failure does not break the unit renderer;
+- one test unit can switch Idle ↔ Move without simulation changes;
+- one-shot Attack can play and recover to Idle/Move;
+- Hit and Death override correctly;
+- direction changes use the established mapping;
+- atlas/frame failure degrades safely;
 - no gameplay/replay/state-hash code changes;
 - TypeScript/build passes.
 
 ---
 
-## U1 — Vanguard vertical slice
+## I1 — Vanguard vertical slice
 
 ### Goal
 
-Prove the complete final-art pipeline with one common frontline unit before scaling to the entire roster.
+Prove the complete 2.5D final-art pipeline with Vanguard before scaling to the roster.
 
-### U1.1 Art target
-
-Use the approved Vanguard visual direction:
+### Art target
 
 - human infantry;
 - medium-heavy dark-steel armor;
@@ -269,285 +260,119 @@ Use the approved Vanguard visual direction:
 - weathered leather and cloth;
 - no elemental glow.
 
-The generated concept direction shown during the current visual pass should be treated as the quality target for silhouette/material language, not as a requirement for close-up polygon density.
+### Required actions
 
-### U1.2 Required clips
-
-Minimum Vanguard animation set:
-
-- `Idle` — subtle breathing, shield weight, weapon readiness;
-- `Move` — grounded armored walk/jog appropriate to simulation speed;
-- `Attack` — sword wind-up → strike → recovery;
+- `Idle` — restrained breathing/weight shift;
+- `Move` — grounded armored walk/jog;
+- `Attack` — readable sword anticipation → strike → recovery;
 - `Hit` — short readable impact response;
-- `Death` — authored fall/collapse with no gameplay displacement.
+- `Death` — clear collapse with no gameplay displacement.
 
-Optional:
+### Directional consistency
 
-- `AttackAlt` for light variation if the asset budget permits.
+Before acceptance, compare all eight directions for:
 
-### U1.3 Motion requirements
+- apparent height;
+- body/armor mass;
+- shield size;
+- sword length;
+- foot baseline;
+- horizontal center/pivot;
+- front/rear/diagonal mapping.
 
-The Vanguard must no longer read as a rigid object sliding across the terrain.
+Per-view normalization is allowed when needed to remove generation-scale drift.
 
-At normal RTS zoom:
+### Combat timing
 
-- legs clearly alternate;
-- hips/torso show restrained weight transfer;
-- shield has secondary inertia;
-- sword arm anticipates before release;
-- feet remain visually close to the terrain;
-- movement does not produce excessive vertical bob.
+The authoritative attack determines whether and when damage occurs. The visible attack frame should align with that event as closely as practical without delaying gameplay.
 
-### U1.4 Combat release timing
+### I1 acceptance
 
-The authoritative attack still determines whether and when damage occurs.
-
-Presentation should align the visible strike with the authoritative attack event as closely as practical. If the simulation event is only available at tick resolution, use renderer-side clip phase mapping without delaying or changing damage.
-
-### U1.5 Readability
-
-At gameplay zoom, the player should distinguish:
-
-- idle stance;
-- moving stance;
-- attacking unit;
-- recently hit unit;
-- dying/dead unit.
-
-### U1 acceptance
-
-- final Vanguard replaces the fallback at stable ID `unit.vanguard`;
-- idle/move/attack/hit/death are visibly distinct;
-- no foot sliding severe enough to read as floating;
-- no root-motion drift;
-- shield/team-color panel is readable;
-- selection ring, health bar, Wet/Freeze overlays, and fog remain readable;
-- short manual WebGL acceptance passes before copying the pipeline to the full roster.
+- Vanguard uses the production WebP atlas/impostor path at normal quality;
+- all eight directions read as the same character;
+- Idle/Move/Attack/Hit/Death are visibly distinct;
+- no direction shrinks/grows enough to be distracting;
+- no obvious foot-baseline jump between directions;
+- shield/team-color panel remains readable;
+- selection ring, health bar, Wet/Freeze overlays, VFX, and fog remain readable;
+- one short manual WebGL acceptance passes before mass production.
 
 ---
 
-## U2 — Elementalist family
+## I2 — Elementalist family
 
 ### Goal
 
-Create one reusable human caster body/skeleton/animation language and derive Fire, Water, Ice, and Lightning variants from it.
+Create one coherent caster family and derive Fire, Water, Ice, and Lightning variants without losing directional consistency.
 
-### U2.1 Shared body
-
-The four Elementalists should share, where practical:
+Shared characteristics where practical:
 
 - body proportions;
-- skeleton;
-- locomotion clips;
-- hit/death clips;
-- base material layout;
-- team-color zones.
+- robe/armor language;
+- locomotion timing;
+- hit/death timing;
+- team-color zones;
+- staff/body scale.
 
 Elemental identity should come from:
 
-- staff focus;
-- gauntlet/focus attachments;
-- controlled emissive materials;
-- cast VFX;
-- small pose differences only where they materially improve readability.
+- staff/focus design;
+- restrained elemental accents;
+- runtime cast VFX;
+- small pose differences when useful.
 
 Do not recolor the entire costume per element.
 
-### U2.2 Required clips
-
-Minimum:
-
-- `Idle`;
-- `Move`;
-- `Attack` or basic ranged-cast release;
-- `Cast` for Tactical/Strategic spell presentation;
-- `Hit`;
-- `Death`.
-
-### U2.3 Cast structure
-
-Recommended cast visual timing:
-
-```text
-anticipation
-→ focus charge
-→ staff/hand release pose
-→ spell VFX launch/activation
-→ recovery
-```
-
-The VFX release should visually coincide with the authoritative cast event. Do not delay the gameplay result to wait for animation.
-
-### U2.4 Element-specific visual language
-
-**Fire**
-- ember/forge focus;
-- heat vent glow;
-- restrained sparks/heat haze;
-- decisive forward release.
-
-**Water**
-- pressure ring / fluid reservoir;
-- smooth circular motion;
-- compressed burst release.
-
-**Ice**
-- crystal prism focus;
-- angular braced pose;
-- frost growth/shard release.
-
-**Lightning**
-- electrode forks and ceramic insulators;
-- short charged anticipation;
-- sharp release with branching arc onset.
-
-### U2 acceptance
-
-- all four variants preserve one recognizable Elementalist silhouette family;
-- each element reads from gameplay zoom through focus/emissive/VFX rather than costume recolor;
-- shared animation set reduces production/runtime cost;
-- Tactical cast readability is improved without changing spell authority;
-- all four use the same stable manifest IDs currently present in `data/assets/manifest.json`.
-
----
-
-## U3 — Specialist and heavy-unit expansion
-
-### Goal
-
-Apply the proven animated GLB pipeline to the remaining roster while giving each unit a role-specific attack silhouette.
-
-### U3.1 Spear Guard
-
-Visual identity:
-
-- long pike;
-- reinforced greaves;
-- narrow defensive body profile.
-
-Required attack:
-
-- brace / draw back;
-- forward thrust;
-- recover.
-
-The pike tip must remain readable and should not sweep through the body because of poor rigging.
-
-### U3.2 Ranger
-
-Visual identity:
-
-- engineered recurved bow;
-- readable bow arc;
-- quiver;
-- light field armor/cloth.
-
-Required attack:
-
-- reach/nock;
-- draw;
-- brief aim;
-- release;
-- recovery.
-
-Projectile presentation should start at the visible release phase.
-
-### U3.3 Scout
-
-Visual identity:
-
-- lighter silhouette;
-- reconnaissance optics;
-- hand crossbow and dagger (the former bow-based Scout is superseded);
-- map/signal equipment.
-
-Required movement:
-
-- faster/lighter gait than Vanguard.
-
-Required attack:
-
-- quick aim/release with shorter anticipation than Ranger.
-
-### U3.4 Engineer
-
-Visual identity:
-
-- broad utility backpack;
-- repair gauntlet/tools;
-- compact field hammer.
-
-Minimum clips:
+Required actions:
 
 - Idle;
 - Move;
-- Attack;
-- Repair/Work presentation if current authoritative actions expose enough state;
+- Attack/basic ranged release;
+- Cast;
 - Hit;
 - Death.
 
-Do not invent gameplay repair/construction behavior in rendering.
-
-### U3.5 Golem
-
-Visual identity:
-
-- large armored construct;
-- heavy stone/metal mass;
-- readable central reactor;
-- teal ownership plates separated from reactor glow.
-
-Motion:
-
-- slow weighted locomotion;
-- heavy attack anticipation;
-- strong impact recovery;
-- reduced high-frequency motion.
-
-### U3.6 Siege Construct
-
-Treat the Siege Construct as a machine rather than a humanoid infantry rig.
-
-Preferred animation channels:
-
-- wheel/track/axle motion;
-- suspension/body settling;
-- weapon elevation/traverse if compatible with existing facing authority;
-- firing recoil;
-- reload/reset motion;
-- destruction state.
-
-Its animation architecture may be a mechanical clip/node system rather than the same humanoid skeleton used by infantry.
-
-### U3 acceptance
-
-Every unit role must be identifiable through silhouette and motion at gameplay zoom:
-
-- Vanguard = shielded frontline;
-- Spear Guard = pike anti-heavy;
-- Ranger = deliberate bow ranged unit;
-- Scout = fast reconnaissance skirmisher;
-- Elementalist = staff caster;
-- Engineer = tool/support specialist;
-- Golem = heavy frontline construct;
-- Siege Construct = long-range structure-pressure machine.
+All four Elementalists must use the same direction convention and normalization policy. The previously corrected diagonal/rear direction mapping remains the baseline and must not regress.
 
 ---
 
-## U4 — Combat timing, VFX, and impact integration
+## I3 — Specialist and heavy-unit expansion
+
+Apply the proven impostor pipeline to:
+
+- Spear Guard;
+- Ranger;
+- Scout;
+- Engineer;
+- Golem;
+- Siege Construct.
+
+Role-specific motion must remain readable at gameplay zoom:
+
+- Vanguard = shielded frontline;
+- Spear Guard = pike brace/thrust;
+- Ranger = deliberate bow draw/release;
+- Scout = fast hand-crossbow skirmisher;
+- Engineer = tool/support specialist;
+- Elementalist = staff caster;
+- Golem = slow heavy construct;
+- Siege Construct = mechanical long-range pressure unit.
+
+For Golem and Siege Construct, sprite animation may depict mechanical movement rather than humanoid motion. A skeleton is not required because final runtime output is still the impostor atlas.
+
+---
+
+## I4 — Combat timing, VFX, and impact integration
 
 ### Goal
 
-Make combat read as one coherent action rather than separate model motion and projectile effects.
+Make sprite motion and runtime VFX read as one coherent action.
 
-### U4.1 Action layering
-
-For ranged attacks and spells, use:
+For ranged attacks and spells:
 
 ```text
 anticipation
-→ release pose
-→ muzzle/cast flash
+→ release frame
 → projectile / beam / elemental motion
 → impact
 → target hit reaction
@@ -558,196 +383,79 @@ For melee:
 
 ```text
 anticipation
-→ strike
-→ contact window
+→ strike/contact frame
 → impact VFX / hit reaction
 → recovery
 ```
-
-### U4.2 Renderer-only event mapping
 
 Use existing authoritative snapshot transitions/events to derive presentation triggers.
 
 Examples:
 
-- `nextAttackTick` advancement → attack occurred;
-- cast result at current tick → cast animation/VFX;
-- health delta → hit feedback;
-- alive → dead transition → death animation;
-- movement delta → Move state;
-- Frozen → locomotion suppressed/pose locked or frozen overlay.
+- attack tick/state transition → Attack animation;
+- cast result → Cast animation/VFX;
+- health delta → Hit;
+- alive → dead → Death;
+- movement delta → Move;
+- Frozen → locomotion suppressed/frozen presentation.
 
 Do not modify simulation timing merely to make an animation easier.
 
-### U4.3 Projectile launch point
-
-Where the rig permits, use attachment/bone positions such as:
-
-- `WeaponTip`;
-- `BowRelease`;
-- `StaffFocus`;
-- `SiegeMuzzle`.
-
-Fallback safely to the current unit-center offset if the attachment is absent.
-
-### U4.4 Hit response
-
-Prefer a combination of:
-
-- short authored hit animation;
-- existing renderer-side positional recoil only when subtle;
-- impact flash/sparks;
-- status-specific overlay.
-
-Avoid stacking large procedural recoil on top of an authored hit clip.
-
-### U4.5 Death
-
-Death should transition from active animation to an authored one-shot and then remain stable until renderer cleanup.
-
-No death animation may move the authoritative unit to another gameplay cell.
-
-### U4 acceptance
-
-- a Vanguard melee strike visibly connects with target feedback;
-- Ranger/Scout projectile launch reads from weapon release;
-- Elementalist cast motion and elemental VFX read as one action;
-- Siege Construct firing has clear anticipation/recoil/impact hierarchy;
-- no duplicate or contradictory procedural motion remains obvious.
+Projectile origin may use a per-unit/per-direction metadata offset when useful; fall back safely to the current unit-center offset.
 
 ---
 
-## U5 — LOD, quality tiers, and browser performance
+## I5 — Atlas, LOD, quality tiers, and browser performance
 
 ### Goal
 
-Keep the mature-alpha visual target practical at approximately 100 active units / 200 total entities.
-
-### U5.1 Animation LOD
-
-Recommended tiers:
-
-**Near / primary gameplay view**
-- full skinned animation;
-- normal clip update rate;
-- full attachment/VFX behavior.
-
-**Mid distance**
-- full model with reduced animation update frequency where visually acceptable;
-- simplified secondary motion;
-- reduced minor VFX.
-
-**Far / low quality**
-- lower update frequency, frozen secondary bones, simplified model, or directional impostor fallback if profiling proves useful.
-
-The existing eight-direction WebP assets may be retained as an optional **far-distance/low-quality LOD**, not as the primary animation system.
-
-### U5.2 Skeleton budget
-
-Prefer compact skeletons.
-
-Ordinary infantry does not need cinematic facial rigs, finger rigs, cloth simulation, or dozens of decorative bones.
-
-Prioritize bones for:
-
-- pelvis/spine;
-- head;
-- arms/hands;
-- legs/feet;
-- weapon/shield/staff attachments;
-- only high-value secondary equipment.
-
-### U5.3 Material/draw-call budget
+Keep the mature-alpha target practical at approximately 100 active units / 200 total entities.
 
 Prefer:
 
-- one or two material slots per ordinary unit;
-- shared faction/team material strategy;
-- texture reuse across Elementalist family where practical;
-- no per-unit unique material clones except where necessary for team/element presentation;
-- restrained transparency.
+- one atlas/material per unit or unit family where practical;
+- shared textures across instances;
+- frame-rate throttling for distant/off-screen/fog-hidden units;
+- smaller atlas resolution or reduced animation sampling in low-quality mode where needed;
+- soft contact/blob shadows instead of expensive per-unit real-time shadows;
+- no full animation/VFX update cost for invisible units;
+- bounded texture memory and predictable atlas dimensions.
 
-### U5.4 Shadows
+The 2.5D impostor representation is the primary performance path, not merely a far-distance fallback.
 
-Use shadow casting selectively.
+### I5 acceptance
 
-If full unit shadows become too expensive:
-
-- retain soft contact/blob shadows;
-- limit real-time casters by quality/distance;
-- avoid sacrificing unit animation quality for expensive shadow maps.
-
-### U5.5 Off-screen and hidden units
-
-Do not spend full animation/VFX update cost on:
-
-- fog-hidden units;
-- off-screen units;
-- distant units whose clip phase is visually irrelevant.
-
-Any throttling must remain presentation-only.
-
-### U5 acceptance
-
-- no obvious animation-system memory leak during repeated unit creation/destruction;
-- animation/VFX resources are released on scene teardown;
+- no obvious sprite/atlas resource leak during repeated creation/destruction;
 - normal and `?quality=low` remain usable;
 - 100-unit target-device manual FPS check is performed when available;
-- low-quality mode reduces animation/rendering cost without changing gameplay;
-- no replay/state hash changes are introduced.
+- low-quality mode reduces presentation cost without changing gameplay;
+- no replay/state-hash changes are introduced.
 
 ---
 
-# 7. Recommended implementation modules
+# 7. Direction convention and normalization contract
 
-Use existing architecture where practical rather than broad refactoring.
+All units should use one shared direction vocabulary and mapping already established by the current renderer/tests.
 
-Primary files likely involved:
+Do not hand-invert directions per unit unless a verified source asset requires it.
 
-- `src/rendering/unit-render-bridge.ts`
-- `src/rendering/visual-asset-library.ts`
-- `src/rendering/battle-vfx.ts`
-- `data/assets/manifest.json`
+Before committing a new unit:
 
-Recommended narrow additions when useful:
+1. verify front and rear;
+2. verify left/right;
+3. verify all four diagonals;
+4. compare apparent scale across all directions;
+5. compare foot baseline/pivot;
+6. compare major equipment reach;
+7. test movement direction in runtime, not only static asset inspection.
 
-- `src/rendering/unit-animation-controller.ts`
-- `src/rendering/unit-animation-profile.ts`
-
-Potential responsibilities:
-
-### `unit-animation-controller.ts`
-
-Runtime clip binding, transition/cross-fade, one-shot state, playback speed, completion/fallback handling.
-
-### `unit-animation-profile.ts`
-
-Data-only presentation mapping, for example:
-
-```text
-unit.vanguard
-  idle: Idle
-  move: Move
-  attack: Attack
-  hit: Hit
-  death: Death
-
-unit.elementalist.fire
-  idle: Idle
-  move: Move
-  attack: Attack
-  cast: Cast
-  hit: Hit
-  death: Death
-```
-
-Do not hard-code animation behavior separately in many unit branches inside `UnitRenderBridge` if one profile table can express it.
+If a direction appears too large/small despite correct mapping, fix the asset or apply documented per-view normalization rather than swapping direction labels.
 
 ---
 
-# 8. Asset naming contract
+# 8. Asset naming and metadata contract
 
-Recommended clip names:
+Recommended action names:
 
 ```text
 Idle
@@ -760,84 +468,83 @@ Repair
 Special
 ```
 
-Use consistent capitalization across all GLBs.
+Recommended metadata per action/direction:
 
-Recommended optional attachment/node names:
+- frame rectangle/index;
+- duration or FPS;
+- loop/non-loop;
+- pivot/ground anchor;
+- optional release/contact frame;
+- optional projectile/focus offset;
+- optional per-view scale normalization only when necessary.
 
-```text
-WeaponTip
-BowRelease
-StaffFocus
-SiegeMuzzle
-Shield
-Reactor
-```
-
-Do not require every node for every unit. Missing optional nodes must degrade safely.
+Use consistent capitalization and direction ordering across all units.
 
 ---
 
-# 9. Concept-to-3D guidance
+# 9. Art-generation guidance
 
-The newly generated unit concepts are sufficiently strong to define art direction, but converting them into final gameplay units still requires a controlled 3D step.
+The canonical unit concepts define art direction. Final gameplay sprites should stay faithful to them.
 
-For each selected concept:
+For each unit:
 
-1. lock one design;
-2. create front / rear / side / three-quarter turnaround references from the same design;
-3. build or generate one coherent 3D model from those references;
-4. manually check silhouette and equipment consistency;
-5. simplify geometry for RTS scale;
-6. create clean UV/material regions;
-7. rig and skin;
-8. author the minimal animation set;
-9. export GLB;
-10. validate at normal camera distance before spending time on close-up details.
+1. lock one canonical design;
+2. establish a coherent eight-direction character set;
+3. visually QC identity and scale before animating;
+4. generate/author Idle / Move / Attack / Hit / Death (and Cast where relevant);
+5. normalize pivots and per-view scale;
+6. remove background cleanly and verify alpha edges;
+7. pack to WebP atlas;
+8. integrate metadata/runtime state mapping;
+9. validate at normal RTS camera distance.
 
-Do not create eight independent AI images and attempt to infer animation between them. That route recreates the current inconsistency problem.
+A true 3D intermediate may be used privately as an optional art-generation aid if it is genuinely efficient, but it is **not required**, is **not a repository deliverable**, and must not become a token-intensive Blender/rigging task by default.
+
+Do not block progress on topology, UVs, skin weights, skeletons, or GLB clip authoring when a high-quality directional sprite result can satisfy the gameplay presentation target.
 
 ---
 
 # 10. Visual acceptance targets
 
-At normal gameplay zoom, a successful unit upgrade should produce all of the following:
-
 ### Grounding
 
-- feet appear connected to terrain;
-- locomotion does not look like a static image sliding;
-- heavy units feel heavier than Scouts/Rangers;
-- contact shadows reinforce rather than replace locomotion.
+- feet/body appear connected to terrain;
+- pivot is stable across actions and directions;
+- movement does not look like a static image sliding;
+- contact shadows reinforce grounding.
 
 ### Silhouette
 
-- role is readable before fine material details;
+- role is readable before fine details;
 - weapons and major equipment remain visible from above;
 - teal ownership surfaces do not overwhelm the body;
-- elemental emissive accents remain distinct from team color.
+- elemental accents remain distinct from team color.
 
 ### Animation
 
 - Idle is alive but restrained;
-- Move has believable weight transfer;
+- Move has readable motion and weight;
 - Attack has anticipation, release, recovery;
-- Cast is readable before the spell VFX dominates;
-- Hit is brief and directional enough to register;
-- Death is clear and stable.
+- Cast is readable before VFX dominates;
+- Hit is brief and clear;
+- Death is distinct and stable.
 
-### Combat
+### Direction consistency
 
-- projectile launch origin matches the weapon/focus where practical;
+- all eight directions are the same character;
+- front/rear/diagonal mapping is correct;
+- no abrupt scale changes;
+- no baseline jumping;
+- mirrored or asymmetric equipment remains logically consistent.
+
+### Combat and RTS readability
+
+- projectile/cast release visually aligns with the action;
 - melee contact and target response appear connected;
-- elemental attack identity remains readable;
-- VFX does not hide unit silhouette or selection state.
-
-### RTS readability
-
 - selected unit remains easy to identify;
 - health/status indicators remain readable;
 - fog and battlefield clutter do not swallow units;
-- animation does not introduce exaggerated motion that makes targeting visually noisy.
+- animation does not introduce exaggerated visual noise.
 
 ---
 
@@ -848,23 +555,23 @@ This is a presentation-only pass.
 For each coherent implementation batch:
 
 1. run TypeScript/build once;
-2. run only directly relevant rendering/animation tests;
-3. validate GLB structure/clip names where automated validation exists;
+2. run only directly relevant renderer/direction/atlas tests;
+3. validate atlas metadata and missing-asset fallback where automated validation exists;
 4. perform one short browser/WebGL smoke when available;
-5. manually inspect normal gameplay zoom rather than close-up asset beauty alone;
+5. manually inspect normal gameplay zoom rather than close-up art alone;
 6. fix obvious blockers and stop.
 
 Do not rerun broad deterministic/replay/AI/world-generation suites unless authoritative gameplay code changed or a concrete regression requires them.
 
 Suggested targeted tests:
 
-- animation profile resolution;
-- missing-clip fallback;
+- direction mapping;
+- action-state priority;
 - one-shot → locomotion recovery;
 - death-state persistence;
-- model teardown/release;
-- projectile attachment fallback;
-- unchanged presentation facing behavior.
+- missing-atlas/action fallback;
+- asset teardown/release;
+- unchanged presentation-facing behavior.
 
 ---
 
@@ -872,18 +579,20 @@ Suggested targeted tests:
 
 Continue autonomously until one of these conditions is reached:
 
-1. a required final rigged GLB cannot be generated or imported with the available toolchain;
-2. the chosen 3D-generation/rigging workflow requires a new dependency, external service, or user approval;
+1. the canonical design or eight-direction source set is missing and cannot be reconstructed consistently from available approved art;
+2. final art generation requires an external paid service or explicit user approval not already available;
 3. concept selection genuinely requires choosing between materially different art directions;
 4. manual WebGL visual/FPS acceptance is the only remaining blocker.
 
+A missing Blender executable, missing rigging service, failed image-to-3D service, or unavailable 3D reconstruction model is **not** a hard gate for this production plan.
+
 If a hard gate occurs:
 
-- finish all non-blocked runtime animation plumbing first;
-- leave stable manifest IDs and fallback behavior intact;
-- document the exact asset or approval required;
-- do not replace the missing final asset with another large procedural primitive pass;
-- do not return to static eight-direction WebP as the primary solution merely to avoid the gate.
+- finish all non-blocked impostor runtime plumbing first;
+- leave stable asset IDs and fallback behavior intact;
+- document the exact art/approval required;
+- do not replace missing final art with another large primitive or low-quality 3D pass;
+- do not restart a Blender-first pipeline merely to avoid the gate.
 
 ---
 
@@ -891,13 +600,13 @@ If a hard gate occurs:
 
 Prefer coherent slices such as:
 
-1. `visual: add generic unit animation controller`
-2. `visual: integrate animated Vanguard vertical slice`
-3. `visual: add shared Elementalist animation family`
-4. `visual: animate specialist combat roles`
-5. `visual: integrate heavy unit and siege animation`
-6. `visual: synchronize combat release and impact presentation`
-7. `perf: add unit animation lod and quality tiers`
+1. `visual: restore animated impostor unit runtime`
+2. `visual: integrate Vanguard impostor vertical slice`
+3. `visual: add shared Elementalist impostor family`
+4. `visual: animate specialist unit impostors`
+5. `visual: integrate heavy unit impostors`
+6. `visual: synchronize sprite actions and combat effects`
+7. `perf: optimize unit atlases and animation updates`
 
 Do not split trivial edits into separate commits.
 
@@ -908,32 +617,48 @@ Do not split trivial edits into separate commits.
 Recommended production order:
 
 ```text
-U0 runtime controller
-→ U1 Vanguard full vertical slice and screen acceptance
-→ Golem → Siege Construct
+I0 impostor runtime
+→ I1 Vanguard full vertical slice and screen acceptance
+→ shared Elementalist family
 → Spear Guard → Ranger → Scout → Engineer
-→ shared Elementalist master body
-→ Fire / Water / Ice / Lightning variants
-→ U4 combat/VFX synchronization
-→ U5 LOD / performance cleanup
+→ Golem → Siege Construct
+→ I4 combat/VFX synchronization
+→ I5 atlas/performance cleanup
 ```
 
-The first decisive gate is the Vanguard vertical slice. If Vanguard does not look grounded, readable, and convincingly animated at gameplay zoom, do not mass-produce the same pipeline across the roster.
+The first decisive gate is the Vanguard vertical slice. If Vanguard does not look grounded, consistent, readable, and convincingly animated at gameplay zoom, do not mass-produce the same pipeline across the roster.
 
 ---
 
-# 15. Definition of success
+# 15. Non-goals
 
-The upgrade is successful when the normal gameplay screen no longer shows a quality gap where the battlefield appears production-oriented but combat units still read as static placeholders.
+The following are not default goals of this plan:
+
+- Blender-first character modeling;
+- manual topology cleanup for standard units;
+- UV/PBR production as a prerequisite for unit art;
+- humanoid rigging and skin-weight cleanup;
+- embedded animated GLB delivery for every unit;
+- spending large Work-token budgets on iterative 3D reconstruction;
+- pursuing true-3D fidelity that is not visible at normal RTS scale.
+
+Existing GLB infrastructure may remain for compatibility, experiments, buildings, or future special cases. It is not the authoritative standard-unit production requirement.
+
+---
+
+# 16. Definition of success
+
+The upgrade is successful when the normal gameplay screen no longer shows a quality gap where the battlefield appears production-oriented but combat units still read as placeholders.
 
 Specifically:
 
-- common infantry visibly walk rather than float;
+- every standard combat unit has a coherent eight-direction identity;
+- common infantry visibly animate rather than slide as static sprites;
 - every combat role visibly performs its attack;
 - Elementalists visibly cast;
 - hit and death reactions are integrated with combat feedback;
-- Golem and Siege Construct have appropriately heavy/mechanical motion;
-- final unit silhouettes and materials match the Arcane-Industrial Frontier concept direction;
+- heavy units have appropriately weighted/mechanical motion;
+- unit silhouettes and materials match the Arcane-Industrial Frontier concept direction;
 - the renderer remains subordinate to authoritative simulation;
 - browser performance remains compatible with the mature-alpha target;
-- legacy WebP impostors, if retained, serve only as fallback/LOD rather than the main quality path.
+- **high-quality 2.5D animated impostors are the primary unit presentation path**.
