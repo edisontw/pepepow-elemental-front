@@ -458,7 +458,7 @@ Visual identity:
 
 - lighter silhouette;
 - reconnaissance optics;
-- compact bow/crossbow;
+- hand crossbow and dagger (the former bow-based Scout is superseded);
 - map/signal equipment.
 
 Required movement:
@@ -909,11 +909,11 @@ Recommended production order:
 
 ```text
 U0 runtime controller
-→ U1 Vanguard full vertical slice
-→ manual screen acceptance
-→ U2 Elementalist family
-→ U3 Ranger / Scout / Spear Guard / Engineer
-→ U3 Golem / Siege Construct
+→ U1 Vanguard full vertical slice and screen acceptance
+→ Golem → Siege Construct
+→ Spear Guard → Ranger → Scout → Engineer
+→ shared Elementalist master body
+→ Fire / Water / Ice / Lightning variants
 → U4 combat/VFX synchronization
 → U5 LOD / performance cleanup
 ```

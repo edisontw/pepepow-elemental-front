@@ -7,6 +7,7 @@ is manually approved. Standard-library only; no external model dependency.
 """
 import json, math, struct
 from pathlib import Path
+from production_asset_guard import may_generate_fallback
 
 OUT = Path(__file__).resolve().parents[2] / 'public/assets/models/unit-vanguard.glb'
 
@@ -119,6 +120,8 @@ class Model:
                 self.face(name, material, pts if vertical else list(reversed(pts)))
 
     def export(self, path):
+        if not may_generate_fallback(path):
+            return
         data = bytearray()
         views = []
         accessors = []

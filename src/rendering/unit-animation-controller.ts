@@ -74,7 +74,7 @@ export class UnitAnimationController {
     ) {
       this.lastTriggerTick.set(requested, intent.tick);
       this.activeOneShot = requested;
-      this.transitionTo(requested);
+      this.transitionTo(requested, true);
       return;
     }
 
@@ -91,10 +91,10 @@ export class UnitAnimationController {
         : null;
     if (fallbackState === null) return;
 
+    this.transitionTo(fallbackState);
     anim.speed = fallbackState === 'MOVE'
       ? pc.math.clamp(intent.movePlaybackRate ?? 1, 0.72, 1.35)
       : 1;
-    this.transitionTo(fallbackState);
   }
 
   hasClip(state: UnitAnimationState): boolean {
@@ -178,7 +178,8 @@ export class UnitAnimationController {
     if (!force && this.currentState === state) return;
     const clipName = this.profile.clips[state];
     if (!clipName) return;
-    this.modelRoot.anim.speed = this.profile.playbackSpeed[state] ?? 1;
+    // Per-state speed is already applied by assignAnimation.
+    this.modelRoot.anim.speed = 1;
     this.modelRoot.anim.baseLayer?.transition(clipName, force ? 0 : (this.profile.transitionSeconds[state] ?? 0.08));
     this.modelRoot.anim.playing = true;
     this.currentState = state;

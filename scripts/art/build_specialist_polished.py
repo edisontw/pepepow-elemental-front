@@ -12,6 +12,7 @@ All models preserve existing rigid runtime animation nodes:
 """
 import json, math, struct
 from pathlib import Path
+from production_asset_guard import may_generate_fallback
 
 OUT = Path(__file__).resolve().parents[2] / 'public/assets/models'
 
@@ -94,6 +95,8 @@ class Model:
             self.face(name, material, [points[i], points[j], other[j], other[i]])
 
     def export(self, out_path: Path):
+        if not may_generate_fallback(out_path):
+            return
         data = bytearray(); views=[]; accessors=[]; meshes=[]; nodes=[]
         material_names = list(MATERIALS)
         mats=[]

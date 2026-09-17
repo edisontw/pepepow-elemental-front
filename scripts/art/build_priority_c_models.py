@@ -6,6 +6,7 @@ The Golem preserves LegL/LegR/Weapon. Siege Construct preserves Weapon.
 """
 import json, math, struct
 from pathlib import Path
+from production_asset_guard import may_generate_fallback
 
 OUT = Path(__file__).resolve().parents[2] / 'public/assets/models'
 STEEL = (.29, .35, .39)
@@ -80,6 +81,8 @@ class Model:
         self.box((x,y,z), (width*1.15, .22, .22), STEEL, name)
 
     def export(self, filename, element=(.32,.82,.76)):
+        if not may_generate_fallback(OUT / filename):
+            return
         data=bytearray(); views=[]; accessors=[]; meshes=[]; nodes=[]
         def accessor(values):
             offset=len(data); data.extend(struct.pack('<'+'f'*len(values),*values))

@@ -223,6 +223,13 @@ Priority A/B implementation is complete; manual WebGL acceptance remains pending
 
 ### Token-efficient validation policy
 
+Current unit 3D production (2026-09-17): canonical package checksums and derived
+Vanguard modeling inputs are under `media/unit-production/`. The to3D attempt
+failed with HTTP 400 and produced no mesh/job ID; final Vanguard remains blocked
+before rigging/import. See `docs/UNIT_ANIMATION_IMPLEMENTATION_NOTES.md` for the
+exact resume contract. U0 playback fixes and build-time protection for promoted
+GLBs are implemented. Do not treat the existing rigid-node fallback as final art.
+
 For presentation-only batches:
 
 - do not rerun broad deterministic/replay/AI/worldgen regressions unless authoritative gameplay code changed or a concrete regression requires them;
