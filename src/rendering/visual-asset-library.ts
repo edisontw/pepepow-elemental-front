@@ -1,13 +1,19 @@
 import * as pc from 'playcanvas';
 import manifest from '../../data/assets/manifest.json';
 import { RTS_CAMERA_YAW_DEGREES, stableImpostorFrameForHeading } from './impostor-frame';
-import { impostorFrameFiles } from './impostor-frame-assets';
-import { unitImpostorFrameScale } from './impostor-frame-normalization';
+import {
+  IMPOSTOR_ANIMATION_ACTIONS,
+  animatedImpostorFrameFiles,
+  impostorAnimationFrame,
+  impostorAnimationMaterialIndex,
+  type ImpostorAnimationAction,
+  type ImpostorAnimationSample,
+} from './impostor-animation';
 
 interface ImpostorConfig {
   id: string;
   label: string;
-  frameFiles: readonly string[];
+  slug: string;
   width: number;
   height: number;
   shadowX: number;
@@ -18,7 +24,7 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
   ['unit.vanguard', {
     id: 'unit.vanguard',
     label: 'Vanguard',
-    frameFiles: impostorFrameFiles('vanguard'),
+    slug: 'vanguard',
     width: 1.27,
     height: 1.9,
     shadowX: 0.92,
@@ -27,7 +33,7 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
   ['unit.elementalist.fire', {
     id: 'unit.elementalist.fire',
     label: 'Fire Elementalist',
-    frameFiles: impostorFrameFiles('elementalist-fire'),
+    slug: 'elementalist-fire',
     width: 1.72,
     height: 2.3,
     shadowX: 0.86,
@@ -36,7 +42,7 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
   ['unit.elementalist.water', {
     id: 'unit.elementalist.water',
     label: 'Water Elementalist',
-    frameFiles: impostorFrameFiles('elementalist-water'),
+    slug: 'elementalist-water',
     width: 1.72,
     height: 2.3,
     shadowX: 0.86,
@@ -45,7 +51,7 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
   ['unit.elementalist.ice', {
     id: 'unit.elementalist.ice',
     label: 'Ice Elementalist',
-    frameFiles: impostorFrameFiles('elementalist-ice'),
+    slug: 'elementalist-ice',
     width: 1.72,
     height: 2.3,
     shadowX: 0.86,
@@ -54,7 +60,7 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
   ['unit.elementalist.lightning', {
     id: 'unit.elementalist.lightning',
     label: 'Lightning Elementalist',
-    frameFiles: impostorFrameFiles('elementalist-lightning'),
+    slug: 'elementalist-lightning',
     width: 1.72,
     height: 2.3,
     shadowX: 0.86,
@@ -63,7 +69,7 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
   ['unit.spear-guard', {
     id: 'unit.spear-guard',
     label: 'Spear Guard',
-    frameFiles: impostorFrameFiles('spear-guard'),
+    slug: 'spear-guard',
     width: 1.65,
     height: 2.2,
     shadowX: 0.86,
@@ -72,7 +78,7 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
   ['unit.ranger', {
     id: 'unit.ranger',
     label: 'Ranger',
-    frameFiles: impostorFrameFiles('ranger'),
+    slug: 'ranger',
     width: 1.18,
     height: 1.56,
     shadowX: 0.72,
@@ -81,7 +87,7 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
   ['unit.scout', {
     id: 'unit.scout',
     label: 'Scout',
-    frameFiles: impostorFrameFiles('scout'),
+    slug: 'scout',
     width: 0.96,
     height: 1.24,
     shadowX: 0.64,
@@ -90,7 +96,7 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
   ['unit.engineer', {
     id: 'unit.engineer',
     label: 'Engineer',
-    frameFiles: impostorFrameFiles('engineer'),
+    slug: 'engineer',
     width: 1.22,
     height: 1.58,
     shadowX: 0.78,
@@ -99,7 +105,7 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
   ['unit.golem', {
     id: 'unit.golem',
     label: 'Golem',
-    frameFiles: impostorFrameFiles('golem'),
+    slug: 'golem',
     width: 2.05,
     height: 2.46,
     shadowX: 1.28,
@@ -108,7 +114,7 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
   ['unit.siege-construct', {
     id: 'unit.siege-construct',
     label: 'Siege Construct',
-    frameFiles: impostorFrameFiles('siege-construct'),
+    slug: 'siege-construct',
     // Keep the 192x256 source frame near its native aspect. The prior
     // 2.55x1.82 plane stretched this wide vehicle almost 2x horizontally,
     // making the elevated turnaround read like a flattened top view.
@@ -119,24 +125,28 @@ const IMPOSTOR_CONFIGS = new Map<string, ImpostorConfig>([
   }],
 ]);
 
+type ImpostorActionMaterials = Readonly<Record<ImpostorAnimationAction, readonly pc.StandardMaterial[]>>;
+
 interface ImpostorHandle {
   root: pc.Entity;
   billboard: pc.Entity;
   plane: pc.Entity;
   shadow: pc.Entity;
-  materials: readonly pc.StandardMaterial[];
+  materials: ImpostorActionMaterials;
   configId: string;
   baseWidth: number;
   baseHeight: number;
   facingYawDegrees: number;
   viewFrame: number;
+  animationFrame: number;
+  animationSample: ImpostorAnimationSample;
   update: () => void;
 }
 
 interface ImpostorResources {
   materials: pc.StandardMaterial[];
   textures: pc.Texture[];
-  promise: Promise<readonly pc.StandardMaterial[] | null> | null;
+  promise: Promise<ImpostorActionMaterials | null> | null;
 }
 
 export interface VisualModel {
@@ -158,7 +168,9 @@ export class VisualAssetLibrary {
   private readonly impostorResources = new Map<string, ImpostorResources>();
   private readonly impostorUpdates = new Set<() => void>();
   private readonly impostorShadowMaterial: pc.StandardMaterial;
-  private readonly usePlayerUnitImpostors: boolean = false;
+  // I1 vertical slice: only the local-player Vanguard uses the new 5-action
+  // animated WebP runtime until manual WebGL acceptance passes.
+  private readonly useAnimatedVanguardImpostor = true;
   private disposed = false;
 
   constructor(private readonly app: pc.Application) {
@@ -185,9 +197,9 @@ export class VisualAssetLibrary {
       released: false,
     };
 
-    // Keep both factions on the same recolorable GLB presentation baseline for
-    // now. The directional WebP pipeline stays available for a later art pass.
-    const impostorConfig = this.usePlayerUnitImpostors && playerId === 0
+    // Keep the rollout intentionally narrow: prove the complete animated
+    // impostor path on the local-player Vanguard before enabling the roster.
+    const impostorConfig = this.useAnimatedVanguardImpostor && playerId === 0 && id === 'unit.vanguard'
       ? IMPOSTOR_CONFIGS.get(id)
       : undefined;
     if (impostorConfig) {
@@ -225,26 +237,41 @@ export class VisualAssetLibrary {
     return handle;
   }
 
-  syncImpostor(handle: VisualModel | null, headingDegrees: number): void {
+  syncImpostor(
+    handle: VisualModel | null,
+    headingDegrees: number,
+    animationSample?: ImpostorAnimationSample,
+  ): void {
     const impostor = handle?.impostor;
-    if (!impostor || impostor.materials.length !== 8) return;
+    if (!impostor) return;
 
     // Every canonical WebP unit follows exactly the same presentation path:
-    // unit heading selects one of eight observer-side frames, while the plane
-    // itself remains camera-facing in world space. Never derive billboard yaw
-    // from the unit root's Euler decomposition.
+    // unit heading selects one of eight observer-side views, while the plane
+    // itself remains camera-facing in world space.
     impostor.facingYawDegrees = headingDegrees;
+    if (animationSample) impostor.animationSample = animationSample;
     impostor.billboard.setEulerAngles(0, RTS_CAMERA_YAW_DEGREES, 0);
-    const viewFrame = stableImpostorFrameForHeading(headingDegrees, impostor.viewFrame);
-    if (viewFrame === impostor.viewFrame) return;
 
-    const material = impostor.materials[viewFrame];
+    const viewFrame = stableImpostorFrameForHeading(headingDegrees, impostor.viewFrame);
+    const sample = impostor.animationSample;
+    const animationFrame = impostorAnimationFrame(sample.action, sample.elapsedSeconds);
+    if (
+      viewFrame === impostor.viewFrame
+      && animationFrame === impostor.animationFrame
+      && sample.action === impostor.animationSample.action
+    ) return;
+
+    const actionMaterials = impostor.materials[sample.action] ?? impostor.materials.IDLE;
+    const materialIndex = impostorAnimationMaterialIndex(viewFrame, animationFrame);
+    const material = actionMaterials[materialIndex] ?? impostor.materials.IDLE[materialIndex];
     if (impostor.plane.render && material) impostor.plane.render.material = material;
 
-    const frameScale = unitImpostorFrameScale(impostor.configId, viewFrame);
-    impostor.plane.setLocalPosition(0, impostor.baseHeight * frameScale * 0.5, 0);
-    impostor.plane.setLocalScale(impostor.baseWidth * frameScale, 1, impostor.baseHeight * frameScale);
+    // The uploaded pack already shares one scale factor and one foot baseline
+    // across every direction/action. Do not reintroduce old per-view scale hacks.
+    impostor.plane.setLocalPosition(0, impostor.baseHeight * 0.5, 0);
+    impostor.plane.setLocalScale(impostor.baseWidth, 1, impostor.baseHeight);
     impostor.viewFrame = viewFrame;
+    impostor.animationFrame = animationFrame;
   }
 
   release(handle: VisualModel | null): void {
@@ -290,7 +317,7 @@ export class VisualAssetLibrary {
       const plane = new pc.Entity(`${config.label} Impostor`);
       plane.addComponent('render', {
         type: 'plane',
-        material: materials[0],
+        material: materials.IDLE[0],
         castShadows: false,
         receiveShadows: false,
       });
@@ -342,6 +369,8 @@ export class VisualAssetLibrary {
         baseHeight: config.height,
         facingYawDegrees: initialFacingYaw,
         viewFrame: -1,
+        animationFrame: -1,
+        animationSample: { action: 'IDLE', elapsedSeconds: 0 },
         update,
       };
       this.impostorUpdates.add(update);
@@ -350,7 +379,7 @@ export class VisualAssetLibrary {
     });
   }
 
-  private loadImpostorMaterials(config: ImpostorConfig): Promise<readonly pc.StandardMaterial[] | null> {
+  private loadImpostorMaterials(config: ImpostorConfig): Promise<ImpostorActionMaterials | null> {
     let resources = this.impostorResources.get(config.id);
     if (!resources) {
       resources = { materials: [], textures: [], promise: null };
@@ -366,63 +395,100 @@ export class VisualAssetLibrary {
       image.src = url;
     });
 
+    const filesByAction = Object.fromEntries(
+      IMPOSTOR_ANIMATION_ACTIONS.map((action) => [
+        action,
+        animatedImpostorFrameFiles(config.slug, action),
+      ]),
+    ) as Record<ImpostorAnimationAction, readonly string[]>;
+
+    const files = IMPOSTOR_ANIMATION_ACTIONS.flatMap((action) => filesByAction[action]);
+    const framesPerAction = filesByAction.IDLE.length;
+
     resources.promise = Promise.allSettled(
-      config.frameFiles.map((path) => loadImage(`${import.meta.env.BASE_URL}${path}`)),
+      files.map((path) => loadImage(`${import.meta.env.BASE_URL}${path}`)),
     ).then((results) => {
       if (this.disposed) return null;
 
       const loadedImages = results.map((result) => result.status === 'fulfilled' ? result.value : null);
       const loadedCount = loadedImages.filter((image): image is HTMLImageElement => image !== null).length;
-      if (loadedCount === 0) throw new Error(`No ${config.label} impostor frames could be loaded.`);
+      if (loadedCount === 0) throw new Error(`No ${config.label} animated impostor frames could be loaded.`);
 
       if (loadedCount !== loadedImages.length) {
         const missing = results
-          .map((result, frame) => result.status === 'rejected' ? config.frameFiles[frame] : null)
+          .map((result, frame) => result.status === 'rejected' ? files[frame] : null)
           .filter((path): path is string => path !== null);
-        console.warn(`${config.label} impostor has ${missing.length} missing/corrupt frame(s); using nearest valid directional frame.`, missing);
+        console.warn(
+          `${config.label} animated impostor has ${missing.length} missing/corrupt frame(s); using nearest valid frame.`,
+          missing,
+        );
       }
 
-      const nearestLoadedImage = (frame: number): HTMLImageElement => {
-        const direct = loadedImages[frame];
+      const actionImages = (actionIndex: number): readonly (HTMLImageElement | null)[] =>
+        loadedImages.slice(actionIndex * framesPerAction, (actionIndex + 1) * framesPerAction);
+      const idleImages = actionImages(0);
+      const globalFallback = loadedImages.find((image): image is HTMLImageElement => image !== null)!;
+
+      const nearestLoadedImage = (
+        images: readonly (HTMLImageElement | null)[],
+        frame: number,
+      ): HTMLImageElement | null => {
+        const direct = images[frame];
         if (direct) return direct;
-        for (let distance = 1; distance < loadedImages.length; distance += 1) {
-          const previous = loadedImages[(frame - distance + loadedImages.length) % loadedImages.length];
+
+        const localFrame = frame % 4;
+        const viewStart = frame - localFrame;
+        for (let distance = 1; distance < 4; distance += 1) {
+          const previous = images[viewStart + ((localFrame - distance + 4) % 4)];
           if (previous) return previous;
-          const next = loadedImages[(frame + distance) % loadedImages.length];
+          const next = images[viewStart + ((localFrame + distance) % 4)];
           if (next) return next;
         }
-        return loadedImages.find((image): image is HTMLImageElement => image !== null)!;
+        return images.find((image): image is HTMLImageElement => image !== null) ?? null;
       };
 
-      for (let frame = 0; frame < loadedImages.length; frame += 1) {
-        const image = nearestLoadedImage(frame);
-        const texture = new pc.Texture(this.app.graphicsDevice, {
-          name: `${config.id}.impostor.${frame}`,
-          mipmaps: false,
-          srgb: true,
-          minFilter: pc.FILTER_LINEAR,
-          magFilter: pc.FILTER_LINEAR,
-          addressU: pc.ADDRESS_CLAMP_TO_EDGE,
-          addressV: pc.ADDRESS_CLAMP_TO_EDGE,
-        });
-        texture.setSource(image);
-        resources.textures.push(texture);
+      const actionMaterials = {} as Record<ImpostorAnimationAction, readonly pc.StandardMaterial[]>;
 
-        const material = new pc.StandardMaterial();
-        material.name = `${config.id.toUpperCase().replaceAll('.', '_')}_IMPOSTOR_${frame}`;
-        material.useLighting = false;
-        material.emissive = new pc.Color(1, 1, 1);
-        material.emissiveMap = texture;
-        material.opacityMap = texture;
-        material.opacityMapChannel = 'a';
-        material.alphaTest = 0.12;
-        material.cull = pc.CULLFACE_NONE;
-        material.update();
-        resources.materials.push(material);
+      for (const [actionIndex, action] of IMPOSTOR_ANIMATION_ACTIONS.entries()) {
+        const images = actionImages(actionIndex);
+        const materials: pc.StandardMaterial[] = [];
+
+        for (let frame = 0; frame < framesPerAction; frame += 1) {
+          const image = nearestLoadedImage(images, frame)
+            ?? nearestLoadedImage(idleImages, frame)
+            ?? globalFallback;
+
+          const texture = new pc.Texture(this.app.graphicsDevice, {
+            name: `${config.id}.impostor.${action.toLowerCase()}.${frame}`,
+            mipmaps: false,
+            srgb: true,
+            minFilter: pc.FILTER_LINEAR,
+            magFilter: pc.FILTER_LINEAR,
+            addressU: pc.ADDRESS_CLAMP_TO_EDGE,
+            addressV: pc.ADDRESS_CLAMP_TO_EDGE,
+          });
+          texture.setSource(image);
+          resources.textures.push(texture);
+
+          const material = new pc.StandardMaterial();
+          material.name = `${config.id.toUpperCase().replaceAll('.', '_')}_IMPOSTOR_${action}_${frame}`;
+          material.useLighting = false;
+          material.emissive = new pc.Color(1, 1, 1);
+          material.emissiveMap = texture;
+          material.opacityMap = texture;
+          material.opacityMapChannel = 'a';
+          material.alphaTest = 0.12;
+          material.cull = pc.CULLFACE_NONE;
+          material.update();
+          resources.materials.push(material);
+          materials.push(material);
+        }
+        actionMaterials[action] = materials;
       }
-      return resources.materials;
+
+      return actionMaterials;
     }).catch((error: unknown) => {
-      console.warn(`${config.label} impostor frame load failed; using fallback geometry.`, error);
+      console.warn(`${config.label} animated impostor frame load failed; using fallback geometry.`, error);
       return null;
     });
 
