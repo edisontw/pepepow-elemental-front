@@ -7,6 +7,7 @@ import type { EntityID } from '../simulation/components';
 import type { EntitySnapshot, SimulationSnapshot } from '../simulation/simulation';
 import { unitVisualProfile, type UnitProjectileStyle } from './unit-visual-profile';
 import { resolvePresentationFacing } from './unit-facing';
+import { impostorAnimationDurationSeconds, type ImpostorAnimationSample } from './impostor-animation';
 
 interface UnitPresentation {
   root: pc.Entity;
@@ -29,6 +30,7 @@ interface UnitPresentation {
   hitRecoilTick: number;
   hitRecoilX: number;
   hitRecoilZ: number;
+  deathStartTick: number;
   deathUntilTick: number;
   deathFallX: number;
   deathFallZ: number;
@@ -184,17 +186,22 @@ export class UnitRenderBridge {
       const z = pc.math.lerp(prior.z, unit.z, alpha) / WORLD_UNITS_PER_METER;
       if (presented) {
         const moving = unit.frozenTicks === 0 && (unit.x !== prior.x || unit.z !== prior.z);
-        const gait = (current.tick + alpha) * 1.15 + unit.id * .7;
-        const action = Math.max(0, 1 - (current.tick + alpha - presentation.actionTick) / 3);
-        const hitAge = current.tick + alpha - presentation.hitRecoilTick;
+        const presentationTick = current.tick + alpha;
+        const gait = presentationTick * 1.15 + unit.id * .7;
+        const action = Math.max(0, 1 - (presentationTick - presentation.actionTick) / 3);
+        const hitAge = presentationTick - presentation.hitRecoilTick;
         const hitProgress = hitAge >= 0 && hitAge < 2 ? hitAge / 2 : 1;
         const hitPulse = hitAge >= 0 && hitAge < 2 ? Math.sin(hitProgress * Math.PI) : 0;
         const heavy = unit.archetype === 'GOLEM' || unit.archetype === 'SIEGE_CONSTRUCT';
         const recoilDistance = (heavy ? .075 : .13) * hitPulse;
         const rootX = x + presentation.hitRecoilX * recoilDistance;
         const rootZ = z + presentation.hitRecoilZ * recoilDistance;
-        presentation.root.setPosition(rootX, moving ? Math.abs(Math.sin(gait)) * .055 : Math.sin(gait * .23) * .012, rootZ);
         const model = presentation.model;
+        presentation.root.setPosition(
+          rootX,
+          model?.impostor ? 0 : moving ? Math.abs(Math.sin(gait)) * .055 : Math.sin(gait * .23) * .012,
+          rootZ,
+        );
         if (model?.impostor) model.entity?.setLocalEulerAngles(0, 0, 0);
         else model?.entity?.setLocalEulerAngles(action * 9 - hitPulse * (heavy ? 6 : 12), 0, (unit.id % 2 === 0 ? 1 : -1) * hitPulse * 4);
         model?.legL?.setLocalEulerAngles(moving ? Math.sin(gait) * 25 : 0, 0, 0);
@@ -221,28 +228,56 @@ export class UnitRenderBridge {
 
         if (model?.impostor) {
           presentation.root.setEulerAngles(0, naturalFacingYaw, 0);
-          this.visualAssets.syncImpostor(model, effectiveFacingYaw);
+
+          const hitElapsedSeconds = Math.max(0, hitAge / 10);
+          const attackElapsedSeconds = Math.max(0, (presentationTick - presentation.actionTick) / 10);
+          const hitActive = presentation.hitRecoilTick >= 0
+            && hitElapsedSeconds < impostorAnimationDurationSeconds('HIT');
+          const attackActive = presentation.actionTick >= 0
+            && attackElapsedSeconds < impostorAnimationDurationSeconds('ATTACK');
+
+          const animationSample: ImpostorAnimationSample = hitActive
+            ? { action: 'HIT', elapsedSeconds: hitElapsedSeconds }
+            : attackActive
+              ? { action: 'ATTACK', elapsedSeconds: attackElapsedSeconds }
+              : moving
+                ? { action: 'MOVE', elapsedSeconds: presentationTick / 10 }
+                : { action: 'IDLE', elapsedSeconds: presentationTick / 10 };
+
+          this.visualAssets.syncImpostor(model, effectiveFacingYaw, animationSample);
         } else {
           presentation.root.setEulerAngles(0, effectiveFacingYaw, 0);
         }
       }
 
       if (dying) {
-        const fall = Math.min(1, (current.tick + alpha - presentation.deathUntilTick + 7) / 5);
-        const fallYaw = Math.atan2(presentation.deathFallX, presentation.deathFallZ) * 180 / Math.PI;
-        const heavy = unit.archetype === 'GOLEM' || unit.archetype === 'SIEGE_CONSTRUCT';
-        const displacement = (heavy ? .18 : .28) * profile.selectionScale * fall;
-        presentation.model?.entity?.setLocalEulerAngles(0, 0, 0);
-        presentation.root.setPosition(
-          x + presentation.deathFallX * displacement,
-          -(heavy ? .08 : .15) * fall,
-          z + presentation.deathFallZ * displacement,
-        );
-        presentation.root.setEulerAngles(
-          fall * (heavy ? 54 : 72),
-          fallYaw,
-          (unit.id % 2 === 0 ? 1 : -1) * fall * (heavy ? 8 : 14),
-        );
+        const model = presentation.model;
+        if (model?.impostor) {
+          const deathElapsedSeconds = Math.max(0, (current.tick + alpha - presentation.deathStartTick) / 10);
+          presentation.root.setPosition(x, 0, z);
+          presentation.root.setEulerAngles(0, presentation.baseFacingYaw, 0);
+          model.entity?.setLocalEulerAngles(0, 0, 0);
+          this.visualAssets.syncImpostor(model, presentation.baseFacingYaw, {
+            action: 'DEATH',
+            elapsedSeconds: deathElapsedSeconds,
+          });
+        } else {
+          const fall = Math.min(1, (current.tick + alpha - presentation.deathUntilTick + 7) / 5);
+          const fallYaw = Math.atan2(presentation.deathFallX, presentation.deathFallZ) * 180 / Math.PI;
+          const heavy = unit.archetype === 'GOLEM' || unit.archetype === 'SIEGE_CONSTRUCT';
+          const displacement = (heavy ? .18 : .28) * profile.selectionScale * fall;
+          model?.entity?.setLocalEulerAngles(0, 0, 0);
+          presentation.root.setPosition(
+            x + presentation.deathFallX * displacement,
+            -(heavy ? .08 : .15) * fall,
+            z + presentation.deathFallZ * displacement,
+          );
+          presentation.root.setEulerAngles(
+            fall * (heavy ? 54 : 72),
+            fallYaw,
+            (unit.id % 2 === 0 ? 1 : -1) * fall * (heavy ? 8 : 14),
+          );
+        }
       }
       const statusY = Math.max(0.18, profile.height * 0.08);
       presentation.selection.setPosition(x, 0.055, z);
@@ -445,6 +480,7 @@ export class UnitRenderBridge {
       hitRecoilTick: -100,
       hitRecoilX: fallbackDirection.x,
       hitRecoilZ: fallbackDirection.z,
+      deathStartTick: -100,
       deathUntilTick: -1,
       deathFallX: fallbackDirection.x,
       deathFallZ: fallbackDirection.z,
@@ -492,6 +528,7 @@ export class UnitRenderBridge {
       }
       if (prior.alive && !unit.alive && prior.visibleToPlayer) {
         const direction = impactDirection(unit, previousById, current);
+        presentation.deathStartTick = current.tick;
         presentation.deathUntilTick = current.tick + 7;
         presentation.deathFallX = direction.x;
         presentation.deathFallZ = direction.z;
