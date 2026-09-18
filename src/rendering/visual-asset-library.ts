@@ -249,6 +249,7 @@ export class VisualAssetLibrary {
     // unit heading selects one of eight observer-side views, while the plane
     // itself remains camera-facing in world space.
     impostor.facingYawDegrees = headingDegrees;
+    const previousAction = impostor.animationSample.action;
     if (animationSample) impostor.animationSample = animationSample;
     impostor.billboard.setEulerAngles(0, RTS_CAMERA_YAW_DEGREES, 0);
 
@@ -258,7 +259,7 @@ export class VisualAssetLibrary {
     if (
       viewFrame === impostor.viewFrame
       && animationFrame === impostor.animationFrame
-      && sample.action === impostor.animationSample.action
+      && sample.action === previousAction
     ) return;
 
     const actionMaterials = impostor.materials[sample.action] ?? impostor.materials.IDLE;
