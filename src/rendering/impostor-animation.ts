@@ -16,8 +16,9 @@ export interface ImpostorAnimationSample {
 }
 
 export const IMPOSTOR_ANIMATION_FRAMES_PER_DIRECTION = 4;
+export const IMPOSTOR_MOVE_CYCLE_DISTANCE_METRES = 1.35;
 
-export const IMPOSTOR_ANIMATION_ASSET_REVISION = '20260918-complete-unit-animation-pack-v1';
+export const IMPOSTOR_ANIMATION_ASSET_REVISION = '20260918-complete-unit-animation-pack-v2';
 
 export const IMPOSTOR_ANIMATION_DIRECTION_STEMS = [
   'front',
@@ -86,6 +87,11 @@ export function impostorAnimationFrame(
   const raw = Math.floor(elapsed * ACTION_FPS[action]);
   if (LOOPING_ACTIONS.has(action)) return raw % IMPOSTOR_ANIMATION_FRAMES_PER_DIRECTION;
   return Math.min(IMPOSTOR_ANIMATION_FRAMES_PER_DIRECTION - 1, raw);
+}
+
+export function impostorMoveElapsedSeconds(distanceMetres: number): number {
+  const distance = Math.max(0, Number.isFinite(distanceMetres) ? distanceMetres : 0);
+  return (distance / IMPOSTOR_MOVE_CYCLE_DISTANCE_METRES) * impostorAnimationDurationSeconds('MOVE');
 }
 
 export function impostorAnimationDurationSeconds(action: ImpostorAnimationAction): number {

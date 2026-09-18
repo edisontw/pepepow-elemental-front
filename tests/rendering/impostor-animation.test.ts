@@ -2,19 +2,37 @@ import { describe, expect, it } from 'vitest';
 import {
   IMPOSTOR_ANIMATION_ACTIONS,
   IMPOSTOR_ANIMATION_ASSET_REVISION,
+  IMPOSTOR_MOVE_CYCLE_DISTANCE_METRES,
   animatedImpostorFrameFiles,
   impostorAnimationDurationSeconds,
+  impostorMoveElapsedSeconds,
   impostorAnimationFrame,
   impostorAnimationMaterialIndex,
   isLoopingImpostorAnimation,
 } from '../../src/rendering/impostor-animation';
 
 const revision = `?v=${encodeURIComponent(IMPOSTOR_ANIMATION_ASSET_REVISION)}`;
+const unitSlugs = [
+  'vanguard',
+  'elementalist-fire',
+  'elementalist-ice',
+  'elementalist-lightning',
+  'elementalist-water',
+  'engineer',
+  'golem',
+  'ranger',
+  'scout',
+  'siege-construct',
+  'spear-guard',
+] as const;
 
 describe('animated unit impostor assets', () => {
-  it('builds five 8-direction x 4-frame action sets', () => {
-    for (const action of IMPOSTOR_ANIMATION_ACTIONS) {
-      expect(animatedImpostorFrameFiles('vanguard', action)).toHaveLength(32);
+  it('builds five 8-direction x 4-frame action sets for the full 11-unit roster', () => {
+    expect(unitSlugs).toHaveLength(11);
+    for (const slug of unitSlugs) {
+      for (const action of IMPOSTOR_ANIMATION_ACTIONS) {
+        expect(animatedImpostorFrameFiles(slug, action)).toHaveLength(32);
+      }
     }
   });
 
@@ -62,6 +80,15 @@ describe('animated unit impostor assets', () => {
     expect(impostorAnimationFrame('ATTACK', 10)).toBe(3);
     expect(impostorAnimationFrame('HIT', 10)).toBe(3);
     expect(impostorAnimationFrame('DEATH', 10)).toBe(3);
+  });
+
+  it('advances Move from actual travel distance and restarts on a planted contact frame', () => {
+    const quarterCycle = IMPOSTOR_MOVE_CYCLE_DISTANCE_METRES / 4;
+    expect(impostorAnimationFrame('MOVE', impostorMoveElapsedSeconds(0))).toBe(0);
+    expect(impostorAnimationFrame('MOVE', impostorMoveElapsedSeconds(quarterCycle * 1.01))).toBe(1);
+    expect(impostorAnimationFrame('MOVE', impostorMoveElapsedSeconds(quarterCycle * 2.01))).toBe(2);
+    expect(impostorAnimationFrame('MOVE', impostorMoveElapsedSeconds(quarterCycle * 3.01))).toBe(3);
+    expect(impostorAnimationFrame('MOVE', impostorMoveElapsedSeconds(IMPOSTOR_MOVE_CYCLE_DISTANCE_METRES))).toBe(0);
   });
 
   it('uses short readable one-shot durations at the 10 Hz presentation boundary', () => {

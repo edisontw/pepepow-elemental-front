@@ -168,9 +168,9 @@ export class VisualAssetLibrary {
   private readonly impostorResources = new Map<string, ImpostorResources>();
   private readonly impostorUpdates = new Set<() => void>();
   private readonly impostorShadowMaterial: pc.StandardMaterial;
-  // I1 vertical slice: only the local-player Vanguard uses the new 5-action
-  // animated WebP runtime until manual WebGL acceptance passes.
-  private readonly useAnimatedVanguardImpostor = true;
+  // Keep the current player-side boundary, but use the same five-action
+  // animated WebP runtime for every configured production unit.
+  private readonly useAnimatedUnitImpostors = true;
   private disposed = false;
 
   constructor(private readonly app: pc.Application) {
@@ -197,9 +197,7 @@ export class VisualAssetLibrary {
       released: false,
     };
 
-    // Keep the rollout intentionally narrow: prove the complete animated
-    // impostor path on the local-player Vanguard before enabling the roster.
-    const impostorConfig = this.useAnimatedVanguardImpostor && playerId === 0 && id === 'unit.vanguard'
+    const impostorConfig = this.useAnimatedUnitImpostors && playerId === 0
       ? IMPOSTOR_CONFIGS.get(id)
       : undefined;
     if (impostorConfig) {
