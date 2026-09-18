@@ -7,7 +7,11 @@ import type { EntityID } from '../simulation/components';
 import type { EntitySnapshot, SimulationSnapshot } from '../simulation/simulation';
 import { unitVisualProfile, type UnitProjectileStyle } from './unit-visual-profile';
 import { resolvePresentationFacing } from './unit-facing';
-import { impostorAnimationDurationSeconds, type ImpostorAnimationSample } from './impostor-animation';
+import {
+  impostorAnimationDurationSeconds,
+  impostorMoveElapsedSeconds,
+  type ImpostorAnimationSample,
+} from './impostor-animation';
 
 interface UnitPresentation {
   root: pc.Entity;
@@ -15,6 +19,10 @@ interface UnitPresentation {
   modelId: string;
   primitives: pc.Entity[];
   actionTick: number;
+  locomotionDistanceMetres: number;
+  locomotionWasMoving: boolean;
+  lastPresentationX: number;
+  lastPresentationZ: number;
   baseFacingYaw: number;
   facingOverrideYaw: number;
   facingOverrideUntilTick: number;
@@ -184,8 +192,20 @@ export class UnitRenderBridge {
       const prior = previousById.get(unit.id) ?? unit;
       const x = pc.math.lerp(prior.x, unit.x, alpha) / WORLD_UNITS_PER_METER;
       const z = pc.math.lerp(prior.z, unit.z, alpha) / WORLD_UNITS_PER_METER;
+      const presentationTravelMetres = Math.hypot(
+        x - presentation.lastPresentationX,
+        z - presentation.lastPresentationZ,
+      );
+      presentation.lastPresentationX = x;
+      presentation.lastPresentationZ = z;
+      if (!presented) presentation.locomotionWasMoving = false;
       if (presented) {
         const moving = unit.frozenTicks === 0 && (unit.x !== prior.x || unit.z !== prior.z);
+        if (moving) {
+          if (!presentation.locomotionWasMoving) presentation.locomotionDistanceMetres = 0;
+          presentation.locomotionDistanceMetres += presentationTravelMetres;
+        }
+        presentation.locomotionWasMoving = moving;
         const presentationTick = current.tick + alpha;
         const gait = presentationTick * 1.15 + unit.id * .7;
         const action = Math.max(0, 1 - (presentationTick - presentation.actionTick) / 3);
@@ -241,7 +261,7 @@ export class UnitRenderBridge {
             : attackActive
               ? { action: 'ATTACK', elapsedSeconds: attackElapsedSeconds }
               : moving
-                ? { action: 'MOVE', elapsedSeconds: presentationTick / 10 }
+                ? { action: 'MOVE', elapsedSeconds: impostorMoveElapsedSeconds(presentation.locomotionDistanceMetres) }
                 : { action: 'IDLE', elapsedSeconds: presentationTick / 10 };
 
           this.visualAssets.syncImpostor(model, effectiveFacingYaw, animationSample);
@@ -465,6 +485,10 @@ export class UnitRenderBridge {
       modelId: '',
       primitives,
       actionTick: -100,
+      locomotionDistanceMetres: 0,
+      locomotionWasMoving: false,
+      lastPresentationX: metres(unit.x),
+      lastPresentationZ: metres(unit.z),
       baseFacingYaw: 0,
       facingOverrideYaw: 0,
       facingOverrideUntilTick: -1,
