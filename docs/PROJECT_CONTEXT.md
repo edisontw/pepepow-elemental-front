@@ -1,11 +1,11 @@
 # PEPEPOW Elemental Front — PROJECT_CONTEXT
 
-**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Phase 4 Hero-Lite Progression ACTIVE (P4-B Neutral Camps / XP Foundation) + Visual Production ongoing  
+**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Phase 4 Hero-Lite Progression ACTIVE (P4-C Level 1–5 Veteran Progression) + Visual Production ongoing  
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v5`  
-**Current replay format:** `ef-replay-v5`  
+**Current authoritative gameplay ruleset:** `ef-standard-v6`  
+**Current replay format:** `ef-replay-v6`  
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE3_CLOSURE_REPORT.md`
 
@@ -69,8 +69,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v5`;
-- replay: `ef-replay-v5`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v6`;
+- replay: `ef-replay-v6`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -92,7 +92,7 @@ Known deferred infrastructure issue:
 
 ### Post-Roadmap Phase 2 — Element Authority
 
-Phase 2 remains CLOSED and is carried forward under v5:
+Phase 2 remains CLOSED and is carried forward under v6:
 
 - exactly two distinct starting Elemental Attunements;
 - one immutable Fire / Water / Ice / Lightning alignment per completed Elementalist;
@@ -176,7 +176,7 @@ During the current visual-production pass, keep these gameplay items deferred un
 
 ## 6. Current formal work point — Phase 4 + Visual Production
 
-The active work point is **Phase 4 hero-lite gameplay redesign alongside the ongoing high-quality presentation production pass**. Phase 4 P4-A completed objective combat and Core recovery. P4-B is active with deterministic neutral camps, neutral combat, XP accumulation, camp-clear rewards, and capture gating; later slices add Level 1–5 veteran progression and veteran UI. The visual pass continues in parallel with a darker, higher-contrast battlefield target.
+The active work point is **Phase 4 hero-lite gameplay redesign alongside the ongoing high-quality presentation production pass**. Phase 4 P4-A completed objective combat and Core recovery. P4-B completed deterministic neutral camps and the XP foundation. P4-C is active with individual Level 1–5 veteran progression, deterministic shared combat XP, HP/damage growth, and selected-unit veteran UI. The visual pass continues in parallel with a darker, higher-contrast battlefield target.
 
 Primary scope:
 
@@ -318,7 +318,7 @@ P4-A completed rules:
 - world generation remains `m02-standard-v1`;
 - P4-A shipped under `ef-standard-v4` / `ef-replay-v4`.
 
-P4-B active rules:
+P4-B completed rules:
 
 - the 5 existing generated `NEUTRAL_CAMP` POIs spawn deterministic neutral Ancient Sentinel guards;
 - neutral faction authority uses player ID 2 and participates in normal combat without joining either army economy;
@@ -326,12 +326,24 @@ P4-B active rules:
 - guarded Neutral Camps cannot be captured until all guards are defeated;
 - clearing a camp distributes 120 XP deterministically among nearby participating units of the winning local faction;
 - unit `experience` and `neutralCampId` are authoritative, snapshot-visible, and state-hashed;
-- gameplay/replay identity is `ef-standard-v5` / `ef-replay-v5`;
+- P4-B shipped under `ef-standard-v5` / `ef-replay-v5`;
+- world generation remains `m02-standard-v1`.
+
+P4-C active rules:
+
+- every normal player/enemy combat unit starts at Level 1 and can progress to Level 5;
+- cumulative XP thresholds are 60 / 150 / 280 / 450 XP for Levels 2 / 3 / 4 / 5;
+- normal combat-unit kills grant deterministic shared XP to nearby same-faction participants; no last-hit ownership is required;
+- Neutral Sentinels do not also grant per-kill XP, avoiding double rewards on top of the 120 XP camp-clear pool;
+- each level above Level 1 adds approximately +6% Max HP and +4% Attack Damage using deterministic integer scaling;
+- stat growth is linear from the unit's original base stats, not multiplicative from the current level;
+- level-up restores only the newly added Max-HP delta rather than performing a full heal;
+- XP is capped at the Level-5 threshold;
+- selected-unit UI shows Level and XP-to-next-level; group selection summarizes veteran composition by level;
+- gameplay/replay identity is `ef-standard-v6` / `ef-replay-v6`;
 - world generation remains `m02-standard-v1`.
 
 Next Phase 4 slices:
 
-1. deterministic Level 1–5 progression from accumulated XP;
-2. veteran stat scaling and level-up feedback;
-3. veteran UI/readability;
-4. balance and replay validation.
+1. P4-D veteran presentation: level badge/pips, subtle veteran accent, level-up VFX, camp/monster readability;
+2. P4-E balance/run integration: snowball risk, recovery interaction, camp pacing, boss/finale interaction, and replay validation.
