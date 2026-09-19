@@ -183,6 +183,7 @@ export class RtsCamera {
     const canvasBounds = this.canvas.getBoundingClientRect();
     let left = canvasBounds.left;
     let right = canvasBounds.right;
+    let top = canvasBounds.top;
 
     const strategyPanel = document.getElementById('strategy-panel');
     if (strategyPanel && strategyPanel.getClientRects().length > 0) {
@@ -197,10 +198,18 @@ export class RtsCamera {
       if (rect.left < right && rect.right > left) right = Math.max(left, rect.left - HUD_EDGE_GAP_PX);
     }
 
+    const runPanel = document.getElementById('run-panel');
+    if (runPanel && runPanel.getClientRects().length > 0) {
+      const rect = runPanel.getBoundingClientRect();
+      if (rect.bottom > top && rect.top < canvasBounds.bottom) {
+        top = Math.min(canvasBounds.bottom, rect.bottom + HUD_EDGE_GAP_PX);
+      }
+    }
+
     return {
       left,
       right,
-      top: canvasBounds.top,
+      top,
       bottom: canvasBounds.bottom,
     };
   }
