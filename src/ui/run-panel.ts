@@ -147,13 +147,9 @@ export class RunPanel {
     const officialButton = FEATURED_OFFICIAL_CHALLENGE
       ? `<button data-run-action="official">${FEATURED_OFFICIAL_CHALLENGE.label}</button>`
       : '';
-    const officialInlineButton = FEATURED_OFFICIAL_CHALLENGE
-      ? `<button class="run-mode-button" data-run-action="official">Official Challenge</button>`
-      : '';
     const elapsedSeconds = Math.floor(simulation.tick / 10);
     const playerCore = run.playerCore;
     const target = run.mode === 'DESTROY' ? run.enemyCore : run.boss;
-    const targetLabel = run.mode === 'DESTROY' ? 'Enemy Core' : run.boss.label;
     const targetPercent = healthPercent(target.currentHealth, target.maxHealth);
     const playerPercent = healthPercent(playerCore.currentHealth, playerCore.maxHealth);
     const replayLine = this.simulation.isReplayPlayback
