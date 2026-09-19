@@ -215,11 +215,16 @@ export class VisualAssetLibrary {
         render.castShadows = false;
         for (const mesh of render.meshInstances) {
           if (mesh.material.name !== 'TEAM') continue;
-          const key = `${id}:${playerId === 0 ? 'player' : 'enemy'}`;
+          const allegiance = playerId === 0 ? 'player' : playerId === 2 ? 'neutral' : 'enemy';
+          const key = `${id}:${allegiance}`;
           let material = this.teamMaterials.get(key);
           if (!material) {
             material = (mesh.material as pc.StandardMaterial).clone();
-            material.diffuse = playerId === 0 ? new pc.Color(.10, .62, .48) : new pc.Color(.78, .16, .12);
+            material.diffuse = playerId === 0
+              ? new pc.Color(.10, .62, .48)
+              : playerId === 2
+                ? new pc.Color(.44, .36, .22)
+                : new pc.Color(.78, .16, .12);
             material.update();
             this.teamMaterials.set(key, material);
           }
