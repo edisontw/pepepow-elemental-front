@@ -29,7 +29,7 @@ describe('M01 deterministic static navigation', () => {
     expect(first?.filter(({ column }) => column >= 24 && column <= 28).every(({ row }) => row >= 30 && row <= 32)).toBe(true);
 
     const tiePath = navigation.findPath({ column: 20, row: 19 }, { column: 22, row: 21 });
-    expect(tiePath?.[0]).toEqual({ column: 20, row: 20 });
+    expect(tiePath).toEqual([{ column: 21, row: 20 }, { column: 22, row: 21 }]);
   });
 
   it('moves a unit through the crossing without ever occupying blocked cells', () => {

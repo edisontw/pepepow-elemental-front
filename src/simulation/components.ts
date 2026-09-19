@@ -18,6 +18,9 @@ export interface PositionComponent {
 }
 
 export interface MovementComponent {
+  orderMode: 'NORMAL' | 'ATTACK_MOVE' | 'HOLD';
+  attackMoveX: number | null;
+  attackMoveZ: number | null;
   speedPerTick: number;
   targetX: number | null;
   targetZ: number | null;

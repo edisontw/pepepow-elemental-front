@@ -13,14 +13,14 @@ interface EntityCommandBase extends CommandBase {
 }
 
 export interface MoveCommand extends EntityCommandBase {
-  type: 'MOVE';
+  type: 'MOVE' | 'ATTACK_MOVE';
   targetX: number;
   targetZ: number;
   formation?: FormationId;
 }
 
 export interface StopCommand extends EntityCommandBase {
-  type: 'STOP';
+  type: 'STOP' | 'HOLD';
 }
 
 export interface AttackCommand extends EntityCommandBase {
@@ -111,11 +111,11 @@ function normalizeCommand(command: GameCommand): GameCommand {
     };
   }
   const entityIds = normalizeEntityIds(command.entityIds);
-  if (command.type === 'MOVE') {
+  if ((command.type === 'MOVE' || command.type === 'ATTACK_MOVE')) {
     return {
       ...base,
       entityIds,
-      type: 'MOVE',
+      type: command.type,
       targetX: Math.round(command.targetX),
       targetZ: Math.round(command.targetZ),
       ...(command.formation === undefined ? {} : { formation: command.formation }),
@@ -124,7 +124,7 @@ function normalizeCommand(command: GameCommand): GameCommand {
   if (command.type === 'ATTACK') {
     return { ...base, entityIds, type: 'ATTACK', targetEntityId: command.targetEntityId };
   }
-  return { ...base, entityIds, type: 'STOP' };
+  return { ...base, entityIds, type: command.type };
 }
 
 function normalizeSemanticSpellCommand(command: SemanticSpellCommand): SemanticSpellCommand {
@@ -162,12 +162,12 @@ export class CommandQueue {
   enqueue(command: GameCommand): void {
     validateBase(command);
     if (
-      (command.type === 'MOVE' || (command.type === 'CAST' && command.effectId !== 'CHAIN_LIGHTNING'))
+      ((command.type === 'MOVE' || command.type === 'ATTACK_MOVE') || (command.type === 'CAST' && command.effectId !== 'CHAIN_LIGHTNING'))
       && (!Number.isSafeInteger(command.targetX) || !Number.isSafeInteger(command.targetZ))
     ) {
       throw new Error(`${command.type} target coordinates must be safe integers.`);
     }
-    if (command.type === 'MOVE' && command.formation !== undefined && !isFormationId(command.formation)) {
+    if ((command.type === 'MOVE' || command.type === 'ATTACK_MOVE') && command.formation !== undefined && !isFormationId(command.formation)) {
       throw new Error('MOVE formation must be LINE, COLUMN, or SPREAD.');
     }
     if (command.type === 'CAST' && command.effectId !== 'CHAIN_LIGHTNING' && (!Number.isSafeInteger(command.radius) || command.radius < 0)) {

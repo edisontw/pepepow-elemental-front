@@ -33,6 +33,7 @@ export class EntityStore {
     this.nextEntityId += 1;
     this.positions.set(entityId, { x: Math.round(spawn.x), z: Math.round(spawn.z) });
     this.movements.set(entityId, {
+      orderMode: 'NORMAL', attackMoveX: null, attackMoveZ: null,
       speedPerTick: Math.round(spawn.speedPerTick),
       targetX: null,
       targetZ: null,

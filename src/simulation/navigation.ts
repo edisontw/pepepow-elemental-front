@@ -10,13 +10,20 @@ interface OpenNode extends GridCell {
   sequence: number;
 }
 
-// North, east, south, west is the canonical expansion order.
+// Keep cardinal BFS slot resolution stable; path expansion adds NE, SE, SW, NW.
 const NEIGHBORS: readonly GridCell[] = [
   { column: 0, row: 1 },
   { column: 1, row: 0 },
   { column: 0, row: -1 },
   { column: -1, row: 0 },
 ];
+
+const PATH_NEIGHBORS = [...NEIGHBORS,
+  { column: 1, row: 1 }, { column: 1, row: -1 },
+  { column: -1, row: -1 }, { column: -1, row: 1 },
+] as const;
+export const CARDINAL_COST = 10;
+export const DIAGONAL_COST = 14;
 
 export class NavigationGrid {
   navVersion: number;
@@ -122,6 +129,16 @@ export class NavigationGrid {
     return null;
   }
 
+  canTraverse(from: GridCell, to: GridCell): boolean {
+    const dx = to.column - from.column;
+    const dz = to.row - from.row;
+    if (Math.abs(dx) > 1 || Math.abs(dz) > 1 || !this.isWalkable(to)) return false;
+    return dx === 0 || dz === 0 || (
+      this.isWalkable({ column: from.column + dx, row: from.row })
+      && this.isWalkable({ column: from.column, row: from.row + dz })
+    );
+  }
+
   findPath(start: GridCell, requestedGoal: GridCell): GridCell[] | null {
     const goal = this.resolveWalkableTarget(requestedGoal);
     if (!goal || !this.isWalkable(start)) return null;
@@ -138,11 +155,11 @@ export class NavigationGrid {
       const currentKey = this.cellKey(current);
       if (current.g !== bestG.get(currentKey)) continue;
       if (currentKey === goalKey) return this.reconstruct(cameFrom, startKey, current);
-      for (const offset of NEIGHBORS) {
+      for (const offset of PATH_NEIGHBORS) {
         const neighbor = { column: current.column + offset.column, row: current.row + offset.row };
-        if (!this.isWalkable(neighbor)) continue;
+        if (!this.canTraverse(current, neighbor)) continue;
         const key = this.cellKey(neighbor);
-        const tentativeG = current.g + 1;
+        const tentativeG = current.g + (offset.column !== 0 && offset.row !== 0 ? DIAGONAL_COST : CARDINAL_COST);
         const previousG = bestG.get(key);
         if (previousG !== undefined && tentativeG >= previousG) continue;
         bestG.set(key, tentativeG);
@@ -166,7 +183,9 @@ export class NavigationGrid {
   }
 
   private heuristic(left: GridCell, right: GridCell): number {
-    return Math.abs(left.column - right.column) + Math.abs(left.row - right.row);
+    const dx = Math.abs(left.column - right.column);
+    const dz = Math.abs(left.row - right.row);
+    return CARDINAL_COST * Math.max(dx, dz) + (DIAGONAL_COST - CARDINAL_COST) * Math.min(dx, dz);
   }
 
   private clampCell(cell: GridCell): GridCell {

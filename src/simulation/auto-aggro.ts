@@ -47,14 +47,22 @@ export function acquireEncounterTargets(
     const combat = entities.combat.get(entityId);
     const movement = entities.movements.get(entityId);
     if (!faction || !position || !combat || !movement) continue;
-    if (combat.targetEntityId !== null && entities.hasUnit(combat.targetEntityId)) continue;
+    if (combat.targetEntityId !== null && entities.hasUnit(combat.targetEntityId)) {
+      const target = entities.positions.get(combat.targetEntityId)!;
+      const heldTargetValid = squaredDistance(position, target) <= combat.attackRange * combat.attackRange
+        && visibility.isWorldVisible(faction.playerId, target.x, target.z, navigation)
+        && forestAllowsDetection(combat.targetEntityId, faction.playerId, entities, terrain, navigation);
+      if (movement.orderMode !== 'HOLD' || heldTargetValid) continue;
+      combat.targetEntityId = null;
+      combat.pursuitTargetCellKey = null;
+    }
     if (combat.targetEntityId !== null) {
       combat.targetEntityId = null;
       combat.pursuitTargetCellKey = null;
     }
 
-    const moving = movement.targetX !== null && movement.targetZ !== null;
-    const range = Math.max(
+    const moving = movement.orderMode !== 'ATTACK_MOVE' && movement.targetX !== null && movement.targetZ !== null;
+    const range = movement.orderMode === 'HOLD' ? combat.attackRange : Math.max(
       combat.attackRange + (moving ? MOVING_RANGE_PADDING : IDLE_RANGE_PADDING),
       moving ? MOVING_MIN_CONTACT_RANGE : IDLE_MIN_AGGRO_RANGE,
     );

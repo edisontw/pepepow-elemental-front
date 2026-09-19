@@ -140,13 +140,13 @@ export class M04Simulation extends M03Simulation {
 
   constructor(generatedWorld: GeneratedWorld, options: M04SimulationOptions = {}) {
     super(generatedWorld);
-    this.roguelite = new RogueliteState(generatedWorld);
     this.playerManaRules = options.playerManaRules ?? false;
     const initial: Record<number, StartingAttunements> = {
       0: options.startingAttunementsByPlayer?.[0] ?? DEFAULT_STARTING_ATTUNEMENTS[0]!,
       1: options.startingAttunementsByPlayer?.[1] ?? DEFAULT_STARTING_ATTUNEMENTS[1]!,
     };
     this.attunements = new AttunementState(initial);
+    this.roguelite = new RogueliteState(generatedWorld, this.attunements);
     for (const effectId of SPELL_IDS) this.spellReadyTick.set(effectId, 0);
   }
 
@@ -210,6 +210,7 @@ export class M04Simulation extends M03Simulation {
     const frame = super.step();
     this.reconcileProductionAlignments(strategicBeforeCommands, entityIdsBefore, trainIntents);
     this.roguelite.advance(frame.tick);
+    this.roguelite.offerSecuredShrines(this.strategy.snapshot(), frame.tick);
     if (this.playerManaRules) {
       this.strategy.clampManaMilli(PLAYER_ID, this.roguelite.maxManaMilli(PLAYER_ID));
     }

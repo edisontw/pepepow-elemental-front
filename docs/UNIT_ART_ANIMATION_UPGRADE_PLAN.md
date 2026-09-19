@@ -1,6 +1,6 @@
 # PEPEPOW Elemental Front — Unit Art & Animation Upgrade Plan
 
-**Status:** ACTIVE — execution plan  
+**Status:** runtime integration complete for eleven five-action player-side units; manual WebGL/FPS acceptance pending
 **Scope:** final unit art, directional animation, action timing, combat feedback integration, atlas/runtime optimization, and browser-performance safeguards  
 **Authority:** presentation only; no gameplay, simulation, navigation, replay, AI, or deterministic-state changes  
 **Primary target:** raise unit presentation to the quality level of the upgraded battlefield while preserving RTS readability and the existing authoritative ruleset
@@ -71,12 +71,12 @@ The environment is substantially more sophisticated than the units. Unit present
 Current runtime characteristics:
 
 - the repository already contains a directional WebP impostor path that previously proved workable;
-- current primary unit rendering uses low-detail manifest-loaded GLB fallbacks and procedural/embedded animation plumbing;
+- current player-side unit rendering uses 55 generated WebP action atlases; enemy/neutral units retain GLB fallbacks;
 - those GLBs remain useful compatibility fallbacks and technical experiments, but they are not the final-art production direction;
 - the simulation already provides authoritative movement, attack timing, cast timing, health/state, facing, and death information required to drive presentation;
 - prior eight-direction work established the importance of shared direction mapping, per-view normalization, stable foot baselines, and consistent scale.
 
-The next quality step is therefore to **restore and productionize the directional impostor path**, not to continue spending production budget on mesh reconstruction, retopology, skinning, Blender authoring, or animated-GLB cleanup.
+The active next step is manual visual/FPS acceptance of the atlas runtime. The original I0–I5 implementation plan below is retained as production history; do not restart generation or Blender work.
 
 ---
 

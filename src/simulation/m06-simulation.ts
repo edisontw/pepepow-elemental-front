@@ -45,7 +45,7 @@ export type M06ReplayEntry =
   | { channel: 'RUN'; command: M06RunCommand };
 
 export interface M06ReplayHeader {
-  version: 'ef-replay-v9';
+  version: 'ef-replay-v10';
   blockHeight: number;
   rulesetVersion: string;
   worldGameplayHash: string;
@@ -120,7 +120,7 @@ export function isM06ReplayPacket(value: unknown): value is M06ReplayPacket {
   if (typeof value !== 'object' || value === null) return false;
   const packet = value as Partial<M06ReplayPacket>;
   const header = packet.header as Partial<M06ReplayHeader> | undefined;
-  if (!header || header.version !== 'ef-replay-v9') return false;
+  if (!header || header.version !== 'ef-replay-v10') return false;
   if (!Number.isSafeInteger(header.blockHeight) || !Number.isSafeInteger(header.generationAttempt)) return false;
   if (typeof header.rulesetVersion !== 'string' || typeof header.worldGameplayHash !== 'string') return false;
   if (!validStartingAttunements(header.startingAttunements)) return false;
@@ -152,7 +152,7 @@ export class M06Simulation extends M05Simulation {
   readonly neutralEncounters: NeutralEncounterState;
   private readonly recordedCommands: M06ReplayEntry[] = [];
   private pendingReplayEntries: M06ReplayEntry[] = [];
-  private readonly pendingRunCommands: M06RunCommand[] = [];
+  private readonly pendingRunCommands: Array<M06RunCommand | M04GameCommand> = [];
   private readonly objectiveAttackOrders = new Map<number, RunObjectiveId>();
   private readonly aiObjectiveAttackIds = new Set<number>();
   private replayEntryIndex = 0;
@@ -172,8 +172,8 @@ export class M06Simulation extends M05Simulation {
     if (this.playback && !this.internalCommand) return;
     // External/player orders replace an explicit objective attack. Internal
     // Enemy War commands are reconciled against the AI decision after its step.
-    if (!this.internalCommand) this.clearObjectiveOrdersForCommand(command);
     super.enqueueCommand(command);
+    if (!this.internalCommand) this.pendingRunCommands.push(cloneGameCommand(command));
     if (!this.internalCommand) {
       this.recordedCommands.push({ channel: 'GAME', command: cloneGameCommand(command) });
     }
@@ -306,7 +306,7 @@ export class M06Simulation extends M05Simulation {
   private buildReplayPacket(snapshot: M06SimulationSnapshot): M06ReplayPacket {
     return {
       header: {
-        version: 'ef-replay-v9',
+        version: 'ef-replay-v10',
         blockHeight: this.generatedWorld.identity.blockHeight,
         rulesetVersion: CURRENT_CHALLENGE_RULESET_VERSION,
         worldGameplayHash: this.generatedWorld.gameplayHash,
@@ -332,7 +332,7 @@ export class M06Simulation extends M05Simulation {
       if (!entry || entry.command.targetTick > nextTick) break;
       if (entry.channel === 'GAME') {
         const command = cloneGameCommand(entry.command);
-        this.clearObjectiveOrdersForCommand(command);
+        this.pendingRunCommands.push(command);
         super.enqueueCommand(command);
       } else if (entry.channel === 'STRATEGIC') {
         const command = cloneStrategicCommand(entry.command);
@@ -353,7 +353,8 @@ export class M06Simulation extends M05Simulation {
   }
 
   private processRunCommands(targetTick: number): void {
-    const due = this.pendingRunCommands.filter((command) => command.targetTick <= targetTick);
+    const due = this.pendingRunCommands.filter((command) => command.targetTick <= targetTick)
+      .sort((a, b) => a.targetTick - b.targetTick);
     if (due.length === 0) return;
     for (let index = this.pendingRunCommands.length - 1; index >= 0; index -= 1) {
       if ((this.pendingRunCommands[index]?.targetTick ?? Number.POSITIVE_INFINITY) <= targetTick) {
@@ -362,6 +363,10 @@ export class M06Simulation extends M05Simulation {
     }
 
     for (const command of due) {
+      if (command.type !== 'ATTACK_OBJECTIVE') {
+        this.clearObjectiveOrdersForCommand(command);
+        continue;
+      }
       const expectedPlayerId = command.objective === 'ENEMY_CORE' ? 0 : 1;
       if (command.playerId !== expectedPlayerId) continue;
       const validIds = command.entityIds
@@ -531,7 +536,9 @@ export class M06Simulation extends M05Simulation {
 
   private clearObjectiveOrdersForCommand(command: M04GameCommand): void {
     if (command.type === 'CAST' || command.type === 'CAST_TACTICAL' || command.type === 'CAST_STRATEGIC') return;
-    for (const entityId of command.entityIds) this.objectiveAttackOrders.delete(entityId);
+    for (const entityId of command.entityIds) {
+      if (this.entities.factions.get(entityId)?.playerId === command.playerId) this.objectiveAttackOrders.delete(entityId);
+    }
   }
 
   private enqueueBossAbility(targetTick: number, intent: BossAbilityIntent): void {

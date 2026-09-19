@@ -1,9 +1,8 @@
 import * as pc from 'playcanvas';
+import { impostorAtlasFile, impostorAtlasRect } from './impostor-atlas';
 import manifest from '../../data/assets/manifest.json';
 import { RTS_CAMERA_YAW_DEGREES, stableImpostorFrameForHeading } from './impostor-frame';
 import {
-  IMPOSTOR_ANIMATION_ACTIONS,
-  animatedImpostorFrameFiles,
   impostorAnimationFrame,
   impostorAnimationMaterialIndex,
   type ImpostorAnimationAction,
@@ -147,6 +146,7 @@ interface ImpostorResources {
   materials: pc.StandardMaterial[];
   textures: pc.Texture[];
   promise: Promise<ImpostorActionMaterials | null> | null;
+  requestAction?: (action: ImpostorAnimationAction) => void;
 }
 
 export interface VisualModel {
@@ -262,10 +262,12 @@ export class VisualAssetLibrary {
     const viewFrame = stableImpostorFrameForHeading(headingDegrees, impostor.viewFrame);
     const sample = impostor.animationSample;
     const animationFrame = impostorAnimationFrame(sample.action, sample.elapsedSeconds);
+    this.impostorResources.get(impostor.configId)?.requestAction?.(sample.action);
     if (
       viewFrame === impostor.viewFrame
       && animationFrame === impostor.animationFrame
       && sample.action === previousAction
+      && impostor.plane.render?.material === impostor.materials[sample.action][impostorAnimationMaterialIndex(viewFrame, animationFrame)]
     ) return;
 
     const actionMaterials = impostor.materials[sample.action] ?? impostor.materials.IDLE;
@@ -410,168 +412,59 @@ export class VisualAssetLibrary {
       image.src = url;
     });
 
-    const filesByAction = Object.fromEntries(
-      IMPOSTOR_ANIMATION_ACTIONS.map((action) => [
-        action,
-        animatedImpostorFrameFiles(config.slug, action),
-      ]),
-    ) as Record<ImpostorAnimationAction, readonly string[]>;
-    const framesPerAction = filesByAction.IDLE.length;
-    const framesPerDirection = 4;
-
-    const createFrameMaterial = (
-      action: ImpostorAnimationAction,
-      frame: number,
-      image: HTMLImageElement,
-    ): pc.StandardMaterial => {
-      const texture = new pc.Texture(this.app.graphicsDevice, {
-        name: `${config.id}.impostor.${action.toLowerCase()}.${frame}`,
-        mipmaps: false,
-        srgb: true,
-        minFilter: pc.FILTER_LINEAR,
-        magFilter: pc.FILTER_LINEAR,
-        addressU: pc.ADDRESS_CLAMP_TO_EDGE,
-        addressV: pc.ADDRESS_CLAMP_TO_EDGE,
-      });
-      texture.setSource(image);
-      resources!.textures.push(texture);
-
-      const material = new pc.StandardMaterial();
-      material.name = `${config.id.toUpperCase().replaceAll('.', '_')}_IMPOSTOR_${action}_${frame}`;
-      material.useLighting = false;
-      // Baked sprite art should sit inside the battlefield lighting range rather
-      // than rendering at display-white emissive intensity.
-      material.emissive = new pc.Color(0.75, 0.74, 0.70);
-      material.emissiveMap = texture;
-      material.opacityMap = texture;
-      material.opacityMapChannel = 'a';
-      material.alphaTest = 0.12;
-      material.cull = pc.CULLFACE_NONE;
-      material.update();
-      resources!.materials.push(material);
-      return material;
-    };
-
-    const nearestLoadedImage = (
-      images: readonly (HTMLImageElement | null)[],
-      frame: number,
-    ): HTMLImageElement | null => {
-      const direct = images[frame];
-      if (direct) return direct;
-      const localFrame = frame % framesPerDirection;
-      const viewStart = frame - localFrame;
-      for (let distance = 1; distance < framesPerDirection; distance += 1) {
-        const previous = images[viewStart + ((localFrame - distance + framesPerDirection) % framesPerDirection)];
-        if (previous) return previous;
-        const next = images[viewStart + ((localFrame + distance) % framesPerDirection)];
-        if (next) return next;
-      }
-      return null;
-    };
-
-    const loadActionImages = async (
-      action: ImpostorAnimationAction,
-    ): Promise<readonly (HTMLImageElement | null)[]> => {
-      const files = filesByAction[action];
-      const results = await Promise.allSettled(
-        files.map((path) => loadImage(`${import.meta.env.BASE_URL}${path}`, 'low')),
-      );
-      const images = results.map((result) => result.status === 'fulfilled' ? result.value : null);
-      const missing = results
-        .map((result, frame) => result.status === 'rejected' ? files[frame] : null)
-        .filter((path): path is string => path !== null);
-      if (missing.length > 0) {
-        console.warn(
-          `${config.label} ${action.toLowerCase()} impostor has ${missing.length} missing/corrupt frame(s); using local fallback.`,
-          missing,
-        );
-      }
-      return images;
-    };
-
-    // Fast first paint: request exactly one direction for each unique unit
-    // config. The previous eight-view preview still created a startup burst when
-    // several starting archetypes were present. Missing directions temporarily
-    // reuse the first frame, then hydrate after the scene is already interactive.
-    const previewFiles = filesByAction.IDLE.filter((_, frame) => frame % framesPerDirection === 0);
-    const firstPreviewFile = previewFiles[0];
-    if (!firstPreviewFile) return Promise.resolve(null);
-
-    resources.promise = loadImage(`${import.meta.env.BASE_URL}${firstPreviewFile}`, 'high').then((firstPreviewImage) => {
-      if (this.disposed) return null;
-      const firstPreviewMaterial = createFrameMaterial('IDLE', 0, firstPreviewImage);
-      const previewByView: HTMLImageElement[] = Array.from(
-        { length: previewFiles.length },
-        () => firstPreviewImage,
-      );
-      const previewMaterials = Array.from(
-        { length: framesPerAction },
-        () => firstPreviewMaterial,
-      );
-      const actionMaterials: Record<ImpostorAnimationAction, readonly pc.StandardMaterial[]> = {
-        IDLE: previewMaterials,
-        MOVE: previewMaterials,
-        ATTACK: previewMaterials,
-        HIT: previewMaterials,
-        DEATH: previewMaterials,
-      };
-
-      const hydrateRemainingPreviews = async (): Promise<void> => {
-        const remaining = previewFiles.slice(1);
-        const results = await Promise.allSettled(
-          remaining.map((path) => loadImage(`${import.meta.env.BASE_URL}${path}`, 'low')),
-        );
-        if (this.disposed) return;
-        for (let index = 0; index < results.length; index += 1) {
-          const result = results[index];
-          if (result?.status !== 'fulfilled') continue;
-          const view = index + 1;
-          previewByView[view] = result.value;
-          const material = createFrameMaterial('IDLE', view * framesPerDirection, result.value);
-          for (let localFrame = 0; localFrame < framesPerDirection; localFrame += 1) {
-            previewMaterials[view * framesPerDirection + localFrame] = material;
-          }
-        }
-      };
-
-      const hydrateAction = async (action: ImpostorAnimationAction): Promise<void> => {
-        if (this.disposed) return;
-        const images = await loadActionImages(action);
-        if (this.disposed || !images.some((image) => image !== null)) return;
-
-        const materials: pc.StandardMaterial[] = [];
-        for (let frame = 0; frame < framesPerAction; frame += 1) {
-          const view = Math.floor(frame / framesPerDirection);
-          const image = nearestLoadedImage(images, frame)
-            ?? previewByView[view]
-            ?? firstPreviewImage;
-          materials.push(createFrameMaterial(action, frame, image));
-        }
+    const actionMaterials = {} as Record<ImpostorAnimationAction, readonly pc.StandardMaterial[]>;
+    const requests = new Map<ImpostorAnimationAction, Promise<readonly pc.StandardMaterial[] | null>>();
+    const loadAction = (action: ImpostorAnimationAction): Promise<readonly pc.StandardMaterial[] | null> => {
+      const existing = requests.get(action);
+      if (existing) return existing;
+      if (this.disposed) return Promise.resolve(null);
+      const promise = loadImage(
+        `${import.meta.env.BASE_URL}${impostorAtlasFile(config.slug, action)}`,
+        action === 'IDLE' ? 'high' : 'auto',
+      ).then((image) => {
+        if (this.disposed) return null;
+        const texture = new pc.Texture(this.app.graphicsDevice, {
+          name: `${config.id}.atlas.${action}`, mipmaps: false, srgb: true, flipY: false,
+          minFilter: pc.FILTER_LINEAR, magFilter: pc.FILTER_LINEAR,
+          addressU: pc.ADDRESS_CLAMP_TO_EDGE, addressV: pc.ADDRESS_CLAMP_TO_EDGE,
+        });
+        texture.setSource(image);
+        resources!.textures.push(texture);
+        const materials = Array.from({ length: 32 }, (_, index) => {
+          const rect = impostorAtlasRect(index);
+          const material = new pc.StandardMaterial();
+          material.name = `${config.id}.atlas.${action}.${index}`;
+          material.useLighting = false;
+          material.emissive = new pc.Color(0.75, 0.74, 0.70);
+          material.emissiveMap = texture;
+          material.opacityMap = texture;
+          material.emissiveMapTiling.set(rect.width, rect.height);
+          material.opacityMapTiling.set(rect.width, rect.height);
+          material.emissiveMapOffset.set(rect.x, rect.y);
+          material.opacityMapOffset.set(rect.x, rect.y);
+          material.opacityMapChannel = 'a';
+          material.alphaTest = 0.12;
+          material.cull = pc.CULLFACE_NONE;
+          material.update();
+          resources!.materials.push(material);
+          return material;
+        });
         actionMaterials[action] = materials;
-      };
-
-      const hydrateStartupAssets = async (): Promise<void> => {
-        await hydrateRemainingPreviews();
-        if (this.disposed) return;
-        await new Promise<void>((resolve) => window.setTimeout(resolve, 120));
-        // Gameplay-readable actions hydrate in sequence to avoid a large
-        // simultaneous image/decode burst on slower desktop connections.
-        for (const action of ['MOVE', 'ATTACK', 'HIT', 'DEATH'] as const) {
-          await hydrateAction(action);
-          if (this.disposed) return;
-          await new Promise<void>((resolve) => window.setTimeout(resolve, 80));
-        }
-      };
-
-      window.setTimeout(() => { void hydrateStartupAssets(); }, 100);
-      // Full breathing/weight-shift Idle remains cosmetic and intentionally late.
-      const idleHydrationDelayMs = 12_000
-        + [...config.slug].reduce((sum, character) => sum + character.charCodeAt(0), 0) % 8_000;
-      window.setTimeout(() => { void hydrateAction('IDLE'); }, idleHydrationDelayMs);
+        return materials;
+      }).catch((error: unknown) => {
+        // Cache failures too: never retry every render frame or resurrect disposed resources.
+        console.warn(`${config.label} ${action} atlas unavailable; using Idle/fallback.`, error);
+        return null;
+      });
+      requests.set(action, promise);
+      return promise;
+    };
+    resources.promise = loadAction('IDLE').then((idle) => {
+      if (!idle || this.disposed) return null;
+      for (const action of ['MOVE', 'ATTACK', 'HIT', 'DEATH'] as const) actionMaterials[action] = idle;
+      // Only the encountered action is loaded, once per unit config; no roster preload.
+      resources!.requestAction = (action) => { void loadAction(action); };
       return actionMaterials;
-    }).catch((error: unknown) => {
-      console.warn(`${config.label} animated impostor preview load failed; using fallback geometry.`, error);
-      return null;
     });
 
     return resources.promise!;

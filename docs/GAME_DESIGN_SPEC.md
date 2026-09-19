@@ -824,7 +824,9 @@ The player should routinely face the decision:
 
 # 28. Shrine / roguelite system
 
-A Shrine offers three choices.
+An eligible secured Shrine automatically offers three deterministic, Attunement-filtered
+choices. There is no Open captured Shrine click. Multiple secured Shrines queue in
+stable id order; choosing one upgrade compacts the panel or opens the next choice.
 
 The player normally acquires approximately:
 - 4–7 meaningful upgrades per run
@@ -1504,3 +1506,14 @@ Design rationale:
 - preserve exploration, contest, and Influence reward;
 - remove redundant command/UI micro;
 - require actual proximity to the landmark rather than merely standing somewhere in the same strategic region.
+
+# 61. RTS controls — v10
+
+- Ground travel supports all eight directions without cutting blocked corners.
+- A then left-click orders Attack Move using the selected formation: engage visible
+  nearby hostiles, then resume each unit's destination. Esc/right-click cancels targeting.
+- H orders Hold Position: attack within normal range without pursuing. A later order
+  releases Hold. S/X Stop retains normal automatic aggro; neither grants stat bonuses.
+- Camera keyboard movement uses arrows; edge pan and drag remain available.
+- These controls supersede the corresponding Phase 3 deferrals only. All other
+  closed Phase 2/3/4 behavior and Region territory authority remain in force.

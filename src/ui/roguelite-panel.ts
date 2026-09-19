@@ -6,6 +6,7 @@ const PLAYER_ID = 0;
 export class RoguelitePanel {
   private elapsed = 0;
   private pointerInside = false;
+  private renderedChoiceKey = '';
 
   constructor(
     private readonly element: HTMLElement,
@@ -21,7 +22,9 @@ export class RoguelitePanel {
     this.elapsed += deltaSeconds;
     if (this.elapsed < 0.2) return;
     this.elapsed = 0;
-    if (this.pointerInside) return;
+    const open = this.simulation.roguelite.snapshot().players[PLAYER_ID]?.openShrine;
+    const key = open ? `${open.shrineId}:${open.choiceIds.join(',')}` : '';
+    if (this.pointerInside && key === this.renderedChoiceKey) return;
     this.render();
   }
 
@@ -45,20 +48,9 @@ export class RoguelitePanel {
     const target = event.target instanceof Element ? event.target.closest<HTMLButtonElement>('button[data-roguelite-action]') : null;
     if (!target || target.disabled) return;
     const action = target.dataset.rogueliteAction;
-    if (action === 'activate-shrine') this.activateShrine(target.dataset.shrineId ?? '');
     if (action === 'choose-upgrade') this.chooseUpgrade(Number(target.dataset.choiceIndex));
     this.render();
   };
-
-  private activateShrine(shrineId: string): void {
-    if (shrineId === '') return;
-    this.simulation.enqueueRogueliteCommand({
-      targetTick: this.simulation.snapshot().tick + 1,
-      playerId: PLAYER_ID,
-      type: 'ACTIVATE_SHRINE',
-      shrineId,
-    });
-  }
 
   private chooseUpgrade(choiceIndex: number): void {
     const open = this.simulation.roguelite.snapshot().players[PLAYER_ID]?.openShrine;
@@ -82,11 +74,8 @@ export class RoguelitePanel {
       synergies: [],
       tagCounts: { FIRE: 0, WATER: 0, ICE: 0, LIGHTNING: 0, MIXED: 0 },
     };
-    const strategic = this.simulation.strategy.snapshot();
     const shrines = this.simulation.generatedWorld.pois.filter((poi) => poi.type === 'SHRINE');
-    const captured = shrines.filter((shrine) => strategic.poiOwners[shrine.id] === PLAYER_ID);
-    const resolved = new Set(player.resolvedShrineIds);
-    const available = captured.find((shrine) => !resolved.has(shrine.id) && player.openShrine?.shrineId !== shrine.id);
+    this.renderedChoiceKey = player.openShrine ? `${player.openShrine.shrineId}:${player.openShrine.choiceIds.join(',')}` : '';
     const choices = player.openShrine?.choiceIds.map((upgradeId, index) => {
       const upgrade = UPGRADES_BY_ID[upgradeId];
       if (!upgrade) return '';
@@ -114,11 +103,7 @@ export class RoguelitePanel {
           <strong>Choose one</strong>
           <div class="upgrade-grid">${choices}</div>
         </div>
-      ` : `
-        <button class="shrine-open" data-roguelite-action="activate-shrine" data-shrine-id="${available?.id ?? ''}" ${available ? '' : 'disabled'}>
-          ${available ? 'Open captured Shrine' : 'No Shrine available'}
-        </button>
-      `}
+      ` : ''}
     `;
   }
 }

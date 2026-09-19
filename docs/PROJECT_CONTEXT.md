@@ -4,8 +4,8 @@
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v9`  
-**Current replay format:** `ef-replay-v9`  
+**Current authoritative gameplay ruleset:** `ef-standard-v10`
+**Current replay format:** `ef-replay-v10`
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE4_CLOSURE_REPORT.md`
 
@@ -69,8 +69,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v9`;
-- replay: `ef-replay-v9`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v10`;
+- replay: `ef-replay-v10`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -92,7 +92,7 @@ Known deferred infrastructure issue:
 
 ### Post-Roadmap Phase 2 — Element Authority
 
-Phase 2 remains CLOSED and is carried forward under v9:
+Phase 2 remains CLOSED and is carried forward under v10:
 
 - exactly two distinct starting Elemental Attunements;
 - one immutable Fire / Water / Ice / Lightning alignment per completed Elementalist;
@@ -124,7 +124,10 @@ Current player bindings:
 - `Z` Line;
 - `C` Column;
 - `V` Spread;
+- `A`, then left-click a destination: Attack Move (Esc/right-click cancels targeting);
+- `H` Hold Position;
 - `S` or `X` Stop;
+- arrow keys / edge pan / drag: camera (WASD retired to avoid A/S command conflicts);
 - `Ctrl+0..9` assign control group;
 - `0..9` recall control group;
 - double-click a controllable unit to select currently on-screen friendly units of the same archetype.
@@ -158,8 +161,6 @@ The existing Official Challenge ID `m08-roadmap` is retained for link continuity
 
 The completed formation slice intentionally does not yet include:
 
-- `A` Attack Move;
-- `H` Hold Position;
 - `Tab` subgroup cycling;
 - persistent `GUARD` escort/follow relationship;
 - drag-to-set formation facing;
@@ -176,7 +177,7 @@ During the current visual-production pass, keep these gameplay items deferred un
 
 ## 6. Current formal work point — Phase 4 + Visual Production
 
-Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A–P4-E originally closed under `ef-standard-v7` / `ef-replay-v7`; explicit post-closure pacing feedback now advances the active identity to `ef-standard-v8` / `ef-replay-v8`. The active work point remains visual production and bounded gameplay/control follow-up.
+Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A–P4-E originally closed under `ef-standard-v7` / `ef-replay-v7`; post-closure pacing shipped as v8, automatic POI securing as v9, and the current control/automation pass advances active identity to `ef-standard-v10` / `ef-replay-v10`. The active work point remains visual production and bounded gameplay/control follow-up.
 
 Primary scope:
 
@@ -252,7 +253,7 @@ Priority A/B implementation is complete; manual WebGL acceptance remains pending
 - Priority B is implemented: additional unit/building fallbacks and pulsing resource-site markers. Strategic relay links, river material highlights, terrain shadow-pass suppression, and a high-DPI pixel-ratio cap are also in `main`.
 - Terrain/environment depth integration is in `main`: denser forest grouping and ground contact, richer river-bank wet/mud/grass transitions, and route-aligned shoulder/verge dressing. This remains presentation-only and does not change world generation or gameplay authority.
 - Canonical AI final-art prompts are available at `media/prompts/images/VISUAL_PRODUCTION_PRIORITY_A_B_PROMPTS.md`.
-- Next unit-art step: restore/productionize the animated directional impostor path and complete Vanguard as the 2.5D vertical slice before mass-producing the roster.
+- All eleven player-side unit visuals now use five-action directional atlases generated from the committed pack. Next gate: manual WebGL/FPS acceptance; no art regeneration required.
 
 ### Unit-production decision — 2026-09-17
 
@@ -316,9 +317,9 @@ Manual browser feedback found the previous anti-washout pass too dark. The runti
 - terrain atlas multipliers lifted while retaining stronger contrast than the earlier washed-out presentation;
 - this is presentation-only and does not change `ef-standard-v9`, `ef-replay-v9`, or `m02-standard-v1`.
 
-### Visual / UX optimization — 2026-09-19
+### Visual / UX optimization — 2026-09-19 (pre-atlas history)
 
-Current presentation-only optimization baseline:
+The following frame-loader baseline was superseded by the atlas runtime below; camera and environment scheduling remain:
 
 - animated unit impostors now request only **one high-priority preview frame per unique unit config** for first paint instead of eight directional previews;
 - the remaining seven direction previews hydrate after the scene becomes interactive;
@@ -330,6 +331,30 @@ Current presentation-only optimization baseline:
 - middle-drag and Space/Alt + left-drag remain available; `Home` recenters on the starting base;
 - these changes are presentation/UX-only and do not change the active gameplay/replay/world-generation identities.
 - automated build/Pages validation is required, but final brightness/load-time/camera feel still requires manual browser acceptance.
+
+### RTS Control + Automation + Runtime Optimization — v10
+
+- True eight-neighbor A*: cardinal/diagonal integer costs 10/14, octile heuristic,
+  stable N/E/S/W/NE/SE/SW/NW expansion, no diagonal corner cutting.
+- Cardinal BFS destination/formation-slot resolution is retained. Dynamic repaths
+  recenter within the current cell before traversing a new edge.
+- Attack Move stores each formation destination, uses existing visibility/forest-aware
+  nearest-distance/EntityID acquisition, engages, then resumes. No stat bonuses.
+- Hold Position cancels travel, acquires only within normal attack range, never pursues,
+  and persists until another order. Stop retains its existing normal-aggro behavior.
+- Order mode and saved destinations are state-hashed. Core-order replacement executes
+  at the command tick for matching live/replay behavior. Replay/challenge identity is v10.
+- Secured eligible Shrines offer three deterministic Attunement-filtered choices
+  automatically, in stable Shrine-id order. The panel compacts after selection even
+  while hovered. Additional secured Shrines queue; Region capture remains unchanged.
+- 55 lossless 32-frame atlases replace 1,760 animated frame requests. All eleven
+  units retain the existing shared mapping, dimensions, baseline and action timings.
+- Only instantiated player-side unit configs load Idle. Other actions load on demand;
+  textures/materials are shared by config/action and disposed on library teardown.
+- Build: `npm run art:atlases` (Python/Pillow); originals remain committed inputs.
+  Deployment omits the 1,760 raw action frames. Worldgen remains `m02-standard-v1`.
+- See `docs/RTS_CONTROL_AUTOMATION_RUNTIME_PASS.md` for acceptance and validation.
+- Status: `WAITING_FOR_WEBGL_ACCEPTANCE`; no cloud WebGL/FPS claim.
 
 ### Token-efficient validation policy
 
@@ -398,7 +423,7 @@ P4-C completed rules:
 - level-up restores only the newly added Max-HP delta rather than performing a full heal;
 - XP is capped at the Level-5 threshold;
 - selected-unit UI shows Level and XP-to-next-level; group selection summarizes veteran composition by level;
-- gameplay/replay identity is `ef-standard-v6` / `ef-replay-v6`;
+- P4-C shipped under `ef-standard-v6` / `ef-replay-v6`;
 - world generation remains `m02-standard-v1`.
 
 P4-D completed presentation:

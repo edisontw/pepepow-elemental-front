@@ -38,6 +38,11 @@ export class MinimapControls {
   private readonly onPointerDown = (event: PointerEvent): void => {
     if (event.button === 0) {
       event.preventDefault();
+      if (this.units.targetingAttackMove) {
+        const target = this.simulationPosition(event.clientX, event.clientY);
+        this.units.moveSelectionTo(target.x, target.z);
+        return;
+      }
       const poi = this.poiAtPointer(event.clientX, event.clientY);
       if (poi) {
         this.draggingCamera = false;
@@ -55,6 +60,7 @@ export class MinimapControls {
     }
     if (event.button === 2) {
       event.preventDefault();
+      this.units.cancelAttackMoveTargeting();
       const target = this.simulationPosition(event.clientX, event.clientY);
       this.units.moveSelectionTo(target.x, target.z);
     }

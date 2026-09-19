@@ -38,6 +38,7 @@ export class UnitControls {
   private currentClientY = 0;
   private hoverClientX: number | null = null;
   private hoverClientY: number | null = null;
+  private attackMoveArmed = false;
   private formation: FormationId = 'LINE';
   private facingQaIndex: number | null = null;
   private lastClickEntityId: number | null = null;
@@ -68,17 +69,23 @@ export class UnitControls {
     return this.simulation.snapshot().entities.filter((entity) => selected.has(entity.id));
   }
 
+  get targetingAttackMove(): boolean { return this.attackMoveArmed; }
+
+  cancelAttackMoveTargeting(): void { this.setAttackMoveArmed(false); }
+
   get activeFormation(): FormationId {
     return this.formation;
   }
 
   moveSelectionTo(targetX: number, targetZ: number): void {
+    const type = this.attackMoveArmed ? 'ATTACK_MOVE' : 'MOVE';
+    this.setAttackMoveArmed(false);
     if (this.selection.ids.length === 0) return;
     this.disableFacingQa();
     this.simulation.enqueueCommand({
       targetTick: this.simulation.snapshot().tick + 1,
       playerId: 0,
-      type: 'MOVE',
+      type,
       entityIds: this.selection.ids,
       targetX,
       targetZ,
@@ -105,7 +112,14 @@ export class UnitControls {
   private readonly onPointerDown = (event: PointerEvent): void => {
     this.hoverClientX = event.clientX;
     this.hoverClientY = event.clientY;
+    if (event.button === 0 && this.attackMoveArmed) {
+      event.preventDefault();
+      const target = this.worldPointFromClient(event.clientX, event.clientY);
+      if (target) this.moveSelectionTo(target.x, target.z);
+      return;
+    }
     if (event.button === 2) {
+      this.setAttackMoveArmed(false);
       event.preventDefault();
       this.enqueueContextOrder(event.clientX, event.clientY);
       return;
@@ -176,6 +190,13 @@ export class UnitControls {
   };
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
+    if (event.target instanceof HTMLElement && (event.target.isContentEditable
+      || ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName))) return;
+    if (event.code === 'Escape') { this.setAttackMoveArmed(false); return; }
+    if (!event.repeat && !event.ctrlKey && !event.altKey && !event.metaKey && event.code === 'KeyA') {
+      if (this.selection.ids.length > 0) { event.preventDefault(); this.setAttackMoveArmed(true); }
+      return;
+    }
     if (!event.repeat && (event.code === 'BracketLeft' || event.code === 'BracketRight' || event.code === 'Backslash')) {
       event.preventDefault();
       if (event.code === 'Backslash') {
@@ -249,14 +270,23 @@ export class UnitControls {
       return;
     }
 
-    if ((event.code !== 'KeyX' && event.code !== 'KeyS') || event.repeat || this.selection.ids.length === 0) return;
+    if ((event.code !== 'KeyX' && event.code !== 'KeyS' && event.code !== 'KeyH') || event.repeat || this.selection.ids.length === 0) return;
+    event.preventDefault();
+    this.setAttackMoveArmed(false);
+    this.disableFacingQa();
     this.simulation.enqueueCommand({
       targetTick: this.simulation.snapshot().tick + 1,
       playerId: 0,
-      type: 'STOP',
+      type: event.code === 'KeyH' ? 'HOLD' : 'STOP',
       entityIds: this.selection.ids,
     });
   };
+
+  private setAttackMoveArmed(armed: boolean): void {
+    this.attackMoveArmed = armed;
+    this.canvas.style.cursor = armed ? 'crosshair' : '';
+    this.renderFormationMode();
+  }
 
   private setFormation(formation: FormationId): void {
     this.formation = formation;
@@ -267,7 +297,7 @@ export class UnitControls {
     const element = document.getElementById('formation-mode');
     if (!element) return;
     const label = this.formation === 'LINE' ? 'Line' : this.formation === 'COLUMN' ? 'Column' : 'Spread';
-    element.textContent = `Formation: ${label}`;
+    element.textContent = this.attackMoveArmed ? 'Attack Move: click destination · Esc cancel' : `Formation: ${label} · A Attack Move · H Hold`;
     element.dataset.formation = this.formation;
   }
 

@@ -68,6 +68,9 @@ function hashEntity(hash: number, entityId: EntityID, entities: EntityStore): nu
   let result = hashInteger(hash, entityId);
   result = hashInteger(result, position.x);
   result = hashInteger(result, position.z);
+  result = hashInteger(result, movement.orderMode === 'HOLD' ? 2 : movement.orderMode === 'ATTACK_MOVE' ? 1 : 0);
+  result = hashInteger(result, movement.attackMoveX ?? NULL_TARGET);
+  result = hashInteger(result, movement.attackMoveZ ?? NULL_TARGET);
   result = hashInteger(result, movement.speedPerTick);
   result = hashInteger(result, movement.targetX ?? NULL_TARGET);
   result = hashInteger(result, movement.targetZ ?? NULL_TARGET);

@@ -13,6 +13,13 @@ For the current approved WebP production path, this file also supersedes the old
 
 ---
 
+## Current animated runtime extension
+
+The static turnaround rules below remain source-art history. Current runtime uses
+11 × 5 × 8 × 4 committed action frames, deterministically packed into 55 atlases.
+See `UNIT_ANIMATION_IMPLEMENTATION_NOTES.md` for packing, shared mapping, lazy
+loading and validation. Atlas packing does not normalize or regenerate approved art.
+
 ## 1. Canonical runtime visual sets
 
 The simulation has eight unit archetypes, with `ELEMENTALIST` expanding into four immutable visual alignments. The complete replacement batch therefore contains eleven visual slugs.

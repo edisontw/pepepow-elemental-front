@@ -207,9 +207,13 @@ export class Simulation {
       const validIds = command.entityIds.filter((entityId) => (
         this.entities.hasUnit(entityId) && this.entities.factions.get(entityId)?.playerId === command.playerId
       ));
-      if (command.type === 'STOP') {
+      if (command.type === 'STOP' || command.type === 'HOLD') {
+        for (const entityId of validIds) {
+          this.clearOrders(entityId);
+          this.entities.movements.get(entityId)!.orderMode = command.type === 'HOLD' ? 'HOLD' : 'NORMAL';
+        }
+      } else if (command.type === 'MOVE' || command.type === 'ATTACK_MOVE') {
         for (const entityId of validIds) this.clearOrders(entityId);
-      } else if (command.type === 'MOVE') {
         if (command.formation !== undefined) {
           const planned = formationDestinations(
             validIds,
@@ -240,9 +244,18 @@ export class Simulation {
             this.assignPath(entityId, command.targetX + offset.x, command.targetZ + offset.z);
           });
         }
-      } else if (this.isValidAttackTarget(command.targetEntityId, command.playerId)) {
+        if (command.type === 'ATTACK_MOVE') {
+          for (const entityId of validIds) {
+            const movement = this.entities.movements.get(entityId)!;
+            movement.orderMode = 'ATTACK_MOVE';
+            movement.attackMoveX = movement.targetX;
+            movement.attackMoveZ = movement.targetZ;
+          }
+        }
+      } else if (command.type === 'ATTACK' && this.isValidAttackTarget(command.targetEntityId, command.playerId)) {
         for (const entityId of validIds) {
           const combat = this.entities.combat.get(entityId)!;
+          this.clearOrders(entityId);
           combat.targetEntityId = command.targetEntityId;
           combat.pursuitTargetCellKey = null;
           combat.nextAttackTick = this.tick;
@@ -256,9 +269,40 @@ export class Simulation {
     for (const entityId of this.entities.entityIds()) {
       if (!this.entities.hasUnit(entityId)) continue;
       const combat = this.entities.combat.get(entityId)!;
+      const movement = this.entities.movements.get(entityId)!;
+      if (movement.orderMode === 'HOLD') {
+        this.clearMovement(entityId);
+        if (combat.targetEntityId !== null && (!this.entities.hasUnit(combat.targetEntityId)
+          || !this.inAttackRange(entityId, combat.targetEntityId, combat.attackRange))) {
+          combat.targetEntityId = null;
+          combat.pursuitTargetCellKey = null;
+        }
+        continue;
+      }
+      if (movement.orderMode === 'ATTACK_MOVE' && combat.targetEntityId !== null) {
+        const target = this.entities.positions.get(combat.targetEntityId);
+        const playerId = this.entities.factions.get(entityId)!.playerId;
+        if (!this.entities.hasUnit(combat.targetEntityId) || !target
+          || !this.visibility.isWorldVisible(playerId, target.x, target.z, this.navigation)
+          || !forestAllowsDetection(combat.targetEntityId, playerId, this.entities, this.terrain, this.navigation)) {
+          combat.targetEntityId = null;
+          combat.pursuitTargetCellKey = null;
+          this.clearMovement(entityId);
+        }
+      }
+      if (movement.orderMode === 'ATTACK_MOVE' && combat.targetEntityId === null
+        && movement.attackMoveX !== null && movement.attackMoveZ !== null
+        && (movement.targetX !== movement.attackMoveX || movement.targetZ !== movement.attackMoveZ)) {
+        this.assignPath(entityId, movement.attackMoveX, movement.attackMoveZ);
+      }
       if (combat.targetEntityId !== null) this.updatePursuit(entityId, combat.targetEntityId);
       else this.validateMovementPath(entityId);
       this.moveAlongPath(entityId);
+      if (movement.orderMode === 'ATTACK_MOVE' && combat.targetEntityId === null && movement.targetX === null) {
+        movement.orderMode = 'NORMAL';
+        movement.attackMoveX = null;
+        movement.attackMoveZ = null;
+      }
     }
   }
 
@@ -277,7 +321,7 @@ export class Simulation {
 
   private updatePursuit(entityId: EntityID, targetEntityId: EntityID): void {
     if (!this.entities.hasUnit(targetEntityId) || !this.areHostile(entityId, targetEntityId)) {
-      this.clearOrders(entityId);
+      this.clearCombatTarget(entityId);
       return;
     }
     const combat = this.entities.combat.get(entityId)!;
@@ -301,12 +345,19 @@ export class Simulation {
     if (!position || !movement) return false;
     const resolved = this.navigation.resolveWalkableTarget(this.navigation.worldToCell(targetX, targetZ));
     if (!resolved) { this.clearMovement(entityId); return false; }
-    const path = this.navigation.findPath(this.navigation.worldToCell(position.x, position.z), resolved);
+    const start = this.navigation.worldToCell(position.x, position.z);
+    const path = this.navigation.findPath(start, resolved);
     if (!path) { this.clearMovement(entityId); return false; }
     const resolvedWorld = this.navigation.cellToWorld(resolved);
     movement.targetX = resolvedWorld.x;
     movement.targetZ = resolvedWorld.z;
-    movement.path = path.map((cell) => this.navigation.cellToWorld(cell));
+    // Recenter before leaving a cell: a mid-edge order/repath must never clip
+    // a blocked corner on its way to the next cell center.
+    const center = this.navigation.cellToWorld(start);
+    movement.path = [
+      ...(path.length > 0 && (position.x !== center.x || position.z !== center.z) ? [center] : []),
+      ...path.map((cell) => this.navigation.cellToWorld(cell)),
+    ];
     movement.pathIndex = 0;
     movement.pathNavVersion = this.navigation.navVersion;
     if (movement.path.length === 0) this.clearMovement(entityId);
@@ -543,7 +594,7 @@ export class Simulation {
     }
     for (const entityId of this.entities.entityIds()) {
       const combat = this.entities.combat.get(entityId);
-      if (combat && combat.targetEntityId !== null && !this.entities.hasUnit(combat.targetEntityId)) this.clearOrders(entityId);
+      if (combat && combat.targetEntityId !== null && !this.entities.hasUnit(combat.targetEntityId)) this.clearCombatTarget(entityId);
     }
   }
 
@@ -560,9 +611,16 @@ export class Simulation {
     const deltaZ = first.z - second.z;
     return deltaX * deltaX + deltaZ * deltaZ <= range * range;
   }
+  private clearCombatTarget(entityId: EntityID): void {
+    const combat = this.entities.combat.get(entityId);
+    if (combat) { combat.targetEntityId = null; combat.pursuitTargetCellKey = null; }
+    this.clearMovement(entityId);
+  }
   private clearOrders(entityId: EntityID): void {
     const combat = this.entities.combat.get(entityId);
     if (combat) { combat.targetEntityId = null; combat.pursuitTargetCellKey = null; }
+    const movement = this.entities.movements.get(entityId);
+    if (movement) { movement.orderMode = 'NORMAL'; movement.attackMoveX = null; movement.attackMoveZ = null; }
     this.clearMovement(entityId);
   }
   private clearMovement(entityId: EntityID): void {

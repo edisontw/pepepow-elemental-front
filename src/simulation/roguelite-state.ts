@@ -155,6 +155,19 @@ export class RogueliteState {
     return true;
   }
 
+  /** Stable POI-id ordering queues secured Shrines without a redundant command. */
+  offerSecuredShrines(strategic: StrategicSnapshot, tick: number): void {
+    for (const playerId of [0, 1]) {
+      const player = this.ensurePlayer(playerId);
+      if (player.openShrine) continue;
+      const shrines = this.world.pois.filter((poi) => poi.type === 'SHRINE')
+        .sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+      for (const shrine of shrines) {
+        if (this.processCommand({ type: 'ACTIVATE_SHRINE', playerId, targetTick: tick, shrineId: shrine.id }, strategic, tick)) break;
+      }
+    }
+  }
+
   advance(tick: number): void {
     this.currentTick = tick;
   }

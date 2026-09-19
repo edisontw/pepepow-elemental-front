@@ -392,6 +392,11 @@ Use:
 
 # 15. Dynamic navigation
 
+Active v10 navigation is deterministic eight-neighbor A* with integer 10/14 costs
+and an octile heuristic. Expansion order is N/E/S/W/NE/SE/SW/NW; both adjacent
+cardinal cells must be walkable for a diagonal. Cardinal BFS slot resolution is
+unchanged. Repaths recenter in the current cell to avoid clipping blocked corners.
+
 Terrain changes must alter navigation.
 
 Example:
@@ -471,7 +476,9 @@ Avoid O(N²) unit scans.
 
 UI/input produces `GameCommand`.
 
-Initial command types:
+Current command types:
+- ATTACK_MOVE (semantic formation destination retained across combat)
+- HOLD (normal in-range attacks, no pursuit)
 - MOVE
 - ATTACK
 - STOP
@@ -479,6 +486,10 @@ Initial command types:
 - BUILD
 - CAPTURE (Region territory only)
 - FORMATION
+
+Secured Shrines automatically expose their deterministic three-way upgrade choice
+after the territory step; only CHOOSE_SHRINE_UPGRADE is a meaningful player action.
+The legacy ACTIVATE_SHRINE path remains idempotent/regression-compatible.
 
 POI ownership is not a player command. It is deterministic state derived during the territory step from unit proximity to the landmark. Manual POI `CAPTURE` commands are rejected. Neutral-encounter blockers are supplied to the territory system before automatic POI progress is evaluated.
 
@@ -697,6 +708,10 @@ If RPC is unavailable:
 ---
 
 # 29. Version separation
+
+Active gameplay/challenge: `ef-standard-v10`; replay: `ef-replay-v10`;
+world generation: `m02-standard-v1`. Order modes and saved Attack Move destinations
+are state-hashed; player replacements of Core orders execute at their target tick.
 
 Track independently:
 

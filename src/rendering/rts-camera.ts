@@ -65,10 +65,10 @@ export class RtsCamera {
     const speed = 12 * deltaSeconds * (this.distance / DEFAULT_DISTANCE);
     let localX = 0;
     let localZ = 0;
-    if (this.isPressed('KeyA', 'ArrowLeft')) localX -= speed;
-    if (this.isPressed('KeyD', 'ArrowRight')) localX += speed;
-    if (this.isPressed('KeyW', 'ArrowUp')) localZ -= speed;
-    if (this.isPressed('KeyS', 'ArrowDown')) localZ += speed;
+    if (this.isPressed('ArrowLeft')) localX -= speed;
+    if (this.isPressed('ArrowRight')) localX += speed;
+    if (this.isPressed('ArrowUp')) localZ -= speed;
+    if (this.isPressed('ArrowDown')) localZ += speed;
 
     if (this.pointerInsideCanvas && !this.dragging) {
       const bounds = this.battlefieldViewportBounds();

@@ -1,6 +1,6 @@
 # Unit animation implementation notes — 2.5D impostor production path
 
-Status: legacy GLB animation plumbing remains implemented, but the authoritative final-art direction has returned to high-quality 2.5D animated impostors.
+Status: all eleven player-side unit visuals use the committed five-action pack through 55 generated WebP atlases. Manual WebGL/FPS acceptance is pending; GLB remains the enemy/neutral and compatibility fallback.
 
 ## Current production decision
 
@@ -64,7 +64,28 @@ Under the previous plan this became a production hard gate. Under the current pl
 
 Do not resume that path by default.
 
-## Active resume contract
+## Active runtime contract — 2026-09-19
+
+- Source: `public/assets/impostors/<slug>/<action>/<direction>_<frame>.webp`.
+- Build: `npm run art:atlases`; Python 3 + Pillow 11.3.0.
+- Output: `public/assets/impostor-atlases/<slug>/<action>.webp` plus manifest.
+- One 1568×1040 RGBA atlas per action; eight columns × four rows; 192×256
+  unscaled frames with two-pixel extruded gutters. Every source pixel is verified
+  after lossless encoding. Canonical source direction-major order is unchanged.
+- `impostor-atlas.ts` maps existing calibrated runtime directions to UV rectangles;
+  uploads explicitly retain `flipY=false`. No new direction remapping.
+- One texture per loaded config/action; immutable UV materials shared across units.
+  Idle loads once per instantiated player-side config; actions load only on use.
+  Missing actions retain directional Idle; failed requests are cached to avoid retries.
+  Late async completions after library disposal never allocate GPU resources.
+- Existing action timing, distance-driven Move, one-shot priority, scale, baseline,
+  and velocity-derived presentation facing are unchanged.
+- All 1,760 source frames stay committed for reproducible rebuilding; build output
+  excludes their action directories. No Blender or art regeneration is required.
+- Resume only at manual eight-direction/control/animation/FPS acceptance. See
+  `RTS_CONTROL_AUTOMATION_RUNTIME_PASS.md`.
+
+## Historical production checklist (runtime implementation now complete)
 
 ### 1. Restore/productionize the directional impostor path
 

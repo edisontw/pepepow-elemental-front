@@ -8,3 +8,4 @@ dist/
 !.env.example
 art/impostor-source/
 art/impostor-upload/
+public/assets/impostor-atlases/
