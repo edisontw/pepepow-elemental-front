@@ -10,6 +10,7 @@ export const NEUTRAL_GUARDIANS_PER_CAMP = 2;
 export const NEUTRAL_CAMP_XP_REWARD = 120;
 export const NEUTRAL_CAMP_XP_RADIUS = 14 * WORLD_UNITS_PER_METER;
 export const NEUTRAL_CAMP_LEASH_RADIUS = 12 * WORLD_UNITS_PER_METER;
+export const NEUTRAL_CAMP_AGGRO_RADIUS = 8 * WORLD_UNITS_PER_METER;
 
 const FNV_OFFSET = 0x811c9dc5;
 const FNV_PRIME = 0x01000193;
@@ -89,7 +90,7 @@ export class NeutralEncounterState {
   constructor(
     world: GeneratedWorld,
     private readonly entities: EntityStore,
-    private readonly navigation: NavigationGrid,
+    navigation: NavigationGrid,
   ) {
     const camps = world.pois
       .filter((poi) => poi.type === 'NEUTRAL_CAMP')
@@ -155,6 +156,7 @@ export class NeutralEncounterState {
 
   prepareLeashes(targetTick: number, enqueue: (command: GameCommand) => void): void {
     const leashSquared = NEUTRAL_CAMP_LEASH_RADIUS * NEUTRAL_CAMP_LEASH_RADIUS;
+    const aggroSquared = NEUTRAL_CAMP_AGGRO_RADIUS * NEUTRAL_CAMP_AGGRO_RADIUS;
     for (const camp of this.sortedCamps()) {
       if (camp.cleared) continue;
       for (const guardian of camp.guardians) {
@@ -169,16 +171,51 @@ export class NeutralEncounterState {
         const guardianOutside = distanceSquared(position.x, position.z, camp.x, camp.z) > leashSquared;
         const targetOutside = targetPosition !== null
           && distanceSquared(targetPosition.x, targetPosition.z, camp.x, camp.z) > leashSquared;
-        if (!guardianOutside && !targetOutside) continue;
 
-        enqueue({
-          type: 'MOVE',
-          targetTick,
-          playerId: NEUTRAL_PLAYER_ID,
-          entityIds: [guardian.entityId],
-          targetX: guardian.homeX,
-          targetZ: guardian.homeZ,
-        });
+        if (guardianOutside || targetOutside) {
+          enqueue({
+            type: 'MOVE',
+            targetTick,
+            playerId: NEUTRAL_PLAYER_ID,
+            entityIds: [guardian.entityId],
+            targetX: guardian.homeX,
+            targetZ: guardian.homeZ,
+          });
+          continue;
+        }
+
+        if (combat.targetEntityId !== null && this.entities.hasUnit(combat.targetEntityId)) continue;
+
+        let nearestTargetId: EntityID | null = null;
+        let nearestDistance = Number.POSITIVE_INFINITY;
+        for (const candidateId of this.entities.entityIds()) {
+          if (!this.entities.hasUnit(candidateId)) continue;
+          const candidatePlayerId = this.entities.factions.get(candidateId)?.playerId;
+          if (candidatePlayerId === undefined || candidatePlayerId === NEUTRAL_PLAYER_ID) continue;
+          const candidatePosition = this.entities.positions.get(candidateId);
+          if (!candidatePosition) continue;
+          const fromCamp = distanceSquared(candidatePosition.x, candidatePosition.z, camp.x, camp.z);
+          if (fromCamp > leashSquared) continue;
+          const fromGuardian = distanceSquared(candidatePosition.x, candidatePosition.z, position.x, position.z);
+          if (fromGuardian > aggroSquared) continue;
+          if (
+            fromGuardian < nearestDistance
+            || (fromGuardian === nearestDistance && candidateId < (nearestTargetId ?? Number.MAX_SAFE_INTEGER))
+          ) {
+            nearestDistance = fromGuardian;
+            nearestTargetId = candidateId;
+          }
+        }
+
+        if (nearestTargetId !== null) {
+          enqueue({
+            type: 'ATTACK',
+            targetTick,
+            playerId: NEUTRAL_PLAYER_ID,
+            entityIds: [guardian.entityId],
+            targetEntityId: nearestTargetId,
+          });
+        }
       }
     }
   }
