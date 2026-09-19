@@ -37,9 +37,13 @@ export class M03Simulation extends Simulation {
     applyBurningUnitDamage(this.entities, this.terrain, this.navigation, nextTick);
     this.strategy.advanceResourceCombat(nextTick);
     this.strategy.advanceEconomy(nextTick);
-    this.strategy.advanceTerritory();
+    this.strategy.advanceTerritory(this.blockedPoiCaptureIds());
     this.visibility.update(this.entities, this.navigation, this.buildingVisionSources());
     return this.snapshot();
+  }
+
+  protected blockedPoiCaptureIds(): ReadonlySet<string> {
+    return new Set<string>();
   }
 
   override snapshot(): M03SimulationSnapshot {
