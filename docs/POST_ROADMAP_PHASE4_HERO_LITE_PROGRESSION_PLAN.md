@@ -2,8 +2,8 @@
 
 **Status:** CLOSED — P4-A through P4-E complete  
 **World generation:** `m02-standard-v1` remains unchanged  
-**Gameplay identity:** `ef-standard-v7`  
-**Replay identity:** `ef-replay-v7`
+**Gameplay identity:** `ef-standard-v8`  
+**Replay identity:** `ef-replay-v8`
 
 ## 1. Direction
 
@@ -338,3 +338,17 @@ Phase 4 is successful when:
 ## 14. Closure
 
 Phase 4 hero-lite gameplay is closed under `ef-standard-v7` / `ef-replay-v7`. Future tuning should require a concrete playtest regression or an explicit new design decision rather than reopening P4-A–P4-E by default. Visual mood/brightness acceptance remains part of the separate Visual Production pass.
+
+
+## 15. Post-closure tuning — v8
+
+Playtest feedback after P4-E closure found veteran growth slightly too slow and neutral camps too sparse.
+
+Current tuning:
+- Lv2 / Lv3 / Lv4 / Lv5 cumulative thresholds: 50 / 120 / 220 / 350 XP;
+- three Ancient Sentinels per Neutral Camp;
+- 150 XP camp-clear pool;
+- ordinary combat-kill XP and veteran stat scaling unchanged;
+- active HUD condensed so run metadata no longer occupies the full top battlefield width.
+
+This is a bounded balance/UI follow-up rather than reopening P4-A–P4-E. It advances active gameplay/replay identity to `ef-standard-v8` / `ef-replay-v8`; world generation remains `m02-standard-v1`.
