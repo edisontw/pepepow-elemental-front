@@ -73,7 +73,7 @@ interface PlacementCheck {
 export class StrategicPanel {
   private elapsed = 0;
   private commandView: 'build' | 'army' = 'build';
-  private message = 'Construction is parallel. Outposts need 10 Influence; capture POIs to fund continued expansion.';
+  private message = '';
   private pendingBuildType: Exclude<BuildingType, 'ELEMENTAL_CORE'> | null = null;
   private pendingRallyBuildingId: number | null = null;
   private selectedProducerId: number | null = null;
@@ -527,12 +527,13 @@ export class StrategicPanel {
       if (order.playerId !== PLAYER_ID) continue;
       queued.set(order.unitType, (queued.get(order.unitType) ?? 0) + 1);
     }
-    const rows = TRAIN_ORDER.map((unitType) => {
+    const rows = TRAIN_ORDER.flatMap((unitType) => {
       const alive = simulationSnapshot.entities.filter((unit) => unit.playerId === PLAYER_ID && unit.alive && unit.archetype === unitType).length;
       const waiting = queued.get(unitType) ?? 0;
-      return `<span title="${label(unitType)}"><b>${label(unitType)}</b><em>${alive}${waiting ? ` +${waiting}q` : ''}</em></span>`;
+      if (alive === 0 && waiting === 0) return [];
+      return [`<span title="${label(unitType)}"><b>${label(unitType)}</b><em>${alive}${waiting ? ` +${waiting}q` : ''}</em></span>`];
     }).join('');
-    return `<div class="army-counts"><strong>Army</strong><div>${rows}</div></div>`;
+    return rows ? `<div class="army-counts"><strong>Army</strong><div>${rows}</div></div>` : '';
   }
 
   private producerMarkup(snapshot: ReturnType<M03Simulation['strategy']['snapshot']>): string {
@@ -543,32 +544,48 @@ export class StrategicPanel {
       const speed = productionSpeedPercent(sameTypeCount);
       const queue = snapshot.productionQueue.filter((order) => order.buildingId === building.id).length;
       const active = building.id === this.selectedProducerId ? ' active' : '';
-      const rally = building.rallyPointX === null ? 'Auto exit' : 'Rally set';
-      return `<button class="${active.trim()}" data-action="select-producer" data-value="${building.id}">${label(building.type)} #${building.id}<small>${speed}% speed · Q${queue} · ${rally}</small></button>`;
+      const details = [
+        speed > 100 ? `${speed}%` : '',
+        queue > 0 ? `Q${queue}` : '',
+        building.rallyPointX === null ? '' : 'Rally',
+      ].filter(Boolean).join(' · ');
+      return `<button class="${active.trim()}" data-action="select-producer" data-value="${building.id}">${label(building.type)} #${building.id}${details ? `<small>${details}</small>` : ''}</button>`;
     }).join('');
     return `<div class="producer-select"><strong>Produce at</strong><div>${buttons}</div></div>`;
   }
 
-  private queueMarkup(tick: number, snapshot: ReturnType<M03Simulation['strategy']['snapshot']>): string {
-    const construction = snapshot.buildings
-      .filter((building) => building.playerId === PLAYER_ID && !building.completed && building.type !== 'ELEMENTAL_CORE')
-      .map((building) => {
-        const duration = BUILDINGS[building.type].buildTicks;
-        const startTick = building.completeTick - duration;
-        const percent = progressPercent(tick, startTick, duration);
-        return `<div class="strategy-progress-row"><span>${label(building.type)} #${building.id}</span><em>${percent}% · ${remainingSeconds(tick, building.completeTick)}</em><i><b style="width:${percent}%"></b></i></div>`;
-      });
-    const production = snapshot.productionQueue
-      .filter((order) => order.playerId === PLAYER_ID)
-      .slice(0, 8)
-      .map((order) => {
-        const percent = progressPercent(tick, order.startTick, order.durationTicks);
-        const queued = tick < order.startTick;
-        return `<div class="strategy-progress-row"><span>${queued ? 'Queued' : 'Training'} ${label(order.unitType)} · #${order.buildingId}</span><em>${percent}% · ${remainingSeconds(tick, order.completeTick)}</em><i><b style="width:${percent}%"></b></i></div>`;
-      });
-    const hiddenOrders = Math.max(0, snapshot.productionQueue.filter((order) => order.playerId === PLAYER_ID).length - production.length);
-    if (construction.length === 0 && production.length === 0) return '';
-    return `<div class="strategy-progress"><strong>Work in progress</strong>${construction.join('')}${production.join('')}${hiddenOrders > 0 ? `<small>+${hiddenOrders} more queued</small>` : ''}</div>`;
+  private queueMarkup(
+    tick: number,
+    snapshot: ReturnType<M03Simulation['strategy']['snapshot']>,
+    view: 'build' | 'army',
+  ): string {
+    const rows = view === 'build'
+      ? snapshot.buildings
+        .filter((building) => building.playerId === PLAYER_ID && !building.completed && building.type !== 'ELEMENTAL_CORE')
+        .map((building) => {
+          const duration = BUILDINGS[building.type].buildTicks;
+          const startTick = building.completeTick - duration;
+          const percent = progressPercent(tick, startTick, duration);
+          return {
+            key: building.completeTick,
+            markup: `<div class="strategy-progress-row"><span>${label(building.type)}</span><em>${percent}% · ${remainingSeconds(tick, building.completeTick)}</em><i><b style="width:${percent}%"></b></i></div>`,
+          };
+        })
+      : snapshot.productionQueue
+        .filter((order) => order.playerId === PLAYER_ID)
+        .map((order) => {
+          const percent = progressPercent(tick, order.startTick, order.durationTicks);
+          const queued = tick < order.startTick;
+          return {
+            key: order.completeTick,
+            markup: `<div class="strategy-progress-row"><span>${queued ? 'Queued' : 'Training'} ${label(order.unitType)}</span><em>${percent}% · ${remainingSeconds(tick, order.completeTick)}</em><i><b style="width:${percent}%"></b></i></div>`,
+          };
+        });
+    if (rows.length === 0) return '';
+    rows.sort((left, right) => left.key - right.key);
+    const visible = rows.slice(0, 3);
+    const hidden = rows.length - visible.length;
+    return `<div class="strategy-progress"><strong>Active</strong>${visible.map((row) => row.markup).join('')}${hidden > 0 ? `<small>+${hidden} more</small>` : ''}</div>`;
   }
 
   private render(): void {
@@ -577,8 +594,6 @@ export class StrategicPanel {
     const stock = snapshot.resources[PLAYER_ID];
     if (!stock) return;
     this.ensureSelectedProducer(snapshot);
-    const owned = snapshot.regionOwners.filter((owner) => owner === PLAYER_ID).length;
-    const supplied = snapshot.suppliedRegions[PLAYER_ID]?.length ?? 0;
     const buildingButtons = BUILD_ORDER.map((buildingType) => {
       const cost = BUILDINGS[buildingType].cost;
       const active = this.pendingBuildType === buildingType ? ' active' : '';
@@ -602,12 +617,11 @@ export class StrategicPanel {
     const materialMissing = Math.max(0, BUILDINGS.OUTPOST.cost.material * 1000 - stock.materialMilli);
     const influenceMissing = Math.max(0, BUILDINGS.OUTPOST.cost.influence * 1000 - stock.influenceMilli);
     const expansionHint = outpostMissing.length === 0
-      ? 'Outpost funded: choose a neutral region directly adjacent to supplied territory.'
-      : materialMissing > 0 && influenceMissing > 0
-        ? `Next Outpost needs ${formatResource(materialMissing)} more Material and ${formatResource(influenceMissing)} more Influence. Keep an Extractor supplied and capture a POI for +10 Influence.`
-        : materialMissing > 0
-          ? `Next Outpost needs ${formatResource(materialMissing)} more Material. Keep an Extractor supplied to continue Material income.`
-          : `Next Outpost needs ${formatResource(influenceMissing)} more Influence. Capture a POI for +10 Influence.`;
+      ? 'Outpost ready'
+      : [
+        materialMissing > 0 ? `+${formatResource(materialMissing)} Material` : '',
+        influenceMissing > 0 ? `+${formatResource(influenceMissing)} Influence` : '',
+      ].filter(Boolean).join(' · ');
     const selected = this.selectedUnits().filter((unit) => unit.alive && unit.playerId === PLAYER_ID);
     const hp = selected.reduce((sum, unit) => sum + unit.currentHealth, 0);
     const maxHp = selected.reduce((sum, unit) => sum + unit.maxHealth, 0);
@@ -622,18 +636,14 @@ export class StrategicPanel {
         <b>${formatResource(stock.influenceMilli)} <span>Influence</span></b>
         <b>${snapshot.populationUsed[PLAYER_ID] ?? 0}/${snapshot.populationCap[PLAYER_ID] ?? 0} <span>Population</span></b>
       </div>
-      <div class="resource-key"><span class="material-dot"></span>Amber Deposit → Extractor <span class="mana-dot"></span>Violet Mana Spring → Mana Well</div>
-      <div class="strategy-meta">Territory ${owned}/${snapshot.regionOwners.length} · Supplied ${supplied} · Contested ${snapshot.contestedRegions.length}</div>
       ${selectedMarkup}
-      <nav class="command-tabs" aria-label="Command category"><button data-action="command-view" data-value="build" aria-pressed="${this.commandView === 'build'}">Construction</button><button data-action="command-view" data-value="army" aria-pressed="${this.commandView === 'army'}">Army & Production</button></nav>
-      <div class="army-view">${this.armyMarkup(simulationSnapshot)}</div>
-      ${this.queueMarkup(simulationSnapshot.tick, snapshot)}
-      <div class="strategy-section build-view"><strong>Construct</strong><div class="strategy-buttons">${buildingButtons}</div><small>Each site progresses independently. Shift-click the battlefield to place another building of the same type.</small></div>
-      <div class="strategy-section army-view"><strong>Recruit</strong>${this.producerMarkup(snapshot)}<div class="strategy-buttons compact">${trainButtons}</div><div class="strategy-buttons"><button class="${rallyActive.trim()}" data-action="set-rally" ${selectedProducer ? '' : 'disabled'}>Set Rally Point</button></div></div>
-      <div class="strategy-message" aria-live="polite">${this.message}</div>
-      <div class="strategy-section territory-info"><strong>Expansion</strong><small>${expansionHint}</small><div class="strategy-buttons">
-        <button data-action="capture-poi">Capture POI (+10 Influence)</button>
-      </div></div>
+      <nav class="command-tabs" aria-label="Command category"><button data-action="command-view" data-value="build" aria-pressed="${this.commandView === 'build'}">Construction</button><button data-action="command-view" data-value="army" aria-pressed="${this.commandView === 'army'}">Army</button></nav>
+      <div class="build-view">${this.queueMarkup(simulationSnapshot.tick, snapshot, 'build')}</div>
+      <div class="army-view">${this.armyMarkup(simulationSnapshot)}${this.queueMarkup(simulationSnapshot.tick, snapshot, 'army')}</div>
+      <div class="strategy-section build-view"><strong>Construct</strong><div class="strategy-buttons">${buildingButtons}</div></div>
+      <div class="strategy-section army-view"><strong>Recruit</strong>${this.producerMarkup(snapshot)}<div class="strategy-buttons compact">${trainButtons}</div><div class="strategy-buttons secondary-actions"><button class="${rallyActive.trim()}" data-action="set-rally" ${selectedProducer ? '' : 'disabled'}>Set Rally</button></div></div>
+      ${this.message ? `<div class="strategy-message" aria-live="polite">${this.message}</div>` : ''}
+      <div class="strategy-section territory-info build-view"><div class="expansion-compact"><span>${expansionHint}</span><button data-action="capture-poi">Capture POI +10I</button></div></div>
     `;
   }
 }
