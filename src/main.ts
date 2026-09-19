@@ -33,7 +33,6 @@ import { addMissingVisualQaUnits, visualQaRequested } from './simulation/visual-
 import { ContextInspector } from './ui/context-inspector';
 import { DebugOverlay } from './ui/debug-overlay';
 import { ManaSystemHud } from './ui/mana-system-hud';
-import { PoiCaptureHint } from './ui/poi-capture-hint';
 import { ResourceDefensePanel } from './ui/resource-defense-panel';
 import { RoguelitePanel } from './ui/roguelite-panel';
 import { M06_REPLAY_STORAGE_KEY, RunPanel } from './ui/run-panel';
@@ -192,7 +191,6 @@ async function boot(): Promise<void> {
       (clientX, clientY) => scene.screenToSimulationPosition(clientX, clientY),
     );
     const manaSystemHud = new ManaSystemHud(strategyElement, simulation, () => scene.selectedUnits.map((unit) => unit.id));
-    const poiCaptureHint = new PoiCaptureHint(strategyElement, simulation, () => scene.selectedUnits);
     const resourceDefensePanel = new ResourceDefensePanel(strategyElement, simulation);
     const roguelitePanel = new RoguelitePanel(rogueliteElement, simulation);
     const runPanel = new RunPanel(runElement, simulation, blockResolution);
@@ -206,7 +204,6 @@ async function boot(): Promise<void> {
       strategyPanel.update(deltaSeconds);
       contextInspector.update(deltaSeconds);
       manaSystemHud.update(deltaSeconds);
-      poiCaptureHint.update(deltaSeconds);
       resourceDefensePanel.update(deltaSeconds);
       roguelitePanel.update(deltaSeconds);
       runPanel.update(deltaSeconds);
@@ -232,7 +229,6 @@ async function boot(): Promise<void> {
       runPanel.destroy();
       roguelitePanel.destroy();
       resourceDefensePanel.destroy();
-      poiCaptureHint.destroy();
       manaSystemHud.destroy();
       contextInspector.destroy();
       strategyPanel.destroy();
