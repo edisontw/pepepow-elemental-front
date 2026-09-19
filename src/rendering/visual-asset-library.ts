@@ -441,7 +441,7 @@ export class VisualAssetLibrary {
       material.useLighting = false;
       // Baked sprite art should sit inside the battlefield lighting range rather
       // than rendering at display-white emissive intensity.
-      material.emissive = new pc.Color(0.67, 0.66, 0.62);
+      material.emissive = new pc.Color(0.75, 0.74, 0.70);
       material.emissiveMap = texture;
       material.opacityMap = texture;
       material.opacityMapChannel = 'a';
