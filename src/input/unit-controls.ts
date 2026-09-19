@@ -1,4 +1,5 @@
 import * as pc from 'playcanvas';
+import { buildingVisualProfile } from '../rendering/building-visual-profile';
 import { pointToSegmentDistanceSquared } from '../rendering/screen-space-pick';
 import type { UnitRenderBridge } from '../rendering/unit-render-bridge';
 import { unitVisualProfile } from '../rendering/unit-visual-profile';
@@ -388,7 +389,37 @@ export class UnitControls {
     }
     const target = this.worldPointFromClient(clientX, clientY);
     if (!target) return;
+    if (this.tryObjectiveAttack(target.x, target.z)) return;
     this.moveSelectionTo(target.x, target.z);
+  }
+
+  private tryObjectiveAttack(targetX: number, targetZ: number): boolean {
+    const enemyCore = this.simulation.strategy.snapshot().buildings.find((building) => (
+      building.playerId === 1
+      && building.type === 'ELEMENTAL_CORE'
+      && building.completed
+      && !building.destroyed
+    ));
+    if (!enemyCore) return false;
+    if (!this.simulation.visibility.isWorldVisible(0, enemyCore.x, enemyCore.z, this.simulation.navigation)) return false;
+
+    const profile = buildingVisualProfile(enemyCore.type);
+    const radius = Math.max(2.4, profile.footprint * 0.95) * WORLD_UNITS_PER_METER;
+    const dx = targetX - enemyCore.x;
+    const dz = targetZ - enemyCore.z;
+    if (dx * dx + dz * dz > radius * radius) return false;
+
+    const objectiveSimulation = this.simulation as M04Simulation & {
+      enqueueObjectiveAttack?: (
+        entityIds: readonly number[],
+        objective?: 'PLAYER_CORE' | 'ENEMY_CORE',
+      ) => void;
+    };
+    if (typeof objectiveSimulation.enqueueObjectiveAttack !== 'function') return false;
+
+    this.disableFacingQa();
+    objectiveSimulation.enqueueObjectiveAttack(this.selection.ids, 'ENEMY_CORE');
+    return true;
   }
 
   private hoverWorldPoint(): { x: number; z: number } | null {
