@@ -4,8 +4,9 @@ import { RTS_CAMERA_YAW_DEGREES } from './impostor-frame';
 const DEFAULT_MIN_DISTANCE = 12;
 const DEFAULT_MAX_DISTANCE = 46;
 const DEFAULT_DISTANCE = 28;
-const EDGE_SCROLL_MARGIN_PX = 22;
-const EDGE_SCROLL_SPEED_MULTIPLIER = 1.2;
+const EDGE_SCROLL_MARGIN_PX = 48;
+const EDGE_SCROLL_SPEED_MULTIPLIER = 1.75;
+const HUD_EDGE_GAP_PX = 8;
 
 export interface RtsCameraOptions {
   halfWidth?: number;
@@ -24,6 +25,8 @@ export class RtsCamera {
   private readonly halfDepth: number;
   private readonly minDistance: number;
   private readonly maxDistance: number;
+  private readonly homeX: number;
+  private readonly homeZ: number;
   private distance: number;
   private yaw = RTS_CAMERA_YAW_DEGREES;
   private pitch = -48;
@@ -42,8 +45,10 @@ export class RtsCamera {
     this.minDistance = Math.max(4, options.minDistance ?? DEFAULT_MIN_DISTANCE);
     this.maxDistance = Math.max(this.minDistance, options.maxDistance ?? DEFAULT_MAX_DISTANCE);
     this.distance = pc.math.clamp(options.initialDistance ?? DEFAULT_DISTANCE, this.minDistance, this.maxDistance);
-    this.target.x = pc.math.clamp(options.targetX ?? 0, -this.halfWidth, this.halfWidth);
-    this.target.z = pc.math.clamp(options.targetZ ?? 0, -this.halfDepth, this.halfDepth);
+    this.homeX = pc.math.clamp(options.targetX ?? 0, -this.halfWidth, this.halfWidth);
+    this.homeZ = pc.math.clamp(options.targetZ ?? 0, -this.halfDepth, this.halfDepth);
+    this.target.x = this.homeX;
+    this.target.z = this.homeZ;
     window.addEventListener('keydown', this.onKeyDown);
     window.addEventListener('keyup', this.onKeyUp);
     canvas.addEventListener('wheel', this.onWheel, { passive: false });
@@ -66,14 +71,12 @@ export class RtsCamera {
     if (this.isPressed('KeyS', 'ArrowDown')) localZ += speed;
 
     if (this.pointerInsideCanvas && !this.dragging) {
-      const bounds = this.canvas.getBoundingClientRect();
-      const x = this.pointerX - bounds.left;
-      const y = this.pointerY - bounds.top;
+      const bounds = this.battlefieldViewportBounds();
       const edgeSpeed = speed * EDGE_SCROLL_SPEED_MULTIPLIER;
-      if (x >= 0 && x <= EDGE_SCROLL_MARGIN_PX) localX -= edgeSpeed;
-      else if (x <= bounds.width && x >= bounds.width - EDGE_SCROLL_MARGIN_PX) localX += edgeSpeed;
-      if (y >= 0 && y <= EDGE_SCROLL_MARGIN_PX) localZ -= edgeSpeed;
-      else if (y <= bounds.height && y >= bounds.height - EDGE_SCROLL_MARGIN_PX) localZ += edgeSpeed;
+      if (this.pointerX >= bounds.left && this.pointerX <= bounds.left + EDGE_SCROLL_MARGIN_PX) localX -= edgeSpeed;
+      else if (this.pointerX <= bounds.right && this.pointerX >= bounds.right - EDGE_SCROLL_MARGIN_PX) localX += edgeSpeed;
+      if (this.pointerY >= bounds.top && this.pointerY <= bounds.top + EDGE_SCROLL_MARGIN_PX) localZ -= edgeSpeed;
+      else if (this.pointerY <= bounds.bottom && this.pointerY >= bounds.bottom - EDGE_SCROLL_MARGIN_PX) localZ += edgeSpeed;
     }
 
     if (localX !== 0 || localZ !== 0) this.pan(localX, localZ);
@@ -98,6 +101,12 @@ export class RtsCamera {
   }
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
+    if (event.code === 'Home' && !event.repeat) {
+      event.preventDefault();
+      this.focusAt(this.homeX, this.homeZ);
+      return;
+    }
+    if (event.code === 'Space') event.preventDefault();
     this.pressedKeys.add(event.code);
   };
 
@@ -136,14 +145,23 @@ export class RtsCamera {
   };
 
   private readonly onPointerMove = (event: PointerEvent): void => {
-    if (!this.dragging) return;
+    if (!this.dragging) {
+      const bounds = this.canvas.getBoundingClientRect();
+      this.pointerInsideCanvas = event.clientX >= bounds.left
+        && event.clientX <= bounds.right
+        && event.clientY >= bounds.top
+        && event.clientY <= bounds.bottom;
+      this.pointerX = event.clientX;
+      this.pointerY = event.clientY;
+      return;
+    }
     event.preventDefault();
     event.stopImmediatePropagation();
     const deltaX = event.clientX - this.pointerX;
     const deltaY = event.clientY - this.pointerY;
     this.pointerX = event.clientX;
     this.pointerY = event.clientY;
-    this.pan(-deltaX * 0.025, -deltaY * 0.025);
+    this.pan(-deltaX * 0.03, -deltaY * 0.03);
   };
 
   private readonly onPointerUp = (event: PointerEvent): void => {
@@ -159,6 +177,32 @@ export class RtsCamera {
 
   private isPressed(...keys: string[]): boolean {
     return keys.some((key) => this.pressedKeys.has(key));
+  }
+
+  private battlefieldViewportBounds(): { left: number; right: number; top: number; bottom: number } {
+    const canvasBounds = this.canvas.getBoundingClientRect();
+    let left = canvasBounds.left;
+    let right = canvasBounds.right;
+
+    const strategyPanel = document.getElementById('strategy-panel');
+    if (strategyPanel && strategyPanel.getClientRects().length > 0) {
+      const rect = strategyPanel.getBoundingClientRect();
+      if (rect.right > left && rect.left < right) left = Math.min(right, rect.right + HUD_EDGE_GAP_PX);
+    }
+
+    for (const id of ['world-debug', 'context-inspector', 'elemental-jobs']) {
+      const element = document.getElementById(id) ?? document.querySelector(`.${id}`);
+      if (!(element instanceof HTMLElement) || element.getClientRects().length === 0) continue;
+      const rect = element.getBoundingClientRect();
+      if (rect.left < right && rect.right > left) right = Math.max(left, rect.left - HUD_EDGE_GAP_PX);
+    }
+
+    return {
+      left,
+      right,
+      top: canvasBounds.top,
+      bottom: canvasBounds.bottom,
+    };
   }
 
   private pan(localX: number, localZ: number): void {
