@@ -93,6 +93,8 @@ function hashEntity(hash: number, entityId: EntityID, entities: EntityStore): nu
   result = hashInteger(result, combat.nextAttackTick);
   result = hashInteger(result, combat.targetEntityId ?? NULL_TARGET);
   result = hashInteger(result, experience.xp);
+  result = hashInteger(result, experience.baseMaxHealth);
+  result = hashInteger(result, experience.baseAttackDamage);
   const campId = entities.neutralCampIds.get(entityId);
   if (campId === undefined) {
     result = hashInteger(result, 0);
