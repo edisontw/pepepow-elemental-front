@@ -147,6 +147,7 @@ export class M06Simulation extends M05Simulation {
   private pendingReplayEntries: M06ReplayEntry[] = [];
   private readonly pendingRunCommands: M06RunCommand[] = [];
   private readonly objectiveAttackOrders = new Map<number, RunObjectiveId>();
+  private readonly aiObjectiveAttackIds = new Set<number>();
   private replayEntryIndex = 0;
   private internalCommand = false;
   private playback = false;
@@ -161,7 +162,9 @@ export class M06Simulation extends M05Simulation {
 
   override enqueueCommand(command: M04GameCommand): void {
     if (this.playback && !this.internalCommand) return;
-    this.clearObjectiveOrdersForCommand(command);
+    // External/player orders replace an explicit objective attack. Internal
+    // Enemy War commands are reconciled against the AI decision after its step.
+    if (!this.internalCommand) this.clearObjectiveOrdersForCommand(command);
     super.enqueueCommand(command);
     if (!this.internalCommand) {
       this.recordedCommands.push({ channel: 'GAME', command: cloneGameCommand(command) });
@@ -409,9 +412,14 @@ export class M06Simulation extends M05Simulation {
       && decision.targetRegionId !== null
       && decision.targetRegionId === playerCoreRegion;
 
-    // Objective intent persists until the unit receives another normal command.
-    // Enemy AI MOVE / ATTACK / STOP commands already clear stale objective orders
-    // through enqueueCommand(), so do not erase an explicit Core attack here.
+    // Remove only objective intents previously owned by Enemy War. Explicit RUN
+    // orders remain authoritative until replaced by an external command.
+    for (const entityId of this.aiObjectiveAttackIds) {
+      if (this.objectiveAttackOrders.get(entityId) === 'PLAYER_CORE') {
+        this.objectiveAttackOrders.delete(entityId);
+      }
+    }
+    this.aiObjectiveAttackIds.clear();
     if (!shouldAttackCore) return;
 
     const enemyIds = this.entities.entityIds()
@@ -423,7 +431,10 @@ export class M06Simulation extends M05Simulation {
       .sort((left, right) => left - right);
     const target = this.objectivePosition('PLAYER_CORE');
     if (!target || enemyIds.length === 0) return;
-    for (const entityId of enemyIds) this.objectiveAttackOrders.set(entityId, 'PLAYER_CORE');
+    for (const entityId of enemyIds) {
+      this.objectiveAttackOrders.set(entityId, 'PLAYER_CORE');
+      this.aiObjectiveAttackIds.add(entityId);
+    }
     super.enqueueCommand({
       type: 'MOVE',
       targetTick,
