@@ -62,6 +62,7 @@ describe('M06 full run', () => {
     for (let tick = 1; tick < 300; tick += 1) simulation.step();
     const enemyCore = simulation.run.snapshot().enemyCore;
     placeAndBuff(simulation, 0, enemyCore.x, enemyCore.z, 5_000);
+    simulation.enqueueObjectiveAttack(livingIds(simulation, 0), 'ENEMY_CORE');
     const final = simulation.step();
     expect(final.run.outcome).toBe('VICTORY');
     expect(final.run.enemyCore).toMatchObject({ currentHealth: 0, state: 'DESTROYED' });
@@ -86,6 +87,7 @@ describe('M06 full run', () => {
     enemyPosition.z = playerCore.z;
     enemyCombat.attackDamage = 50_000;
     enemyCombat.attackIntervalTicks = 1;
+    simulation.enqueueObjectiveAttack([enemyId], 'PLAYER_CORE');
 
     simulation.step();
     expect(simulation.run.snapshot().playerCore).toMatchObject({
@@ -95,6 +97,12 @@ describe('M06 full run', () => {
     });
     expect(simulation.run.snapshot().playerCore.criticalTicksRemaining).toBeGreaterThanOrEqual(298);
 
+    simulation.enqueueCommand({
+      targetTick: simulation.snapshot().tick + 1,
+      playerId: 1,
+      type: 'STOP',
+      entityIds: [enemyId],
+    });
     enemyPosition.x += 100_000;
     enemyPosition.z += 100_000;
     simulation.entities.createUnit({
@@ -114,9 +122,33 @@ describe('M06 full run', () => {
 
     enemyPosition.x = playerCore.x;
     enemyPosition.z = playerCore.z;
+    simulation.enqueueObjectiveAttack([enemyId], 'PLAYER_CORE');
     simulation.step();
     expect(simulation.run.snapshot().outcome).toBe('DEFEAT');
     expect(simulation.run.snapshot().result?.reason).toBe('PLAYER_CORE_DESTROYED');
+  });
+
+  it('heals a safe damaged friendly unit near an active Core', () => {
+    const simulation = new M06Simulation(generateWorld(1_000_009), {
+      pace: 'SMOKE',
+      difficulty: 'CASUAL',
+    });
+    const playerCore = simulation.run.snapshot().playerCore;
+    const playerId = livingIds(simulation, 0)[0];
+    expect(playerId).toBeDefined();
+    if (playerId === undefined) return;
+
+    const position = simulation.entities.positions.get(playerId)!;
+    const health = simulation.entities.health.get(playerId)!;
+    position.x = playerCore.x;
+    position.z = playerCore.z;
+    health.current = Math.floor(health.max / 2);
+    const before = health.current;
+
+    simulation.step();
+
+    expect(simulation.entities.health.get(playerId)?.current).toBeGreaterThan(before);
+    expect(simulation.entities.health.get(playerId)?.current).toBeLessThanOrEqual(health.max);
   });
 
   it('activates a deterministic battlefield-modifying boss in Boss Hunt', () => {
@@ -164,20 +196,25 @@ describe('M06 full run', () => {
     for (let tick = 1; tick < 300; tick += 1) simulation.step();
     const enemyCore = simulation.run.snapshot().enemyCore;
     placeAndBuff(simulation, 0, enemyCore.x, enemyCore.z, 5_000);
+    simulation.enqueueObjectiveAttack(livingIds(simulation, 0), 'ENEMY_CORE');
     simulation.step();
     const packet = simulation.replayPacket();
     expect(packet).not.toBeNull();
     expect(isM06ReplayPacket(packet)).toBe(true);
     expect(packet?.header).toMatchObject({
-      version: 'ef-replay-v3',
+      version: 'ef-replay-v4',
       blockHeight: 1_000_005,
       mode: 'DESTROY',
       pace: 'SMOKE',
       faction: 'FLAME_CULT',
       difficulty: 'CASUAL',
     });
-    expect(packet?.commands).toHaveLength(1);
+    expect(packet?.commands).toHaveLength(2);
     expect(packet?.commands[0]?.channel).toBe('GAME');
+    expect(packet?.commands[1]).toMatchObject({
+      channel: 'RUN',
+      command: { type: 'ATTACK_OBJECTIVE', objective: 'ENEMY_CORE' },
+    });
     expect(packet?.finalStateHash).toBe(simulation.snapshot().stateHash);
   }, 15_000);
 
