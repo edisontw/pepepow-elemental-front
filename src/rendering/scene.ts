@@ -227,7 +227,11 @@ export function createSceneShell(
   const poiBridge = simulation instanceof M03Simulation
     ? new PoiRenderBridge(app, simulation.generatedWorld, cameraComponent, camera, canvas)
     : null;
-  if (simulation instanceof M03Simulation) poiBridge?.sync(simulation.strategy.snapshot(), simulation.visibility.cellsForPlayer(0));
+  if (simulation instanceof M03Simulation) poiBridge?.sync(
+    simulation.strategy.snapshot(),
+    simulation.visibility.cellsForPlayer(0),
+    simulation instanceof M06Simulation ? simulation.neutralEncounters.snapshot() : undefined,
+  );
   const controls = new UnitControls(canvas, cameraComponent, simulation, bridge, selectionBox);
   const minimapCanvas = document.getElementById('world-debug-canvas');
   const minimapControls = simulation instanceof M03Simulation && minimapCanvas instanceof HTMLCanvasElement
@@ -270,7 +274,11 @@ export function createSceneShell(
       if (strategicSnapshot) {
         strategicBridge?.sync(strategicSnapshot, frame.snapshot.tick, simulation.visibility, simulation.navigation);
         territoryBridge?.sync(strategicSnapshot);
-        poiBridge?.sync(strategicSnapshot, simulation.visibility.cellsForPlayer(0));
+        poiBridge?.sync(
+          strategicSnapshot,
+          simulation.visibility.cellsForPlayer(0),
+          simulation instanceof M06Simulation ? simulation.neutralEncounters.snapshot() : undefined,
+        );
       }
       if (simulation instanceof M06Simulation) {
         runBridge?.sync(simulation.run.snapshot(), frame.snapshot.tick, frame.interpolationAlpha);
