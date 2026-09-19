@@ -64,7 +64,9 @@ export function resourcePulseScale(rich: boolean, tick: number, index: number): 
 
 export class ResourceRenderBridge {
   private readonly entities: { root: pc.Entity; marker: pc.Entity; rich: boolean; cellIndex: number }[] = [];
-  private readonly environmentDetails: EnvironmentDetailLayer;
+  private environmentDetails: EnvironmentDetailLayer | null = null;
+  private latestVisibility: Uint8Array | undefined;
+  private disposed = false;
 
   private readonly groundFootprint = material(
     new pc.Color(0.17, 0.16, 0.12),
@@ -147,7 +149,14 @@ export class ResourceRenderBridge {
   );
 
   constructor(app: pc.Application, world: GeneratedWorld) {
-    this.environmentDetails = new EnvironmentDetailLayer(app, world);
+    // Forest/prop dressing is presentation-only and can be relatively expensive
+    // to place/batch on large generated maps. Let terrain, units and controls
+    // become interactive first, then add environmental dressing shortly after.
+    window.setTimeout(() => {
+      if (this.disposed) return;
+      this.environmentDetails = new EnvironmentDetailLayer(app, world);
+      this.environmentDetails.sync(this.latestVisibility);
+    }, 500);
     for (const [index, resource] of world.resources.entries()) {
       const position = worldCellToSimulationPosition(world, resource.cell);
       const root = new pc.Entity(`${resource.type === 'MATERIAL' ? 'Material Deposit' : 'Mana Spring'} ${resource.id}`);
@@ -224,7 +233,8 @@ export class ResourceRenderBridge {
   }
 
   sync(tick: number, visibility?: Uint8Array): void {
-    this.environmentDetails.sync(visibility);
+    this.latestVisibility = visibility;
+    this.environmentDetails?.sync(visibility);
     for (const [index, presentation] of this.entities.entries()) {
       const level = visibility?.[presentation.cellIndex] ?? VisibilityLevel.VISIBLE;
       presentation.root.enabled = level !== VisibilityLevel.UNEXPLORED;
@@ -235,7 +245,9 @@ export class ResourceRenderBridge {
   }
 
   destroy(): void {
-    this.environmentDetails.destroy();
+    this.disposed = true;
+    this.environmentDetails?.destroy();
+    this.environmentDetails = null;
     for (const entity of this.entities) entity.root.destroy();
     this.entities.length = 0;
     this.groundFootprint.destroy();
