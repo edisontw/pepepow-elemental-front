@@ -201,6 +201,9 @@ export class VisualAssetLibrary {
       ? IMPOSTOR_CONFIGS.get(id)
       : undefined;
     if (impostorConfig) {
+      // Do not flash the old green primitive model while the WebP action set is
+      // decoding. Restore it only if the animated impostor cannot load at all.
+      for (const primitive of fallback) primitive.enabled = false;
       this.attachImpostor(parent, fallback, handle, impostorConfig);
       return handle;
     }
@@ -310,7 +313,11 @@ export class VisualAssetLibrary {
     config: ImpostorConfig,
   ): void {
     void this.loadImpostorMaterials(config).then((materials) => {
-      if (!materials || this.disposed || handle.released) return;
+      if (this.disposed || handle.released) return;
+      if (!materials) {
+        for (const primitive of fallback) primitive.enabled = true;
+        return;
+      }
       const pivot = new pc.Entity(`${config.label} Impostor Pivot`);
       const billboard = new pc.Entity(`${config.label} Impostor Billboard`);
       const plane = new pc.Entity(`${config.label} Impostor`);
