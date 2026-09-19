@@ -157,7 +157,6 @@ export class StrategicPanel {
     else if (action === 'train') this.queueTrain(target.dataset.value as UnitArchetype);
     else if (action === 'select-producer') this.selectProducer(Number(target.dataset.value));
     else if (action === 'set-rally') this.beginRallyPlacement();
-    else if (action === 'capture-poi') this.queueCapturePoi();
     this.render();
   };
 
@@ -260,7 +259,7 @@ export class StrategicPanel {
     const missing = missingResourceParts(cost, stock);
     if (missing.length === 0) return null;
     if (buildingType === 'OUTPOST' && stock.influenceMilli < cost.influence * 1000) {
-      return `Cannot place Outpost: need ${missing.join(', ')}. Capture a POI to gain +10 Influence, then expand into the next adjacent neutral region.`;
+      return `Cannot place Outpost: need ${missing.join(', ')}. Move units within 5 m of a POI to secure it automatically for +10 Influence.`;
     }
     return `Cannot place ${label(buildingType)}: need ${missing.join(', ')}.`;
   }
@@ -473,39 +472,6 @@ export class StrategicPanel {
     this.message = `Queued ${label(unitType)} at ${label(producer.type)} #${producer.id}.`;
   }
 
-  private queueCapturePoi(): void {
-    const units = this.selectedUnits().filter((unit) => unit.playerId === PLAYER_ID && unit.alive);
-    const regionId = this.selectedRegion(units);
-    if (units.length === 0 || regionId === null) {
-      this.message = 'Select player units inside a region containing a POI, then press Capture POI.';
-      return;
-    }
-    const snapshot = this.simulation.strategy.snapshot();
-    const poi = this.simulation.generatedWorld.pois.find((candidate) => (
-      candidate.regionId === regionId && snapshot.poiOwners[candidate.id] !== PLAYER_ID
-    ));
-    if (!poi) {
-      this.message = `Region ${regionId + 1} has no uncaptured POI.`;
-      return;
-    }
-    this.simulation.enqueueStrategicCommand({
-      targetTick: this.simulation.snapshot().tick + 1,
-      playerId: PLAYER_ID,
-      type: 'CAPTURE',
-      entityIds: units.map((unit) => unit.id),
-      targetPoiId: poi.id,
-    });
-    this.message = `Capturing ${label(poi.type)} ${poi.id}; completion grants +10 Influence for another Outpost.`;
-  }
-
-  private selectedRegion(units: readonly EntitySnapshot[]): number | null {
-    const unit = units.find((candidate) => candidate.playerId === PLAYER_ID && candidate.alive);
-    if (!unit) return null;
-    const cell = this.simulation.navigation.worldToCell(unit.x, unit.z);
-    if (cell.column < 0 || cell.row < 0 || cell.column >= this.simulation.generatedWorld.width || cell.row >= this.simulation.generatedWorld.height) return null;
-    return this.simulation.generatedWorld.regionByCell[cell.row * this.simulation.generatedWorld.width + cell.column] ?? null;
-  }
-
   private availableProducers(snapshot: ReturnType<M03Simulation['strategy']['snapshot']>) {
     return snapshot.buildings.filter((building) => (
       building.playerId === PLAYER_ID
@@ -620,7 +586,7 @@ export class StrategicPanel {
       ? 'Outpost ready'
       : [
         materialMissing > 0 ? `+${formatResource(materialMissing)} Material` : '',
-        influenceMissing > 0 ? `+${formatResource(influenceMissing)} Influence` : '',
+        influenceMissing > 0 ? `+${formatResource(influenceMissing)} Influence · secure POI nearby automatically` : '',
       ].filter(Boolean).join(' · ');
     const selected = this.selectedUnits().filter((unit) => unit.alive && unit.playerId === PLAYER_ID);
     const hp = selected.reduce((sum, unit) => sum + unit.currentHealth, 0);
@@ -643,7 +609,7 @@ export class StrategicPanel {
       <div class="strategy-section build-view"><strong>Construct</strong><div class="strategy-buttons">${buildingButtons}</div></div>
       <div class="strategy-section army-view"><strong>Recruit</strong>${this.producerMarkup(snapshot)}<div class="strategy-buttons compact">${trainButtons}</div><div class="strategy-buttons secondary-actions"><button class="${rallyActive.trim()}" data-action="set-rally" ${selectedProducer ? '' : 'disabled'}>Set Rally</button></div></div>
       ${this.message ? `<div class="strategy-message" aria-live="polite">${this.message}</div>` : ''}
-      <div class="strategy-section territory-info build-view"><div class="expansion-compact"><span>${expansionHint}</span><button data-action="capture-poi">Capture POI +10I</button></div></div>
+      <div class="strategy-section territory-info build-view"><div class="expansion-compact"><span>${expansionHint}</span></div></div>
     `;
   }
 }
