@@ -60,7 +60,8 @@ function hashEntity(hash: number, entityId: EntityID, entities: EntityStore): nu
   const health = entities.health.get(entityId);
   const combat = entities.combat.get(entityId);
   const status = entities.statuses.get(entityId);
-  if (!position || !movement || !faction || !selectable || !health || !combat || !status) {
+  const experience = entities.experience.get(entityId);
+  if (!position || !movement || !faction || !selectable || !health || !combat || !status || !experience) {
     throw new Error(`Entity ${entityId} is missing a required M01 component.`);
   }
 
@@ -91,6 +92,14 @@ function hashEntity(hash: number, entityId: EntityID, entities: EntityStore): nu
   result = hashInteger(result, combat.attackRange);
   result = hashInteger(result, combat.nextAttackTick);
   result = hashInteger(result, combat.targetEntityId ?? NULL_TARGET);
+  result = hashInteger(result, experience.xp);
+  const campId = entities.neutralCampIds.get(entityId);
+  if (campId === undefined) {
+    result = hashInteger(result, 0);
+  } else {
+    result = hashInteger(result, campId.length);
+    for (const character of campId) result = hashInteger(result, character.charCodeAt(0));
+  }
   if (combat.pursuitTargetCellKey === null) return hashInteger(result, NULL_TARGET);
   result = hashInteger(result, combat.pursuitTargetCellKey.length);
   for (const codePoint of combat.pursuitTargetCellKey) result = hashInteger(result, codePoint.charCodeAt(0));
