@@ -6,18 +6,41 @@ import type { M03Command } from './m03-commands';
 import type { M04Command } from './m04-commands';
 import type { EnemyDifficulty, EnemyFaction } from './m05-content';
 import { M05Simulation, type M05SimulationOptions, type M05SimulationSnapshot } from './m05-simulation';
-import type { RunMode, RunOutcome, RunPace } from './m06-content';
-import { RunState, type BossAbilityIntent, type RunSnapshot } from './run-state';
+import {
+  CORE_UNIT_HEAL_PERMILLE_PER_TICK,
+  CORE_UNIT_HEAL_RADIUS,
+  STRUCTURE_BODY_RADIUS,
+  type RunMode,
+  type RunOutcome,
+  type RunPace,
+} from './m06-content';
+import {
+  RunState,
+  type BossAbilityIntent,
+  type ObjectiveAttackOrderSnapshot,
+  type RunObjectiveId,
+  type RunSnapshot,
+} from './run-state';
 import type { GeneratedWorld } from '../world/world-definition';
 
 export type ReplayVerification = 'NONE' | 'PENDING' | 'MATCH' | 'DIVERGED';
+
+export interface M06RunCommand {
+  targetTick: number;
+  playerId: number;
+  type: 'ATTACK_OBJECTIVE';
+  entityIds: readonly number[];
+  objective: Extract<RunObjectiveId, 'PLAYER_CORE' | 'ENEMY_CORE'>;
+}
+
 export type M06ReplayEntry =
   | { channel: 'GAME'; command: M04GameCommand }
   | { channel: 'STRATEGIC'; command: M03Command }
-  | { channel: 'ROGUELITE'; command: M04Command };
+  | { channel: 'ROGUELITE'; command: M04Command }
+  | { channel: 'RUN'; command: M06RunCommand };
 
 export interface M06ReplayHeader {
-  version: 'ef-replay-v3';
+  version: 'ef-replay-v4';
   blockHeight: number;
   rulesetVersion: string;
   worldGameplayHash: string;
@@ -75,6 +98,10 @@ function cloneRogueliteCommand(command: M04Command): M04Command {
   return { ...command };
 }
 
+function cloneRunCommand(command: M06RunCommand): M06RunCommand {
+  return { ...command, entityIds: [...command.entityIds] };
+}
+
 function validStartingAttunements(value: unknown): value is StartingAttunements {
   return Array.isArray(value)
     && value.length === 2
@@ -87,7 +114,7 @@ export function isM06ReplayPacket(value: unknown): value is M06ReplayPacket {
   if (typeof value !== 'object' || value === null) return false;
   const packet = value as Partial<M06ReplayPacket>;
   const header = packet.header as Partial<M06ReplayHeader> | undefined;
-  if (!header || header.version !== 'ef-replay-v3') return false;
+  if (!header || header.version !== 'ef-replay-v4') return false;
   if (!Number.isSafeInteger(header.blockHeight) || !Number.isSafeInteger(header.generationAttempt)) return false;
   if (typeof header.rulesetVersion !== 'string' || typeof header.worldGameplayHash !== 'string') return false;
   if (!validStartingAttunements(header.startingAttunements)) return false;
@@ -99,7 +126,12 @@ export function isM06ReplayPacket(value: unknown): value is M06ReplayPacket {
   for (const entry of packet.commands) {
     if (typeof entry !== 'object' || entry === null) return false;
     const replayEntry = entry as Partial<M06ReplayEntry>;
-    if (replayEntry.channel !== 'GAME' && replayEntry.channel !== 'STRATEGIC' && replayEntry.channel !== 'ROGUELITE') return false;
+    if (
+      replayEntry.channel !== 'GAME'
+      && replayEntry.channel !== 'STRATEGIC'
+      && replayEntry.channel !== 'ROGUELITE'
+      && replayEntry.channel !== 'RUN'
+    ) return false;
     if (typeof replayEntry.command !== 'object' || replayEntry.command === null) return false;
     const command = replayEntry.command as { targetTick?: unknown };
     if (!Number.isSafeInteger(command.targetTick) || (command.targetTick as number) < 1) return false;
@@ -113,6 +145,8 @@ export class M06Simulation extends M05Simulation {
   readonly run: RunState;
   private readonly recordedCommands: M06ReplayEntry[] = [];
   private pendingReplayEntries: M06ReplayEntry[] = [];
+  private readonly pendingRunCommands: M06RunCommand[] = [];
+  private readonly objectiveAttackOrders = new Map<number, RunObjectiveId>();
   private replayEntryIndex = 0;
   private internalCommand = false;
   private playback = false;
@@ -127,9 +161,33 @@ export class M06Simulation extends M05Simulation {
 
   override enqueueCommand(command: M04GameCommand): void {
     if (this.playback && !this.internalCommand) return;
+    this.clearObjectiveOrdersForCommand(command);
     super.enqueueCommand(command);
     if (!this.internalCommand) {
       this.recordedCommands.push({ channel: 'GAME', command: cloneGameCommand(command) });
+    }
+  }
+
+  enqueueObjectiveAttack(
+    entityIds: readonly number[],
+    objective: Extract<RunObjectiveId, 'PLAYER_CORE' | 'ENEMY_CORE'> = 'ENEMY_CORE',
+  ): void {
+    const playerId = objective === 'ENEMY_CORE' ? 0 : 1;
+    this.enqueueRunCommand({
+      targetTick: this.snapshot().tick + 1,
+      playerId,
+      type: 'ATTACK_OBJECTIVE',
+      entityIds: [...entityIds],
+      objective,
+    });
+  }
+
+  enqueueRunCommand(command: M06RunCommand): void {
+    if (this.playback && !this.internalCommand) return;
+    this.pendingRunCommands.push(cloneRunCommand(command));
+    this.pendingRunCommands.sort((left, right) => left.targetTick - right.targetTick);
+    if (!this.internalCommand) {
+      this.recordedCommands.push({ channel: 'RUN', command: cloneRunCommand(command) });
     }
   }
 
@@ -155,13 +213,18 @@ export class M06Simulation extends M05Simulation {
     this.injectReplayEntries(nextTick);
     this.internalCommand = true;
     try {
+      this.processRunCommands(nextTick);
+      this.prepareObjectiveAttackers(nextTick);
       const frame = super.step();
+      this.syncEnemyCoreObjectiveIntent(frame.tick + 1);
       const intent = this.run.advance(
         frame.tick,
         this.entities,
         this.strategy.snapshot(),
         this.roguelite.snapshot(),
+        this.objectiveAttackSnapshot(),
       );
+      this.applyCoreHealing();
       if (intent) this.enqueueBossAbility(frame.tick + 1, intent);
     } finally {
       this.internalCommand = false;
@@ -219,7 +282,7 @@ export class M06Simulation extends M05Simulation {
   private buildReplayPacket(snapshot: M06SimulationSnapshot): M06ReplayPacket {
     return {
       header: {
-        version: 'ef-replay-v3',
+        version: 'ef-replay-v4',
         blockHeight: this.generatedWorld.identity.blockHeight,
         rulesetVersion: CURRENT_CHALLENGE_RULESET_VERSION,
         worldGameplayHash: this.generatedWorld.gameplayHash,
@@ -243,11 +306,186 @@ export class M06Simulation extends M05Simulation {
     while (this.replayEntryIndex < this.pendingReplayEntries.length) {
       const entry = this.pendingReplayEntries[this.replayEntryIndex];
       if (!entry || entry.command.targetTick > nextTick) break;
-      if (entry.channel === 'GAME') super.enqueueCommand(cloneGameCommand(entry.command));
-      else if (entry.channel === 'STRATEGIC') super.enqueueStrategicCommand(cloneStrategicCommand(entry.command));
-      else super.enqueueRogueliteCommand(cloneRogueliteCommand(entry.command));
+      if (entry.channel === 'GAME') {
+        const command = cloneGameCommand(entry.command);
+        this.clearObjectiveOrdersForCommand(command);
+        super.enqueueCommand(command);
+      } else if (entry.channel === 'STRATEGIC') {
+        super.enqueueStrategicCommand(cloneStrategicCommand(entry.command));
+      } else if (entry.channel === 'ROGUELITE') {
+        super.enqueueRogueliteCommand(cloneRogueliteCommand(entry.command));
+      } else {
+        this.pendingRunCommands.push(cloneRunCommand(entry.command));
+        this.pendingRunCommands.sort((left, right) => left.targetTick - right.targetTick);
+      }
       this.replayEntryIndex += 1;
     }
+  }
+
+  private processRunCommands(targetTick: number): void {
+    const due = this.pendingRunCommands.filter((command) => command.targetTick <= targetTick);
+    if (due.length === 0) return;
+    for (let index = this.pendingRunCommands.length - 1; index >= 0; index -= 1) {
+      if ((this.pendingRunCommands[index]?.targetTick ?? Number.POSITIVE_INFINITY) <= targetTick) {
+        this.pendingRunCommands.splice(index, 1);
+      }
+    }
+
+    for (const command of due) {
+      const expectedPlayerId = command.objective === 'ENEMY_CORE' ? 0 : 1;
+      if (command.playerId !== expectedPlayerId) continue;
+      const validIds = command.entityIds
+        .filter((entityId) => (
+          this.entities.hasUnit(entityId)
+          && this.entities.factions.get(entityId)?.playerId === command.playerId
+          && this.entities.health.get(entityId)?.alive === true
+        ))
+        .sort((left, right) => left - right);
+      if (validIds.length === 0) continue;
+      for (const entityId of validIds) this.objectiveAttackOrders.set(entityId, command.objective);
+      const target = this.objectivePosition(command.objective);
+      if (!target) continue;
+      super.enqueueCommand({
+        targetTick,
+        playerId: command.playerId,
+        type: 'MOVE',
+        entityIds: validIds,
+        targetX: target.x,
+        targetZ: target.z,
+      });
+    }
+  }
+
+  private prepareObjectiveAttackers(targetTick: number): void {
+    for (const [entityId, objective] of [...this.objectiveAttackOrders.entries()]) {
+      if (!this.entities.hasUnit(entityId) || this.entities.health.get(entityId)?.alive !== true) {
+        this.objectiveAttackOrders.delete(entityId);
+        continue;
+      }
+      const target = this.objectivePosition(objective);
+      if (!target || target.state === 'DESTROYED') {
+        this.objectiveAttackOrders.delete(entityId);
+        continue;
+      }
+      const position = this.entities.positions.get(entityId);
+      const movement = this.entities.movements.get(entityId);
+      const combat = this.entities.combat.get(entityId);
+      if (!position || !movement || !combat) {
+        this.objectiveAttackOrders.delete(entityId);
+        continue;
+      }
+      const dx = position.x - target.x;
+      const dz = position.z - target.z;
+      const attackRange = STRUCTURE_BODY_RADIUS + combat.attackRange;
+      const inRange = dx * dx + dz * dz <= attackRange * attackRange;
+      const playerId = this.entities.factions.get(entityId)?.playerId;
+      if (playerId === undefined) continue;
+
+      if (inRange) {
+        if (movement.targetX !== null || movement.targetZ !== null) {
+          super.enqueueCommand({ type: 'STOP', targetTick, playerId, entityIds: [entityId] });
+        }
+        continue;
+      }
+
+      if (movement.targetX === null || movement.targetZ === null || movement.pathIndex >= movement.path.length) {
+        super.enqueueCommand({
+          type: 'MOVE',
+          targetTick,
+          playerId,
+          entityIds: [entityId],
+          targetX: target.x,
+          targetZ: target.z,
+        });
+      }
+    }
+  }
+
+  private syncEnemyCoreObjectiveIntent(targetTick: number): void {
+    const decision = this.enemyWar.snapshot().currentDecision;
+    const playerCoreRegion = this.generatedWorld.spawns.find((spawn) => spawn.id === 'PLAYER')?.regionId ?? null;
+    const shouldAttackCore = decision?.action === 'ATTACK'
+      && decision.targetEntityId === null
+      && decision.targetRegionId !== null
+      && decision.targetRegionId === playerCoreRegion;
+
+    for (const [entityId, objective] of [...this.objectiveAttackOrders.entries()]) {
+      if (objective === 'PLAYER_CORE' && this.entities.factions.get(entityId)?.playerId === 1) {
+        this.objectiveAttackOrders.delete(entityId);
+      }
+    }
+    if (!shouldAttackCore) return;
+
+    const enemyIds = this.entities.entityIds()
+      .filter((entityId) => (
+        this.entities.hasUnit(entityId)
+        && this.entities.factions.get(entityId)?.playerId === 1
+        && this.entities.health.get(entityId)?.alive === true
+      ))
+      .sort((left, right) => left - right);
+    const target = this.objectivePosition('PLAYER_CORE');
+    if (!target || enemyIds.length === 0) return;
+    for (const entityId of enemyIds) this.objectiveAttackOrders.set(entityId, 'PLAYER_CORE');
+    super.enqueueCommand({
+      type: 'MOVE',
+      targetTick,
+      playerId: 1,
+      entityIds: enemyIds,
+      targetX: target.x,
+      targetZ: target.z,
+    });
+  }
+
+  private applyCoreHealing(): void {
+    const run = this.run.snapshot();
+    for (const core of [run.playerCore, run.enemyCore]) {
+      if (core.state !== 'ACTIVE') continue;
+      const radiusSquared = CORE_UNIT_HEAL_RADIUS * CORE_UNIT_HEAL_RADIUS;
+      for (const entityId of this.entities.entityIds()) {
+        if (!this.entities.hasUnit(entityId) || this.entities.factions.get(entityId)?.playerId !== core.playerId) continue;
+        const health = this.entities.health.get(entityId);
+        const position = this.entities.positions.get(entityId);
+        const combat = this.entities.combat.get(entityId);
+        if (!health?.alive || health.current >= health.max || !position || !combat) continue;
+        if (combat.targetEntityId !== null) continue;
+        const dx = position.x - core.x;
+        const dz = position.z - core.z;
+        if (dx * dx + dz * dz > radiusSquared) continue;
+
+        const targetedByHostile = this.entities.entityIds().some((attackerId) => (
+          this.entities.hasUnit(attackerId)
+          && this.entities.factions.get(attackerId)?.playerId !== core.playerId
+          && this.entities.health.get(attackerId)?.alive === true
+          && this.entities.combat.get(attackerId)?.targetEntityId === entityId
+        ));
+        if (targetedByHostile) continue;
+
+        const amount = Math.max(1, Math.floor((health.max * CORE_UNIT_HEAL_PERMILLE_PER_TICK) / 1000));
+        health.current = Math.min(health.max, health.current + amount);
+      }
+    }
+  }
+
+  private objectivePosition(objective: RunObjectiveId): {
+    x: number;
+    z: number;
+    state: RunSnapshot['playerCore']['state'];
+  } | null {
+    const run = this.run.snapshot();
+    if (objective === 'PLAYER_CORE') return run.playerCore;
+    if (objective === 'ENEMY_CORE') return run.enemyCore;
+    return null;
+  }
+
+  private objectiveAttackSnapshot(): ObjectiveAttackOrderSnapshot[] {
+    return [...this.objectiveAttackOrders.entries()]
+      .map(([entityId, objective]) => ({ entityId, objective }))
+      .sort((left, right) => left.entityId - right.entityId || left.objective.localeCompare(right.objective));
+  }
+
+  private clearObjectiveOrdersForCommand(command: M04GameCommand): void {
+    if (command.type === 'CAST' || command.type === 'CAST_TACTICAL' || command.type === 'CAST_STRATEGIC') return;
+    for (const entityId of command.entityIds) this.objectiveAttackOrders.delete(entityId);
   }
 
   private enqueueBossAbility(targetTick: number, intent: BossAbilityIntent): void {
@@ -321,6 +559,7 @@ export class M06Simulation extends M05Simulation {
   private cloneReplayEntry(entry: M06ReplayEntry): M06ReplayEntry {
     if (entry.channel === 'GAME') return { channel: 'GAME', command: cloneGameCommand(entry.command) };
     if (entry.channel === 'STRATEGIC') return { channel: 'STRATEGIC', command: cloneStrategicCommand(entry.command) };
-    return { channel: 'ROGUELITE', command: cloneRogueliteCommand(entry.command) };
+    if (entry.channel === 'ROGUELITE') return { channel: 'ROGUELITE', command: cloneRogueliteCommand(entry.command) };
+    return { channel: 'RUN', command: cloneRunCommand(entry.command) };
   }
 }
