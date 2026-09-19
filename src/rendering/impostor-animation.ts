@@ -18,7 +18,7 @@ export interface ImpostorAnimationSample {
 export const IMPOSTOR_ANIMATION_FRAMES_PER_DIRECTION = 4;
 export const IMPOSTOR_MOVE_CYCLE_DISTANCE_METRES = 1.35;
 
-export const IMPOSTOR_ANIMATION_ASSET_REVISION = '20260918-complete-unit-animation-pack-v2';
+export const IMPOSTOR_ANIMATION_ASSET_REVISION = '20260919-unit-sprite-refresh-v3';
 
 export const IMPOSTOR_ANIMATION_DIRECTION_STEMS = [
   'front',
