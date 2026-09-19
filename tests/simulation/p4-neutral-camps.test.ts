@@ -44,7 +44,7 @@ describe('Phase 4 neutral camps', () => {
     expect(first.snapshot().stateHash).toBe(second.snapshot().stateHash);
   });
 
-  it('blocks camp capture until guards are cleared, then distributes deterministic XP to nearby participants', () => {
+  it('blocks automatic camp securing until guards are cleared, then rewards and secures by presence', () => {
     const simulation = new M06Simulation(generateWorld(4_950_701), {
       pace: 'SMOKE',
       difficulty: 'CASUAL',
@@ -61,13 +61,6 @@ describe('Phase 4 neutral camps', () => {
       position.z = camp.z;
     }
 
-    simulation.enqueueStrategicCommand({
-      targetTick: 1,
-      playerId: 0,
-      type: 'CAPTURE',
-      entityIds: participants,
-      targetPoiId: camp.id,
-    });
     simulation.step();
     expect(simulation.strategy.snapshot().captureOrders.some((order) => order.targetPoiId === camp.id)).toBe(false);
 
@@ -91,15 +84,10 @@ describe('Phase 4 neutral camps', () => {
     );
     expect(totalXp).toBe(NEUTRAL_CAMP_XP_REWARD);
 
-    simulation.enqueueStrategicCommand({
-      targetTick: simulation.snapshot().tick + 1,
-      playerId: 0,
-      type: 'CAPTURE',
-      entityIds: participants,
-      targetPoiId: camp.id,
-    });
     simulation.step();
     expect(simulation.strategy.snapshot().captureOrders.some((order) => order.targetPoiId === camp.id)).toBe(true);
+    for (let tick = 0; tick < 60; tick += 1) simulation.step();
+    expect(simulation.strategy.snapshot().poiOwners[camp.id]).toBe(0);
   });
 
   it('keeps neutral guardians attackable through the normal unit ATTACK command', () => {
