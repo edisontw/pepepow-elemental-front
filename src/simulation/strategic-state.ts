@@ -7,6 +7,7 @@ import type {
   TrainCommand,
   UpgradeResourceDefenseCommand,
 } from './commands';
+import { WORLD_UNITS_PER_METER } from './arena';
 import type { EntityID, PlayerID, UnitArchetype } from './components';
 import type { EntityStore } from './entity-store';
 import type { NavigationGrid } from './navigation';
@@ -32,6 +33,8 @@ import { worldCellToSimulationPosition } from '../world/world-arena';
 const RESOURCE_SCALE = 1000;
 const NEUTRAL_OWNER = 255;
 const CAPTURE_THRESHOLD_TENTHS = CAPTURE_BASE_TICKS * 10;
+export const POI_AUTO_CAPTURE_RADIUS = 5 * WORLD_UNITS_PER_METER;
+export const POI_AUTO_CAPTURE_THRESHOLD_TENTHS = 900;
 const CORE_MATERIAL_MILLI_PER_TICK = 300;
 const CORE_MANA_MILLI_PER_TICK = 50;
 const MATERIAL_NORMAL_MILLI_PER_TICK = 500;
@@ -312,7 +315,8 @@ export class StrategicState {
     }
   }
 
-  advanceTerritory(): void {
+  advanceTerritory(blockedPoiIds: ReadonlySet<string> = new Set<string>()): void {
+    this.syncAutomaticPoiCaptureOrders(blockedPoiIds);
     const ordered = [...this.captureOrders.entries()].sort(([left], [right]) => left.localeCompare(right));
     for (const [key, order] of ordered) {
       const regionId = order.targetRegionId ?? this.poiById(order.targetPoiId)?.regionId;
@@ -320,11 +324,17 @@ export class StrategicState {
         this.captureOrders.delete(key);
         continue;
       }
-      const capturePower = Math.min(CAPTURE_POWER_CAP_TENTHS, this.capturePowerInRegion(order, regionId));
+      const capturePower = Math.min(
+        CAPTURE_POWER_CAP_TENTHS,
+        order.targetPoiId !== null ? this.capturePowerFromParticipants(order) : this.capturePowerInRegion(order, regionId),
+      );
       if (capturePower <= 0) continue;
-      const effectivePower = this.contestedRegions[regionId] === 1 ? Math.max(1, Math.floor(capturePower / 2)) : capturePower;
+      const effectivePower = order.targetPoiId !== null
+        ? capturePower
+        : this.contestedRegions[regionId] === 1 ? Math.max(1, Math.floor(capturePower / 2)) : capturePower;
       order.progressTenths += effectivePower;
-      if (order.progressTenths < CAPTURE_THRESHOLD_TENTHS) continue;
+      const threshold = order.targetPoiId !== null ? POI_AUTO_CAPTURE_THRESHOLD_TENTHS : CAPTURE_THRESHOLD_TENTHS;
+      if (order.progressTenths < threshold) continue;
       if (order.targetRegionId !== null) {
         this.regionOwners[order.targetRegionId] = order.playerId;
       } else if (order.targetPoiId !== null && this.poiOwners.get(order.targetPoiId) !== order.playerId) {
@@ -490,12 +500,13 @@ export class StrategicState {
   }
 
   private processCapture(command: CaptureCommand): boolean {
+    // POIs are secured automatically by nearby presence. CAPTURE remains a
+    // region-only strategic command for territory/AI compatibility.
+    if (command.targetPoiId !== undefined) return false;
     if (command.targetRegionId !== undefined && (command.targetRegionId < 0 || command.targetRegionId >= this.world.regions.length)) return false;
-    if (command.targetPoiId !== undefined && !this.poiById(command.targetPoiId)) return false;
     const entityIds = command.entityIds.filter((entityId) => this.entities.hasUnit(entityId) && this.entities.factions.get(entityId)?.playerId === command.playerId);
     if (entityIds.length === 0) return false;
     if (command.targetRegionId !== undefined && this.ownerOfRegion(command.targetRegionId) === command.playerId) return false;
-    if (command.targetPoiId !== undefined && this.poiOwners.get(command.targetPoiId) === command.playerId) return false;
     const order: CaptureOrder = {
       playerId: command.playerId,
       entityIds: [...entityIds].sort((a, b) => a - b),
@@ -712,6 +723,80 @@ export class StrategicState {
       && !building.destroyed
       && this.isRegionSupplied(playerId, building.regionId)
     )).length;
+  }
+
+  private syncAutomaticPoiCaptureOrders(blockedPoiIds: ReadonlySet<string>): void {
+    const captureRadiusSquared = POI_AUTO_CAPTURE_RADIUS * POI_AUTO_CAPTURE_RADIUS;
+    const pois = [...this.world.pois].sort((left, right) => left.id.localeCompare(right.id));
+
+    for (const poi of pois) {
+      const poiOrders = [...this.captureOrders.entries()]
+        .filter(([, order]) => order.targetPoiId === poi.id)
+        .sort(([left], [right]) => left.localeCompare(right));
+      const stopOrders = (): void => {
+        for (const [, order] of poiOrders) order.entityIds = [];
+      };
+
+      if (blockedPoiIds.has(poi.id)) {
+        stopOrders();
+        continue;
+      }
+
+      const position = worldCellToSimulationPosition(this.world, poi.cell);
+      const byPlayer = new Map<PlayerID, EntityID[]>();
+      for (const entityId of this.entities.entityIds()) {
+        if (!this.entities.hasUnit(entityId)) continue;
+        const playerId = this.entities.factions.get(entityId)?.playerId;
+        const unitPosition = this.entities.positions.get(entityId);
+        if ((playerId !== 0 && playerId !== 1) || !unitPosition) continue;
+        if (squaredDistance(unitPosition, position) > captureRadiusSquared) continue;
+        const ids = byPlayer.get(playerId) ?? [];
+        ids.push(entityId);
+        byPlayer.set(playerId, ids);
+      }
+
+      const present = [...byPlayer.entries()]
+        .filter(([, ids]) => ids.length > 0)
+        .sort(([left], [right]) => left - right);
+
+      if (present.length !== 1) {
+        stopOrders();
+        continue;
+      }
+
+      const [playerId, ids] = present[0]!;
+      if (this.poiOwners.get(poi.id) === playerId) {
+        for (const [key] of poiOrders) this.captureOrders.delete(key);
+        continue;
+      }
+
+      for (const [key, order] of poiOrders) {
+        if (order.playerId !== playerId) this.captureOrders.delete(key);
+      }
+      const key = `${playerId}:poi:${poi.id}`;
+      const existing = this.captureOrders.get(key);
+      if (existing) {
+        existing.entityIds = [...ids].sort((left, right) => left - right);
+      } else {
+        this.captureOrders.set(key, {
+          playerId,
+          entityIds: [...ids].sort((left, right) => left - right),
+          targetRegionId: null,
+          targetPoiId: poi.id,
+          progressTenths: 0,
+        });
+      }
+    }
+  }
+
+  private capturePowerFromParticipants(order: CaptureOrder): number {
+    let power = 0;
+    for (const entityId of order.entityIds) {
+      if (!this.entities.hasUnit(entityId) || this.entities.factions.get(entityId)?.playerId !== order.playerId) continue;
+      const archetype = this.entities.archetypes.get(entityId);
+      if (archetype) power += UNITS[archetype].capturePowerTenths;
+    }
+    return power;
   }
 
   private capturePowerInRegion(order: CaptureOrder, regionId: number): number {
