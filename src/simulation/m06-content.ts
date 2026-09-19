@@ -24,8 +24,10 @@ export const CORE_RECOVERY_HEALTH = Math.ceil(CORE_MAX_HEALTH * 0.1);
 export const ENGINEER_REPAIR_PER_TICK = 5;
 export const ENGINEER_REPAIR_RADIUS = 8_000;
 export const CORE_UNIT_HEAL_RADIUS = 8_000;
-// 2 permille per 10 Hz tick = 2% max HP per second while safely near an active Core.
-export const CORE_UNIT_HEAL_PERMILLE_PER_TICK = 2;
+// Two deterministic 1% max-HP pulses per second. Pulses are staggered by entity ID
+// so low-HP units do not receive an unintended 1 HP every 0.1 s minimum.
+export const CORE_UNIT_HEAL_INTERVAL_TICKS = 5;
+export const CORE_UNIT_HEAL_PERMILLE_PER_PULSE = 10;
 export const STRUCTURE_BODY_RADIUS = 2_800;
 export const BOSS_BODY_RADIUS = 3_200;
 export const MIN_EARLY_FINALE_TICK = 9_000;
