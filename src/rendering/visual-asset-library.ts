@@ -407,94 +407,129 @@ export class VisualAssetLibrary {
         animatedImpostorFrameFiles(config.slug, action),
       ]),
     ) as Record<ImpostorAnimationAction, readonly string[]>;
-
-    const files = IMPOSTOR_ANIMATION_ACTIONS.flatMap((action) => filesByAction[action]);
     const framesPerAction = filesByAction.IDLE.length;
+    const framesPerDirection = 4;
 
-    resources.promise = Promise.allSettled(
-      files.map((path) => loadImage(`${import.meta.env.BASE_URL}${path}`)),
-    ).then((results) => {
-      if (this.disposed) return null;
+    const createFrameMaterial = (
+      action: ImpostorAnimationAction,
+      frame: number,
+      image: HTMLImageElement,
+    ): pc.StandardMaterial => {
+      const texture = new pc.Texture(this.app.graphicsDevice, {
+        name: `${config.id}.impostor.${action.toLowerCase()}.${frame}`,
+        mipmaps: false,
+        srgb: true,
+        minFilter: pc.FILTER_LINEAR,
+        magFilter: pc.FILTER_LINEAR,
+        addressU: pc.ADDRESS_CLAMP_TO_EDGE,
+        addressV: pc.ADDRESS_CLAMP_TO_EDGE,
+      });
+      texture.setSource(image);
+      resources!.textures.push(texture);
 
-      const loadedImages = results.map((result) => result.status === 'fulfilled' ? result.value : null);
-      const loadedCount = loadedImages.filter((image): image is HTMLImageElement => image !== null).length;
-      if (loadedCount === 0) throw new Error(`No ${config.label} animated impostor frames could be loaded.`);
+      const material = new pc.StandardMaterial();
+      material.name = `${config.id.toUpperCase().replaceAll('.', '_')}_IMPOSTOR_${action}_${frame}`;
+      material.useLighting = false;
+      // Baked sprite art should sit inside the battlefield lighting range rather
+      // than rendering at display-white emissive intensity.
+      material.emissive = new pc.Color(0.82, 0.81, 0.77);
+      material.emissiveMap = texture;
+      material.opacityMap = texture;
+      material.opacityMapChannel = 'a';
+      material.alphaTest = 0.12;
+      material.cull = pc.CULLFACE_NONE;
+      material.update();
+      resources!.materials.push(material);
+      return material;
+    };
 
-      if (loadedCount !== loadedImages.length) {
-        const missing = results
-          .map((result, frame) => result.status === 'rejected' ? files[frame] : null)
-          .filter((path): path is string => path !== null);
+    const nearestLoadedImage = (
+      images: readonly (HTMLImageElement | null)[],
+      frame: number,
+    ): HTMLImageElement | null => {
+      const direct = images[frame];
+      if (direct) return direct;
+      const localFrame = frame % framesPerDirection;
+      const viewStart = frame - localFrame;
+      for (let distance = 1; distance < framesPerDirection; distance += 1) {
+        const previous = images[viewStart + ((localFrame - distance + framesPerDirection) % framesPerDirection)];
+        if (previous) return previous;
+        const next = images[viewStart + ((localFrame + distance) % framesPerDirection)];
+        if (next) return next;
+      }
+      return null;
+    };
+
+    const loadActionImages = async (
+      action: ImpostorAnimationAction,
+    ): Promise<readonly (HTMLImageElement | null)[]> => {
+      const files = filesByAction[action];
+      const results = await Promise.allSettled(
+        files.map((path) => loadImage(`${import.meta.env.BASE_URL}${path}`)),
+      );
+      const images = results.map((result) => result.status === 'fulfilled' ? result.value : null);
+      const missing = results
+        .map((result, frame) => result.status === 'rejected' ? files[frame] : null)
+        .filter((path): path is string => path !== null);
+      if (missing.length > 0) {
         console.warn(
-          `${config.label} animated impostor has ${missing.length} missing/corrupt frame(s); using nearest valid frame.`,
+          `${config.label} ${action.toLowerCase()} impostor has ${missing.length} missing/corrupt frame(s); using local fallback.`,
           missing,
         );
       }
+      return images;
+    };
 
-      const actionImages = (actionIndex: number): readonly (HTMLImageElement | null)[] =>
-        loadedImages.slice(actionIndex * framesPerAction, (actionIndex + 1) * framesPerAction);
-      const idleImages = actionImages(0);
-      const globalFallback = loadedImages.find((image): image is HTMLImageElement => image !== null)!;
+    // Fast first paint: load only frame 00 for all eight directions (~1/20 of
+    // the previous 160-frame startup request set). All actions temporarily share
+    // those direction-correct preview materials while animation frames hydrate.
+    const previewFiles = filesByAction.IDLE.filter((_, frame) => frame % framesPerDirection === 0);
+    resources.promise = Promise.allSettled(
+      previewFiles.map((path) => loadImage(`${import.meta.env.BASE_URL}${path}`)),
+    ).then((previewResults) => {
+      if (this.disposed) return null;
+      const previewImages = previewResults.map((result) => result.status === 'fulfilled' ? result.value : null);
+      const globalFallback = previewImages.find((image): image is HTMLImageElement => image !== null);
+      if (!globalFallback) throw new Error(`No ${config.label} impostor preview frames could be loaded.`);
 
-      const nearestLoadedImage = (
-        images: readonly (HTMLImageElement | null)[],
-        frame: number,
-      ): HTMLImageElement | null => {
-        const direct = images[frame];
-        if (direct) return direct;
+      const previewByView = previewImages.map((image) => image ?? globalFallback);
+      const previewMaterialsByView = previewByView.map((image, view) =>
+        createFrameMaterial('IDLE', view * framesPerDirection, image),
+      );
+      const previewMaterials = Array.from({ length: framesPerAction }, (_, frame) =>
+        previewMaterialsByView[Math.floor(frame / framesPerDirection)]!,
+      );
+      const actionMaterials = Object.fromEntries(
+        IMPOSTOR_ANIMATION_ACTIONS.map((action) => [action, previewMaterials]),
+      ) as Record<ImpostorAnimationAction, readonly pc.StandardMaterial[]>;
 
-        const localFrame = frame % 4;
-        const viewStart = frame - localFrame;
-        for (let distance = 1; distance < 4; distance += 1) {
-          const previous = images[viewStart + ((localFrame - distance + 4) % 4)];
-          if (previous) return previous;
-          const next = images[viewStart + ((localFrame + distance) % 4)];
-          if (next) return next;
+      const hydrateActions = async (): Promise<void> => {
+        for (const action of IMPOSTOR_ANIMATION_ACTIONS) {
+          if (this.disposed) return;
+          const images = await loadActionImages(action);
+          if (this.disposed) return;
+          if (!images.some((image) => image !== null)) continue;
+
+          const materials: pc.StandardMaterial[] = [];
+          for (let frame = 0; frame < framesPerAction; frame += 1) {
+            const view = Math.floor(frame / framesPerDirection);
+            const image = nearestLoadedImage(images, frame)
+              ?? previewByView[view]
+              ?? globalFallback;
+            materials.push(createFrameMaterial(action, frame, image));
+          }
+          actionMaterials[action] = materials;
+
+          // Yield between action groups so decoding does not monopolize the main
+          // thread immediately after the battlefield becomes interactive.
+          await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
         }
-        return images.find((image): image is HTMLImageElement => image !== null) ?? null;
       };
 
-      const actionMaterials = {} as Record<ImpostorAnimationAction, readonly pc.StandardMaterial[]>;
-
-      for (const [actionIndex, action] of IMPOSTOR_ANIMATION_ACTIONS.entries()) {
-        const images = actionImages(actionIndex);
-        const materials: pc.StandardMaterial[] = [];
-
-        for (let frame = 0; frame < framesPerAction; frame += 1) {
-          const image = nearestLoadedImage(images, frame)
-            ?? nearestLoadedImage(idleImages, frame)
-            ?? globalFallback;
-
-          const texture = new pc.Texture(this.app.graphicsDevice, {
-            name: `${config.id}.impostor.${action.toLowerCase()}.${frame}`,
-            mipmaps: false,
-            srgb: true,
-            minFilter: pc.FILTER_LINEAR,
-            magFilter: pc.FILTER_LINEAR,
-            addressU: pc.ADDRESS_CLAMP_TO_EDGE,
-            addressV: pc.ADDRESS_CLAMP_TO_EDGE,
-          });
-          texture.setSource(image);
-          resources.textures.push(texture);
-
-          const material = new pc.StandardMaterial();
-          material.name = `${config.id.toUpperCase().replaceAll('.', '_')}_IMPOSTOR_${action}_${frame}`;
-          material.useLighting = false;
-          material.emissive = new pc.Color(1, 1, 1);
-          material.emissiveMap = texture;
-          material.opacityMap = texture;
-          material.opacityMapChannel = 'a';
-          material.alphaTest = 0.12;
-          material.cull = pc.CULLFACE_NONE;
-          material.update();
-          resources.materials.push(material);
-          materials.push(material);
-        }
-        actionMaterials[action] = materials;
-      }
-
+      window.setTimeout(() => { void hydrateActions(); }, 250);
       return actionMaterials;
     }).catch((error: unknown) => {
-      console.warn(`${config.label} animated impostor frame load failed; using fallback geometry.`, error);
+      console.warn(`${config.label} animated impostor preview load failed; using fallback geometry.`, error);
       return null;
     });
 
