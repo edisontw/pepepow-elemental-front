@@ -1,11 +1,11 @@
 # PEPEPOW Elemental Front — PROJECT_CONTEXT
 
-**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Visual Production Pass — Priority A IMPLEMENTED / MANUAL WEBGL PENDING  
+**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Phase 4 Hero-Lite Progression ACTIVE (P4-A) + Visual Production ongoing  
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v3`  
-**Current replay format:** `ef-replay-v3`  
+**Current authoritative gameplay ruleset:** `ef-standard-v4`  
+**Current replay format:** `ef-replay-v4`  
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE3_CLOSURE_REPORT.md`
 
@@ -17,7 +17,11 @@ GitHub `main` is the only source of truth.
 
 Always read this file first.
 
-For the current visual-production pass, read next:
+For the active gameplay redesign, read next:
+
+- `docs/POST_ROADMAP_PHASE4_HERO_LITE_PROGRESSION_PLAN.md`
+
+For the current visual-production pass, also read:
 
 - `docs/VISUAL_IMPLEMENTATION_BRIEF.md`
 
@@ -65,8 +69,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v3`;
-- replay: `ef-replay-v3`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v4`;
+- replay: `ef-replay-v4`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -88,7 +92,7 @@ Known deferred infrastructure issue:
 
 ### Post-Roadmap Phase 2 — Element Authority
 
-Phase 2 remains CLOSED and active under v3:
+Phase 2 remains CLOSED and is carried forward under v4:
 
 - exactly two distinct starting Elemental Attunements;
 - one immutable Fire / Water / Ice / Lightning alignment per completed Elementalist;
@@ -170,9 +174,9 @@ During the current visual-production pass, keep these gameplay items deferred un
 
 ---
 
-## 6. Current formal work point — Visual Production Pass
+## 6. Current formal work point — Phase 4 + Visual Production
 
-The active work point is a **high-quality presentation production pass** before resuming broader gameplay/control follow-up.
+The active work point is **Phase 4 hero-lite gameplay redesign alongside the ongoing high-quality presentation production pass**. Phase 4 P4-A changes objective combat and Core recovery; later slices add neutral monsters, XP, Level 1–5 veteran progression, and veteran UI. The visual pass continues in parallel with a darker, higher-contrast battlefield target.
 
 Primary scope:
 
@@ -294,3 +298,29 @@ After the visual-production pass reaches a satisfactory baseline, resume the def
 - See `docs/ENVIRONMENT_ASSET_NOTES.md` for assets, representation and validation.
 - Hard gate 4: cloud browser reports `WebGL not supported`; manual screen/FPS
   acceptance must precede declaring reference-quality completion.
+
+
+---
+
+## 7. Phase 4 Hero-Lite Progression — ACTIVE
+
+Authoritative plan:
+
+- `docs/POST_ROADMAP_PHASE4_HERO_LITE_PROGRESSION_PLAN.md`
+
+P4-A active rules:
+
+- Core proximity alone does not deal damage;
+- Core damage requires an explicit objective-attack intent and the unit's normal attack cadence;
+- right-clicking a visible enemy Core issues the objective attack order;
+- active friendly Cores heal safe nearby friendly units within 8 m at 2% max HP/sec;
+- full Idle animation loading is deferred behind gameplay-critical Move / Attack / Hit / Death frames;
+- world generation remains `m02-standard-v1`;
+- authoritative gameplay/replay identity is `ef-standard-v4` / `ef-replay-v4`.
+
+Next Phase 4 slices:
+
+1. neutral monster/camp foundation;
+2. deterministic individual XP and Level 1–5 progression;
+3. veteran UI/readability;
+4. balance and replay validation.
