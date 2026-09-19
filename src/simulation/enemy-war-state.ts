@@ -409,14 +409,17 @@ export class EnemyWarState {
     if (target.regionId === null) return;
     const region = this.world.regions[target.regionId];
     if (!region) return;
-    const position = worldCellToSimulationPosition(this.world, region.center);
+    const targetPoi = action === 'CONTEST_POI' && target.poiId !== null
+      ? this.world.pois.find((poi) => poi.id === target.poiId)
+      : undefined;
+    const position = worldCellToSimulationPosition(this.world, targetPoi?.cell ?? region.center);
     sink.enqueueCommand({ type: 'MOVE', targetTick, playerId: ENEMY_PLAYER_ID, entityIds, targetX: position.x, targetZ: position.z });
 
     if (action === 'EXPAND' || action === 'RAID') {
       sink.enqueueStrategicCommand({ type: 'CAPTURE', targetTick, playerId: ENEMY_PLAYER_ID, entityIds, targetRegionId: target.regionId });
-    } else if (action === 'CONTEST_POI' && target.poiId !== null) {
-      sink.enqueueStrategicCommand({ type: 'CAPTURE', targetTick, playerId: ENEMY_PLAYER_ID, entityIds, targetPoiId: target.poiId });
     }
+    // POI control is presence-driven. CONTEST_POI only needs to move units
+    // onto the landmark; StrategicState starts/pauses capture automatically.
   }
 
   private entitiesForAction(action: StrategicAiAction): EntityID[] {
