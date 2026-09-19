@@ -295,6 +295,14 @@ export class M06Simulation extends M05Simulation {
     return this.playback;
   }
 
+  protected override blockedPoiCaptureIds(): ReadonlySet<string> {
+    return new Set(
+      this.neutralEncounters.snapshot().camps
+        .filter((camp) => !camp.cleared)
+        .map((camp) => camp.id),
+    );
+  }
+
   private buildReplayPacket(snapshot: M06SimulationSnapshot): M06ReplayPacket {
     return {
       header: {
