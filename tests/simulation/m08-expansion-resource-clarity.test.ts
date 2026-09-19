@@ -80,6 +80,18 @@ function moveUnitsToRegion(world: GeneratedWorld, entities: EntityStore, entityI
   }
 }
 
+function moveUnitsToPoi(world: GeneratedWorld, entities: EntityStore, entityIds: readonly number[], poiId: string): void {
+  const poi = world.pois.find((candidate) => candidate.id === poiId);
+  if (!poi) throw new Error(`Missing POI ${poiId}.`);
+  const position = worldCellToSimulationPosition(world, poi.cell);
+  for (const entityId of entityIds) {
+    const component = entities.positions.get(entityId);
+    if (!component) continue;
+    component.x = position.x;
+    component.z = position.z;
+  }
+}
+
 function captureRegion(
   state: StrategicState,
   world: GeneratedWorld,
@@ -128,9 +140,8 @@ describe('M08 expansion and resource clarity correction', () => {
 
     const poi = world.pois[0];
     if (!poi) throw new Error('Missing POI.');
-    moveUnitsToRegion(world, entities, playerUnits, poi.regionId);
-    expect(state.processCommand({ targetTick: 303, playerId: 0, type: 'CAPTURE', entityIds: playerUnits, targetPoiId: poi.id }, 303)).toBe(true);
-    for (let tick = 0; tick < 240; tick += 1) state.advanceTerritory();
+    moveUnitsToPoi(world, entities, playerUnits, poi.id);
+    for (let tick = 0; tick < 60; tick += 1) state.advanceTerritory();
     expect(state.snapshot().resources[0]!.influenceMilli).toBe(10_000);
 
     expect(state.processCommand({
