@@ -196,7 +196,10 @@ export class StrategicRenderBridge {
             ? this.materialFor(building.playerId, part.role)
             : this.constructionMaterial;
       }
-      presentation.footprint.enabled = !building.destroyed;
+      const useCompletedPlayerImpostor = building.playerId === 0
+        && building.completed
+        && !building.destroyed;
+      presentation.footprint.enabled = !building.destroyed && !useCompletedPlayerImpostor;
       if (presentation.footprint.render) {
         presentation.footprint.render.material = building.destroyed
           ? this.destroyedMaterial
@@ -258,7 +261,7 @@ export class StrategicRenderBridge {
         MANA_WELL: 'building.mana-well',
       };
       const modelId = modelIds[building.type] ?? '';
-      const useImpostor = building.playerId === 0 && building.completed && !building.destroyed;
+      const useImpostor = useCompletedPlayerImpostor;
       const presentationModelId = modelId ? `${modelId}:${useImpostor ? 'webp' : 'glb'}` : '';
       if (modelId && presentation.modelId !== presentationModelId) {
         this.visualAssets.release(presentation.model);
