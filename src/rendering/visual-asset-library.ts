@@ -507,30 +507,37 @@ export class VisualAssetLibrary {
         DEATH: previewMaterials,
       };
 
-      const hydrateActions = async (): Promise<void> => {
-        for (const action of IMPOSTOR_ANIMATION_ACTIONS) {
-          if (this.disposed) return;
-          const images = await loadActionImages(action);
-          if (this.disposed) return;
-          if (!images.some((image) => image !== null)) continue;
+      const hydrateAction = async (action: ImpostorAnimationAction): Promise<void> => {
+        if (this.disposed) return;
+        const images = await loadActionImages(action);
+        if (this.disposed || !images.some((image) => image !== null)) return;
 
-          const materials: pc.StandardMaterial[] = [];
-          for (let frame = 0; frame < framesPerAction; frame += 1) {
-            const view = Math.floor(frame / framesPerDirection);
-            const image = nearestLoadedImage(images, frame)
-              ?? previewByView[view]
-              ?? globalFallback;
-            materials.push(createFrameMaterial(action, frame, image));
-          }
-          actionMaterials[action] = materials;
+        const materials: pc.StandardMaterial[] = [];
+        for (let frame = 0; frame < framesPerAction; frame += 1) {
+          const view = Math.floor(frame / framesPerDirection);
+          const image = nearestLoadedImage(images, frame)
+            ?? previewByView[view]
+            ?? globalFallback;
+          materials.push(createFrameMaterial(action, frame, image));
+        }
+        actionMaterials[action] = materials;
+      };
 
-          // Yield between action groups so decoding does not monopolize the main
-          // thread immediately after the battlefield becomes interactive.
+      const hydratePriorityActions = async (): Promise<void> => {
+        // Idle already has one direction-correct preview frame per view. Load
+        // gameplay-readable actions first; full Idle is deliberately deferred.
+        for (const action of ['MOVE', 'ATTACK', 'HIT', 'DEATH'] as const) {
+          await hydrateAction(action);
+          if (this.disposed) return;
           await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
         }
       };
 
-      window.setTimeout(() => { void hydrateActions(); }, 250);
+      window.setTimeout(() => { void hydratePriorityActions(); }, 250);
+      // Full breathing/weight-shift Idle is cosmetic. Keep the static preview
+      // for the opening seconds and only hydrate it after the battlefield has
+      // already become interactive.
+      window.setTimeout(() => { void hydrateAction('IDLE'); }, 12_000);
       return actionMaterials;
     }).catch((error: unknown) => {
       console.warn(`${config.label} animated impostor preview load failed; using fallback geometry.`, error);
