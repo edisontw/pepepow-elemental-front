@@ -78,6 +78,14 @@ function metres(value: number): number {
   return value / WORLD_UNITS_PER_METER;
 }
 
+function intermittentIdleElapsedSeconds(entityId: EntityID, presentationSeconds: number): number {
+  const idleDuration = impostorAnimationDurationSeconds('IDLE');
+  const interval = 5.5 + (entityId % 6) * 0.85;
+  const offset = (entityId * 1.37) % interval;
+  const phase = (presentationSeconds + offset) % interval;
+  return phase < idleDuration ? phase : 0;
+}
+
 function facingYawDegrees(fromX: number, fromZ: number, toX: number, toZ: number): number {
   return Math.atan2(toX - fromX, toZ - fromZ) * 180 / Math.PI;
 }
@@ -263,7 +271,10 @@ export class UnitRenderBridge {
               ? { action: 'ATTACK', elapsedSeconds: attackElapsedSeconds }
               : moving
                 ? { action: 'MOVE', elapsedSeconds: impostorMoveElapsedSeconds(presentation.locomotionDistanceMetres) }
-                : { action: 'IDLE', elapsedSeconds: presentationTick / 10 };
+                : {
+                    action: 'IDLE',
+                    elapsedSeconds: intermittentIdleElapsedSeconds(unit.id, presentationTick / 10),
+                  };
 
           this.visualAssets.syncImpostor(model, effectiveFacingYaw, animationSample);
         } else {
