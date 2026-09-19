@@ -9,6 +9,7 @@ import {
 import type { UnitArchetype } from '../simulation/components';
 import type { EntitySnapshot } from '../simulation/simulation';
 import type { StrategicBuilding } from '../simulation/strategic-state';
+import { unitXpProgress } from '../simulation/veteran-progression';
 
 const PLAYER_ID = 0;
 const TICKS_PER_SECOND = 10;
@@ -317,17 +318,22 @@ export class ContextInspector {
     const definition = UNITS[unit.archetype];
     const healthRatio = Math.max(0, Math.min(1, unit.currentHealth / Math.max(1, unit.maxHealth)));
     const attackCycleSeconds = unit.attackIntervalTicks / TICKS_PER_SECOND;
+    const xp = unitXpProgress(unit.experience);
+    const xpLabel = xp.nextLevelXp === null
+      ? 'MAX'
+      : `${unit.experience} / ${xp.nextLevelXp}`;
     return `
-      <div class="context-kicker">UNIT #${unit.id}</div>
+      <div class="context-kicker">UNIT #${unit.id} · LEVEL ${unit.level}</div>
       <h3>${label(unit.archetype)}</h3>
       <span class="context-subtitle">${definition.tags.map(label).join(' · ')} · ${statusText(unit)}</span>
       <div class="context-health"><i style="width:${healthRatio * 100}%"></i></div>
       <span class="context-subtitle">${unit.currentHealth} / ${unit.maxHealth} HP</span>
       <div class="context-stats">
+        <div class="context-stat"><small>Level</small><b>Lv${unit.level}</b></div>
+        <div class="context-stat"><small>XP</small><b>${xpLabel}</b></div>
         <div class="context-stat"><small>Damage</small><b>${unit.attackDamage}</b></div>
         <div class="context-stat"><small>Range</small><b>${formatMetres(unit.attackRange)} m</b></div>
         <div class="context-stat"><small>Attack cycle</small><b>${attackCycleSeconds.toFixed(1)} s</b></div>
-        <div class="context-stat"><small>XP</small><b>${unit.experience}</b></div>
       </div>
     `;
   }
@@ -337,10 +343,16 @@ export class ContextInspector {
     const maxHealth = units.reduce((sum, unit) => sum + unit.maxHealth, 0);
     const healthRatio = Math.max(0, Math.min(1, health / Math.max(1, maxHealth)));
     const roles = [...new Set(units.map((unit) => label(unit.archetype)))];
+    const veteranSummary = [5, 4, 3, 2, 1]
+      .map((level) => ({ level, count: units.filter((unit) => unit.level === level).length }))
+      .filter((entry) => entry.count > 0)
+      .map((entry) => `${entry.count} × Lv${entry.level}`)
+      .join(' · ');
     return `
       <div class="context-kicker">FORMATION</div>
       <h3>${units.length} Units Selected</h3>
       <span class="context-subtitle">${roles.join(' · ')}</span>
+      <span class="context-subtitle">${veteranSummary}</span>
       <div class="context-health"><i style="width:${healthRatio * 100}%"></i></div>
       <span class="context-subtitle">${health} / ${maxHealth} combined HP</span>
     `;
