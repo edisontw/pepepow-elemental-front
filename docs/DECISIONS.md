@@ -41,3 +41,8 @@ Core damage is no longer inferred from proximity. A Core can only take unit dama
 ## ADR-010 — Neutral camps become deterministic combat encounters before veteran levels
 
 Phase 4 P4-B activates the five existing generated `NEUTRAL_CAMP` POIs without changing `m02-standard-v1`. A neutral faction (`playerId = 2`) owns deterministic Ancient Sentinel guards that use normal combat authority and a bounded camp leash. Guarded camps cannot be captured. Clearing a camp distributes a fixed 120 XP pool deterministically among nearby participants of the locally prevailing non-neutral faction. Unit XP is authoritative and state-hashed now; Level 1–5 thresholds/stat scaling remain P4-C. These authoritative additions advance gameplay/replay identity to `ef-standard-v5` / `ef-replay-v5`.
+
+
+## ADR-011 — Veteran progression uses bounded linear integer scaling
+
+Phase 4 P4-C converts per-unit XP into deterministic Level 1–5 veteran progression. Cumulative thresholds are 60 / 150 / 280 / 450 XP for Levels 2–5. Normal combat-unit kills share XP among nearby same-faction participants so last-hit micro is not required; Neutral Sentinels remain covered by the existing camp-clear XP pool rather than granting a second kill reward. Each level above Level 1 applies approximately +6% Max HP and +4% Attack Damage from immutable stored base stats, using deterministic integer rounding. Level-up restores only the newly added Max-HP delta, and XP caps at the Level-5 threshold. These authoritative semantics advance gameplay/replay identity to `ef-standard-v6` / `ef-replay-v6`; world generation remains `m02-standard-v1`.
