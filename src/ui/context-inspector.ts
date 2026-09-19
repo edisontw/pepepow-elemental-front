@@ -327,6 +327,7 @@ export class ContextInspector {
         <div class="context-stat"><small>Damage</small><b>${unit.attackDamage}</b></div>
         <div class="context-stat"><small>Range</small><b>${formatMetres(unit.attackRange)} m</b></div>
         <div class="context-stat"><small>Attack cycle</small><b>${attackCycleSeconds.toFixed(1)} s</b></div>
+        <div class="context-stat"><small>XP</small><b>${unit.experience}</b></div>
       </div>
     `;
   }
