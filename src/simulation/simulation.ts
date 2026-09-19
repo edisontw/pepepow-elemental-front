@@ -72,6 +72,8 @@ export interface EntitySnapshot {
   wetTicks: number;
   chilledTicks: number;
   frozenTicks: number;
+  experience: number;
+  neutralCampId: string | null;
   visibleToPlayer: boolean;
 }
 
@@ -153,7 +155,8 @@ export class Simulation {
     const combat = this.entities.combat.get(entityId);
     const status = this.entities.statuses.get(entityId);
     const archetype = this.entities.archetypes.get(entityId);
-    if (!position || !movement || !faction || !selectable || !health || !combat || !status || !archetype) {
+    const experience = this.entities.experience.get(entityId);
+    if (!position || !movement || !faction || !selectable || !health || !combat || !status || !archetype || !experience) {
       throw new Error(`Entity ${entityId} is missing a required M01 component.`);
     }
     return {
@@ -165,6 +168,8 @@ export class Simulation {
       attackIntervalTicks: combat.attackIntervalTicks, attackRange: combat.attackRange,
       nextAttackTick: combat.nextAttackTick, attackTargetEntityId: combat.targetEntityId,
       wet: status.wet, wetTicks: status.wetTicks, chilledTicks: status.chilledTicks, frozenTicks: status.frozenTicks,
+      experience: experience.xp,
+      neutralCampId: this.entities.neutralCampIds.get(entityId) ?? null,
       visibleToPlayer: faction.playerId === 0 || (
         this.visibility.isWorldVisible(0, position.x, position.z, this.navigation)
         && forestAllowsDetection(entityId, 0, this.entities, this.terrain, this.navigation)
