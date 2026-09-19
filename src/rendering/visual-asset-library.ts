@@ -499,9 +499,13 @@ export class VisualAssetLibrary {
       const previewMaterials = Array.from({ length: framesPerAction }, (_, frame) =>
         previewMaterialsByView[Math.floor(frame / framesPerDirection)]!,
       );
-      const actionMaterials = Object.fromEntries(
-        IMPOSTOR_ANIMATION_ACTIONS.map((action) => [action, previewMaterials]),
-      ) as Record<ImpostorAnimationAction, readonly pc.StandardMaterial[]>;
+      const actionMaterials: Record<ImpostorAnimationAction, readonly pc.StandardMaterial[]> = {
+        IDLE: previewMaterials,
+        MOVE: previewMaterials,
+        ATTACK: previewMaterials,
+        HIT: previewMaterials,
+        DEATH: previewMaterials,
+      };
 
       const hydrateActions = async (): Promise<void> => {
         for (const action of IMPOSTOR_ANIMATION_ACTIONS) {
