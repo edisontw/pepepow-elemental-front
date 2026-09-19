@@ -11,7 +11,8 @@ import {
   type NeutralEncounterSnapshot,
 } from './neutral-encounter-state';
 import {
-  CORE_UNIT_HEAL_PERMILLE_PER_TICK,
+  CORE_UNIT_HEAL_INTERVAL_TICKS,
+  CORE_UNIT_HEAL_PERMILLE_PER_PULSE,
   CORE_UNIT_HEAL_RADIUS,
   STRUCTURE_BODY_RADIUS,
   type RunMode,
@@ -487,7 +488,9 @@ export class M06Simulation extends M05Simulation {
         ));
         if (targetedByHostile) continue;
 
-        const amount = Math.max(1, Math.floor((health.max * CORE_UNIT_HEAL_PERMILLE_PER_TICK) / 1000));
+        const currentTick = this.snapshot().tick;
+        if (currentTick % CORE_UNIT_HEAL_INTERVAL_TICKS !== entityId % CORE_UNIT_HEAL_INTERVAL_TICKS) continue;
+        const amount = Math.max(1, Math.round((health.max * CORE_UNIT_HEAL_PERMILLE_PER_PULSE) / 1000));
         health.current = Math.min(health.max, health.current + amount);
       }
     }
