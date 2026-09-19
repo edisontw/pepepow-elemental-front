@@ -268,29 +268,29 @@ Implemented foundation:
 
 - neutral faction uses player ID 2;
 - all 5 existing generated `NEUTRAL_CAMP` POIs activate without changing world generation;
-- each camp spawns two deterministic Ancient Sentinel guardians using the existing Golem art path;
+- each camp spawns three deterministic Ancient Sentinel guardians using the existing Golem art path;
 - guards participate in normal combat and are attackable by right-click;
 - 12 m camp leash prevents cross-map pursuit;
 - camp capture remains locked until all guardians are defeated;
-- each cleared camp grants 120 XP shared deterministically among nearby local participants within 14 m;
+- each cleared camp grants 150 XP shared deterministically among nearby local participants within 14 m;
 - XP is stored per unit now; Level 1–5 conversion is deferred to P4-C;
 - camp state, unit XP, and camp membership are state-hashed and replay-relevant;
 - guarded / cleared camp state is shown in the POI capture UI.
 
-### P4-C — Unit XP / Level 1–5 — ACTIVE
+### P4-C — Unit XP / Level 1–5 — COMPLETE
 
 Implemented foundation:
 
 - all ordinary player/enemy combat units begin at Level 1;
-- cumulative thresholds: Lv2 60 XP, Lv3 150 XP, Lv4 280 XP, Lv5 450 XP;
+- cumulative thresholds: Lv2 50 XP, Lv3 120 XP, Lv4 220 XP, Lv5 350 XP;
 - normal combat-unit kills grant shared XP to nearby same-faction participants; the final hitter receives no exclusive reward;
 - combat-kill XP is threat-weighted from the defeated archetype population cost;
-- Neutral Sentinels remain camp-reward-only to avoid double dipping with the 120 XP clear reward;
+- Neutral Sentinels remain camp-reward-only to avoid double dipping with the 150 XP clear reward;
 - Max HP grows linearly by approximately 6% per level above Level 1;
 - Attack Damage grows linearly by approximately 4% per level above Level 1;
 - growth always derives from stored base stats, avoiding multiplicative runaway scaling;
 - level-up restores only the added Max-HP delta;
-- Level 5 caps XP at 450;
+- Level 5 caps XP at 350;
 - unit snapshots expose Level; XP/base progression data are state-hashed and replay-relevant;
 - selected-unit UI shows Level and XP progress; group selection summarizes counts by veteran level.
 
@@ -312,7 +312,7 @@ Implemented:
 Validated and locked:
 
 - **Core recovery:** fixed the integer-minimum bias that made low-HP units recover far faster than the intended 2% max HP/sec. Recovery now uses deterministic 0.5-second fixed-point pulses and preserves a long-run 2%/sec rate. A half-health unit takes about 25 seconds of safe recovery to return to full health.
-- **Neutral-camp pacing:** the 120-XP camp reward remains unchanged. Two participants receive 60 XP each and reach Lv2; three receive 40 XP each and remain Lv1; a full six-unit starting group receives only 20 XP each.
+- **Neutral-camp pacing:** the current post-closure tuning uses a 150-XP camp reward. Two participants receive 75 XP each and reach Lv2; three receive 50 XP each and reach Lv2; a full six-unit starting group receives only 25 XP each and remains Lv1.
 - **Snowball bound:** Level-5 stat growth remains approximately +24% Max HP / +16% Attack Damage from immutable base stats, not multiplicative per-level compounding.
 - **Veteran replacement cost:** replacement units still enter at Level 1 / 0 XP; veteran value therefore comes from survival rather than a permanent army-wide unlock.
 - **Boss/Finale:** a theoretical fully Lv5 starting squad remains above an 80-second boss TTK across current boss definitions, so veteran progression does not trivialize the Finale.
