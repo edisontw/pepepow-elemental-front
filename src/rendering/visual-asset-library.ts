@@ -537,7 +537,9 @@ export class VisualAssetLibrary {
       // Full breathing/weight-shift Idle is cosmetic. Keep the static preview
       // for the opening seconds and only hydrate it after the battlefield has
       // already become interactive.
-      window.setTimeout(() => { void hydrateAction('IDLE'); }, 12_000);
+      const idleHydrationDelayMs = 12_000
+        + [...config.slug].reduce((sum, character) => sum + character.charCodeAt(0), 0) % 8_000;
+      window.setTimeout(() => { void hydrateAction('IDLE'); }, idleHydrationDelayMs);
       return actionMaterials;
     }).catch((error: unknown) => {
       console.warn(`${config.label} animated impostor preview load failed; using fallback geometry.`, error);
