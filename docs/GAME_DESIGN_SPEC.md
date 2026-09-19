@@ -1395,3 +1395,79 @@ When a design question is ambiguous, prefer the option that increases:
 - strategic choice
 
 over the option that merely adds feature count.
+
+
+---
+
+# 56. Post-roadmap hero-lite army progression
+
+The post-roadmap direction adds **individual unit progression inside RTS army control**.
+
+The target is MOBA-like readability and growth, not MOBA-scale ability micro for every soldier.
+
+Baseline:
+- standard combat units begin at Level 1;
+- target progression range is Level 1–5;
+- surviving units gain XP from neutral encounters, enemy combat, assists, bosses, and selected objectives;
+- XP should favor nearby participation rather than last-hit micro;
+- veteran units receive modest deterministic stat growth and clearer UI identity;
+- the player should have a reason to retreat and preserve experienced units.
+
+Detailed implementation authority: `docs/POST_ROADMAP_PHASE4_HERO_LITE_PROGRESSION_PLAN.md`.
+
+---
+
+# 57. Core attack and recovery
+
+Elemental Cores are no longer proximity-damage objectives.
+
+Core damage requires:
+1. explicit objective attack intent;
+2. legal attack range;
+3. the normal authoritative attack cadence.
+
+A normal MOVE near an enemy Core must not damage it.
+
+Friendly active Cores provide a recovery zone:
+- radius: 8 m baseline;
+- recovery: 2% max HP/sec baseline;
+- no healing while the unit is actively attacking;
+- no healing while a hostile unit is actively targeting that unit;
+- critical/destroyed Core disables normal unit recovery;
+- Core self-repair remains a separate Engineer/critical-state mechanic.
+
+---
+
+# 58. Neutral encounters and veteran growth
+
+Neutral Camps already belong in the world-content envelope and become a primary Phase 4 progression loop.
+
+Neutral monsters should:
+- use deterministic generated-world placement;
+- create optional exploration risk/reward;
+- grant XP and modest strategic rewards;
+- support biome/element identity;
+- remain secondary to territory warfare rather than replacing it.
+
+The intended loop is:
+
+```
+explore → fight neutral camp → gain XP → recover/regroup → contest territory → preserve veterans
+```
+
+---
+
+# 59. Phase 4 presentation target
+
+The washed-out bright presentation is not the visual target.
+
+Prefer:
+- darker terrain midtones;
+- stronger material separation;
+- higher silhouette contrast;
+- restrained emissive/glow;
+- localized structure/element lighting;
+- more distinct camp, ruin, settlement, and biome mood;
+- modern RTS/MOBA readability without copying another game's characters, maps, or assets.
+
+Avoid broad white emissive surfaces, uniformly bright green ground, and low-contrast early-3D-RTS presentation.
