@@ -1,6 +1,6 @@
 # PEPEPOW Elemental Front — PROJECT_CONTEXT
 
-**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Phase 4 Hero-Lite Progression ACTIVE (P4-C Level 1–5 Veteran Progression) + Visual Production ongoing  
+**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Phase 4 Hero-Lite Progression ACTIVE (P4-D Veteran Presentation COMPLETE; P4-E next) + Visual Production ongoing  
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
@@ -176,7 +176,7 @@ During the current visual-production pass, keep these gameplay items deferred un
 
 ## 6. Current formal work point — Phase 4 + Visual Production
 
-The active work point is **Phase 4 hero-lite gameplay redesign alongside the ongoing high-quality presentation production pass**. Phase 4 P4-A completed objective combat and Core recovery. P4-B completed deterministic neutral camps and the XP foundation. P4-C is active with individual Level 1–5 veteran progression, deterministic shared combat XP, HP/damage growth, and selected-unit veteran UI. The visual pass continues in parallel with a darker, higher-contrast battlefield target.
+The active work point is **Phase 4 hero-lite gameplay redesign alongside the ongoing high-quality presentation production pass**. Phase 4 P4-A completed objective combat and Core recovery. P4-B completed deterministic neutral camps and the XP foundation. P4-C completed Level 1–5 veteran progression. P4-D veteran presentation is now implemented; P4-E balance/run integration is next. The visual pass continues in parallel with a darker, higher-contrast battlefield target.
 
 Primary scope:
 
@@ -329,7 +329,7 @@ P4-B completed rules:
 - P4-B shipped under `ef-standard-v5` / `ef-replay-v5`;
 - world generation remains `m02-standard-v1`.
 
-P4-C active rules:
+P4-C completed rules:
 
 - every normal player/enemy combat unit starts at Level 1 and can progress to Level 5;
 - cumulative XP thresholds are 60 / 150 / 280 / 450 XP for Levels 2 / 3 / 4 / 5;
@@ -343,7 +343,17 @@ P4-C active rules:
 - gameplay/replay identity is `ef-standard-v6` / `ef-replay-v6`;
 - world generation remains `m02-standard-v1`.
 
-Next Phase 4 slices:
+P4-D completed presentation:
 
-1. P4-D veteran presentation: level badge/pips, subtle veteran accent, level-up VFX, camp/monster readability;
-2. P4-E balance/run integration: snowball risk, recovery interaction, camp pacing, boss/finale interaction, and replay validation.
+- Lv2–5 units show 1–4 compact veteran pips above the health bar;
+- Lv3+ non-neutral units gain a restrained brass ground accent rather than a large glowing aura;
+- level-up produces one short muted-gold burst and a brief pip pulse;
+- Neutral Sentinels use a distinct amber threat ring;
+- guarded Neutral Camps show a low-brightness amber guard seal/beacon;
+- Neutral Camp hover text reports remaining Sentinel count and changes to cleared/reward state after the encounter;
+- no new unit animation frames or replacement art are required;
+- P4-D is presentation-only, so gameplay/replay identity remains `ef-standard-v6` / `ef-replay-v6`.
+
+Next Phase 4 slice:
+
+1. P4-E balance/run integration: snowball risk, recovery interaction, camp pacing, boss/finale interaction, and replay validation.
