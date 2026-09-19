@@ -122,7 +122,7 @@ export function createSceneShell(
   app.setCanvasResolution(pc.RESOLUTION_AUTO);
   // Keep high-DPI backbuffers bounded so RTS scenes remain fill-rate friendly.
   app.graphicsDevice.maxPixelRatio = lowQuality ? 1 : Math.min(window.devicePixelRatio || 1, 1.5);
-  app.scene.ambientLight = new pc.Color(0.10, 0.12, 0.115);
+  app.scene.ambientLight = new pc.Color(0.13, 0.15, 0.145);
 
   const materials: Record<string, pc.Material> = {
     ground: createMaterial(new pc.Color(0.13, 0.23, 0.16)),
@@ -160,8 +160,8 @@ export function createSceneShell(
   const light = new pc.Entity('Sun');
   light.addComponent('light', {
     type: 'directional',
-    color: new pc.Color(0.74, 0.77, 0.70),
-    intensity: 0.88,
+    color: new pc.Color(0.82, 0.84, 0.77),
+    intensity: 1.00,
     castShadows: !lowQuality,
   });
   light.setEulerAngles(48, 28, 0);
@@ -285,15 +285,15 @@ export function createSceneShell(
         const phase = simulation.run.snapshot().phase;
         const finale = phase === 'FINALE';
         app.scene.ambientLight = finale
-          ? new pc.Color(0.075, 0.085, 0.11)
+          ? new pc.Color(0.10, 0.11, 0.14)
           : phase === 'ESCALATION'
-            ? new pc.Color(0.09, 0.105, 0.11)
-            : new pc.Color(0.10, 0.12, 0.115);
+            ? new pc.Color(0.115, 0.13, 0.14)
+            : new pc.Color(0.13, 0.15, 0.145);
         if (light.light) {
-          light.light.intensity = finale ? 0.76 : phase === 'ESCALATION' ? 0.82 : 0.88;
+          light.light.intensity = finale ? 0.86 : phase === 'ESCALATION' ? 0.94 : 1.00;
           light.light.color = finale
-            ? new pc.Color(0.62, 0.68, 0.8)
-            : new pc.Color(0.74, 0.77, 0.70);
+            ? new pc.Color(0.68, 0.74, 0.86)
+            : new pc.Color(0.82, 0.84, 0.77);
         }
       }
       battleVfx.sync(frame.snapshot.tick, frame.interpolationAlpha);
