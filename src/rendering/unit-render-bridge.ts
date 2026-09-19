@@ -126,6 +126,8 @@ export class UnitRenderBridge {
   private readonly frozenMaterial = createMaterial(new pc.Color(0.72, 0.94, 1), new pc.Color(0.14, 0.42, 0.55), 0.82);
   private readonly playerAccentMaterial = createMaterial(new pc.Color(0.52, 0.96, 0.9), new pc.Color(0.08, 0.58, 0.48));
   private readonly enemyAccentMaterial = createMaterial(new pc.Color(1, 0.57, 0.22), new pc.Color(0.7, 0.14, 0.03));
+  private readonly neutralBodyMaterial = createMaterial(new pc.Color(0.32, 0.29, 0.24), new pc.Color(0.04, 0.03, 0.02));
+  private readonly neutralAccentMaterial = createMaterial(new pc.Color(0.74, 0.5, 0.2), new pc.Color(0.18, 0.09, 0.02));
   private readonly healthBackMaterial = createMaterial(new pc.Color(0.045, 0.055, 0.055));
   private readonly hitMaterial = createMaterial(new pc.Color(1, 0.86, 0.36), new pc.Color(1, 0.32, 0.06), 0.72);
   private readonly deathMaterial = createMaterial(new pc.Color(0.38, 0.4, 0.42), new pc.Color(0.12, 0.12, 0.12), 0.58);
@@ -418,6 +420,8 @@ export class UnitRenderBridge {
     this.frozenMaterial.destroy();
     this.playerAccentMaterial.destroy();
     this.enemyAccentMaterial.destroy();
+    this.neutralBodyMaterial.destroy();
+    this.neutralAccentMaterial.destroy();
     this.healthBackMaterial.destroy();
     this.hitMaterial.destroy();
     this.deathMaterial.destroy();
@@ -430,10 +434,16 @@ export class UnitRenderBridge {
     const profile = unitVisualProfile(unit.archetype);
     const teamMaterial = unit.playerId === 0
       ? this.unitMaterials.player
-      : (unit.archetype === 'RANGER' || unit.archetype === 'SIEGE_CONSTRUCT')
-        ? this.unitMaterials.enemyRanged
-        : this.unitMaterials.enemyMelee;
-    const accentMaterial = unit.playerId === 0 ? this.playerAccentMaterial : this.enemyAccentMaterial;
+      : unit.playerId === 2
+        ? this.neutralBodyMaterial
+        : (unit.archetype === 'RANGER' || unit.archetype === 'SIEGE_CONSTRUCT')
+          ? this.unitMaterials.enemyRanged
+          : this.unitMaterials.enemyMelee;
+    const accentMaterial = unit.playerId === 0
+      ? this.playerAccentMaterial
+      : unit.playerId === 2
+        ? this.neutralAccentMaterial
+        : this.enemyAccentMaterial;
 
     const primitives: pc.Entity[] = [];
     for (const [index, part] of profile.parts.entries()) {
