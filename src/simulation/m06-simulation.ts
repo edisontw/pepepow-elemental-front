@@ -238,7 +238,7 @@ export class M06Simulation extends M05Simulation {
         this.roguelite.snapshot(),
         this.objectiveAttackSnapshot(),
       );
-      this.applyCoreHealing();
+      this.applyCoreHealing(frame.tick);
       if (intent) this.enqueueBossAbility(frame.tick + 1, intent);
     } finally {
       this.internalCommand = false;
@@ -464,7 +464,7 @@ export class M06Simulation extends M05Simulation {
     });
   }
 
-  private applyCoreHealing(): void {
+  private applyCoreHealing(currentTick: number): void {
     const run = this.run.snapshot();
     for (const core of [run.playerCore, run.enemyCore]) {
       if (core.state !== 'ACTIVE') continue;
@@ -488,7 +488,6 @@ export class M06Simulation extends M05Simulation {
         ));
         if (targetedByHostile) continue;
 
-        const currentTick = this.snapshot().tick;
         const pulsePhase = entityId % CORE_UNIT_HEAL_INTERVAL_TICKS;
         if (currentTick % CORE_UNIT_HEAL_INTERVAL_TICKS !== pulsePhase) continue;
         const pulseOrdinal = Math.floor((currentTick - pulsePhase) / CORE_UNIT_HEAL_INTERVAL_TICKS);
