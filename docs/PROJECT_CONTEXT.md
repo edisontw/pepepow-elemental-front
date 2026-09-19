@@ -273,6 +273,21 @@ Current decision:
 - fix scale drift with per-view normalization where necessary rather than relabeling directions;
 - see `docs/UNIT_ANIMATION_IMPLEMENTATION_NOTES.md` for the exact active resume contract.
 
+### Visual / UX optimization — 2026-09-19
+
+Current presentation-only optimization baseline:
+
+- animated unit impostors now request only **one high-priority preview frame per unique unit config** for first paint instead of eight directional previews;
+- the remaining seven direction previews hydrate after the scene becomes interactive;
+- Move / Attack / Hit / Death frame sets hydrate sequentially at low network priority; full Idle remains deferred;
+- forest / prop environment dressing is delayed about 0.5 seconds so terrain, units, UI, and camera controls become interactive first;
+- unit sprite emissive level, environment-atlas emissive level, terrain albedo, ambient light, and sun intensity were reduced to move the battlefield away from the previous washed-out / overly white presentation;
+- camera edge-pan margin increased to 48 px with faster panning;
+- edge pan now uses the unobstructed battlefield boundary beside the left/right HUD rather than the hidden browser-canvas edge behind panels;
+- middle-drag and Space/Alt + left-drag remain available; `Home` recenters on the starting base;
+- these changes are presentation/UX-only and do not change `ef-standard-v7`, `ef-replay-v7`, or `m02-standard-v1`;
+- automated build/Pages validation is required, but final brightness/load-time/camera feel still requires manual browser acceptance.
+
 ### Token-efficient validation policy
 
 For presentation-only batches:
