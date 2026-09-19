@@ -30,6 +30,10 @@ interface UnitPresentation {
   selection: pc.Entity;
   healthBack: pc.Entity;
   healthBar: pc.Entity;
+  veteranPips: pc.Entity[];
+  veteranRing: pc.Entity;
+  neutralThreatRing: pc.Entity;
+  levelUpUntilTick: number;
   wetMarker: pc.Entity;
   wetBeacon: pc.Entity;
   coldMarker: pc.Entity;
@@ -128,6 +132,9 @@ export class UnitRenderBridge {
   private readonly enemyAccentMaterial = createMaterial(new pc.Color(1, 0.57, 0.22), new pc.Color(0.7, 0.14, 0.03));
   private readonly neutralBodyMaterial = createMaterial(new pc.Color(0.32, 0.29, 0.24), new pc.Color(0.04, 0.03, 0.02));
   private readonly neutralAccentMaterial = createMaterial(new pc.Color(0.74, 0.5, 0.2), new pc.Color(0.18, 0.09, 0.02));
+  private readonly veteranPipMaterial = createMaterial(new pc.Color(0.82, 0.64, 0.26));
+  private readonly veteranRingMaterial = createMaterial(new pc.Color(0.64, 0.48, 0.2), undefined, 0.42);
+  private readonly neutralThreatMaterial = createMaterial(new pc.Color(0.62, 0.38, 0.14), undefined, 0.5);
   private readonly healthBackMaterial = createMaterial(new pc.Color(0.045, 0.055, 0.055));
   private readonly hitMaterial = createMaterial(new pc.Color(1, 0.86, 0.36), new pc.Color(1, 0.32, 0.06), 0.72);
   private readonly deathMaterial = createMaterial(new pc.Color(0.38, 0.4, 0.42), new pc.Color(0.12, 0.12, 0.12), 0.58);
@@ -191,6 +198,11 @@ export class UnitRenderBridge {
       presentation.selection.enabled = presented && presentation.selection.enabled;
       presentation.healthBack.enabled = presented;
       presentation.healthBar.enabled = presented;
+      presentation.veteranRing.enabled = presented && unit.playerId !== 2 && unit.level >= 3;
+      presentation.neutralThreatRing.enabled = presented && unit.playerId === 2 && unit.neutralCampId !== null;
+      for (let index = 0; index < presentation.veteranPips.length; index += 1) {
+        presentation.veteranPips[index]!.enabled = presented && unit.playerId !== 2 && index < unit.level - 1;
+      }
       presentation.wetMarker.enabled = presented && unit.wet;
       presentation.wetBeacon.enabled = presented && unit.wet;
       presentation.coldMarker.enabled = presented && (unit.chilledTicks > 0 || unit.frozenTicks > 0);
@@ -336,6 +348,27 @@ export class UnitRenderBridge {
       presentation.healthBack.setLocalScale(healthWidth, 0.055, 0.14);
       presentation.healthBar.setPosition(x - (1 - healthRatio) * healthWidth * 0.5, healthY + 0.044, z);
       presentation.healthBar.setLocalScale(healthWidth * healthRatio, 0.025, 0.1);
+
+      const pipCount = Math.max(0, unit.level - 1);
+      const pipSpacing = 0.16;
+      const pipPulseActive = current.tick + alpha <= presentation.levelUpUntilTick;
+      const pipPulse = pipPulseActive ? 1 + Math.sin((current.tick + alpha) * 1.9) * 0.18 : 1;
+      for (let index = 0; index < presentation.veteranPips.length; index += 1) {
+        const pip = presentation.veteranPips[index]!;
+        if (!pip.enabled) continue;
+        const offset = (index - (pipCount - 1) * 0.5) * pipSpacing;
+        pip.setPosition(x + offset, healthY + 0.18, z);
+        pip.setLocalScale(0.105 * pipPulse, 0.035 * pipPulse, 0.075 * pipPulse);
+      }
+
+      if (presentation.veteranRing.enabled) {
+        presentation.veteranRing.setPosition(x, 0.065, z);
+        presentation.veteranRing.setLocalScale(profile.selectionScale * 0.78, 1, profile.selectionScale * 0.78);
+      }
+      if (presentation.neutralThreatRing.enabled) {
+        presentation.neutralThreatRing.setPosition(x, 0.068, z);
+        presentation.neutralThreatRing.setLocalScale(profile.selectionScale * 1.08, 1, profile.selectionScale * 1.08);
+      }
     }
 
     this.updateProjectiles(current.tick, alpha);
@@ -422,6 +455,9 @@ export class UnitRenderBridge {
     this.enemyAccentMaterial.destroy();
     this.neutralBodyMaterial.destroy();
     this.neutralAccentMaterial.destroy();
+    this.veteranPipMaterial.destroy();
+    this.veteranRingMaterial.destroy();
+    this.neutralThreatMaterial.destroy();
     this.healthBackMaterial.destroy();
     this.hitMaterial.destroy();
     this.deathMaterial.destroy();
@@ -472,6 +508,25 @@ export class UnitRenderBridge {
     healthBar.addComponent('render', { type: 'box', material: this.healthMaterial });
     this.app.root.addChild(healthBar);
 
+    const veteranPips: pc.Entity[] = [];
+    for (let index = 0; index < 4; index += 1) {
+      const pip = new pc.Entity(`Veteran Pip ${unit.id} ${index + 1}`);
+      pip.addComponent('render', { type: 'box', material: this.veteranPipMaterial, castShadows: false, receiveShadows: false });
+      pip.enabled = false;
+      this.app.root.addChild(pip);
+      veteranPips.push(pip);
+    }
+
+    const veteranRing = new pc.Entity(`Veteran Ring ${unit.id}`);
+    veteranRing.addComponent('render', { meshInstances: [new pc.MeshInstance(this.ring, this.veteranRingMaterial)], castShadows: false });
+    veteranRing.enabled = false;
+    this.app.root.addChild(veteranRing);
+
+    const neutralThreatRing = new pc.Entity(`Neutral Threat Ring ${unit.id}`);
+    neutralThreatRing.addComponent('render', { meshInstances: [new pc.MeshInstance(this.ring, this.neutralThreatMaterial)], castShadows: false });
+    neutralThreatRing.enabled = false;
+    this.app.root.addChild(neutralThreatRing);
+
     const wetMarker = new pc.Entity(`Wet Halo ${unit.id}`);
     wetMarker.addComponent('render', { meshInstances: [new pc.MeshInstance(this.ring, this.wetMaterial)], castShadows: false });
     wetMarker.setLocalScale(profile.selectionScale * 1.1, 1, profile.selectionScale * 1.1);
@@ -517,6 +572,10 @@ export class UnitRenderBridge {
       selection,
       healthBack,
       healthBar,
+      veteranPips,
+      veteranRing,
+      neutralThreatRing,
+      levelUpUntilTick: -1,
       wetMarker,
       wetBeacon,
       coldMarker,
@@ -542,6 +601,19 @@ export class UnitRenderBridge {
       const prior = previousById.get(unit.id);
       const presentation = this.units.get(unit.id) ?? this.createPresentation(unit);
       if (!prior) continue;
+      if (unit.visibleToPlayer && unit.alive && unit.level > prior.level) {
+        presentation.levelUpUntilTick = current.tick + 7;
+        const levelForce = 0.46 + Math.min(0.18, (unit.level - 2) * 0.05);
+        this.effects.burst(
+          metres(unit.x),
+          Math.max(0.65, unitVisualProfile(unit.archetype).height * 0.58),
+          metres(unit.z),
+          [0.86, 0.66, 0.25],
+          current.tick,
+          8 + unit.level,
+          levelForce,
+        );
+      }
       if (unit.visibleToPlayer && cast?.status === 'CAST' && cast.casterEntityId === unit.id && cast.tick === current.tick) {
         const alignment = this.alignments.get(unit.id) ?? 'WATER';
         presentation.actionTick = current.tick;
@@ -726,6 +798,9 @@ export class UnitRenderBridge {
     presentation.selection.destroy();
     presentation.healthBack.destroy();
     presentation.healthBar.destroy();
+    for (const pip of presentation.veteranPips) pip.destroy();
+    presentation.veteranRing.destroy();
+    presentation.neutralThreatRing.destroy();
     presentation.wetMarker.destroy();
     presentation.wetBeacon.destroy();
     presentation.coldMarker.destroy();
