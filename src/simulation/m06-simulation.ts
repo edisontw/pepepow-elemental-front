@@ -489,8 +489,17 @@ export class M06Simulation extends M05Simulation {
         if (targetedByHostile) continue;
 
         const currentTick = this.snapshot().tick;
-        if (currentTick % CORE_UNIT_HEAL_INTERVAL_TICKS !== entityId % CORE_UNIT_HEAL_INTERVAL_TICKS) continue;
-        const amount = Math.max(1, Math.round((health.max * CORE_UNIT_HEAL_PERMILLE_PER_PULSE) / 1000));
+        const pulsePhase = entityId % CORE_UNIT_HEAL_INTERVAL_TICKS;
+        if (currentTick % CORE_UNIT_HEAL_INTERVAL_TICKS !== pulsePhase) continue;
+        const pulseOrdinal = Math.floor((currentTick - pulsePhase) / CORE_UNIT_HEAL_INTERVAL_TICKS);
+        const priorCumulative = Math.floor(
+          (pulseOrdinal * health.max * CORE_UNIT_HEAL_PERMILLE_PER_PULSE) / 1000,
+        );
+        const nextCumulative = Math.floor(
+          ((pulseOrdinal + 1) * health.max * CORE_UNIT_HEAL_PERMILLE_PER_PULSE) / 1000,
+        );
+        const amount = nextCumulative - priorCumulative;
+        if (amount <= 0) continue;
         health.current = Math.min(health.max, health.current + amount);
       }
     }
