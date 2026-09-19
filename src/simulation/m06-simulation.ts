@@ -7,6 +7,11 @@ import type { M04Command } from './m04-commands';
 import type { EnemyDifficulty, EnemyFaction } from './m05-content';
 import { M05Simulation, type M05SimulationOptions, type M05SimulationSnapshot } from './m05-simulation';
 import {
+  NEUTRAL_PLAYER_ID,
+  NeutralEncounterState,
+  type NeutralEncounterSnapshot,
+} from './neutral-encounter-state';
+import {
   CORE_UNIT_HEAL_PERMILLE_PER_TICK,
   CORE_UNIT_HEAL_RADIUS,
   STRUCTURE_BODY_RADIUS,
@@ -68,6 +73,7 @@ export interface M06SimulationOptions extends M05SimulationOptions {
 
 export interface M06SimulationSnapshot extends M05SimulationSnapshot {
   run: RunSnapshot;
+  neutralEncounters: NeutralEncounterSnapshot;
   replayVerification: ReplayVerification;
   recordedCommandCount: number;
 }
@@ -143,6 +149,7 @@ export function isM06ReplayPacket(value: unknown): value is M06ReplayPacket {
 
 export class M06Simulation extends M05Simulation {
   readonly run: RunState;
+  readonly neutralEncounters: NeutralEncounterState;
   private readonly recordedCommands: M06ReplayEntry[] = [];
   private pendingReplayEntries: M06ReplayEntry[] = [];
   private readonly pendingRunCommands: M06RunCommand[] = [];
@@ -157,6 +164,8 @@ export class M06Simulation extends M05Simulation {
 
   constructor(generatedWorld: GeneratedWorld, options: M06SimulationOptions = {}) {
     super(generatedWorld, options);
+    this.visibility.ensurePlayer(NEUTRAL_PLAYER_ID);
+    this.neutralEncounters = new NeutralEncounterState(generatedWorld, this.entities, this.navigation);
     this.run = new RunState(generatedWorld, options.mode ?? 'DESTROY', options.pace ?? 'STANDARD');
   }
 
@@ -196,6 +205,7 @@ export class M06Simulation extends M05Simulation {
 
   override enqueueStrategicCommand(command: M03Command): void {
     if (this.playback && !this.internalCommand) return;
+    if (!this.canEnqueueStrategicCommand(command)) return;
     super.enqueueStrategicCommand(command);
     if (!this.internalCommand) {
       this.recordedCommands.push({ channel: 'STRATEGIC', command: cloneStrategicCommand(command) });
@@ -218,7 +228,9 @@ export class M06Simulation extends M05Simulation {
     try {
       this.processRunCommands(nextTick);
       this.prepareObjectiveAttackers(nextTick);
+      this.neutralEncounters.prepareLeashes(nextTick, (command) => super.enqueueCommand(command));
       const frame = super.step();
+      this.neutralEncounters.advance(frame.tick);
       this.syncEnemyCoreObjectiveIntent(frame.tick + 1);
       const intent = this.run.advance(
         frame.tick,
@@ -240,10 +252,12 @@ export class M06Simulation extends M05Simulation {
   override snapshot(): M06SimulationSnapshot {
     const base = super.snapshot();
     const run = this.run.snapshot();
+    const neutralEncounters = this.neutralEncounters.snapshot();
     return {
       ...base,
-      stateHash: `${base.stateHash}:${run.stateHash}`,
+      stateHash: `${base.stateHash}:${run.stateHash}:neutral:${neutralEncounters.stateHash}`,
       run,
+      neutralEncounters,
       replayVerification: this.replayVerification,
       recordedCommandCount: this.recordedCommands.length,
     };
@@ -314,7 +328,8 @@ export class M06Simulation extends M05Simulation {
         this.clearObjectiveOrdersForCommand(command);
         super.enqueueCommand(command);
       } else if (entry.channel === 'STRATEGIC') {
-        super.enqueueStrategicCommand(cloneStrategicCommand(entry.command));
+        const command = cloneStrategicCommand(entry.command);
+        if (this.canEnqueueStrategicCommand(command)) super.enqueueStrategicCommand(command);
       } else if (entry.channel === 'ROGUELITE') {
         super.enqueueRogueliteCommand(cloneRogueliteCommand(entry.command));
       } else {
@@ -323,6 +338,11 @@ export class M06Simulation extends M05Simulation {
       }
       this.replayEntryIndex += 1;
     }
+  }
+
+  private canEnqueueStrategicCommand(command: M03Command): boolean {
+    if (command.type !== 'CAPTURE' || command.targetPoiId === undefined) return true;
+    return !this.neutralEncounters.isCaptureBlocked(command.targetPoiId);
   }
 
   private processRunCommands(targetTick: number): void {
