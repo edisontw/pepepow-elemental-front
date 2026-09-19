@@ -1,9 +1,9 @@
 # PEPEPOW Elemental Front — Post-Roadmap Phase 4 Hero-Lite Progression Plan
 
-**Status:** ACTIVE — P4-A/P4-B/P4-C complete; P4-D Veteran Presentation complete; P4-E next  
+**Status:** CLOSED — P4-A through P4-E complete  
 **World generation:** `m02-standard-v1` remains unchanged  
-**Gameplay identity:** `ef-standard-v6`  
-**Replay identity:** `ef-replay-v6`
+**Gameplay identity:** `ef-standard-v7`  
+**Replay identity:** `ef-replay-v7`
 
 ## 1. Direction
 
@@ -31,7 +31,7 @@ Implementation order:
 4. **Individual unit XP and levels**
 5. **Veteran readability / UI**
 6. **Visual mood and battlefield presentation**
-7. **Balance and replay migration validation**
+7. **Balance and replay migration validation** — complete
 
 Do not implement all progression systems in one unvalidated step.
 
@@ -307,18 +307,19 @@ Implemented:
 - this slice changes presentation only and does not alter simulation, XP thresholds, stats, replay, or world generation;
 - gameplay/replay identity therefore remains `ef-standard-v6` / `ef-replay-v6`.
 
-### P4-E — Balance / Run Integration
+### P4-E — Balance / Run Integration — COMPLETE
 
-Validate:
+Validated and locked:
 
-- snowball risk;
-- retreat usefulness;
-- Core-heal abuse;
-- neutral-camp reward pacing;
-- veteran replacement cost;
-- run duration;
-- boss/finale interaction;
-- replay determinism.
+- **Core recovery:** fixed the integer-minimum bias that made low-HP units recover far faster than the intended 2% max HP/sec. Recovery now uses deterministic 0.5-second fixed-point pulses and preserves a long-run 2%/sec rate. A half-health unit takes about 25 seconds of safe recovery to return to full health.
+- **Neutral-camp pacing:** the 120-XP camp reward remains unchanged. Two participants receive 60 XP each and reach Lv2; three receive 40 XP each and remain Lv1; a full six-unit starting group receives only 20 XP each.
+- **Snowball bound:** Level-5 stat growth remains approximately +24% Max HP / +16% Attack Damage from immutable base stats, not multiplicative per-level compounding.
+- **Veteran replacement cost:** replacement units still enter at Level 1 / 0 XP; veteran value therefore comes from survival rather than a permanent army-wide unlock.
+- **Boss/Finale:** a theoretical fully Lv5 starting squad remains above an 80-second boss TTK across current boss definitions, so veteran progression does not trivialize the Finale.
+- **Run duration:** standard phase/finale timing remains unchanged.
+- **Replay determinism:** P4-E balance semantics advance to `ef-standard-v7` / `ef-replay-v7`; world generation remains `m02-standard-v1`.
+- **Automated guardrails:** 74 test files / 296 tests PASS, including camp reward split, exact recovery envelope, veteran cap, boss TTK guardrail, replay, and full-run tests.
+- **Build/deploy:** strict TypeScript and production build PASS; GitHub Pages build PASS.
 
 ## 13. Acceptance principles
 
@@ -332,3 +333,8 @@ Phase 4 is successful when:
 6. progression does not overwhelm RTS army control;
 7. the battlefield no longer reads as washed-out or visually flat;
 8. deterministic replay remains reproducible.
+
+
+## 14. Closure
+
+Phase 4 hero-lite gameplay is closed under `ef-standard-v7` / `ef-replay-v7`. Future tuning should require a concrete playtest regression or an explicit new design decision rather than reopening P4-A–P4-E by default. Visual mood/brightness acceptance remains part of the separate Visual Production pass.
