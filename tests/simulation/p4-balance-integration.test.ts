@@ -28,19 +28,20 @@ function createVanguards(count: number): { entities: EntityStore; ids: number[] 
 }
 
 describe('Phase 4 balance / run integration', () => {
-  it('keeps a single camp meaningful for a small squad without leveling a full starting army', () => {
+  it('lets a small raiding squad level from one camp without leveling a full starting army', () => {
     const pair = createVanguards(2);
     grantSharedExperience(pair.entities, pair.ids, NEUTRAL_CAMP_XP_REWARD);
-    expect(pair.ids.map((id) => pair.entities.experience.get(id)?.xp)).toEqual([60, 60]);
+    expect(pair.ids.map((id) => pair.entities.experience.get(id)?.xp)).toEqual([75, 75]);
     expect(pair.ids.map((id) => unitLevelForXp(pair.entities.experience.get(id)?.xp ?? 0))).toEqual([2, 2]);
 
     const trio = createVanguards(3);
     grantSharedExperience(trio.entities, trio.ids, NEUTRAL_CAMP_XP_REWARD);
-    expect(trio.ids.map((id) => trio.entities.experience.get(id)?.xp)).toEqual([40, 40, 40]);
-    expect(trio.ids.map((id) => unitLevelForXp(trio.entities.experience.get(id)?.xp ?? 0))).toEqual([1, 1, 1]);
+    expect(trio.ids.map((id) => trio.entities.experience.get(id)?.xp)).toEqual([50, 50, 50]);
+    expect(trio.ids.map((id) => unitLevelForXp(trio.entities.experience.get(id)?.xp ?? 0))).toEqual([2, 2, 2]);
 
     const fullArmy = createVanguards(6);
     grantSharedExperience(fullArmy.entities, fullArmy.ids, NEUTRAL_CAMP_XP_REWARD);
+    expect(fullArmy.ids.map((id) => fullArmy.entities.experience.get(id)?.xp)).toEqual([25, 25, 25, 25, 25, 25]);
     expect(fullArmy.ids.every((id) => unitLevelForXp(fullArmy.entities.experience.get(id)?.xp ?? 0) === 1)).toBe(true);
   });
 
