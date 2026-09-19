@@ -20,7 +20,7 @@ function placePlayerArmyAtEnemyCore(simulation: M06Simulation, damage: number): 
 }
 
 describe('M08 gameplay correction gate', () => {
-  it('allows a Destroy rush to damage and destroy the enemy Core before the timed Finale', () => {
+  it('requires an explicit objective attack before a Destroy rush can damage the enemy Core', () => {
     const simulation = new M06Simulation(generateWorld(1_000_080), {
       mode: 'DESTROY',
       pace: 'STANDARD',
@@ -28,6 +28,16 @@ describe('M08 gameplay correction gate', () => {
     });
     expect(simulation.run.snapshot().finaleUnlocked).toBe(false);
     placePlayerArmyAtEnemyCore(simulation, 10_000);
+
+    const proximityOnly = simulation.step();
+    expect(proximityOnly.run.finaleUnlocked).toBe(false);
+    expect(proximityOnly.run.outcome).toBe('IN_PROGRESS');
+    expect(proximityOnly.run.enemyCore.currentHealth).toBe(proximityOnly.run.enemyCore.maxHealth);
+
+    const playerIds = proximityOnly.entities
+      .filter((entity) => entity.playerId === 0 && entity.alive)
+      .map((entity) => entity.id);
+    simulation.enqueueObjectiveAttack(playerIds, 'ENEMY_CORE');
 
     const final = simulation.step();
     expect(final.run.finaleUnlocked).toBe(false);
