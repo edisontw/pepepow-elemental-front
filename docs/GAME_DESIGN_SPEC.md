@@ -1408,8 +1408,9 @@ The target is MOBA-like readability and growth, not MOBA-scale ability micro for
 Baseline:
 - standard combat units begin at Level 1;
 - target progression range is Level 1–5;
+- current cumulative XP thresholds are **50 / 120 / 220 / 350 XP** for Levels 2 / 3 / 4 / 5;
 - surviving units gain XP from neutral encounters, enemy combat, assists, bosses, and selected objectives;
-- XP should favor nearby participation rather than last-hit micro;
+- XP favors nearby participation rather than last-hit micro;
 - veteran units receive modest deterministic stat growth and clearer UI identity;
 - the player should have a reason to retreat and preserve experienced units.
 
@@ -1448,6 +1449,13 @@ Neutral monsters should:
 - grant XP and modest strategic rewards;
 - support biome/element identity;
 - remain secondary to territory warfare rather than replacing it.
+
+Current standard Neutral Camp tuning:
+- 5 generated camps on the current standard battlefield;
+- **3 Ancient Sentinels per camp**;
+- **150 XP** deterministic camp-clear pool shared among nearby participants;
+- Sentinels remain camp-reward-only and do not add a second per-kill XP reward;
+- one camp is intended to push a focused 2–3 unit raiding group to Level 2, while a full six-unit group remains below Level 2 from one clear.
 
 The intended loop is:
 
