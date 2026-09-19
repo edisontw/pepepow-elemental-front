@@ -3,6 +3,7 @@ import type { RtsCamera } from './rts-camera';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
 import { VisibilityLevel } from '../simulation/visibility-state';
 import type { StrategicSnapshot } from '../simulation/strategic-state';
+import type { NeutralEncounterSnapshot } from '../simulation/neutral-encounter-state';
 import type { GeneratedWorld, PointOfInterest } from '../world/world-definition';
 import { worldCellToSimulationPosition } from '../world/world-arena';
 import { poiOwnershipState, poiVisualProfile, type PoiOwnershipState } from './poi-visual-profile';
@@ -13,6 +14,7 @@ interface PoiPresentation {
   ownershipBase: pc.Entity;
   beacon: pc.Entity;
   pickAnchor: pc.Entity;
+  encounterMarkers: pc.Entity[];
   ownership: PoiOwnershipState;
 }
 
@@ -106,6 +108,13 @@ export class PoiRenderBridge {
     0.22,
     0.14,
   );
+  private readonly guardedCampMaterial = createMaterial(
+    new pc.Color(0.62, 0.36, 0.13),
+    new pc.Color(0.15, 0.055, 0.008),
+    0.82,
+    0.38,
+    0.14,
+  );
   private readonly villageMaterial = createMaterial(
     new pc.Color(0.55, 0.48, 0.34),
     new pc.Color(0.02, 0.014, 0.006),
@@ -124,6 +133,7 @@ export class PoiRenderBridge {
   private readonly tooltip: HTMLDivElement;
   private hoveredPoiId: string | null = null;
   private latestPoiOwners: Readonly<Record<string, number>> = {};
+  private latestNeutralEncounters: NeutralEncounterSnapshot | null = null;
 
   constructor(
     private readonly app: pc.Application,
@@ -142,8 +152,13 @@ export class PoiRenderBridge {
     canvas.addEventListener('pointerdown', this.onPointerDown);
   }
 
-  sync(snapshot: StrategicSnapshot, visibility?: Uint8Array): void {
+  sync(
+    snapshot: StrategicSnapshot,
+    visibility?: Uint8Array,
+    neutralEncounters?: NeutralEncounterSnapshot,
+  ): void {
     this.latestPoiOwners = snapshot.poiOwners;
+    this.latestNeutralEncounters = neutralEncounters ?? null;
     for (const presentation of this.presentations.values()) {
       const cellIndex = presentation.poi.cell.z * this.world.width + presentation.poi.cell.x;
       const level = visibility?.[cellIndex] ?? VisibilityLevel.VISIBLE;
@@ -151,6 +166,11 @@ export class PoiRenderBridge {
       presentation.ownershipBase.enabled = level === VisibilityLevel.VISIBLE;
       presentation.beacon.enabled = level === VisibilityLevel.VISIBLE;
       presentation.pickAnchor.enabled = level === VisibilityLevel.VISIBLE;
+      const camp = presentation.poi.type === 'NEUTRAL_CAMP'
+        ? neutralEncounters?.camps.find((candidate) => candidate.id === presentation.poi.id)
+        : undefined;
+      const guarded = level === VisibilityLevel.VISIBLE && camp !== undefined && !camp.cleared;
+      for (const marker of presentation.encounterMarkers) marker.enabled = guarded;
       const ownership = poiOwnershipState(snapshot.poiOwners[presentation.poi.id]);
       if (ownership === presentation.ownership) continue;
       presentation.ownership = ownership;
@@ -190,6 +210,7 @@ export class PoiRenderBridge {
       this.clothMaterial,
       this.shrineMaterial,
       this.campMaterial,
+      this.guardedCampMaterial,
       this.villageMaterial,
       this.ruinMaterial,
     ]) material.destroy();
@@ -262,6 +283,27 @@ export class PoiRenderBridge {
       this.neutralOwnershipMaterial,
     );
 
+    const encounterMarkers: pc.Entity[] = [];
+    if (poi.type === 'NEUTRAL_CAMP') {
+      encounterMarkers.push(addPrimitive(
+        root,
+        'cylinder',
+        'Neutral Camp Guard Seal',
+        [0, 0.105, 0],
+        [0.56, 0.035, 0.56],
+        this.guardedCampMaterial,
+      ));
+      encounterMarkers.push(addPrimitive(
+        root,
+        'sphere',
+        'Neutral Camp Guard Beacon',
+        [0, 1.42, 0],
+        [0.13, 0.13, 0.13],
+        this.guardedCampMaterial,
+      ));
+      for (const marker of encounterMarkers) marker.enabled = false;
+    }
+
     const pickAnchor = new pc.Entity(`${profile.label} Pick Anchor`);
     pickAnchor.setLocalPosition(0, 1.05, 0);
     root.addChild(pickAnchor);
@@ -272,6 +314,7 @@ export class PoiRenderBridge {
       ownershipBase,
       beacon,
       pickAnchor,
+      encounterMarkers,
       ownership: 'NEUTRAL',
     });
   }
@@ -380,11 +423,18 @@ export class PoiRenderBridge {
     if (!presentation) return;
     const profile = poiVisualProfile(presentation.poi.type);
     const ownership = poiOwnershipState(this.latestPoiOwners[poiId]);
+    const camp = presentation.poi.type === 'NEUTRAL_CAMP'
+      ? this.latestNeutralEncounters?.camps.find((candidate) => candidate.id === poiId)
+      : undefined;
     const status = ownership === 'PLAYER'
       ? 'Controlled · Influence already claimed'
       : ownership === 'ENEMY'
         ? 'Enemy controlled'
-        : 'Unclaimed · Capture for +10 Influence';
+        : camp && !camp.cleared
+          ? `Guarded · ${camp.aliveGuardianCount} Sentinel${camp.aliveGuardianCount === 1 ? '' : 's'} · Clear before capture`
+          : camp?.cleared
+            ? `Cleared · ${camp.rewardXp} XP distributed · Capture for +10 Influence`
+            : 'Unclaimed · Capture for +10 Influence';
     this.tooltip.textContent = `${profile.label} · Region ${presentation.poi.regionId + 1} · ${status} · Click to focus`;
   }
 
