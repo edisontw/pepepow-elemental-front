@@ -3,6 +3,7 @@ import type { GameCommand } from './commands';
 import type { EntityID } from './components';
 import type { EntityStore } from './entity-store';
 import type { NavigationGrid } from './navigation';
+import { grantSharedExperience } from './veteran-progression';
 import type { GeneratedWorld } from '../world/world-definition';
 
 export const NEUTRAL_PLAYER_ID = 2;
@@ -230,7 +231,7 @@ export class NeutralEncounterState {
       const reward = this.selectRewardRecipients(camp);
       camp.rewardPlayerId = reward.playerId;
       camp.rewardRecipientEntityIds = reward.entityIds;
-      this.awardExperience(reward.entityIds, NEUTRAL_CAMP_XP_REWARD);
+      grantSharedExperience(this.entities, reward.entityIds, NEUTRAL_CAMP_XP_REWARD);
     }
   }
 
@@ -299,19 +300,6 @@ export class NeutralEncounterState {
     return winner
       ? { playerId: winner.playerId, entityIds: winner.entries.map((entry) => entry.entityId) }
       : { playerId: null, entityIds: [] };
-  }
-
-  private awardExperience(entityIds: readonly EntityID[], totalXp: number): void {
-    if (entityIds.length === 0 || totalXp <= 0) return;
-    const ordered = [...entityIds].sort((left, right) => left - right);
-    const base = Math.floor(totalXp / ordered.length);
-    let remainder = totalXp % ordered.length;
-    for (const entityId of ordered) {
-      const experience = this.entities.experience.get(entityId);
-      if (!experience) continue;
-      experience.xp += base + (remainder > 0 ? 1 : 0);
-      if (remainder > 0) remainder -= 1;
-    }
   }
 
   private sortedCamps(): NeutralCampRecord[] {
