@@ -65,6 +65,10 @@ export interface ElementalAlignmentComponent {
   element: ElementId;
 }
 
+export interface ExperienceComponent {
+  xp: number;
+}
+
 export interface UnitSpawn {
   archetype: UnitArchetype;
   playerId: PlayerID;
@@ -76,4 +80,5 @@ export interface UnitSpawn {
   attackDamage: number;
   attackIntervalTicks: number;
   attackRange: number;
+  neutralCampId?: string;
 }
