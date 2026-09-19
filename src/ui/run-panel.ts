@@ -50,6 +50,7 @@ export class RunPanel {
   private proofMessage = '';
   private leaderboardEntries: readonly LeaderboardEntry[] = [];
   private readonly leaderboard: LocalVerifiedLeaderboard;
+  private readonly sideMeta: HTMLElement | null;
   private readonly onClick = (event: Event): void => {
     const target = event.target instanceof HTMLElement ? event.target.closest<HTMLButtonElement>('button[data-run-action]') : null;
     if (!target) return;
@@ -72,6 +73,15 @@ export class RunPanel {
     private readonly blockResolution: BlockResolution,
   ) {
     this.leaderboard = new LocalVerifiedLeaderboard(localStorage);
+    const worldPanel = document.getElementById('world-debug');
+    if (worldPanel) {
+      const sideMeta = document.createElement('div');
+      sideMeta.className = 'run-side-meta';
+      worldPanel.appendChild(sideMeta);
+      this.sideMeta = sideMeta;
+    } else {
+      this.sideMeta = null;
+    }
     this.element.addEventListener('click', this.onClick);
     this.render(this.simulation.run.snapshot());
     void this.refreshLeaderboard();
@@ -107,6 +117,7 @@ export class RunPanel {
 
   destroy(): void {
     this.element.removeEventListener('click', this.onClick);
+    this.sideMeta?.remove();
   }
 
   private render(run: RunSnapshot): void {
@@ -150,6 +161,7 @@ export class RunPanel {
       : '';
 
     if (run.result) {
+      if (this.sideMeta) this.sideMeta.hidden = true;
       this.element.classList.add('complete');
       this.element.innerHTML = `
         <div class="run-title">PEPEPOW BLOCK CHALLENGE · ${run.mode.replace('_', ' ')}</div>
@@ -184,33 +196,19 @@ export class RunPanel {
     const critical = playerCore.state === 'CRITICAL'
       ? `<div class="run-critical">CORE CRITICAL · ${(playerCore.criticalTicksRemaining / 10).toFixed(1)}s · Move an Engineer to the Core</div>`
       : '';
-    const objective = !run.finaleUnlocked
-      ? (run.pace === 'SMOKE'
-        ? 'Finale unlocks at 00:30 in smoke mode.'
-        : 'Scout, expand, build and take Shrines. Finale unlocks at 27:00 or earlier with strategic momentum.')
-      : run.mode === 'DESTROY'
-        ? 'FINALE: move combat units into the enemy Core assault radius.'
-        : `FINALE: defeat ${run.boss.label}. Its attacks alter the battlefield.`;
+    if (this.sideMeta) {
+      this.sideMeta.hidden = false;
+      this.sideMeta.innerHTML = `
+        <b>${run.phase} · ${formatTime(elapsedSeconds)}</b>
+        <span>${identity.difficulty} · ${run.mode.replace('_', ' ')}</span>`;
+      this.sideMeta.title = `${sourceMeta} · ${challengeMeta}`;
+    }
     this.element.innerHTML = `
-      <div class="run-title">PEPEPOW BLOCK CHALLENGE · ${run.mode.replace('_', ' ')}</div>
-      ${replayLine}
-      <div class="run-challenge">${challengeMeta}</div>
-      <div class="run-source">${sourceMeta}</div>
-      <div class="run-meta">
-        <b>${run.phase}</b><span>${formatTime(elapsedSeconds)}</span><span>${identity.difficulty}</span>
+      <div class="run-health-compact">
+        <div class="run-health-row"><span>CORE</span><div><i style="width:${playerPercent}%"></i></div><b>${playerPercent}%</b></div>
+        <div class="run-health-row target"><span>${run.mode === 'DESTROY' ? 'TARGET' : 'BOSS'}</span><div><i style="width:${targetPercent}%"></i></div><b>${targetPercent}%</b></div>
       </div>
-      ${critical}
-      <div class="run-health-row"><span>Player Core</span><div><i style="width:${playerPercent}%"></i></div><b>${playerCore.currentHealth}/${playerCore.maxHealth}</b></div>
-      <div class="run-health-row target"><span>${targetLabel}</span><div><i style="width:${targetPercent}%"></i></div><b>${target.currentHealth}/${target.maxHealth}</b></div>
-      <div class="run-objective">${objective}</div>
-      <div class="run-pressure">Assault P:${run.pressure.playerCoreAttackers} · E:${run.pressure.enemyCoreAttackers} · Boss:${run.pressure.bossAttackers} · Repair:${run.pressure.repairingEngineers}</div>
-      <div class="run-inline-actions">
-        <button class="run-mode-button" data-run-action="share">${shareLabel}</button>
-        ${officialInlineButton}
-        <button class="run-mode-button" data-run-action="pepepow-now">PEPEPOW Current</button>
-        <button class="run-mode-button" data-run-action="pepepow-10">Recent -10</button>
-        <button class="run-mode-button" data-run-action="mode">Switch to ${run.mode === 'DESTROY' ? 'Boss Hunt' : 'Destroy'}</button>
-      </div>`;
+      ${critical}`;
   }
 
   private leaderboardMarkup(): string {
