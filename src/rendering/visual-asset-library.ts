@@ -474,7 +474,7 @@ export class VisualAssetLibrary {
     ): Promise<readonly (HTMLImageElement | null)[]> => {
       const files = filesByAction[action];
       const results = await Promise.allSettled(
-        files.map((path) => loadImage(`${import.meta.env.BASE_URL}${path}`)),
+        files.map((path) => loadImage(`${import.meta.env.BASE_URL}${path}`, 'low')),
       );
       const images = results.map((result) => result.status === 'fulfilled' ? result.value : null);
       const missing = results
