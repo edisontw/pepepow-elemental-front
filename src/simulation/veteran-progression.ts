@@ -48,7 +48,7 @@ export function unitXpProgress(xp: number): UnitXpProgress {
 
 function scaledStat(base: number, perLevelPermille: number, level: number): number {
   const bonusLevels = Math.max(0, Math.min(MAX_UNIT_LEVEL, level) - 1);
-  return Math.max(1, Math.floor((base * (1000 + bonusLevels * perLevelPermille)) / 1000));
+  return Math.max(1, Math.round((base * (1000 + bonusLevels * perLevelPermille)) / 1000));
 }
 
 export function scaledMaxHealth(baseMaxHealth: number, level: number): number {
