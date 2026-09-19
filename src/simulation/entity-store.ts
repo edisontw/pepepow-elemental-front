@@ -53,7 +53,11 @@ export class EntityStore {
       pursuitTargetCellKey: null,
     });
     this.archetypes.set(entityId, spawn.archetype);
-    this.experience.set(entityId, { xp: 0 });
+    this.experience.set(entityId, {
+      xp: 0,
+      baseMaxHealth: Math.round(spawn.maxHealth),
+      baseAttackDamage: Math.round(spawn.attackDamage),
+    });
     if (spawn.neutralCampId !== undefined) this.neutralCampIds.set(entityId, spawn.neutralCampId);
     return entityId;
   }
