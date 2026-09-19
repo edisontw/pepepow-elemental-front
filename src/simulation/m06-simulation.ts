@@ -7,7 +7,6 @@ import type { M04Command } from './m04-commands';
 import type { EnemyDifficulty, EnemyFaction } from './m05-content';
 import { M05Simulation, type M05SimulationOptions, type M05SimulationSnapshot } from './m05-simulation';
 import {
-  NEUTRAL_PLAYER_ID,
   NeutralEncounterState,
   type NeutralEncounterSnapshot,
 } from './neutral-encounter-state';
@@ -164,7 +163,6 @@ export class M06Simulation extends M05Simulation {
 
   constructor(generatedWorld: GeneratedWorld, options: M06SimulationOptions = {}) {
     super(generatedWorld, options);
-    this.visibility.ensurePlayer(NEUTRAL_PLAYER_ID);
     this.neutralEncounters = new NeutralEncounterState(generatedWorld, this.entities, this.navigation);
     this.run = new RunState(generatedWorld, options.mode ?? 'DESTROY', options.pace ?? 'STANDARD');
   }
