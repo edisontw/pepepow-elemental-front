@@ -477,8 +477,10 @@ Initial command types:
 - STOP
 - CAST
 - BUILD
-- CAPTURE
+- CAPTURE (Region territory only)
 - FORMATION
+
+POI ownership is not a player command. It is deterministic state derived during the territory step from unit proximity to the landmark. Manual POI `CAPTURE` commands are rejected. Neutral-encounter blockers are supplied to the territory system before automatic POI progress is evaluated.
 
 Illustrative:
 
@@ -600,6 +602,8 @@ Three layers:
 - ATTACK
 - CONTEST_POI
 - REGROUP
+
+`CONTEST_POI` selects a landmark and issues movement to the landmark position. POI ownership then changes through the same deterministic proximity system used by the player; AI must not bypass presence with a separate capture command.
 
 ## Director
 - pacing
