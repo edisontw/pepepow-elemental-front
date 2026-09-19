@@ -1,11 +1,11 @@
 # PEPEPOW Elemental Front — PROJECT_CONTEXT
 
-**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Phase 4 Hero-Lite Progression ACTIVE (P4-A) + Visual Production ongoing  
+**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Phase 4 Hero-Lite Progression ACTIVE (P4-B Neutral Camps / XP Foundation) + Visual Production ongoing  
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v4`  
-**Current replay format:** `ef-replay-v4`  
+**Current authoritative gameplay ruleset:** `ef-standard-v5`  
+**Current replay format:** `ef-replay-v5`  
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE3_CLOSURE_REPORT.md`
 
@@ -69,8 +69,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v4`;
-- replay: `ef-replay-v4`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v5`;
+- replay: `ef-replay-v5`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -92,7 +92,7 @@ Known deferred infrastructure issue:
 
 ### Post-Roadmap Phase 2 — Element Authority
 
-Phase 2 remains CLOSED and is carried forward under v4:
+Phase 2 remains CLOSED and is carried forward under v5:
 
 - exactly two distinct starting Elemental Attunements;
 - one immutable Fire / Water / Ice / Lightning alignment per completed Elementalist;
@@ -150,7 +150,7 @@ Phase 3 validation:
 - production build PASS;
 - implementation CI **#208 / run `34374155010` PASS**.
 
-The existing Official Challenge ID `m08-roadmap` is retained for link continuity; its current gameplay ruleset is `ef-standard-v3`.
+The existing Official Challenge ID `m08-roadmap` is retained for link continuity. Phase 3 closed under `ef-standard-v3`; the active challenge identity has since advanced with Phase 4.
 
 ---
 
@@ -176,7 +176,7 @@ During the current visual-production pass, keep these gameplay items deferred un
 
 ## 6. Current formal work point — Phase 4 + Visual Production
 
-The active work point is **Phase 4 hero-lite gameplay redesign alongside the ongoing high-quality presentation production pass**. Phase 4 P4-A changes objective combat and Core recovery; later slices add neutral monsters, XP, Level 1–5 veteran progression, and veteran UI. The visual pass continues in parallel with a darker, higher-contrast battlefield target.
+The active work point is **Phase 4 hero-lite gameplay redesign alongside the ongoing high-quality presentation production pass**. Phase 4 P4-A completed objective combat and Core recovery. P4-B is active with deterministic neutral camps, neutral combat, XP accumulation, camp-clear rewards, and capture gating; later slices add Level 1–5 veteran progression and veteran UI. The visual pass continues in parallel with a darker, higher-contrast battlefield target.
 
 Primary scope:
 
@@ -308,7 +308,7 @@ Authoritative plan:
 
 - `docs/POST_ROADMAP_PHASE4_HERO_LITE_PROGRESSION_PLAN.md`
 
-P4-A active rules:
+P4-A completed rules:
 
 - Core proximity alone does not deal damage;
 - Core damage requires an explicit objective-attack intent and the unit's normal attack cadence;
@@ -316,11 +316,22 @@ P4-A active rules:
 - active friendly Cores heal safe nearby friendly units within 8 m at 2% max HP/sec;
 - full Idle animation loading is deferred behind gameplay-critical Move / Attack / Hit / Death frames;
 - world generation remains `m02-standard-v1`;
-- authoritative gameplay/replay identity is `ef-standard-v4` / `ef-replay-v4`.
+- P4-A shipped under `ef-standard-v4` / `ef-replay-v4`.
+
+P4-B active rules:
+
+- the 5 existing generated `NEUTRAL_CAMP` POIs spawn deterministic neutral Ancient Sentinel guards;
+- neutral faction authority uses player ID 2 and participates in normal combat without joining either army economy;
+- guards are leashed to their camp instead of pursuing across the map;
+- guarded Neutral Camps cannot be captured until all guards are defeated;
+- clearing a camp distributes 120 XP deterministically among nearby participating units of the winning local faction;
+- unit `experience` and `neutralCampId` are authoritative, snapshot-visible, and state-hashed;
+- gameplay/replay identity is `ef-standard-v5` / `ef-replay-v5`;
+- world generation remains `m02-standard-v1`.
 
 Next Phase 4 slices:
 
-1. neutral monster/camp foundation;
-2. deterministic individual XP and Level 1–5 progression;
+1. deterministic Level 1–5 progression from accumulated XP;
+2. veteran stat scaling and level-up feedback;
 3. veteran UI/readability;
 4. balance and replay validation.
