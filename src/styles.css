@@ -465,3 +465,101 @@ button { font: inherit; }
   .debug-mode #arena-legend { display: none; }
   #elemental-jobs { display: none; }
 }
+
+
+/* Compact roguelite action panel — action-focused, not a persistent debug card. */
+#roguelite-panel {
+  padding: .42rem .46rem;
+  max-height: 27vh;
+  overflow-y: auto;
+  font-size: .58rem;
+}
+#roguelite-panel .roguelite-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: .45rem;
+  align-items: center;
+}
+#roguelite-panel .roguelite-title {
+  margin: 0;
+  color: #c9a8ff;
+  font-size: .56rem;
+  letter-spacing: .1em;
+  white-space: nowrap;
+}
+#roguelite-panel .roguelite-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .18rem;
+  margin: 0;
+}
+#roguelite-panel .roguelite-meta b {
+  display: flex;
+  gap: .2rem;
+  align-items: baseline;
+  justify-content: center;
+  min-width: 0;
+  padding: .2rem .24rem;
+  border-radius: .2rem;
+  background: rgba(255,255,255,.045);
+  font-size: .62rem;
+  white-space: nowrap;
+}
+#roguelite-panel .roguelite-meta span {
+  overflow: hidden;
+  color: #91869f;
+  font-size: .43rem;
+  text-overflow: ellipsis;
+}
+#roguelite-panel .roguelite-section {
+  margin-top: .34rem;
+}
+#roguelite-panel .roguelite-section > strong {
+  margin-bottom: .2rem;
+  font-size: .5rem;
+  letter-spacing: .08em;
+}
+#roguelite-panel .upgrade-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: .18rem;
+}
+#roguelite-panel .upgrade-choice {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  gap: .04rem .35rem;
+  min-height: 0;
+  padding: .28rem .34rem;
+}
+#roguelite-panel .upgrade-choice strong {
+  grid-row: 1 / 3;
+  align-self: center;
+  margin: 0;
+  overflow: hidden;
+  font-size: .58rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#roguelite-panel .upgrade-choice span {
+  margin: 0;
+  overflow: hidden;
+  font-size: .42rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#roguelite-panel .upgrade-choice small {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #a89eb3;
+  font-size: .46rem;
+  line-height: 1.2;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+#roguelite-panel .shrine-open {
+  min-height: 1.8rem;
+  margin-top: .32rem;
+  padding: .28rem .38rem;
+  font-size: .54rem;
+}
