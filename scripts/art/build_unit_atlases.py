@@ -61,12 +61,21 @@ def build():
 
 
 def prune_dist():
-    # Raw committed frames remain build inputs, not duplicated deployment payload.
+    # Atlases are the primary runtime payload. Keep one Idle frame per direction
+    # so a failed atlas decode/request still renders character art rather than
+    # the old geometric technical fallback.
+    keep_idle = {f'{direction}_00.webp' for direction in DIRECTIONS}
     for slug in SLUGS:
         for action in ACTIONS:
             directory = ROOT / 'dist/assets/impostors' / slug / action
-            if directory.is_dir():
+            if not directory.is_dir():
+                continue
+            if action != 'idle':
                 shutil.rmtree(directory)
+                continue
+            for path in directory.iterdir():
+                if path.is_file() and path.name not in keep_idle:
+                    path.unlink()
 
 
 if __name__ == '__main__':

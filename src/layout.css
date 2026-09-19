@@ -455,3 +455,192 @@
     display: none !important;
   }
 }
+
+
+/* Compact contextual HUD pass — keep the battlefield visually dominant. */
+@media (min-width: 801px) {
+  #app #strategy-panel {
+    bottom: auto;
+    width: 12.75rem;
+    max-height: calc(100vh - 1.1rem);
+    padding: .46rem;
+  }
+
+  #app #strategy-panel .resource-strip {
+    gap: .14rem;
+    margin-bottom: .28rem;
+  }
+
+  #app #strategy-panel .resource-strip b {
+    padding: .26rem .2rem;
+    font-size: .64rem;
+  }
+
+  #app #strategy-panel .resource-strip span {
+    font-size: .4rem;
+  }
+
+  #app #strategy-panel .command-tabs {
+    margin: .26rem 0 .3rem;
+  }
+
+  #app #strategy-panel .command-tabs button {
+    padding: .34rem .2rem;
+    font-size: .61rem;
+  }
+
+  #app #strategy-panel .strategy-section {
+    margin-top: .34rem;
+  }
+
+  #app #strategy-panel .strategy-section > strong {
+    margin-bottom: .28rem;
+    font-size: .61rem;
+  }
+
+  #app #strategy-panel .strategy-buttons button,
+  #app #strategy-panel .producer-select button {
+    min-height: 2.18rem;
+    padding: .3rem .34rem;
+    font-size: .62rem;
+  }
+
+  #app #strategy-panel .strategy-buttons small,
+  #app #strategy-panel .producer-select button small {
+    font-size: .5rem;
+  }
+
+  #app #strategy-panel .resource-defense-section {
+    padding: .28rem;
+  }
+
+  #app #strategy-panel .resource-defense-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: .2rem;
+    padding: .2rem;
+  }
+
+  #app #strategy-panel .resource-defense-row button {
+    min-height: 1.45rem;
+    padding: .18rem .24rem;
+    font-size: .41rem;
+  }
+
+  #app #world-debug {
+    width: 10.75rem;
+    padding: .4rem;
+  }
+
+  #app #world-debug-canvas {
+    width: 9.75rem;
+    height: 9.75rem;
+  }
+
+  #app #world-debug > .minimap-resource-key {
+    font-size: .42rem;
+  }
+
+  .context-inspector {
+    top: 13rem !important;
+    right: .55rem !important;
+    width: 10.75rem !important;
+    max-height: 5.65rem !important;
+    padding: .42rem .48rem !important;
+  }
+
+  .context-inspector h3 {
+    margin: .05rem 0 .16rem !important;
+    font-size: .7rem !important;
+  }
+
+  .context-inspector .context-roster {
+    display: flex;
+    gap: .16rem;
+    overflow: hidden;
+    margin-bottom: .2rem;
+  }
+
+  .context-inspector .context-roster span {
+    display: flex;
+    gap: .16rem;
+    align-items: center;
+    min-width: 0;
+    padding: .14rem .22rem;
+    border: 1px solid rgba(109, 203, 176, .12);
+    border-radius: .18rem;
+    background: rgba(255,255,255,.028);
+    color: #9eb5af;
+    font-size: .42rem;
+    white-space: nowrap;
+  }
+
+  .context-inspector .context-roster span b {
+    color: #e3eee9;
+    font-size: .44rem;
+  }
+
+  .context-inspector .context-group-summary {
+    display: flex;
+    justify-content: space-between;
+    gap: .3rem;
+    color: #778e88;
+    font-size: .43rem;
+    white-space: nowrap;
+  }
+
+  .context-inspector .context-group-summary b {
+    color: #bcd1ca;
+    font-size: .45rem;
+  }
+
+  #app #elemental-jobs {
+    top: 19.05rem;
+    width: 10.75rem;
+    gap: .2rem;
+    padding: .36rem;
+  }
+
+  #app #elemental-jobs > b {
+    padding-bottom: .24rem;
+    font-size: .52rem;
+  }
+
+  #app #elemental-jobs > span {
+    grid-template-columns: 1.08rem minmax(0, 1fr);
+    grid-template-rows: auto;
+    gap: .18rem;
+    padding: .23rem .25rem;
+  }
+
+  #app #elemental-jobs kbd {
+    grid-row: 1;
+    width: 1rem;
+    height: 1rem;
+    font-size: .5rem;
+  }
+
+  #app #elemental-jobs strong {
+    font-size: .5rem;
+  }
+
+  #app #elemental-jobs em,
+  #app #elemental-jobs > small:first-of-type {
+    display: none;
+  }
+
+  #app #elemental-jobs #formation-mode {
+    display: block;
+    padding-top: .08rem;
+    font-size: .42rem;
+  }
+
+  #app #roguelite-panel {
+    width: min(14rem, calc(100vw - 14rem));
+    max-height: 22vh;
+  }
+
+  #app #camera-help {
+    left: 13.85rem;
+    right: 11.85rem;
+  }
+}

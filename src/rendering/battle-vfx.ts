@@ -450,5 +450,5 @@ export class BattleVfx {
 
 /** Thin hollow ground marker; shared by selection and elemental ripples. */
 export function ringMesh(device: pc.GraphicsDevice): pc.Mesh {
-  return pc.createTorus(device, { ringRadius: .48, tubeRadius: .018, segments: 32, sides: 4 });
+  return pc.createTorus(device, { ringRadius: .48, tubeRadius: .014, segments: 32, sides: 4 });
 }

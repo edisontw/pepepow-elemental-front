@@ -74,9 +74,11 @@ export class ResourceDefensePanel {
         && (building.type === 'EXTRACTOR' || building.type === 'MANA_WELL')
       ));
       if (!stock || sites.length === 0) {
-        section.innerHTML = '<strong>Resource Defense</strong><small>Completed Extractors and Mana Wells can be attacked. Build one to unlock a small Guard Tower upgrade.</small>';
+        section.hidden = true;
+        section.innerHTML = '';
         return;
       }
+      section.hidden = false;
 
       const cost = RESOURCE_DEFENSE_UPGRADE.cost;
       const rows = sites.map((building) => {
@@ -92,11 +94,11 @@ export class ResourceDefensePanel {
           ? ''
           : building.resourceDefenseLevel > 0
             ? '<em>Fortified</em>'
-            : `<button data-resource-action="fortify" data-building-id="${building.id}" ${canFortify ? '' : 'disabled'}>Fortify · ${cost.material} Material + ${cost.mana} Mana</button>`;
+            : `<button data-resource-action="fortify" data-building-id="${building.id}" title="Fortify: +${RESOURCE_DEFENSE_UPGRADE.bonusHealth} HP and Guard Tower" ${canFortify ? '' : 'disabled'}>Fortify · ${cost.material}M + ${cost.mana}A</button>`;
         return `<div class="resource-defense-row"><span><b>${label(building.type)} #${building.id}</b><small>${status}</small></span>${action}</div>`;
       }).join('');
 
-      section.innerHTML = `<strong>Resource Defense</strong><small>Harvesters are enemy targets. Fortification adds +${RESOURCE_DEFENSE_UPGRADE.bonusHealth} HP and a short-range automatic Guard Tower.</small><div class="resource-defense-list">${rows}</div>`;
+      section.innerHTML = `<strong>Resource Defense</strong><div class="resource-defense-list">${rows}</div>`;
     } finally {
       this.rendering = false;
     }

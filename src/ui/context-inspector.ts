@@ -342,19 +342,25 @@ export class ContextInspector {
     const health = units.reduce((sum, unit) => sum + unit.currentHealth, 0);
     const maxHealth = units.reduce((sum, unit) => sum + unit.maxHealth, 0);
     const healthRatio = Math.max(0, Math.min(1, health / Math.max(1, maxHealth)));
-    const roles = [...new Set(units.map((unit) => label(unit.archetype)))];
+    const roleCounts = new Map<string, number>();
+    for (const unit of units) {
+      const role = label(unit.archetype);
+      roleCounts.set(role, (roleCounts.get(role) ?? 0) + 1);
+    }
     const veteranSummary = [5, 4, 3, 2, 1]
       .map((level) => ({ level, count: units.filter((unit) => unit.level === level).length }))
       .filter((entry) => entry.count > 0)
-      .map((entry) => `${entry.count} × Lv${entry.level}`)
+      .map((entry) => `${entry.count}×Lv${entry.level}`)
       .join(' · ');
+    const roster = [...roleCounts.entries()]
+      .map(([role, count]) => `<span title="${role}">${role}<b>×${count}</b></span>`)
+      .join('');
     return `
       <div class="context-kicker">FORMATION</div>
       <h3>${units.length} Units Selected</h3>
-      <span class="context-subtitle">${roles.join(' · ')}</span>
-      <span class="context-subtitle">${veteranSummary}</span>
+      <div class="context-roster">${roster}</div>
       <div class="context-health"><i style="width:${healthRatio * 100}%"></i></div>
-      <span class="context-subtitle">${health} / ${maxHealth} combined HP</span>
+      <div class="context-group-summary"><span>${veteranSummary}</span><b>${health} / ${maxHealth} HP</b></div>
     `;
   }
 

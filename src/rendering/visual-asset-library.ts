@@ -3,6 +3,7 @@ import { impostorAtlasFile, impostorAtlasRect } from './impostor-atlas';
 import manifest from '../../data/assets/manifest.json';
 import { RTS_CAMERA_YAW_DEGREES, stableImpostorFrameForHeading } from './impostor-frame';
 import {
+  animatedImpostorFrameFiles,
   impostorAnimationFrame,
   impostorAnimationMaterialIndex,
   type ImpostorAnimationAction,
@@ -412,6 +413,48 @@ export class VisualAssetLibrary {
       image.src = url;
     });
 
+    const loadDirectionalIdleFallback = async (): Promise<readonly pc.StandardMaterial[] | null> => {
+      const files = animatedImpostorFrameFiles(config.slug, 'IDLE')
+        .filter((_file, index) => index % 4 === 0);
+      try {
+        const images = await Promise.all(files.map((file) => (
+          loadImage(`${import.meta.env.BASE_URL}${file}`, 'high')
+        )));
+        if (this.disposed) return null;
+        const viewMaterials = images.map((image, view) => {
+          const texture = new pc.Texture(this.app.graphicsDevice, {
+            name: `${config.id}.fallback.idle.${view}`,
+            mipmaps: false,
+            srgb: true,
+            flipY: false,
+            minFilter: pc.FILTER_LINEAR,
+            magFilter: pc.FILTER_LINEAR,
+            addressU: pc.ADDRESS_CLAMP_TO_EDGE,
+            addressV: pc.ADDRESS_CLAMP_TO_EDGE,
+          });
+          texture.setSource(image);
+          resources!.textures.push(texture);
+
+          const material = new pc.StandardMaterial();
+          material.name = `${config.id}.fallback.idle.${view}`;
+          material.useLighting = false;
+          material.emissive = new pc.Color(0.75, 0.74, 0.70);
+          material.emissiveMap = texture;
+          material.opacityMap = texture;
+          material.opacityMapChannel = 'a';
+          material.alphaTest = 0.12;
+          material.cull = pc.CULLFACE_NONE;
+          material.update();
+          resources!.materials.push(material);
+          return material;
+        });
+        return Array.from({ length: 32 }, (_entry, index) => viewMaterials[Math.floor(index / 4)]!);
+      } catch (error: unknown) {
+        console.warn(`${config.label} directional Idle fallback unavailable.`, error);
+        return null;
+      }
+    };
+
     const actionMaterials = {} as Record<ImpostorAnimationAction, readonly pc.StandardMaterial[]>;
     const requests = new Map<ImpostorAnimationAction, Promise<readonly pc.StandardMaterial[] | null>>();
     const loadAction = (action: ImpostorAnimationAction): Promise<readonly pc.StandardMaterial[] | null> => {
@@ -459,11 +502,17 @@ export class VisualAssetLibrary {
       requests.set(action, promise);
       return promise;
     };
-    resources.promise = loadAction('IDLE').then((idle) => {
+    resources.promise = loadAction('IDLE').then(async (atlasIdle) => {
+      const idle = atlasIdle ?? await loadDirectionalIdleFallback();
       if (!idle || this.disposed) return null;
+      actionMaterials.IDLE = idle;
       for (const action of ['MOVE', 'ATTACK', 'HIT', 'DEATH'] as const) actionMaterials[action] = idle;
-      // Only the encountered action is loaded, once per unit config; no roster preload.
-      resources!.requestAction = (action) => { void loadAction(action); };
+      // Atlas actions remain lazy. If an atlas request fails, the readable directional
+      // Idle artwork stays in place instead of exposing the geometric technical model.
+      resources!.requestAction = (action) => {
+        if (action === 'IDLE') return;
+        void loadAction(action);
+      };
       return actionMaterials;
     });
 
