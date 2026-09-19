@@ -5,7 +5,7 @@ import { UNITS } from './m03-content';
 
 export const MAX_UNIT_LEVEL = 5;
 export const UNIT_LEVEL_XP_THRESHOLDS = [0, 60, 150, 280, 450] as const;
-export const MAX_UNIT_XP = UNIT_LEVEL_XP_THRESHOLDS[MAX_UNIT_LEVEL - 1];
+export const MAX_UNIT_XP = 450;
 export const UNIT_MAX_HEALTH_PER_LEVEL_PERMILLE = 60;
 export const UNIT_ATTACK_DAMAGE_PER_LEVEL_PERMILLE = 40;
 export const COMBAT_XP_SHARE_RADIUS = 12 * WORLD_UNITS_PER_METER;
