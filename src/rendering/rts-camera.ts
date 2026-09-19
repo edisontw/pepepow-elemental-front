@@ -4,6 +4,8 @@ import { RTS_CAMERA_YAW_DEGREES } from './impostor-frame';
 const DEFAULT_MIN_DISTANCE = 12;
 const DEFAULT_MAX_DISTANCE = 46;
 const DEFAULT_DISTANCE = 28;
+const EDGE_SCROLL_MARGIN_PX = 22;
+const EDGE_SCROLL_SPEED_MULTIPLIER = 1.2;
 
 export interface RtsCameraOptions {
   halfWidth?: number;
@@ -26,6 +28,7 @@ export class RtsCamera {
   private yaw = RTS_CAMERA_YAW_DEGREES;
   private pitch = -48;
   private dragging = false;
+  private pointerInsideCanvas = false;
   private pointerX = 0;
   private pointerY = 0;
 
@@ -45,6 +48,8 @@ export class RtsCamera {
     window.addEventListener('keyup', this.onKeyUp);
     canvas.addEventListener('wheel', this.onWheel, { passive: false });
     canvas.addEventListener('pointerdown', this.onPointerDown);
+    canvas.addEventListener('pointermove', this.onCanvasPointerMove);
+    canvas.addEventListener('pointerleave', this.onCanvasPointerLeave);
     window.addEventListener('pointermove', this.onPointerMove);
     window.addEventListener('pointerup', this.onPointerUp);
     canvas.addEventListener('contextmenu', this.preventContextMenu);
@@ -59,6 +64,18 @@ export class RtsCamera {
     if (this.isPressed('KeyD', 'ArrowRight')) localX += speed;
     if (this.isPressed('KeyW', 'ArrowUp')) localZ -= speed;
     if (this.isPressed('KeyS', 'ArrowDown')) localZ += speed;
+
+    if (this.pointerInsideCanvas && !this.dragging) {
+      const bounds = this.canvas.getBoundingClientRect();
+      const x = this.pointerX - bounds.left;
+      const y = this.pointerY - bounds.top;
+      const edgeSpeed = speed * EDGE_SCROLL_SPEED_MULTIPLIER;
+      if (x >= 0 && x <= EDGE_SCROLL_MARGIN_PX) localX -= edgeSpeed;
+      else if (x <= bounds.width && x >= bounds.width - EDGE_SCROLL_MARGIN_PX) localX += edgeSpeed;
+      if (y >= 0 && y <= EDGE_SCROLL_MARGIN_PX) localZ -= edgeSpeed;
+      else if (y <= bounds.height && y >= bounds.height - EDGE_SCROLL_MARGIN_PX) localZ += edgeSpeed;
+    }
+
     if (localX !== 0 || localZ !== 0) this.pan(localX, localZ);
   }
 
@@ -73,6 +90,8 @@ export class RtsCamera {
     window.removeEventListener('keyup', this.onKeyUp);
     this.canvas.removeEventListener('wheel', this.onWheel);
     this.canvas.removeEventListener('pointerdown', this.onPointerDown);
+    this.canvas.removeEventListener('pointermove', this.onCanvasPointerMove);
+    this.canvas.removeEventListener('pointerleave', this.onCanvasPointerLeave);
     window.removeEventListener('pointermove', this.onPointerMove);
     window.removeEventListener('pointerup', this.onPointerUp);
     this.canvas.removeEventListener('contextmenu', this.preventContextMenu);
@@ -93,15 +112,33 @@ export class RtsCamera {
   };
 
   private readonly onPointerDown = (event: PointerEvent): void => {
-    if (event.button !== 1) return;
+    const alternateLeftDrag = event.button === 0 && (event.altKey || this.isPressed('Space'));
+    if (event.button !== 1 && !alternateLeftDrag) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
     this.dragging = true;
+    this.pointerInsideCanvas = false;
     this.pointerX = event.clientX;
     this.pointerY = event.clientY;
+    this.canvas.classList.add('camera-pan-active');
     this.canvas.setPointerCapture?.(event.pointerId);
+  };
+
+  private readonly onCanvasPointerMove = (event: PointerEvent): void => {
+    if (this.dragging) return;
+    this.pointerInsideCanvas = true;
+    this.pointerX = event.clientX;
+    this.pointerY = event.clientY;
+  };
+
+  private readonly onCanvasPointerLeave = (): void => {
+    if (!this.dragging) this.pointerInsideCanvas = false;
   };
 
   private readonly onPointerMove = (event: PointerEvent): void => {
     if (!this.dragging) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
     const deltaX = event.clientX - this.pointerX;
     const deltaY = event.clientY - this.pointerY;
     this.pointerX = event.clientX;
@@ -109,8 +146,13 @@ export class RtsCamera {
     this.pan(-deltaX * 0.025, -deltaY * 0.025);
   };
 
-  private readonly onPointerUp = (): void => {
+  private readonly onPointerUp = (event: PointerEvent): void => {
+    if (!this.dragging) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
     this.dragging = false;
+    this.canvas.classList.remove('camera-pan-active');
+    if (this.canvas.hasPointerCapture?.(event.pointerId)) this.canvas.releasePointerCapture?.(event.pointerId);
   };
 
   private readonly preventContextMenu = (event: MouseEvent): void => event.preventDefault();
