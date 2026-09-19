@@ -1,9 +1,9 @@
 # PEPEPOW Elemental Front — Post-Roadmap Phase 4 Hero-Lite Progression Plan
 
-**Status:** ACTIVE — first authoritative slice in implementation  
+**Status:** ACTIVE — P4-A complete; P4-B Neutral Camps / XP Foundation active  
 **World generation:** `m02-standard-v1` remains unchanged  
-**Gameplay identity:** `ef-standard-v4`  
-**Replay identity:** `ef-replay-v4`
+**Gameplay identity:** `ef-standard-v5`  
+**Replay identity:** `ef-replay-v5`
 
 ## 1. Direction
 
@@ -239,12 +239,12 @@ Example:
 
 ## 11. Determinism and replay
 
-Phase 4 changes authoritative combat and recovery semantics.
+Phase 4 changes authoritative combat, recovery, neutral-encounter, and progression semantics.
 
-Therefore:
+Version history inside Phase 4:
 
-- gameplay / challenge ruleset advances to `ef-standard-v4`;
-- replay identity advances to `ef-replay-v4`;
+- P4-A Core combat / recovery shipped as `ef-standard-v4` / `ef-replay-v4`;
+- P4-B Neutral Camps / XP Foundation advances to `ef-standard-v5` / `ef-replay-v5`;
 - world generation remains `m02-standard-v1`;
 - XP, level, objective-attack intent, and any future neutral-monster state must be deterministic and hash-covered;
 - presentation-only idle timing does not enter gameplay state.
@@ -261,13 +261,20 @@ Therefore:
 - v4 gameplay/replay identity;
 - targeted tests.
 
-### P4-B — Neutral Encounter Foundation
+### P4-B — Neutral Encounter Foundation — ACTIVE
 
-- neutral faction / monster entities;
-- deterministic camp placement from existing world data;
-- combat targeting;
-- XP reward hooks;
-- basic camp UI feedback.
+Implemented foundation:
+
+- neutral faction uses player ID 2;
+- all 5 existing generated `NEUTRAL_CAMP` POIs activate without changing world generation;
+- each camp spawns two deterministic Ancient Sentinel guardians using the existing Golem art path;
+- guards participate in normal combat and are attackable by right-click;
+- 12 m camp leash prevents cross-map pursuit;
+- camp capture remains locked until all guardians are defeated;
+- each cleared camp grants 120 XP shared deterministically among nearby local participants within 14 m;
+- XP is stored per unit now; Level 1–5 conversion is deferred to P4-C;
+- camp state, unit XP, and camp membership are state-hashed and replay-relevant;
+- guarded / cleared camp state is shown in the POI capture UI.
 
 ### P4-C — Unit XP / Level 1–5
 
