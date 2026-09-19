@@ -161,7 +161,7 @@ export class BuildingImpostorLibrary {
       const material = new pc.StandardMaterial();
       material.name = `${config.assetId.toUpperCase().replaceAll('.', '_')}_BUILDING_IMPOSTOR`;
       material.useLighting = false;
-      material.emissive = new pc.Color(0.84, 0.83, 0.79);
+      material.emissive = new pc.Color(0.87, 0.86, 0.82);
       material.emissiveMap = texture;
       material.opacityMap = texture;
       material.opacityMapChannel = 'a';
