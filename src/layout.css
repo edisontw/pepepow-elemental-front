@@ -368,7 +368,18 @@
 }
 
 #app #roguelite-panel {
+  right: .55rem;
+  bottom: .55rem;
+  width: min(18.5rem, calc(100vw - 18rem));
+  max-height: 27vh;
   z-index: 7;
+}
+
+@media (max-width: 1100px) {
+  #app #roguelite-panel {
+    width: min(17rem, calc(100vw - 16rem));
+    max-height: 30vh;
+  }
 }
 
 #app #camera-help {
