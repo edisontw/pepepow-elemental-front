@@ -1,14 +1,10 @@
 import { M04Simulation } from '../simulation/m04-simulation';
-import { UPGRADES_BY_ID, WORLD_EVENTS } from '../simulation/m04-content';
+import { UPGRADES_BY_ID } from '../simulation/m04-content';
 
 const PLAYER_ID = 0;
 
 function label(value: string): string {
   return value.split('_').map((word) => word[0] + word.slice(1).toLowerCase()).join(' ');
-}
-
-function eventName(eventId: string): string {
-  return WORLD_EVENTS.find((event) => event.id === eventId)?.name ?? eventId;
 }
 
 export class RoguelitePanel {
@@ -99,13 +95,6 @@ export class RoguelitePanel {
     const captured = shrines.filter((shrine) => strategic.poiOwners[shrine.id] === PLAYER_ID);
     const resolved = new Set(player.resolvedShrineIds);
     const available = captured.find((shrine) => !resolved.has(shrine.id) && player.openShrine?.shrineId !== shrine.id);
-    const shrineRegions = shrines.map((shrine) => {
-      const region = `R${shrine.regionId + 1}`;
-      if (resolved.has(shrine.id)) return `${region} resolved`;
-      if (strategic.poiOwners[shrine.id] === PLAYER_ID) return `${region} captured`;
-      return region;
-    }).join(' · ');
-
     const choices = player.openShrine?.choiceIds.map((upgradeId, index) => {
       const upgrade = UPGRADES_BY_ID[upgradeId];
       if (!upgrade) return '';
@@ -118,37 +107,26 @@ export class RoguelitePanel {
       `;
     }).join('') ?? '';
 
-    const acquired = player.acquiredUpgradeIds.length === 0
-      ? '<span class="roguelite-empty">No upgrades acquired yet.</span>'
-      : player.acquiredUpgradeIds.map((upgradeId) => `<span class="upgrade-chip">${UPGRADES_BY_ID[upgradeId]?.name ?? upgradeId}</span>`).join('');
-
-    const activeEvent = roguelite.activeWorldEvent
-      ? `${eventName(roguelite.activeWorldEvent.id)} · ${Math.max(0, roguelite.activeWorldEvent.endTick - this.simulation.snapshot().tick)} ticks left`
-      : 'None';
-    const nextEvent = roguelite.nextWorldEvent
-      ? `${eventName(roguelite.nextWorldEvent.id)} @ tick ${roguelite.nextWorldEvent.startTick}`
-      : 'None scheduled';
-
+    this.element.classList.toggle('choice-open', player.openShrine !== null);
     this.element.innerHTML = `
-      <div class="roguelite-title">M04 ROGUELITE LAYER</div>
-      <div class="roguelite-meta">
-        <b>${(player.maxManaMilli / 1000).toFixed(0)} <span>Max Mana</span></b>
-        <b>${player.acquiredUpgradeIds.length} <span>Upgrades</span></b>
-        <b>${player.resolvedShrineIds.length}/${shrines.length} <span>Shrines</span></b>
+      <div class="roguelite-head">
+        <div class="roguelite-title">PROGRESSION</div>
+        <div class="roguelite-meta">
+          <b>${(player.maxManaMilli / 1000).toFixed(0)} <span>Mana</span></b>
+          <b>${player.acquiredUpgradeIds.length} <span>Upgrades</span></b>
+          <b>${player.resolvedShrineIds.length}/${shrines.length} <span>Shrines</span></b>
+        </div>
       </div>
-      <div class="roguelite-line">Shrine regions: ${shrineRegions || 'None'} · use numbered territory map</div>
-      <div class="roguelite-line">Build: ${player.synergies.length > 0 ? player.synergies.map(label).join(' · ') : 'No detected synergy yet'}</div>
-      <div class="roguelite-line">World event: ${activeEvent}</div>
-      <div class="roguelite-line">Next event: ${nextEvent}</div>
       ${player.openShrine ? `
-        <div class="roguelite-section"><strong>Choose one — ${player.openShrine.shrineId}</strong><div class="upgrade-grid">${choices}</div></div>
+        <div class="roguelite-section roguelite-choice-section">
+          <strong>Choose one</strong>
+          <div class="upgrade-grid">${choices}</div>
+        </div>
       ` : `
-        <div class="roguelite-section"><strong>Shrine</strong><button class="shrine-open" data-roguelite-action="activate-shrine" data-shrine-id="${available?.id ?? ''}" ${available ? '' : 'disabled'}>
-          ${available ? `Open ${available.id}` : captured.length === 0 ? 'Capture a Shrine POI first' : 'No captured unresolved Shrine'}
-        </button></div>
+        <button class="shrine-open" data-roguelite-action="activate-shrine" data-shrine-id="${available?.id ?? ''}" ${available ? '' : 'disabled'}>
+          ${available ? 'Open captured Shrine' : 'No Shrine available'}
+        </button>
       `}
-      <div class="roguelite-section"><strong>Acquired</strong><div class="upgrade-chips">${acquired}</div></div>
-      <div class="roguelite-message">${this.message}</div>
     `;
   }
 }
