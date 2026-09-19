@@ -4,8 +4,8 @@
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v7`  
-**Current replay format:** `ef-replay-v7`  
+**Current authoritative gameplay ruleset:** `ef-standard-v8`  
+**Current replay format:** `ef-replay-v8`  
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE4_CLOSURE_REPORT.md`
 
@@ -69,8 +69,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v7`;
-- replay: `ef-replay-v7`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v8`;
+- replay: `ef-replay-v8`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -272,6 +272,18 @@ Current decision:
 - preserve the shared direction convention and previously corrected diagonal/rear mappings;
 - fix scale drift with per-view normalization where necessary rather than relabeling directions;
 - see `docs/UNIT_ANIMATION_IMPLEMENTATION_NOTES.md` for the exact active resume contract.
+
+### Post-closure progression tuning — 2026-09-19
+
+Phase 4 remains closed as a feature milestone, but explicit playtest feedback justified a bounded balance revision:
+
+- Level 2–5 cumulative XP thresholds: **50 / 120 / 220 / 350**;
+- Neutral Camp guardians: **3 per camp**;
+- Neutral Camp clear reward: **150 XP** shared among nearby participants;
+- normal combat-kill XP formula and veteran stat bonuses remain unchanged;
+- a focused 2–3 unit raiding group can now reach Level 2 from one camp, while a six-unit army receives 25 XP each and remains Level 1 after one camp;
+- the active run HUD is reduced to two compact Core/Target bars; phase/time/difficulty/mode move to the minimap-side metadata line;
+- this authoritative balance revision advances identity to `ef-standard-v8` / `ef-replay-v8`; world generation remains `m02-standard-v1`.
 
 ### Visual / UX optimization — 2026-09-19
 
