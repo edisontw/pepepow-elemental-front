@@ -31,3 +31,8 @@ Unit/building role tags such as `LIGHT`, `HEAVY`, `METAL`, `BUILDING`, `ARCANE`,
 ## ADR-008 — Formation is semantic MOVE metadata, not a hidden stat stance
 
 Player formation choice is carried on the authoritative `MOVE` command. Simulation computes orientation, role ordering, formation slots, unique walkable destinations, and paths at command execution time. UI does not calculate authoritative per-unit offsets. `LINE`, `COLUMN`, and `SPREAD` differ through spatial behavior only; no hidden formation damage, defense, or movement percentage bonuses are introduced. MOVE without formation metadata remains the closed-system compact-grid migration path. Because this changes authoritative movement outcomes, Phase 3 advances gameplay/replay identity to `ef-standard-v3` / `ef-replay-v3` while world generation remains `m02-standard-v1`.
+
+
+## ADR-009 — Phase 4 uses explicit objective attacks and hero-lite veteran progression
+
+Core damage is no longer inferred from proximity. A Core can only take unit damage from an explicit objective-attack intent resolved through the attacker's normal range and attack cadence. Active Cores provide deterministic recovery to safe nearby friendly units. Phase 4 will extend individual units with deterministic XP / Level 1–5 veteran progression and neutral-monster rewards while retaining RTS army control. These authoritative changes advance gameplay/replay identity to `ef-standard-v4` / `ef-replay-v4`; world generation remains `m02-standard-v1`.
