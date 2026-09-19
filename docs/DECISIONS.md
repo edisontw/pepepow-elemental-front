@@ -36,3 +36,8 @@ Player formation choice is carried on the authoritative `MOVE` command. Simulati
 ## ADR-009 — Phase 4 uses explicit objective attacks and hero-lite veteran progression
 
 Core damage is no longer inferred from proximity. A Core can only take unit damage from an explicit objective-attack intent resolved through the attacker's normal range and attack cadence. Active Cores provide deterministic recovery to safe nearby friendly units. Phase 4 will extend individual units with deterministic XP / Level 1–5 veteran progression and neutral-monster rewards while retaining RTS army control. These authoritative changes advance gameplay/replay identity to `ef-standard-v4` / `ef-replay-v4`; world generation remains `m02-standard-v1`.
+
+
+## ADR-010 — Neutral camps become deterministic combat encounters before veteran levels
+
+Phase 4 P4-B activates the five existing generated `NEUTRAL_CAMP` POIs without changing `m02-standard-v1`. A neutral faction (`playerId = 2`) owns deterministic Ancient Sentinel guards that use normal combat authority and a bounded camp leash. Guarded camps cannot be captured. Clearing a camp distributes a fixed 120 XP pool deterministically among nearby participants of the locally prevailing non-neutral faction. Unit XP is authoritative and state-hashed now; Level 1–5 thresholds/stat scaling remain P4-C. These authoritative additions advance gameplay/replay identity to `ef-standard-v5` / `ef-replay-v5`.
