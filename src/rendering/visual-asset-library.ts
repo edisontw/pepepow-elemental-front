@@ -568,12 +568,13 @@ export class VisualAssetLibrary {
       const idleHydrationDelayMs = 12_000
         + [...config.slug].reduce((sum, character) => sum + character.charCodeAt(0), 0) % 8_000;
       window.setTimeout(() => { void hydrateAction('IDLE'); }, idleHydrationDelayMs);
+      return actionMaterials;
     }).catch((error: unknown) => {
       console.warn(`${config.label} animated impostor preview load failed; using fallback geometry.`, error);
       return null;
     });
 
-    return resources.promise;
+    return resources.promise!;
   }
 
   private load(id: string): Promise<pc.ContainerResource | null> {
