@@ -1,13 +1,13 @@
 # PEPEPOW Elemental Front — PROJECT_CONTEXT
 
-**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Phase 4 Hero-Lite Progression ACTIVE (P4-D Veteran Presentation COMPLETE; P4-E next) + Visual Production ongoing  
+**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Phase 4 Hero-Lite Progression CLOSED → Visual Production ongoing  
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v6`  
-**Current replay format:** `ef-replay-v6`  
+**Current authoritative gameplay ruleset:** `ef-standard-v7`  
+**Current replay format:** `ef-replay-v7`  
 **World-generation ruleset:** `m02-standard-v1`  
-**Latest closure report:** `docs/POST_ROADMAP_PHASE3_CLOSURE_REPORT.md`
+**Latest closure report:** `docs/POST_ROADMAP_PHASE4_CLOSURE_REPORT.md`
 
 ---
 
@@ -69,8 +69,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v6`;
-- replay: `ef-replay-v6`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v7`;
+- replay: `ef-replay-v7`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -92,7 +92,7 @@ Known deferred infrastructure issue:
 
 ### Post-Roadmap Phase 2 — Element Authority
 
-Phase 2 remains CLOSED and is carried forward under v6:
+Phase 2 remains CLOSED and is carried forward under v7:
 
 - exactly two distinct starting Elemental Attunements;
 - one immutable Fire / Water / Ice / Lightning alignment per completed Elementalist;
@@ -176,7 +176,7 @@ During the current visual-production pass, keep these gameplay items deferred un
 
 ## 6. Current formal work point — Phase 4 + Visual Production
 
-The active work point is **Phase 4 hero-lite gameplay redesign alongside the ongoing high-quality presentation production pass**. Phase 4 P4-A completed objective combat and Core recovery. P4-B completed deterministic neutral camps and the XP foundation. P4-C completed Level 1–5 veteran progression. P4-D veteran presentation is now implemented; P4-E balance/run integration is next. The visual pass continues in parallel with a darker, higher-contrast battlefield target.
+Phase 4 hero-lite gameplay redesign is **CLOSED**. The active work point returns to the ongoing high-quality presentation production pass and remaining control/presentation follow-up. Phase 4 P4-A–P4-E are complete under `ef-standard-v7` / `ef-replay-v7`. The visual pass continues with a darker, higher-contrast battlefield target; manual visual acceptance remains separate from Phase 4 gameplay closure.
 
 Primary scope:
 
@@ -302,7 +302,7 @@ After the visual-production pass reaches a satisfactory baseline, resume the def
 
 ---
 
-## 7. Phase 4 Hero-Lite Progression — ACTIVE
+## 7. Phase 4 Hero-Lite Progression — CLOSED
 
 Authoritative plan:
 
@@ -354,6 +354,17 @@ P4-D completed presentation:
 - no new unit animation frames or replacement art are required;
 - P4-D is presentation-only, so gameplay/replay identity remains `ef-standard-v6` / `ef-replay-v6`.
 
-Next Phase 4 slice:
+P4-E completed balance/run integration:
 
-1. P4-E balance/run integration: snowball risk, recovery interaction, camp pacing, boss/finale interaction, and replay validation.
+- Core recovery was quantitatively corrected to an actual long-run 2% max HP/sec using deterministic 0.5-second fixed-point pulses;
+- the prior per-tick `Math.max(1, ...)` implementation was removed because it unintentionally healed low-HP units at up to ~5.6%/sec;
+- a unit at 50% HP now requires about 25 seconds of safe Core recovery to return to full health;
+- one 120-XP camp intentionally promotes a two-unit squad to Lv2, while three or more participants remain below Lv2 from one camp;
+- Level-5 scaling remains bounded at approximately +24% Max HP and +16% Attack Damage;
+- a fully Lv5 starting squad retains an estimated 80+ second theoretical boss TTK across all current boss armor/health profiles, preventing veteran progression from trivializing Finale bosses;
+- standard run duration/finale gates remain unchanged;
+- deterministic replay/state-hash coverage remains intact;
+- P4-E advances gameplay/replay identity to `ef-standard-v7` / `ef-replay-v7`;
+- validation: 74 test files / 296 tests PASS; strict TypeScript and production build PASS; Pages build PASS.
+
+Phase 4 gameplay is closed. Remaining battlefield brightness/art-quality work belongs to Visual Production and is not claimed complete here.
