@@ -3,13 +3,8 @@ import { UPGRADES_BY_ID } from '../simulation/m04-content';
 
 const PLAYER_ID = 0;
 
-function label(value: string): string {
-  return value.split('_').map((word) => word[0] + word.slice(1).toLowerCase()).join(' ');
-}
-
 export class RoguelitePanel {
   private elapsed = 0;
-  private message = 'Capture a Shrine POI, then open it to choose one of three upgrades.';
   private pointerInside = false;
 
   constructor(
@@ -63,13 +58,11 @@ export class RoguelitePanel {
       type: 'ACTIVATE_SHRINE',
       shrineId,
     });
-    this.message = `Queued Shrine activation: ${shrineId}.`;
   }
 
   private chooseUpgrade(choiceIndex: number): void {
     const open = this.simulation.roguelite.snapshot().players[PLAYER_ID]?.openShrine;
     if (!open || !Number.isSafeInteger(choiceIndex)) return;
-    const upgradeId = open.choiceIds[choiceIndex];
     this.simulation.enqueueRogueliteCommand({
       targetTick: this.simulation.snapshot().tick + 1,
       playerId: PLAYER_ID,
@@ -77,7 +70,6 @@ export class RoguelitePanel {
       shrineId: open.shrineId,
       choiceIndex,
     });
-    this.message = `Queued ${upgradeId ? UPGRADES_BY_ID[upgradeId]?.name ?? upgradeId : 'upgrade'} selection.`;
   }
 
   private render(): void {
