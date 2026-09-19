@@ -18,6 +18,13 @@ import { computeStateHash } from './state-hash';
 import { buildLightningChain, lightningDamage } from './lightning';
 import { SurfaceType, TerrainState, type TerrainCounts, type TerrainEffect, type TerrainEffectId } from './terrain-state';
 import { VisibilityState, type VisibilityCounts } from './visibility-state';
+import {
+  combatKillXp,
+  grantSharedExperience,
+  isVeteranFaction,
+  nearbyFactionParticipants,
+  unitLevelForXp,
+} from './veteran-progression';
 
 export const SIMULATION_HZ = 10;
 export const TICK_MS = 1000 / SIMULATION_HZ;
@@ -73,6 +80,7 @@ export interface EntitySnapshot {
   chilledTicks: number;
   frozenTicks: number;
   experience: number;
+  level: number;
   neutralCampId: string | null;
   visibleToPlayer: boolean;
 }
@@ -169,6 +177,7 @@ export class Simulation {
       nextAttackTick: combat.nextAttackTick, attackTargetEntityId: combat.targetEntityId,
       wet: status.wet, wetTicks: status.wetTicks, chilledTicks: status.chilledTicks, frozenTicks: status.frozenTicks,
       experience: experience.xp,
+      level: unitLevelForXp(experience.xp),
       neutralCampId: this.entities.neutralCampIds.get(entityId) ?? null,
       visibleToPlayer: faction.playerId === 0 || (
         this.visibility.isWorldVisible(0, position.x, position.z, this.navigation)
@@ -353,9 +362,36 @@ export class Simulation {
       if (targetId === null || !this.entities.hasUnit(targetId) || !this.areHostile(entityId, targetId)) continue;
       if (!this.inAttackRange(entityId, targetId, combat.attackRange) || this.tick < combat.nextAttackTick) continue;
       const health = this.entities.health.get(targetId)!;
+      if (health.current <= 0) continue;
       health.current = Math.max(0, health.current - combat.attackDamage);
       combat.nextAttackTick = this.tick + combat.attackIntervalTicks;
+      if (health.current === 0) this.awardCombatKillExperience(entityId, targetId);
     }
+  }
+
+  private awardCombatKillExperience(attackerId: EntityID, targetId: EntityID): void {
+    const attackerPlayerId = this.entities.factions.get(attackerId)?.playerId;
+    const targetPlayerId = this.entities.factions.get(targetId)?.playerId;
+    const targetPosition = this.entities.positions.get(targetId);
+    const targetArchetype = this.entities.archetypes.get(targetId);
+    if (
+      attackerPlayerId === undefined
+      || targetPlayerId === undefined
+      || attackerPlayerId === targetPlayerId
+      || !isVeteranFaction(attackerPlayerId)
+      || !isVeteranFaction(targetPlayerId)
+      || !targetPosition
+      || !targetArchetype
+    ) return;
+
+    const participants = new Set(nearbyFactionParticipants(
+      this.entities,
+      attackerPlayerId,
+      targetPosition.x,
+      targetPosition.z,
+    ));
+    if (this.entities.hasUnit(attackerId)) participants.add(attackerId);
+    grantSharedExperience(this.entities, [...participants], combatKillXp(targetArchetype));
   }
 
   private updateTerrainEffects(): void {
