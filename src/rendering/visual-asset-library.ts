@@ -398,9 +398,13 @@ export class VisualAssetLibrary {
     }
     if (resources.promise) return resources.promise;
 
-    const loadImage = (url: string): Promise<HTMLImageElement> => new Promise((resolve, reject) => {
+    const loadImage = (
+      url: string,
+      priority: 'high' | 'low' | 'auto' = 'auto',
+    ): Promise<HTMLImageElement> => new Promise((resolve, reject) => {
       const image = new Image();
       image.decoding = 'async';
+      image.fetchPriority = priority;
       image.onload = () => resolve(image);
       image.onerror = () => reject(new Error(`Failed to load ${config.label} impostor frame: ${url}`));
       image.src = url;
@@ -437,7 +441,7 @@ export class VisualAssetLibrary {
       material.useLighting = false;
       // Baked sprite art should sit inside the battlefield lighting range rather
       // than rendering at display-white emissive intensity.
-      material.emissive = new pc.Color(0.82, 0.81, 0.77);
+      material.emissive = new pc.Color(0.67, 0.66, 0.62);
       material.emissiveMap = texture;
       material.opacityMap = texture;
       material.opacityMapChannel = 'a';
@@ -485,24 +489,24 @@ export class VisualAssetLibrary {
       return images;
     };
 
-    // Fast first paint: load only frame 00 for all eight directions (~1/20 of
-    // the previous 160-frame startup request set). All actions temporarily share
-    // those direction-correct preview materials while animation frames hydrate.
+    // Fast first paint: request exactly one direction for each unique unit
+    // config. The previous eight-view preview still created a startup burst when
+    // several starting archetypes were present. Missing directions temporarily
+    // reuse the first frame, then hydrate after the scene is already interactive.
     const previewFiles = filesByAction.IDLE.filter((_, frame) => frame % framesPerDirection === 0);
-    resources.promise = Promise.allSettled(
-      previewFiles.map((path) => loadImage(`${import.meta.env.BASE_URL}${path}`)),
-    ).then((previewResults) => {
-      if (this.disposed) return null;
-      const previewImages = previewResults.map((result) => result.status === 'fulfilled' ? result.value : null);
-      const globalFallback = previewImages.find((image): image is HTMLImageElement => image !== null);
-      if (!globalFallback) throw new Error(`No ${config.label} impostor preview frames could be loaded.`);
+    const firstPreviewFile = previewFiles[0];
+    if (!firstPreviewFile) return Promise.resolve(null);
 
-      const previewByView = previewImages.map((image) => image ?? globalFallback);
-      const previewMaterialsByView = previewByView.map((image, view) =>
-        createFrameMaterial('IDLE', view * framesPerDirection, image),
+    resources.promise = loadImage(`${import.meta.env.BASE_URL}${firstPreviewFile}`, 'high').then((firstPreviewImage) => {
+      if (this.disposed) return null;
+      const firstPreviewMaterial = createFrameMaterial('IDLE', 0, firstPreviewImage);
+      const previewByView: HTMLImageElement[] = Array.from(
+        { length: previewFiles.length },
+        () => firstPreviewImage,
       );
-      const previewMaterials = Array.from({ length: framesPerAction }, (_, frame) =>
-        previewMaterialsByView[Math.floor(frame / framesPerDirection)]!,
+      const previewMaterials = Array.from(
+        { length: framesPerAction },
+        () => firstPreviewMaterial,
       );
       const actionMaterials: Record<ImpostorAnimationAction, readonly pc.StandardMaterial[]> = {
         IDLE: previewMaterials,
@@ -510,6 +514,24 @@ export class VisualAssetLibrary {
         ATTACK: previewMaterials,
         HIT: previewMaterials,
         DEATH: previewMaterials,
+      };
+
+      const hydrateRemainingPreviews = async (): Promise<void> => {
+        const remaining = previewFiles.slice(1);
+        const results = await Promise.allSettled(
+          remaining.map((path) => loadImage(`${import.meta.env.BASE_URL}${path}`, 'low')),
+        );
+        if (this.disposed) return;
+        for (let index = 0; index < results.length; index += 1) {
+          const result = results[index];
+          if (result?.status !== 'fulfilled') continue;
+          const view = index + 1;
+          previewByView[view] = result.value;
+          const material = createFrameMaterial('IDLE', view * framesPerDirection, result.value);
+          for (let localFrame = 0; localFrame < framesPerDirection; localFrame += 1) {
+            previewMaterials[view * framesPerDirection + localFrame] = material;
+          }
+        }
       };
 
       const hydrateAction = async (action: ImpostorAnimationAction): Promise<void> => {
@@ -522,30 +544,30 @@ export class VisualAssetLibrary {
           const view = Math.floor(frame / framesPerDirection);
           const image = nearestLoadedImage(images, frame)
             ?? previewByView[view]
-            ?? globalFallback;
+            ?? firstPreviewImage;
           materials.push(createFrameMaterial(action, frame, image));
         }
         actionMaterials[action] = materials;
       };
 
-      const hydratePriorityActions = async (): Promise<void> => {
-        // Idle already has one direction-correct preview frame per view. Load
-        // gameplay-readable actions first; full Idle is deliberately deferred.
+      const hydrateStartupAssets = async (): Promise<void> => {
+        await hydrateRemainingPreviews();
+        if (this.disposed) return;
+        await new Promise<void>((resolve) => window.setTimeout(resolve, 120));
+        // Gameplay-readable actions hydrate in sequence to avoid a large
+        // simultaneous image/decode burst on slower desktop connections.
         for (const action of ['MOVE', 'ATTACK', 'HIT', 'DEATH'] as const) {
           await hydrateAction(action);
           if (this.disposed) return;
-          await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+          await new Promise<void>((resolve) => window.setTimeout(resolve, 80));
         }
       };
 
-      window.setTimeout(() => { void hydratePriorityActions(); }, 250);
-      // Full breathing/weight-shift Idle is cosmetic. Keep the static preview
-      // for the opening seconds and only hydrate it after the battlefield has
-      // already become interactive.
+      window.setTimeout(() => { void hydrateStartupAssets(); }, 100);
+      // Full breathing/weight-shift Idle remains cosmetic and intentionally late.
       const idleHydrationDelayMs = 12_000
         + [...config.slug].reduce((sum, character) => sum + character.charCodeAt(0), 0) % 8_000;
       window.setTimeout(() => { void hydrateAction('IDLE'); }, idleHydrationDelayMs);
-      return actionMaterials;
     }).catch((error: unknown) => {
       console.warn(`${config.label} animated impostor preview load failed; using fallback geometry.`, error);
       return null;
