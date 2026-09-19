@@ -2,7 +2,7 @@ import * as pc from 'playcanvas';
 import type { RtsCamera } from './rts-camera';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
 import { VisibilityLevel } from '../simulation/visibility-state';
-import type { StrategicSnapshot } from '../simulation/strategic-state';
+import { POI_AUTO_CAPTURE_THRESHOLD_TENTHS, type StrategicSnapshot } from '../simulation/strategic-state';
 import type { NeutralEncounterSnapshot } from '../simulation/neutral-encounter-state';
 import type { GeneratedWorld, PointOfInterest } from '../world/world-definition';
 import { worldCellToSimulationPosition } from '../world/world-arena';
@@ -133,6 +133,7 @@ export class PoiRenderBridge {
   private readonly tooltip: HTMLDivElement;
   private hoveredPoiId: string | null = null;
   private latestPoiOwners: Readonly<Record<string, number>> = {};
+  private latestCaptureOrders: StrategicSnapshot['captureOrders'] = [];
   private latestNeutralEncounters: NeutralEncounterSnapshot | null = null;
 
   constructor(
@@ -158,6 +159,7 @@ export class PoiRenderBridge {
     neutralEncounters?: NeutralEncounterSnapshot,
   ): void {
     this.latestPoiOwners = snapshot.poiOwners;
+    this.latestCaptureOrders = snapshot.captureOrders;
     this.latestNeutralEncounters = neutralEncounters ?? null;
     for (const presentation of this.presentations.values()) {
       const cellIndex = presentation.poi.cell.z * this.world.width + presentation.poi.cell.x;
@@ -426,15 +428,21 @@ export class PoiRenderBridge {
     const camp = presentation.poi.type === 'NEUTRAL_CAMP'
       ? this.latestNeutralEncounters?.camps.find((candidate) => candidate.id === poiId)
       : undefined;
-    const status = ownership === 'PLAYER'
-      ? 'Controlled · Influence already claimed'
-      : ownership === 'ENEMY'
-        ? 'Enemy controlled'
-        : camp && !camp.cleared
-          ? `Guarded · ${camp.aliveGuardianCount} Sentinel${camp.aliveGuardianCount === 1 ? '' : 's'} · Clear before capture`
-          : camp?.cleared
-            ? `Cleared · ${camp.rewardXp} XP distributed · Capture for +10 Influence`
-            : 'Unclaimed · Capture for +10 Influence';
+    const active = this.latestCaptureOrders.find((order) => order.targetPoiId === poiId);
+    const capturePercent = active
+      ? Math.max(0, Math.min(100, Math.round((active.progressTenths * 100) / POI_AUTO_CAPTURE_THRESHOLD_TENTHS)))
+      : 0;
+    const status = camp && !camp.cleared
+      ? `Guarded · ${camp.aliveGuardianCount} Sentinel${camp.aliveGuardianCount === 1 ? '' : 's'} · Clear first`
+      : active && active.entityIds.length > 0
+        ? `${active.playerId === 0 ? 'Securing' : 'Enemy securing'} automatically · ${capturePercent}% · stay within 5 m`
+        : ownership === 'PLAYER'
+          ? 'Secured · +10 Influence claimed'
+          : ownership === 'ENEMY'
+            ? 'Enemy controlled · move units within 5 m to contest automatically'
+            : camp?.cleared
+              ? `Cleared · ${camp.rewardXp} XP distributed · move within 5 m to secure +10 Influence`
+              : 'Unclaimed · move units within 5 m to secure automatically · +10 Influence';
     this.tooltip.textContent = `${profile.label} · Region ${presentation.poi.regionId + 1} · ${status} · Click to focus`;
   }
 
