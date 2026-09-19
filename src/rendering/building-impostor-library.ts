@@ -55,9 +55,14 @@ export class BuildingImpostorLibrary {
       return handle;
     }
 
+    // Completed player buildings should not briefly expose their primitive
+    // construction fallback while the final WebP is decoding.
+    for (const primitive of fallback) primitive.enabled = false;
+
     void this.load(config).then((material) => {
       if (handle.released || this.disposed) return;
       if (!material) {
+        for (const primitive of fallback) primitive.enabled = true;
         onUnavailable();
         return;
       }
