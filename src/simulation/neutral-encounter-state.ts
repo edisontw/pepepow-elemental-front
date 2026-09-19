@@ -7,8 +7,8 @@ import { grantSharedExperience } from './veteran-progression';
 import type { GeneratedWorld } from '../world/world-definition';
 
 export const NEUTRAL_PLAYER_ID = 2;
-export const NEUTRAL_GUARDIANS_PER_CAMP = 2;
-export const NEUTRAL_CAMP_XP_REWARD = 120;
+export const NEUTRAL_GUARDIANS_PER_CAMP = 3;
+export const NEUTRAL_CAMP_XP_REWARD = 150;
 export const NEUTRAL_CAMP_XP_RADIUS = 14 * WORLD_UNITS_PER_METER;
 export const NEUTRAL_CAMP_LEASH_RADIUS = 12 * WORLD_UNITS_PER_METER;
 export const NEUTRAL_CAMP_AGGRO_RADIUS = 8 * WORLD_UNITS_PER_METER;
