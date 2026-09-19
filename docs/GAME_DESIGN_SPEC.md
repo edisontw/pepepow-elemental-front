@@ -1430,7 +1430,7 @@ A normal MOVE near an enemy Core must not damage it.
 
 Friendly active Cores provide a recovery zone:
 - radius: 8 m baseline;
-- recovery: 2% max HP/sec baseline;
+- recovery: 2% max HP/sec baseline, resolved as deterministic 0.5-second fixed-point pulses so integer HP does not accelerate low-health-unit recovery;
 - no healing while the unit is actively attacking;
 - no healing while a hostile unit is actively targeting that unit;
 - critical/destroyed Core disables normal unit recovery;
