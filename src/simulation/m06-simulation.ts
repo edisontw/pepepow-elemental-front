@@ -348,8 +348,8 @@ export class M06Simulation extends M05Simulation {
   }
 
   private canEnqueueStrategicCommand(command: M03Command): boolean {
-    if (command.type !== 'CAPTURE' || command.targetPoiId === undefined) return true;
-    return !this.neutralEncounters.isCaptureBlocked(command.targetPoiId);
+    if (command.type === 'CAPTURE' && command.targetPoiId !== undefined) return false;
+    return true;
   }
 
   private processRunCommands(targetTick: number): void {
