@@ -1,9 +1,9 @@
 # PEPEPOW Elemental Front — Post-Roadmap Phase 4 Hero-Lite Progression Plan
 
-**Status:** ACTIVE — P4-A complete; P4-B Neutral Camps / XP Foundation active  
+**Status:** ACTIVE — P4-A/P4-B complete; P4-C Unit XP / Level 1–5 active  
 **World generation:** `m02-standard-v1` remains unchanged  
-**Gameplay identity:** `ef-standard-v5`  
-**Replay identity:** `ef-replay-v5`
+**Gameplay identity:** `ef-standard-v6`  
+**Replay identity:** `ef-replay-v6`
 
 ## 1. Direction
 
@@ -244,7 +244,8 @@ Phase 4 changes authoritative combat, recovery, neutral-encounter, and progressi
 Version history inside Phase 4:
 
 - P4-A Core combat / recovery shipped as `ef-standard-v4` / `ef-replay-v4`;
-- P4-B Neutral Camps / XP Foundation advances to `ef-standard-v5` / `ef-replay-v5`;
+- P4-B Neutral Camps / XP Foundation shipped as `ef-standard-v5` / `ef-replay-v5`;
+- P4-C Unit XP / Level 1–5 advances to `ef-standard-v6` / `ef-replay-v6`;
 - world generation remains `m02-standard-v1`;
 - XP, level, objective-attack intent, and any future neutral-monster state must be deterministic and hash-covered;
 - presentation-only idle timing does not enter gameplay state.
@@ -261,7 +262,7 @@ Version history inside Phase 4:
 - v4 gameplay/replay identity;
 - targeted tests.
 
-### P4-B — Neutral Encounter Foundation — ACTIVE
+### P4-B — Neutral Encounter Foundation — COMPLETE
 
 Implemented foundation:
 
@@ -276,14 +277,22 @@ Implemented foundation:
 - camp state, unit XP, and camp membership are state-hashed and replay-relevant;
 - guarded / cleared camp state is shown in the POI capture UI.
 
-### P4-C — Unit XP / Level 1–5
+### P4-C — Unit XP / Level 1–5 — ACTIVE
 
-- Experience component;
-- deterministic shared XP;
-- level thresholds;
-- HP/damage scaling;
-- snapshot/hash/replay support;
-- selected-unit level/XP UI.
+Implemented foundation:
+
+- all ordinary player/enemy combat units begin at Level 1;
+- cumulative thresholds: Lv2 60 XP, Lv3 150 XP, Lv4 280 XP, Lv5 450 XP;
+- normal combat-unit kills grant shared XP to nearby same-faction participants; the final hitter receives no exclusive reward;
+- combat-kill XP is threat-weighted from the defeated archetype population cost;
+- Neutral Sentinels remain camp-reward-only to avoid double dipping with the 120 XP clear reward;
+- Max HP grows linearly by approximately 6% per level above Level 1;
+- Attack Damage grows linearly by approximately 4% per level above Level 1;
+- growth always derives from stored base stats, avoiding multiplicative runaway scaling;
+- level-up restores only the added Max-HP delta;
+- Level 5 caps XP at 450;
+- unit snapshots expose Level; XP/base progression data are state-hashed and replay-relevant;
+- selected-unit UI shows Level and XP progress; group selection summarizes counts by veteran level.
 
 ### P4-D — Veteran Presentation
 
