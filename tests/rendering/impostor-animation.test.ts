@@ -36,7 +36,7 @@ describe('animated unit impostor assets', () => {
     }
   });
 
-  it('keeps the fixed-camera diagonal calibration in runtime view order', () => {
+  it('keeps the refreshed action pack in canonical runtime direction order', () => {
     const files = animatedImpostorFrameFiles('vanguard', 'IDLE');
     expect(files.slice(0, 4)).toEqual([
       `assets/impostors/vanguard/idle/front_00.webp${revision}`,
@@ -45,22 +45,22 @@ describe('animated unit impostor assets', () => {
       `assets/impostors/vanguard/idle/front_03.webp${revision}`,
     ]);
     expect(files.slice(4, 8)).toEqual([
-      `assets/impostors/vanguard/idle/front_right_00.webp${revision}`,
-      `assets/impostors/vanguard/idle/front_right_01.webp${revision}`,
-      `assets/impostors/vanguard/idle/front_right_02.webp${revision}`,
-      `assets/impostors/vanguard/idle/front_right_03.webp${revision}`,
-    ]);
-    expect(files.slice(12, 16)).toEqual([
-      `assets/impostors/vanguard/idle/rear_right_00.webp${revision}`,
-      `assets/impostors/vanguard/idle/rear_right_01.webp${revision}`,
-      `assets/impostors/vanguard/idle/rear_right_02.webp${revision}`,
-      `assets/impostors/vanguard/idle/rear_right_03.webp${revision}`,
-    ]);
-    expect(files.slice(28, 32)).toEqual([
       `assets/impostors/vanguard/idle/front_left_00.webp${revision}`,
       `assets/impostors/vanguard/idle/front_left_01.webp${revision}`,
       `assets/impostors/vanguard/idle/front_left_02.webp${revision}`,
       `assets/impostors/vanguard/idle/front_left_03.webp${revision}`,
+    ]);
+    expect(files.slice(12, 16)).toEqual([
+      `assets/impostors/vanguard/idle/rear_left_00.webp${revision}`,
+      `assets/impostors/vanguard/idle/rear_left_01.webp${revision}`,
+      `assets/impostors/vanguard/idle/rear_left_02.webp${revision}`,
+      `assets/impostors/vanguard/idle/rear_left_03.webp${revision}`,
+    ]);
+    expect(files.slice(28, 32)).toEqual([
+      `assets/impostors/vanguard/idle/front_right_00.webp${revision}`,
+      `assets/impostors/vanguard/idle/front_right_01.webp${revision}`,
+      `assets/impostors/vanguard/idle/front_right_02.webp${revision}`,
+      `assets/impostors/vanguard/idle/front_right_03.webp${revision}`,
     ]);
   });
 

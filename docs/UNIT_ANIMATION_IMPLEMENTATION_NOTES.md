@@ -72,8 +72,11 @@ Do not resume that path by default.
 - One 1568×1040 RGBA atlas per action; eight columns × four rows; 192×256
   unscaled frames with two-pixel extruded gutters. Every source pixel is verified
   after lossless encoding. Canonical source direction-major order is unchanged.
-- `impostor-atlas.ts` maps existing calibrated runtime directions to UV rectangles;
-  uploads explicitly retain `flipY=false`. No new direction remapping.
+- `impostor-atlas.ts` maps the refreshed action pack's canonical direction order
+  directly to UV rectangles; uploads explicitly retain `flipY=false`.
+- The legacy static-turnaround diagonal swap is not applied to the refreshed
+  Idle/Move/Attack/Hit/Death pack. Applying it there double-mirrors the diagonal
+  views during true eight-direction travel.
 - One texture per loaded config/action; immutable UV materials shared across units.
   Idle loads once per instantiated player-side config; actions load only on use.
   Missing actions retain directional Idle; failed requests are cached to avoid retries.

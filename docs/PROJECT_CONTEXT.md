@@ -270,7 +270,9 @@ Current decision:
 - those 3D artifacts are historical/reference/fallback material only;
 - do not resume Blender-first modeling by default;
 - use the canonical art to build coherent eight-direction animated WebP atlases;
-- preserve the shared direction convention and previously corrected diagonal/rear mappings;
+- preserve the shared direction convention; the refreshed five-action sprite pack
+  uses canonical direction names directly, while the older static-turnaround
+  diagonal swap remains legacy-only and must not be applied to animated atlases;
 - fix scale drift with per-view normalization where necessary rather than relabeling directions;
 - see `docs/UNIT_ANIMATION_IMPLEMENTATION_NOTES.md` for the exact active resume contract.
 
