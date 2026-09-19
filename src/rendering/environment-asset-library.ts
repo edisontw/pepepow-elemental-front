@@ -26,7 +26,7 @@ export class EnvironmentAssetLibrary {
         // Baked diffuse art, like existing unit impostors. Alpha test writes depth
         // and avoids sorted transparent forest fields. Vertex alpha owns per-cell fog.
         material.useLighting = false;
-        material.emissive = new pc.Color(0.78, 0.8, 0.74);
+        material.emissive = new pc.Color(0.64, 0.66, 0.59);
         material.emissiveMap = texture;
         material.opacityMap = texture;
         material.opacityMapChannel = 'a';
