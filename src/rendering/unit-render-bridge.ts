@@ -1,6 +1,7 @@
 import * as pc from 'playcanvas';
 import { BattleVfx, ELEMENT_TINTS, ringMesh } from './battle-vfx';
 import type { M04SimulationSnapshot } from '../simulation/m04-simulation';
+import type { M06SimulationSnapshot } from '../simulation/m06-simulation';
 import { VisualAssetLibrary, type VisualModel } from './visual-asset-library';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
 import type { EntityID } from '../simulation/components';
@@ -559,21 +560,37 @@ export class UnitRenderBridge {
         this.effects.burst(metres(prior.x), .4, metres(prior.z), [.52, .44, .31], current.tick, 10, .9);
       }
 
+      const run = (current as Partial<M06SimulationSnapshot>).run;
+      const objectiveOrder = run?.objectiveAttackOrders.find((order) => order.entityId === unit.id);
+      const objectiveTarget = objectiveOrder?.objective === 'ENEMY_CORE'
+        ? run?.enemyCore
+        : objectiveOrder?.objective === 'PLAYER_CORE'
+          ? run?.playerCore
+          : objectiveOrder?.objective === 'BOSS'
+            ? run?.boss
+            : null;
       if (
         !unit.alive
         || !unit.visibleToPlayer
-        || unit.attackTargetEntityId === null
+        || (unit.attackTargetEntityId === null && !objectiveTarget)
         || unit.nextAttackTick <= prior.nextAttackTick
       ) continue;
       const profile = unitVisualProfile(unit.archetype);
       presentation.actionTick = current.tick;
       if (unit.archetype === 'ELEMENTALIST') this.effects.burst(metres(unit.x), 1.65, metres(unit.z), ELEMENT_TINTS[this.alignments.get(unit.id) ?? 'WATER'], current.tick, 5, .4);
-      const facing = currentById.get(unit.attackTargetEntityId);
+
+      if (objectiveTarget) {
+        presentation.facingOverrideYaw = facingYawDegrees(unit.x, unit.z, objectiveTarget.x, objectiveTarget.z);
+        presentation.facingOverrideUntilTick = current.tick + 1;
+        continue;
+      }
+
+      const facing = unit.attackTargetEntityId === null ? undefined : currentById.get(unit.attackTargetEntityId);
       if (facing?.visibleToPlayer) {
         presentation.facingOverrideYaw = facingYawDegrees(unit.x, unit.z, facing.x, facing.z);
         presentation.facingOverrideUntilTick = current.tick + 1;
       }
-      if (profile.projectile === 'NONE') continue;
+      if (profile.projectile === 'NONE' || unit.attackTargetEntityId === null) continue;
       const target = currentById.get(unit.attackTargetEntityId);
       if (!target || (!target.visibleToPlayer && target.playerId !== 0)) continue;
       this.spawnProjectile(unit, target, profile.projectile, current.tick);
