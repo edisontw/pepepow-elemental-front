@@ -67,6 +67,8 @@ export interface ElementalAlignmentComponent {
 
 export interface ExperienceComponent {
   xp: number;
+  baseMaxHealth: number;
+  baseAttackDamage: number;
 }
 
 export interface UnitSpawn {
