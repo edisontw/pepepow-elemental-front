@@ -69,26 +69,26 @@ const ARENA: ArenaDefinition = {
 
 describe('Phase 4 veteran progression', () => {
   it('maps deterministic cumulative XP thresholds to Level 1-5', () => {
-    expect(UNIT_LEVEL_XP_THRESHOLDS).toEqual([0, 60, 150, 280, 450]);
+    expect(UNIT_LEVEL_XP_THRESHOLDS).toEqual([0, 50, 120, 220, 350]);
     expect(unitLevelForXp(0)).toBe(1);
-    expect(unitLevelForXp(59)).toBe(1);
-    expect(unitLevelForXp(60)).toBe(2);
-    expect(unitLevelForXp(149)).toBe(2);
-    expect(unitLevelForXp(150)).toBe(3);
-    expect(unitLevelForXp(280)).toBe(4);
-    expect(unitLevelForXp(450)).toBe(5);
+    expect(unitLevelForXp(49)).toBe(1);
+    expect(unitLevelForXp(50)).toBe(2);
+    expect(unitLevelForXp(119)).toBe(2);
+    expect(unitLevelForXp(120)).toBe(3);
+    expect(unitLevelForXp(220)).toBe(4);
+    expect(unitLevelForXp(350)).toBe(5);
     expect(unitLevelForXp(9_999)).toBe(5);
 
-    expect(unitXpProgress(149)).toMatchObject({
+    expect(unitXpProgress(119)).toMatchObject({
       level: 2,
-      currentLevelXp: 60,
-      nextLevelXp: 150,
-      progressXp: 89,
-      progressRequired: 90,
+      currentLevelXp: 50,
+      nextLevelXp: 120,
+      progressXp: 69,
+      progressRequired: 70,
     });
-    expect(unitXpProgress(450)).toMatchObject({
+    expect(unitXpProgress(350)).toMatchObject({
       level: 5,
-      currentLevelXp: 450,
+      currentLevelXp: 350,
       nextLevelXp: null,
       progressXp: 0,
       progressRequired: null,
@@ -110,7 +110,7 @@ describe('Phase 4 veteran progression', () => {
       attackRange: 1_250,
     });
 
-    expect(grantExperience(entities, id, 59)).toBe(false);
+    expect(grantExperience(entities, id, 49)).toBe(false);
     expect(entities.health.get(id)).toMatchObject({ current: 180, max: 180 });
     expect(entities.combat.get(id)?.attackDamage).toBe(18);
 
@@ -120,7 +120,7 @@ describe('Phase 4 veteran progression', () => {
     expect(entities.combat.get(id)?.attackDamage).toBe(19);
 
     entities.health.get(id)!.current = 100;
-    expect(grantExperience(entities, id, 90)).toBe(true);
+    expect(grantExperience(entities, id, 70)).toBe(true);
     expect(unitLevelForXp(entities.experience.get(id)!.xp)).toBe(3);
     expect(entities.health.get(id)).toMatchObject({ current: 111, max: 202 });
     expect(entities.combat.get(id)?.attackDamage).toBe(19);
