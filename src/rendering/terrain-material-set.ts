@@ -91,10 +91,10 @@ void getAlbedo() {
         vec3 surface = mix(meadow, groundTile(3.0, uv), weights.r * 0.94);
         surface = mix(surface, groundTile(6.0, uv * 0.8), weights.g * 0.82);
         surface = mix(surface, groundTile(5.0, uv), weights.b * 0.8);
-        dAlbedo = surface * (0.67 + broad * 0.14);
+        dAlbedo = surface * (0.73 + broad * 0.15);
     } else {
-        dAlbedo = groundTile(environmentTile, uv) * (0.70 + broad * 0.08);
-        if (environmentTile == 4.0) dAlbedo *= 0.88;
+        dAlbedo = groundTile(environmentTile, uv) * (0.76 + broad * 0.09);
+        if (environmentTile == 4.0) dAlbedo *= 0.91;
     }
 }
 `;
