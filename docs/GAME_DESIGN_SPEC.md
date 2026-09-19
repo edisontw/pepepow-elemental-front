@@ -1479,3 +1479,28 @@ Prefer:
 - modern RTS/MOBA readability without copying another game's characters, maps, or assets.
 
 Avoid broad white emissive surfaces, uniformly bright green ground, and low-contrast early-3D-RTS presentation.
+
+
+---
+
+# 60. Automatic POI securing
+
+POI ownership remains a strategic map state, but manual `Capture POI` UI is removed.
+
+Rules:
+- moving units to a POI is the player decision; no second confirmation click is required;
+- eligible POIs secure automatically while exactly one non-neutral faction has units within 5 m of the landmark;
+- capture progress pauses when no eligible faction is nearby;
+- capture progress pauses while opposing factions are simultaneously within range;
+- capture speed uses existing per-unit capture power and the existing capture-power cap;
+- standard automatic POI threshold is 900 capture-tenths;
+- securing or taking over a POI grants the capturing faction +10 Influence;
+- Neutral Camps cannot begin securing until their Sentinels are cleared;
+- Region ownership / supply / Outpost expansion remain separate territory systems;
+- strategic `CAPTURE` commands remain valid for Regions, not POIs;
+- Enemy War `CONTEST_POI` reaches the landmark physically and uses the same automatic rule.
+
+Design rationale:
+- preserve exploration, contest, and Influence reward;
+- remove redundant command/UI micro;
+- require actual proximity to the landmark rather than merely standing somewhere in the same strategic region.
