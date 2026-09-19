@@ -61,6 +61,18 @@ function moveUnitsToRegion(world: GeneratedWorld, entities: EntityStore, entityI
   }
 }
 
+function moveUnitsToPoi(world: GeneratedWorld, entities: EntityStore, entityIds: readonly number[], poiId: string): void {
+  const poi = world.pois.find((candidate) => candidate.id === poiId);
+  if (!poi) throw new Error(`Missing POI ${poiId}.`);
+  const position = worldCellToSimulationPosition(world, poi.cell);
+  for (const entityId of entityIds) {
+    const component = entities.positions.get(entityId);
+    if (!component) continue;
+    component.x = position.x;
+    component.z = position.z;
+  }
+}
+
 function captureRegion(state: StrategicState, world: GeneratedWorld, entities: EntityStore, entityIds: readonly number[], playerId: number, regionId: number): void {
   moveUnitsToRegion(world, entities, entityIds, regionId);
   expect(state.processCommand({ targetTick: 1, playerId, type: 'CAPTURE', entityIds, targetRegionId: regionId }, 1)).toBe(true);
@@ -136,18 +148,39 @@ describe('M03 economy and territory', () => {
     expect(state.snapshot().populationUsed[0]).toBe(7);
   });
 
-  it('captures POIs once and grants the canonical Influence reward without duplication', () => {
+  it('secures POIs automatically by proximity and rejects the retired manual POI command', () => {
     const { world, entities, state, playerUnits } = createStrategicHarness();
     const start = playerSpawnRegion(world);
     const poi = world.pois.find((candidate) => candidate.regionId === start) ?? world.pois[0];
     if (!poi) throw new Error('Missing M02 POI.');
-    moveUnitsToRegion(world, entities, playerUnits, poi.regionId);
-    expect(state.processCommand({ targetTick: 1, playerId: 0, type: 'CAPTURE', entityIds: playerUnits, targetPoiId: poi.id }, 1)).toBe(true);
-    for (let tick = 0; tick < 240; tick += 1) state.advanceTerritory();
+
+    expect(state.processCommand({ targetTick: 1, playerId: 0, type: 'CAPTURE', entityIds: playerUnits, targetPoiId: poi.id }, 1)).toBe(false);
+    moveUnitsToPoi(world, entities, playerUnits, poi.id);
+
+    for (let tick = 0; tick < 60; tick += 1) state.advanceTerritory();
     expect(state.snapshot().poiOwners[poi.id]).toBe(0);
     expect(state.snapshot().resources[0]!.influenceMilli).toBe(20_000);
-    expect(state.processCommand({ targetTick: 2, playerId: 0, type: 'CAPTURE', entityIds: playerUnits, targetPoiId: poi.id }, 2)).toBe(false);
+
+    for (let tick = 0; tick < 60; tick += 1) state.advanceTerritory();
     expect(state.snapshot().resources[0]!.influenceMilli).toBe(20_000);
+  });
+
+  it('pauses automatic POI progress while no uncontested faction is present', () => {
+    const { world, entities, state, playerUnits, enemyUnits } = createStrategicHarness();
+    const poi = world.pois[0];
+    if (!poi) throw new Error('Missing M02 POI.');
+
+    moveUnitsToPoi(world, entities, [playerUnits[0]!], poi.id);
+    for (let tick = 0; tick < 20; tick += 1) state.advanceTerritory();
+    const started = state.snapshot().captureOrders.find((order) => order.targetPoiId === poi.id && order.playerId === 0);
+    expect(started?.progressTenths).toBeGreaterThan(0);
+    const pausedAt = started?.progressTenths ?? 0;
+
+    moveUnitsToPoi(world, entities, [enemyUnits[0]!], poi.id);
+    for (let tick = 0; tick < 20; tick += 1) state.advanceTerritory();
+    const contested = state.snapshot().captureOrders.find((order) => order.targetPoiId === poi.id && order.playerId === 0);
+    expect(contested?.progressTenths).toBe(pausedAt);
+    expect(state.snapshot().poiOwners[poi.id]).toBeUndefined();
   });
 
   it('makes expansion valuable and supply cuts reduce population plus remote Extractor throughput', () => {
