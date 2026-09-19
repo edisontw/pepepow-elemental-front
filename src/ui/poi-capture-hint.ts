@@ -1,6 +1,7 @@
 import type { EntitySnapshot } from '../simulation/simulation';
 import { CAPTURE_BASE_TICKS } from '../simulation/m03-content';
 import { M03Simulation } from '../simulation/m03-simulation';
+import type { NeutralEncounterSnapshot } from '../simulation/neutral-encounter-state';
 import type { PointOfInterest } from '../world/world-definition';
 import { poiVisualProfile } from '../rendering/poi-visual-profile';
 
@@ -100,7 +101,15 @@ export class PoiCaptureHint {
         hint.textContent = 'POI: move any player unit into a marked POI region. Any unit type can capture; multiple units capture faster.';
       } else if (context.poi) {
         const poiLabel = poiVisualProfile(context.poi.type).label;
-        if (active) {
+        const neutralEncounters = (this.simulation.snapshot() as { neutralEncounters?: NeutralEncounterSnapshot }).neutralEncounters;
+        const camp = context.poi.type === 'NEUTRAL_CAMP'
+          ? neutralEncounters?.camps.find((candidate) => candidate.id === context.poi?.id)
+          : undefined;
+        if (camp && !camp.cleared) {
+          captureButton.disabled = true;
+          captureButton.textContent = `Clear Neutral Camp · ${camp.aliveGuardianCount} guard${camp.aliveGuardianCount === 1 ? '' : 's'}`;
+          hint.textContent = `Neutral Camp · Region ${context.regionId + 1} · guarded. Right-click a visible sentinel to attack; capture unlocks after the camp is cleared.`;
+        } else if (active) {
           const percent = Math.max(0, Math.min(100, Math.round((active.progressTenths * 100) / CAPTURE_THRESHOLD_TENTHS)));
           captureButton.disabled = true;
           captureButton.textContent = `Capturing ${poiLabel} · ${percent}%`;
@@ -109,7 +118,9 @@ export class PoiCaptureHint {
           const owner = snapshot.poiOwners[context.poi.id];
           captureButton.disabled = false;
           captureButton.textContent = `Capture ${poiLabel} (+10 Influence)`;
-          hint.textContent = `${poiLabel} · Region ${context.regionId + 1} · ${owner === undefined ? 'Unclaimed' : 'Enemy controlled'} · selected units can capture now.`;
+          hint.textContent = context.poi.type === 'NEUTRAL_CAMP' && camp?.cleared
+            ? `${poiLabel} · Region ${context.regionId + 1} · cleared · ${camp.rewardXp} XP distributed · capture available.`
+            : `${poiLabel} · Region ${context.regionId + 1} · ${owner === undefined ? 'Unclaimed' : 'Enemy controlled'} · selected units can capture now.`;
         }
       } else if (context.alreadyControlled) {
         const poiLabel = poiVisualProfile(context.alreadyControlled.type).label;
