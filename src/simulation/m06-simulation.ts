@@ -409,11 +409,9 @@ export class M06Simulation extends M05Simulation {
       && decision.targetRegionId !== null
       && decision.targetRegionId === playerCoreRegion;
 
-    for (const [entityId, objective] of [...this.objectiveAttackOrders.entries()]) {
-      if (objective === 'PLAYER_CORE' && this.entities.factions.get(entityId)?.playerId === 1) {
-        this.objectiveAttackOrders.delete(entityId);
-      }
-    }
+    // Objective intent persists until the unit receives another normal command.
+    // Enemy AI MOVE / ATTACK / STOP commands already clear stale objective orders
+    // through enqueueCommand(), so do not erase an explicit Core attack here.
     if (!shouldAttackCore) return;
 
     const enemyIds = this.entities.entityIds()
