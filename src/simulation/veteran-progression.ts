@@ -10,6 +10,10 @@ export const UNIT_MAX_HEALTH_PER_LEVEL_PERMILLE = 60;
 export const UNIT_ATTACK_DAMAGE_PER_LEVEL_PERMILLE = 40;
 export const COMBAT_XP_SHARE_RADIUS = 12 * WORLD_UNITS_PER_METER;
 
+export function isVeteranFaction(playerId: number): boolean {
+  return playerId === 0 || playerId === 1;
+}
+
 export interface UnitXpProgress {
   level: number;
   currentLevelXp: number;
