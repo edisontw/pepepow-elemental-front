@@ -72,6 +72,13 @@ export interface RunResultSnapshot {
   score: ScoreBreakdown;
 }
 
+export type RunObjectiveId = 'PLAYER_CORE' | 'ENEMY_CORE' | 'BOSS';
+
+export interface ObjectiveAttackOrderSnapshot {
+  entityId: number;
+  objective: RunObjectiveId;
+}
+
 export interface RunPressureSnapshot {
   playerCoreAttackers: number;
   enemyCoreAttackers: number;
@@ -92,6 +99,7 @@ export interface RunSnapshot {
   enemyCore: CoreObjectiveSnapshot;
   boss: BossObjectiveSnapshot;
   pressure: RunPressureSnapshot;
+  objectiveAttackOrders: readonly ObjectiveAttackOrderSnapshot[];
   result: RunResultSnapshot | null;
 }
 
@@ -151,6 +159,7 @@ export class RunState {
     bossAttackers: 0,
     repairingEngineers: 0,
   };
+  private objectiveAttackOrders: ObjectiveAttackOrderSnapshot[] = [];
 
   constructor(
     readonly world: GeneratedWorld,
@@ -201,8 +210,11 @@ export class RunState {
     entities: EntityStore,
     strategic: StrategicSnapshot,
     roguelite: RogueliteSnapshot,
+    objectiveAttackOrders: readonly ObjectiveAttackOrderSnapshot[] = [],
   ): BossAbilityIntent | null {
     if (this.outcome !== 'IN_PROGRESS') return null;
+    this.objectiveAttackOrders = [...objectiveAttackOrders]
+      .sort((left, right) => left.entityId - right.entityId || left.objective.localeCompare(right.objective));
     this.phase = phaseForTick(tick, this.pace);
     this.updateFinaleGate(tick, strategic, roguelite);
 
@@ -214,6 +226,9 @@ export class RunState {
       STRUCTURE_BODY_RADIUS,
       tick,
       true,
+      new Set(this.objectiveAttackOrders
+        .filter((order) => order.objective === 'PLAYER_CORE')
+        .map((order) => order.entityId)),
     );
     this.pressure = { ...this.pressure, playerCoreAttackers: playerCoreAssault.attackers };
     if (this.playerCore.state === 'ACTIVE' && playerCoreAssault.damage > 0) {
@@ -261,6 +276,9 @@ export class RunState {
         STRUCTURE_BODY_RADIUS,
         tick,
         true,
+        new Set(this.objectiveAttackOrders
+          .filter((order) => order.objective === 'ENEMY_CORE')
+          .map((order) => order.entityId)),
       );
       this.pressure = { ...this.pressure, enemyCoreAttackers: enemyCoreAssault.attackers, bossAttackers: 0 };
       if (enemyCoreAssault.damage > 0) {
@@ -332,6 +350,7 @@ export class RunState {
       enemyCore: { ...this.enemyCore },
       boss: { ...this.boss },
       pressure: { ...this.pressure },
+      objectiveAttackOrders: this.objectiveAttackOrders.map((order) => ({ ...order })),
       result: this.result === null ? null : {
         ...this.result,
         score: { ...this.result.score },
@@ -385,11 +404,13 @@ export class RunState {
     bodyRadius: number,
     tick: number,
     structureTarget: boolean,
+    authorizedEntityIds?: ReadonlySet<number>,
   ): AssaultResult {
     let damage = 0;
     let attackers = 0;
     for (const entityId of entities.entityIds()) {
       if (!entities.hasUnit(entityId) || entities.factions.get(entityId)?.playerId !== attackerPlayerId) continue;
+      if (authorizedEntityIds && !authorizedEntityIds.has(entityId)) continue;
       const health = entities.health.get(entityId);
       const position = entities.positions.get(entityId);
       const combat = entities.combat.get(entityId);
@@ -400,7 +421,8 @@ export class RunState {
       const dz = position.z - targetZ;
       if (dx * dx + dz * dz > range * range) continue;
       attackers += 1;
-      if (tick % combat.attackIntervalTicks !== entityId % combat.attackIntervalTicks) continue;
+      if (tick < combat.nextAttackTick) continue;
+      combat.nextAttackTick = tick + combat.attackIntervalTicks;
       const multiplier = archetype === 'SIEGE_CONSTRUCT' ? (structureTarget ? 4 : 2) : 1;
       damage += combat.attackDamage * multiplier;
     }
@@ -533,6 +555,10 @@ export class RunState {
     hash = hashInteger(hash, snapshot.pressure.enemyCoreAttackers);
     hash = hashInteger(hash, snapshot.pressure.bossAttackers);
     hash = hashInteger(hash, snapshot.pressure.repairingEngineers);
+    for (const order of snapshot.objectiveAttackOrders) {
+      hash = hashInteger(hash, order.entityId);
+      hash = hashString(hash, order.objective);
+    }
     if (snapshot.result) {
       hash = hashString(hash, snapshot.result.outcome);
       hash = hashString(hash, snapshot.result.reason);
