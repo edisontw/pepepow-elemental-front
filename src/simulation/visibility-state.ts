@@ -28,10 +28,14 @@ export class VisibilityState {
   private readonly cellsByPlayer = new Map<number, Uint8Array>();
 
   constructor(private readonly definition: ArenaTraversalDefinition, playerIds: readonly number[]) {
-    const cellCount = definition.columns * definition.rows;
     for (const playerId of [...new Set(playerIds)].sort((left, right) => left - right)) {
-      this.cellsByPlayer.set(playerId, new Uint8Array(cellCount));
+      this.ensurePlayer(playerId);
     }
+  }
+
+  ensurePlayer(playerId: number): void {
+    if (this.cellsByPlayer.has(playerId)) return;
+    this.cellsByPlayer.set(playerId, new Uint8Array(this.definition.columns * this.definition.rows));
   }
 
   update(
