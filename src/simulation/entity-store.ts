@@ -1,6 +1,7 @@
 import type {
   CombatComponent,
   ElementalAlignmentComponent,
+  ExperienceComponent,
   EntityID,
   FactionComponent,
   HealthComponent,
@@ -22,6 +23,8 @@ export class EntityStore {
   readonly combat = new Map<EntityID, CombatComponent>();
   readonly archetypes = new Map<EntityID, UnitSpawn['archetype']>();
   readonly elementalAlignments = new Map<EntityID, ElementalAlignmentComponent>();
+  readonly experience = new Map<EntityID, ExperienceComponent>();
+  readonly neutralCampIds = new Map<EntityID, string>();
 
   private nextEntityId = 1;
 
@@ -50,6 +53,8 @@ export class EntityStore {
       pursuitTargetCellKey: null,
     });
     this.archetypes.set(entityId, spawn.archetype);
+    this.experience.set(entityId, { xp: 0 });
+    if (spawn.neutralCampId !== undefined) this.neutralCampIds.set(entityId, spawn.neutralCampId);
     return entityId;
   }
 
@@ -68,7 +73,8 @@ export class EntityStore {
       && this.selectables.has(entityId)
       && this.health.get(entityId)?.alive === true
       && this.statuses.has(entityId)
-      && this.combat.has(entityId);
+      && this.combat.has(entityId)
+      && this.experience.has(entityId);
   }
 
   entityIds(): EntityID[] {
