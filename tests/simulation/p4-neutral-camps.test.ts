@@ -23,6 +23,7 @@ describe('Phase 4 neutral camps', () => {
     expect(camps).toHaveLength(world.pois.filter((poi) => poi.type === 'NEUTRAL_CAMP').length);
     expect(camps).toHaveLength(5);
     expect(NEUTRAL_GUARDIANS_PER_CAMP).toBe(3);
+    expect(NEUTRAL_CAMP_XP_REWARD).toBe(150);
     expect(camps.every((camp) => camp.guardianEntityIds.length === NEUTRAL_GUARDIANS_PER_CAMP)).toBe(true);
 
     for (const camp of camps) {
