@@ -92,7 +92,7 @@ Known deferred infrastructure issue:
 
 ### Post-Roadmap Phase 2 — Element Authority
 
-Phase 2 remains CLOSED and is carried forward under v7:
+Phase 2 remains CLOSED and is carried forward under v8:
 
 - exactly two distinct starting Elemental Attunements;
 - one immutable Fire / Water / Ice / Lightning alignment per completed Elementalist;
@@ -176,7 +176,7 @@ During the current visual-production pass, keep these gameplay items deferred un
 
 ## 6. Current formal work point — Phase 4 + Visual Production
 
-Phase 4 hero-lite gameplay redesign is **CLOSED**. The active work point returns to the ongoing high-quality presentation production pass and remaining control/presentation follow-up. Phase 4 P4-A–P4-E are complete under `ef-standard-v7` / `ef-replay-v7`. The visual pass continues with a darker, higher-contrast battlefield target; manual visual acceptance remains separate from Phase 4 gameplay closure.
+Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A–P4-E originally closed under `ef-standard-v7` / `ef-replay-v7`; explicit post-closure pacing feedback now advances the active identity to `ef-standard-v8` / `ef-replay-v8`. The active work point remains visual production and bounded gameplay/control follow-up.
 
 Primary scope:
 
@@ -347,11 +347,11 @@ P4-A completed rules:
 
 P4-B completed rules:
 
-- the 5 existing generated `NEUTRAL_CAMP` POIs spawn deterministic neutral Ancient Sentinel guards;
+- the 5 existing generated `NEUTRAL_CAMP` POIs each spawn 3 deterministic neutral Ancient Sentinel guards;
 - neutral faction authority uses player ID 2 and participates in normal combat without joining either army economy;
 - guards are leashed to their camp instead of pursuing across the map;
 - guarded Neutral Camps cannot be captured until all guards are defeated;
-- clearing a camp distributes 120 XP deterministically among nearby participating units of the winning local faction;
+- clearing a camp distributes 150 XP deterministically among nearby participating units of the winning local faction;
 - unit `experience` and `neutralCampId` are authoritative, snapshot-visible, and state-hashed;
 - P4-B shipped under `ef-standard-v5` / `ef-replay-v5`;
 - world generation remains `m02-standard-v1`.
@@ -359,9 +359,9 @@ P4-B completed rules:
 P4-C completed rules:
 
 - every normal player/enemy combat unit starts at Level 1 and can progress to Level 5;
-- cumulative XP thresholds are 60 / 150 / 280 / 450 XP for Levels 2 / 3 / 4 / 5;
+- cumulative XP thresholds are 50 / 120 / 220 / 350 XP for Levels 2 / 3 / 4 / 5;
 - normal combat-unit kills grant deterministic shared XP to nearby same-faction participants; no last-hit ownership is required;
-- Neutral Sentinels do not also grant per-kill XP, avoiding double rewards on top of the 120 XP camp-clear pool;
+- Neutral Sentinels do not also grant per-kill XP, avoiding double rewards on top of the 150 XP camp-clear pool;
 - each level above Level 1 adds approximately +6% Max HP and +4% Attack Damage using deterministic integer scaling;
 - stat growth is linear from the unit's original base stats, not multiplicative from the current level;
 - level-up restores only the newly added Max-HP delta rather than performing a full heal;
@@ -386,12 +386,12 @@ P4-E completed balance/run integration:
 - Core recovery was quantitatively corrected to an actual long-run 2% max HP/sec using deterministic 0.5-second fixed-point pulses;
 - the prior per-tick `Math.max(1, ...)` implementation was removed because it unintentionally healed low-HP units at up to ~5.6%/sec;
 - a unit at 50% HP now requires about 25 seconds of safe Core recovery to return to full health;
-- one 120-XP camp intentionally promotes a two-unit squad to Lv2, while three or more participants remain below Lv2 from one camp;
+- one 150-XP camp promotes a focused two- or three-unit squad to Lv2, while a full six-unit group remains below Lv2 from one camp;
 - Level-5 scaling remains bounded at approximately +24% Max HP and +16% Attack Damage;
 - a fully Lv5 starting squad retains an estimated 80+ second theoretical boss TTK across all current boss armor/health profiles, preventing veteran progression from trivializing Finale bosses;
 - standard run duration/finale gates remain unchanged;
 - deterministic replay/state-hash coverage remains intact;
-- P4-E advances gameplay/replay identity to `ef-standard-v7` / `ef-replay-v7`;
+- P4-E originally closed under `ef-standard-v7` / `ef-replay-v7`; post-closure pacing tuning advances the active identity to `ef-standard-v8` / `ef-replay-v8`;
 - validation: 74 test files / 296 tests PASS; strict TypeScript and production build PASS; Pages build PASS.
 
 Phase 4 gameplay is closed. Remaining battlefield brightness/art-quality work belongs to Visual Production and is not claimed complete here.
