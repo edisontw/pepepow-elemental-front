@@ -303,6 +303,19 @@ Phase 4 remains closed as a feature milestone, but explicit playtest feedback ju
 - the active run HUD is reduced to two compact Core/Target bars; phase/time/difficulty/mode move to the minimap-side metadata line;
 - this authoritative balance revision advances identity to `ef-standard-v8` / `ef-replay-v8`; world generation remains `m02-standard-v1`.
 
+### Visual brightness recalibration — 2026-09-19
+
+Manual browser feedback found the previous anti-washout pass too dark. The runtime is recalibrated to a middle exposure target:
+
+- normal ambient light: approximately 0.13–0.15 instead of 0.10–0.12;
+- normal directional sun intensity: 1.00 instead of 0.88;
+- escalation/finale remain intentionally dimmer, but are lifted to 0.94 / 0.86;
+- player unit impostor emissive: approximately 0.75;
+- environment atlas emissive: approximately 0.72–0.74;
+- building impostor emissive: approximately 0.87;
+- terrain atlas multipliers lifted while retaining stronger contrast than the earlier washed-out presentation;
+- this is presentation-only and does not change `ef-standard-v9`, `ef-replay-v9`, or `m02-standard-v1`.
+
 ### Visual / UX optimization — 2026-09-19
 
 Current presentation-only optimization baseline:
@@ -315,7 +328,7 @@ Current presentation-only optimization baseline:
 - camera edge-pan margin increased to 48 px with faster panning;
 - edge pan now uses the unobstructed battlefield boundary beside the left/right HUD rather than the hidden browser-canvas edge behind panels;
 - middle-drag and Space/Alt + left-drag remain available; `Home` recenters on the starting base;
-- these changes are presentation/UX-only and do not change `ef-standard-v7`, `ef-replay-v7`, or `m02-standard-v1`;
+- these changes are presentation/UX-only and do not change the active gameplay/replay/world-generation identities.
 - automated build/Pages validation is required, but final brightness/load-time/camera feel still requires manual browser acceptance.
 
 ### Token-efficient validation policy
