@@ -2,8 +2,8 @@
 
 **Status:** CLOSED — P4-A through P4-E complete  
 **World generation:** `m02-standard-v1` remains unchanged  
-**Gameplay identity:** `ef-standard-v8`  
-**Replay identity:** `ef-replay-v8`
+**Gameplay identity:** `ef-standard-v9`  
+**Replay identity:** `ef-replay-v9`
 
 ## 1. Direction
 
@@ -352,3 +352,18 @@ Current tuning:
 - active HUD condensed so run metadata no longer occupies the full top battlefield width.
 
 This is a bounded balance/UI follow-up rather than reopening P4-A–P4-E. It advances active gameplay/replay identity to `ef-standard-v8` / `ef-replay-v8`; world generation remains `m02-standard-v1`.
+
+
+## 16. Post-closure POI interaction simplification — v9
+
+Manual POI capture is removed from the player-facing command loop.
+
+- POIs retain ownership state and +10 Influence;
+- units within 5 m automatically secure an eligible landmark;
+- no presence or contested presence pauses progress;
+- guarded Neutral Camps remain blocked until cleared;
+- Region CAPTURE semantics remain unchanged;
+- Enemy War CONTEST_POI now physically occupies the landmark instead of issuing a POI CAPTURE command;
+- player HUD no longer exposes a Capture POI button.
+
+This follow-up advances active gameplay/replay identity to `ef-standard-v9` / `ef-replay-v9`; world generation remains `m02-standard-v1`.
