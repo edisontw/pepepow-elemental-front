@@ -1,6 +1,6 @@
 # PEPEPOW Elemental Front — Post-Roadmap Phase 4 Hero-Lite Progression Plan
 
-**Status:** ACTIVE — P4-A/P4-B complete; P4-C Unit XP / Level 1–5 active  
+**Status:** ACTIVE — P4-A/P4-B/P4-C complete; P4-D Veteran Presentation complete; P4-E next  
 **World generation:** `m02-standard-v1` remains unchanged  
 **Gameplay identity:** `ef-standard-v6`  
 **Replay identity:** `ef-replay-v6`
@@ -294,12 +294,18 @@ Implemented foundation:
 - unit snapshots expose Level; XP/base progression data are state-hashed and replay-relevant;
 - selected-unit UI shows Level and XP progress; group selection summarizes counts by veteran level.
 
-### P4-D — Veteran Presentation
+### P4-D — Veteran Presentation — COMPLETE
 
-- level badge / pips;
-- subtle veteran accent;
-- level-up VFX;
-- readable camp/monster presentation.
+Implemented:
+
+- Lv2–5 units show one to four small veteran pips above their health bar;
+- Lv3+ player/enemy veterans gain a low-opacity brass ring, intentionally avoiding a large permanent aura;
+- a level increase triggers one short muted-gold burst plus a brief pip pulse;
+- Neutral Sentinels receive a distinct amber threat ring separate from enemy-team red;
+- guarded Neutral Camps receive an amber guard seal/beacon that disappears once cleared;
+- POI hover text reports remaining Sentinels while guarded and XP/capture availability after clearing;
+- this slice changes presentation only and does not alter simulation, XP thresholds, stats, replay, or world generation;
+- gameplay/replay identity therefore remains `ef-standard-v6` / `ef-replay-v6`.
 
 ### P4-E — Balance / Run Integration
 
