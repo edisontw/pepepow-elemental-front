@@ -4,8 +4,8 @@
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v8`  
-**Current replay format:** `ef-replay-v8`  
+**Current authoritative gameplay ruleset:** `ef-standard-v9`  
+**Current replay format:** `ef-replay-v9`  
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE4_CLOSURE_REPORT.md`
 
@@ -69,8 +69,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v8`;
-- replay: `ef-replay-v8`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v9`;
+- replay: `ef-replay-v9`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -92,7 +92,7 @@ Known deferred infrastructure issue:
 
 ### Post-Roadmap Phase 2 — Element Authority
 
-Phase 2 remains CLOSED and is carried forward under v8:
+Phase 2 remains CLOSED and is carried forward under v9:
 
 - exactly two distinct starting Elemental Attunements;
 - one immutable Fire / Water / Ice / Lightning alignment per completed Elementalist;
@@ -272,6 +272,24 @@ Current decision:
 - preserve the shared direction convention and previously corrected diagonal/rear mappings;
 - fix scale drift with per-view normalization where necessary rather than relabeling directions;
 - see `docs/UNIT_ANIMATION_IMPLEMENTATION_NOTES.md` for the exact active resume contract.
+
+### POI capture simplification — 2026-09-19
+
+Manual `Capture POI` is retired.
+
+Current POI authority:
+
+- POI ownership and the +10 Influence reward remain;
+- player/AI units automatically begin securing an eligible POI when they are within **5 m** of the landmark;
+- automatic POI threshold is **900 capture-tenths**: one Vanguard is roughly 6 seconds; multiple units accelerate up to the existing capture-power cap;
+- leaving the POI pauses progress; returning resumes it;
+- opposing factions simultaneously within range pause securing rather than allowing hidden progress;
+- Neutral Camps remain blocked until all Ancient Sentinels are cleared;
+- the old manual POI `CAPTURE` command is rejected; `CAPTURE` remains only for Region territory authority;
+- Enemy War `CONTEST_POI` now moves units to the actual landmark and relies on the same automatic presence rule as the player;
+- the left-panel Capture POI button/hint controller is removed; world POI tooltips show automatic securing state/progress;
+- these authoritative semantics advance gameplay/replay identity to `ef-standard-v9` / `ef-replay-v9`;
+- world generation remains `m02-standard-v1`.
 
 ### Post-closure progression tuning — 2026-09-19
 
