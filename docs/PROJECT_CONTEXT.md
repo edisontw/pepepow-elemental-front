@@ -4,8 +4,8 @@
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v11`
-**Current replay format:** `ef-replay-v11`
+**Current authoritative gameplay ruleset:** `ef-standard-v12`
+**Current replay format:** `ef-replay-v12`
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE4_CLOSURE_REPORT.md`
 
@@ -69,8 +69,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v11`;
-- replay: `ef-replay-v11`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v12`;
+- replay: `ef-replay-v12`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -177,7 +177,7 @@ During the current visual-production pass, keep these gameplay items deferred un
 
 ## 6. Current formal work point — Phase 4 + Visual Production
 
-Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A–P4-E originally closed under `ef-standard-v7` / `ef-replay-v7`; post-closure pacing shipped as v8, automatic POI securing as v9, RTS control/automation shipped as v10, and forced-Move disengage advances the active identity to `ef-standard-v11` / `ef-replay-v11`. The active work point remains visual production and bounded gameplay/control follow-up.
+Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A–P4-E originally closed under `ef-standard-v7` / `ef-replay-v7`; post-closure pacing shipped as v8, automatic POI securing as v9, RTS control/automation shipped as v10, forced-Move disengage shipped as v11, and Scout vision advances the active identity to `ef-standard-v12` / `ef-replay-v12`. The active work point remains visual production and bounded gameplay/control follow-up.
 
 Primary scope:
 
@@ -272,7 +272,7 @@ Current decision:
 - use the canonical art to build coherent eight-direction animated WebP atlases;
 - preserve one shared direction convention across the roster; manual browser
   validation on 2026-09-20 established a single animated-pack calibration
-  `[6, 5, 4, 3, 2, 1, 0, 7]` for runtime observer slots, while the older
+  `[6, 5, 4, 7, 2, 1, 0, 3]` for runtime observer slots, while the older
   static-turnaround diagonal swap remains legacy-only;
 - fix scale drift with per-view normalization where necessary rather than relabeling directions;
 - see `docs/UNIT_ANIMATION_IMPLEMENTATION_NOTES.md` for the exact active resume contract.
@@ -369,6 +369,15 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
   `ef-standard-v11` / `ef-replay-v11`; world generation remains `m02-standard-v1`.
 
 - Status: `WAITING_FOR_WEBGL_ACCEPTANCE`; no cloud WebGL/FPS claim.
+
+
+### Scout vision + diagonal presentation correction — v12
+
+- Scout fog-of-war vision now uses the design-spec 15 m radius; ordinary unit vision remains 9 m.
+- This affects authoritative visibility, target information, and enemy-memory boundaries, so challenge/replay identity advances to `ef-standard-v12` / `ef-replay-v12`.
+- Manual browser validation also found screen-down-right and screen-up-left animated views reversed. The shared animated source order is corrected to `[6, 5, 4, 7, 2, 1, 0, 3]`; this part is presentation-only.
+- World generation remains `m02-standard-v1`.
+
 
 ### Token-efficient validation policy
 
