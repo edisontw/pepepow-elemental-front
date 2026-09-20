@@ -27,6 +27,10 @@ const unitSlugs = [
 ] as const;
 
 describe('animated unit impostor assets', () => {
+  it('hard-locks the human-validated runtime-to-source direction contract', async () => {
+    const { ANIMATED_IMPOSTOR_FILE_ORDER } = await import('../../src/rendering/impostor-frame-assets');
+    expect(ANIMATED_IMPOSTOR_FILE_ORDER).toEqual([6, 1, 4, 3, 2, 5, 0, 7]);
+  });
   it('builds five 8-direction x 4-frame action sets for the full 11-unit roster', () => {
     expect(unitSlugs).toHaveLength(11);
     for (const slug of unitSlugs) {
