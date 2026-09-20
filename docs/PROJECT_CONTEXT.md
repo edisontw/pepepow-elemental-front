@@ -270,11 +270,14 @@ Current decision:
 - those 3D artifacts are historical/reference/fallback material only;
 - do not resume Blender-first modeling by default;
 - use the canonical art to build coherent eight-direction animated WebP atlases;
-- preserve one shared direction convention across the roster; manual browser
-  validation on 2026-09-20 **LOCKED** the animated-pack runtime-to-source mapping
-  at `[6, 1, 4, 3, 2, 5, 0, 7]`; do not reinterpret or replace it from filename
-  semantics, and verify runtime slot + loaded source stem before any future direction
-  change; the older static-turnaround diagonal swap remains legacy-only;
+- preserve one shared runtime direction convention across the roster; manual browser
+  validation on 2026-09-20 **LOCKED** the accepted base runtime-to-source mapping
+  at `[6, 1, 4, 3, 2, 5, 0, 7]`; do not reinterpret it from filename semantics;
+- later manual browser QA on the same date found the four Elementalists, Engineer,
+  Golem, and Siege Construct were produced with only their cardinal `left` /
+  `right` source stems mirrored; those seven slugs use source calibration
+  `[2, 1, 4, 3, 6, 5, 0, 7]` while front/rear, diagonals, heading resolution,
+  and runtime direction semantics remain unchanged;
 - fix scale drift with per-view normalization where necessary rather than relabeling directions;
 - see `docs/UNIT_ANIMATION_IMPLEMENTATION_NOTES.md` for the exact active resume contract.
 
@@ -351,7 +354,9 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
   automatically, in stable Shrine-id order. The panel compacts after selection even
   while hovered. Additional secured Shrines queue; Region capture remains unchanged.
 - 55 lossless 32-frame atlases replace 1,760 animated frame requests. All eleven
-  units retain the existing shared mapping, dimensions, baseline and action timings.
+  units retain shared runtime direction semantics, dimensions, baseline and action
+  timings; seven later-production slugs apply the documented cardinal source-file
+  calibration without changing facing behavior.
 - Only instantiated player-side unit configs load Idle. Other actions load on demand;
   textures/materials are shared by config/action and disposed on library teardown.
 - Build: `npm run art:atlases` (Python/Pillow); originals remain committed inputs.

@@ -36,6 +36,30 @@ export const DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER = [0, 7, 2, 5, 4, 3, 6, 1] as con
 export const ANIMATED_IMPOSTOR_FILE_ORDER = [6, 1, 4, 3, 2, 5, 0, 7] as const;
 
 /**
+ * Manual browser QA on 2026-09-20 found one later production batch with only
+ * its cardinal left/right source stems mirrored. Front/rear and all diagonals
+ * are already correct. Keep the accepted runtime direction contract intact and
+ * calibrate only those source files here.
+ */
+export const HORIZONTAL_MIRROR_SOURCE_FILE_ORDER = [2, 1, 4, 3, 6, 5, 0, 7] as const;
+
+const HORIZONTAL_MIRROR_SOURCE_SLUGS = new Set([
+  'elementalist-fire',
+  'elementalist-water',
+  'elementalist-ice',
+  'elementalist-lightning',
+  'engineer',
+  'golem',
+  'siege-construct',
+]);
+
+export function animatedImpostorFileOrderForSlug(slug: string): readonly number[] {
+  return HORIZONTAL_MIRROR_SOURCE_SLUGS.has(slug)
+    ? HORIZONTAL_MIRROR_SOURCE_FILE_ORDER
+    : ANIMATED_IMPOSTOR_FILE_ORDER;
+}
+
+/**
  * Bump whenever canonical public impostor binaries or their runtime file order
  * changes in-place. The public filenames stay stable, so this query revision
  * prevents stale browser/CDN frames from surviving a presentation fix.

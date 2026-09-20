@@ -1,4 +1,4 @@
-import { ANIMATED_IMPOSTOR_FILE_ORDER } from './impostor-frame-assets';
+import { animatedImpostorFileOrderForSlug } from './impostor-frame-assets';
 
 export const IMPOSTOR_ANIMATION_ACTIONS = [
   'IDLE',
@@ -18,7 +18,7 @@ export interface ImpostorAnimationSample {
 export const IMPOSTOR_ANIMATION_FRAMES_PER_DIRECTION = 4;
 export const IMPOSTOR_MOVE_CYCLE_DISTANCE_METRES = 1.35;
 
-export const IMPOSTOR_ANIMATION_ASSET_REVISION = '20260920-unit-direction-v7';
+export const IMPOSTOR_ANIMATION_ASSET_REVISION = '20260920-unit-direction-v8-cardinal-source-calibration';
 
 export const IMPOSTOR_ANIMATION_DIRECTION_STEMS = [
   'front',
@@ -53,15 +53,16 @@ const LOOPING_ACTIONS = new Set<ImpostorAnimationAction>(['IDLE', 'MOVE']);
  * Returns the 32 files for one action in runtime view order:
  * 8 camera-relative views x 4 animation frames.
  *
- * The refreshed five-action pack uses one shared browser-calibrated source order.
- * Keep that mapping roster-wide; do not introduce per-unit direction hacks.
+ * Runtime direction semantics stay roster-wide. A verified later source batch
+ * has cardinal left/right filenames mirrored, so source-file calibration is
+ * resolved by slug without changing heading/facing behavior.
  */
 export function animatedImpostorFrameFiles(
   slug: string,
   action: ImpostorAnimationAction,
 ): readonly string[] {
   const directory = ACTION_DIRECTORIES[action];
-  return ANIMATED_IMPOSTOR_FILE_ORDER.flatMap((sourceDirection) => {
+  return animatedImpostorFileOrderForSlug(slug).flatMap((sourceDirection) => {
     const stem = IMPOSTOR_ANIMATION_DIRECTION_STEMS[sourceDirection]
       ?? IMPOSTOR_ANIMATION_DIRECTION_STEMS[0];
     return Array.from({ length: IMPOSTOR_ANIMATION_FRAMES_PER_DIRECTION }, (_, frame) => {

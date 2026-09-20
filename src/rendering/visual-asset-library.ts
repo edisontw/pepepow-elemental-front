@@ -474,7 +474,7 @@ export class VisualAssetLibrary {
         texture.setSource(image);
         resources!.textures.push(texture);
         const materials = Array.from({ length: 32 }, (_, index) => {
-          const rect = impostorAtlasRect(index);
+          const rect = impostorAtlasRect(config.slug, index);
           const material = new pc.StandardMaterial();
           material.name = `${config.id}.atlas.${action}.${index}`;
           material.useLighting = false;

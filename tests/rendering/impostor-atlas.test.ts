@@ -12,7 +12,7 @@ it('maps every atlas tile to the same canonical direction/frame as the committed
     const files = animatedImpostorFrameFiles(slug, name);
     const tiles = new Set<string>();
     for (let i = 0; i < 32; i++) {
-      const rect = impostorAtlasRect(i);
+      const rect = impostorAtlasRect(slug, i);
       const column = Math.round((rect.x * ATLAS_WIDTH - 2) / 196);
       const row = Math.round((rect.y * ATLAS_HEIGHT - 2) / 260);
       const source = row * 8 + column;
