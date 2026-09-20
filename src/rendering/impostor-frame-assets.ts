@@ -19,10 +19,11 @@ export const DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER = [0, 7, 2, 5, 4, 3, 6, 1] as con
  * to the runtime observer slots. A single roster-wide mapping fixes the four
  * confirmed cardinal cases without per-unit hacks:
  * screen-up -> rear, screen-down -> front, screen-right -> right,
- * screen-left -> left. Manual follow-up also confirmed that the remaining
- * screen-down-right and screen-up-left diagonal source views were reversed.
+ * screen-left -> left. Final browser validation showed all four diagonal
+ * animated views were 180 degrees opposite; the diagonal slots therefore use
+ * their opposite source views while the confirmed cardinal slots stay fixed.
  */
-export const ANIMATED_IMPOSTOR_FILE_ORDER = [6, 5, 4, 7, 2, 1, 0, 3] as const;
+export const ANIMATED_IMPOSTOR_FILE_ORDER = [6, 1, 4, 3, 2, 5, 0, 7] as const;
 
 /**
  * Bump whenever canonical public impostor binaries or their runtime file order
