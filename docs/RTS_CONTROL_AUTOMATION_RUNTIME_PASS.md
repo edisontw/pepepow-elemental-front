@@ -1,6 +1,6 @@
 # RTS Control + Automation + Runtime Optimization Pass
 
-Active identity: `ef-standard-v10` / `ef-replay-v10`.
+Shipped baseline identity: `ef-standard-v10` / `ef-replay-v10`; current gameplay identity is `ef-standard-v11` / `ef-replay-v11`.
 World generation remains `m02-standard-v1`; all historical milestone closures remain closed.
 
 ## Implemented contract
@@ -12,6 +12,9 @@ World generation remains `m02-standard-v1`; all historical milestone closures re
   Visibility/forest-aware nearest-target selection uses EntityID ties. Each unit keeps its
   destination through combat and resumes after target death/loss. H holds ground using
   normal attack range/cadence; S/X returns to ordinary Stop/aggro. No hidden bonuses.
+- v11 follow-up: normal MOVE is forced disengage while its destination remains active.
+  It clears the current combat target and ignores automatic encounter acquisition until
+  arrival or cancellation. S/X cancels the move; ordinary auto-aggro resumes next tick.
 - Mode/destination are hashed; Core-order replacement executes at the command tick.
   Existing velocity-derived facing and shared art direction mapping remain unchanged.
 - Secured Shrines automatically present deterministic eligible choices. Pending Shrines
