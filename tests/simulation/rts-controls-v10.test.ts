@@ -19,7 +19,7 @@ function hostile(sim: Simulation, x: number, z: number) {
   return sim.entities.createUnit({ ...M01_ARENA.units[0]!, playerId: 1, x, z, speedPerTick: 0, attackDamage: 0, attackRange: 0 });
 }
 
-describe('v11 navigation and RTS orders', () => {
+describe('v12 navigation and RTS orders', () => {
   it('travels in all eight directions with diagonal speed bounded by the same unit speed', () => {
     for (const [dx, dz] of [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]]) {
       const sim = new Simulation('eight', arena());
@@ -179,7 +179,7 @@ describe('v11 navigation and RTS orders', () => {
     const hashes: string[] = [];
     for (let i = 0; i < 30; i++) hashes.push(source.step().stateHash);
     const packet = source.replayCheckpointPacket();
-    expect(packet.header.version).toBe('ef-replay-v11');
+    expect(packet.header.version).toBe('ef-replay-v12');
     const replay = new M06Simulation(world, { pace: 'SMOKE', difficulty: 'CASUAL' });
     replay.loadReplay(packet);
     for (const hash of hashes) expect(replay.step().stateHash).toBe(hash);
