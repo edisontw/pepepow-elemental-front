@@ -272,7 +272,7 @@ Current decision:
 - use the canonical art to build coherent eight-direction animated WebP atlases;
 - preserve one shared direction convention across the roster; manual browser
   validation on 2026-09-20 established a single animated-pack calibration
-  `[6, 5, 4, 7, 2, 1, 0, 3]` for runtime observer slots, while the older
+  `[6, 1, 4, 3, 2, 5, 0, 7]` for runtime observer slots, while the older
   static-turnaround diagonal swap remains legacy-only;
 - fix scale drift with per-view normalization where necessary rather than relabeling directions;
 - see `docs/UNIT_ANIMATION_IMPLEMENTATION_NOTES.md` for the exact active resume contract.
@@ -375,7 +375,7 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
 
 - Scout fog-of-war vision now uses the design-spec 15 m radius; ordinary unit vision remains 9 m.
 - This affects authoritative visibility, target information, and enemy-memory boundaries, so challenge/replay identity advances to `ef-standard-v12` / `ef-replay-v12`.
-- Manual browser validation also found screen-down-right and screen-up-left animated views reversed. The shared animated source order is corrected to `[6, 5, 4, 7, 2, 1, 0, 3]`; this part is presentation-only.
+- Final browser validation found all four diagonal animated views 180 degrees opposite while all four cardinals were correct. The shared animated source order is corrected to `[6, 1, 4, 3, 2, 5, 0, 7]`; this part is presentation-only.
 - World generation remains `m02-standard-v1`.
 
 
