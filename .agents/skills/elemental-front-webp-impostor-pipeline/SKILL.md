@@ -146,9 +146,12 @@ Therefore:
 
 Current verified source-pack exceptions are documented in
 `docs/UNIT_ANIMATION_IMPLEMENTATION_NOTES.md`. Spear Guard belongs to the same
-screen-horizontal correction group as Elementalists/Engineer/Golem/Scout.
+screen-horizontal correction group as Elementalists/Engineer/Golem/Scout and
+keeps that direction map; if its pike silhouette is missing in the documented
+views, use the existing weapon-only GLB overlay rather than remapping the unit.
 Siege Construct is special because its exact side art has a visually missing
-cannon barrel, so its screen-horizontal slots reuse full-barrel diagonal art.
+cannon barrel, so its screen-horizontal slots reuse the manually verified,
+correctly sided full-barrel diagonal art.
 
 If a future human WebGL report finds a mismatch, first record the exact movement
 direction, movement delta, heading, runtime slot, and loaded source stem. Change

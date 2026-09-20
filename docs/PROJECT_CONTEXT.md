@@ -279,9 +279,15 @@ Current decision:
   this supersedes earlier contradictory cardinal-pair notes;
 - the four Elementalists, Engineer, Golem, Scout, and Spear Guard use
   `[6, 1, 0, 3, 2, 5, 4, 7]`, correcting only screen right/left slots `2/6`;
-- Siege Construct uses `[6, 1, 7, 3, 2, 5, 1, 7]`: its exact side source art
-  has a foreshortened/missing-looking cannon barrel, so screen right/left use
-  the existing full-barrel `front_right/front_left` views;
+- Siege Construct uses `[6, 1, 1, 3, 2, 5, 7, 7]`: its exact side source art
+  has a foreshortened/missing-looking cannon barrel, and manual QA confirmed the
+  first substitute pair was mirrored; screen right/left now use the corrected
+  full-barrel `front_left/front_right` views;
+- Spear Guard keeps the accepted `[6, 1, 0, 3, 2, 5, 4, 7]` direction map.
+  Because its pike silhouette disappears at RTS scale in runtime slots
+  `2/4/5/6`, those views add only the Weapon subtree from the existing fallback
+  GLB as a presentation overlay; gameplay/facing authority and sprite body art
+  are unchanged;
 - fix scale drift with per-view normalization where necessary rather than relabeling directions;
 - see `docs/UNIT_ANIMATION_IMPLEMENTATION_NOTES.md` for the exact active resume contract.
 
@@ -359,9 +365,9 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
   while hovered. Additional secured Shrines queue; Region capture remains unchanged.
 - 55 lossless 32-frame atlases replace 1,760 animated frame requests. All eleven
   units retain shared runtime direction semantics, dimensions, baseline and action
-  timings; the screen-horizontal correction group and Siege Construct's
-  documented full-barrel horizontal-view override do not change authoritative
-  facing behavior.
+  timings; the screen-horizontal correction group, Siege Construct's corrected
+  full-barrel horizontal-view override, and Spear Guard's weapon-only overlay do
+  not change authoritative facing behavior.
 - Only instantiated player-side unit configs load Idle. Other actions load on demand;
   textures/materials are shared by config/action and disposed on library teardown.
 - Build: `npm run art:atlases` (Python/Pillow); originals remain committed inputs.

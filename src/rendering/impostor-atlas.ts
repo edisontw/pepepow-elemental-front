@@ -1,7 +1,7 @@
 import { animatedImpostorFileOrderForSlug } from './impostor-frame-assets';
 import type { ImpostorAnimationAction } from './impostor-animation';
 
-export const IMPOSTOR_ATLAS_REVISION = '20260920-atlas-direction-v10-screen-direction-lock';
+export const IMPOSTOR_ATLAS_REVISION = '20260920-atlas-direction-v11-spear-weapon-siege-horizontal';
 export const ATLAS_WIDTH = 1568;
 export const ATLAS_HEIGHT = 1040;
 

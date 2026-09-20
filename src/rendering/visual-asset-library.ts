@@ -2,6 +2,7 @@ import * as pc from 'playcanvas';
 import { impostorAtlasFile, impostorAtlasRect } from './impostor-atlas';
 import manifest from '../../data/assets/manifest.json';
 import { RTS_CAMERA_YAW_DEGREES, stableImpostorFrameForHeading } from './impostor-frame';
+import { spearGuardNeedsWeaponOverlay } from './impostor-frame-assets';
 import {
   animatedImpostorFrameFiles,
   impostorAnimationFrame,
@@ -132,6 +133,7 @@ interface ImpostorHandle {
   billboard: pc.Entity;
   plane: pc.Entity;
   shadow: pc.Entity;
+  weaponOverlay: pc.Entity | null;
   materials: ImpostorActionMaterials;
   configId: string;
   baseWidth: number;
@@ -261,6 +263,10 @@ export class VisualAssetLibrary {
     impostor.billboard.setEulerAngles(0, RTS_CAMERA_YAW_DEGREES, 0);
 
     const viewFrame = stableImpostorFrameForHeading(headingDegrees, impostor.viewFrame);
+    if (impostor.weaponOverlay) {
+      impostor.weaponOverlay.enabled = impostor.configId === 'unit.spear-guard'
+        && spearGuardNeedsWeaponOverlay(viewFrame);
+    }
     const sample = impostor.animationSample;
     const animationFrame = impostorAnimationFrame(sample.action, sample.elapsedSeconds);
     this.impostorResources.get(impostor.configId)?.requestAction?.(sample.action);
@@ -377,6 +383,7 @@ export class VisualAssetLibrary {
         billboard,
         plane,
         shadow,
+        weaponOverlay: null,
         materials,
         configId: config.id,
         baseWidth: config.width,
@@ -387,9 +394,51 @@ export class VisualAssetLibrary {
         animationSample: { action: 'IDLE', elapsedSeconds: 0 },
         update,
       };
+      if (config.id === 'unit.spear-guard') {
+        this.attachSpearGuardWeaponOverlay(pivot, handle);
+      }
+
       this.impostorUpdates.add(update);
       this.app.on('update', update);
       update();
+    });
+  }
+
+  private attachSpearGuardWeaponOverlay(pivot: pc.Entity, handle: VisualModel): void {
+    void this.load('unit.spear-guard').then((resource) => {
+      if (!resource || this.disposed || handle.released || !handle.impostor) return;
+
+      const entity = resource.instantiateRenderEntity();
+      const weapon = entity.findByName('Weapon') as pc.Entity | null;
+      if (!weapon) {
+        entity.destroy();
+        return;
+      }
+
+      const weaponRenders = new Set(weapon.findComponents('render') as pc.RenderComponent[]);
+      for (const render of entity.findComponents('render') as pc.RenderComponent[]) {
+        render.enabled = weaponRenders.has(render);
+        if (render.enabled) {
+          render.castShadows = false;
+          render.receiveShadows = false;
+        }
+      }
+
+      // The fallback GLB pike is +Z-forward. Rotate it upright so it reads like
+      // the canonical 2.5D vertical pike, then keep it slightly to the unit's
+      // weapon-hand side. The wrapper inherits authoritative unit yaw.
+      weapon.name = 'Spear Guard Weapon Geometry';
+      weapon.setLocalEulerAngles(-90, 0, 0);
+      weapon.setLocalScale(0.82, 0.82, 0.82);
+
+      const weaponPivot = new pc.Entity('Spear Guard Weapon Overlay');
+      weaponPivot.setLocalPosition(0.42, -0.02, 0);
+      weaponPivot.enabled = false;
+      weaponPivot.addChild(entity);
+      pivot.addChild(weaponPivot);
+
+      handle.weapon = weaponPivot;
+      handle.impostor.weaponOverlay = weaponPivot;
     });
   }
 

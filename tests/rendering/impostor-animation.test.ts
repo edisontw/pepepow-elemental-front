@@ -32,11 +32,17 @@ describe('animated unit impostor assets', () => {
       ANIMATED_IMPOSTOR_FILE_ORDER,
       SCREEN_HORIZONTAL_CORRECTION_FILE_ORDER,
       SIEGE_CONSTRUCT_CORRECTION_FILE_ORDER,
+      SPEAR_GUARD_WEAPON_OVERLAY_VIEW_FRAMES,
       animatedImpostorFileOrderForSlug,
+      spearGuardNeedsWeaponOverlay,
     } = await import('../../src/rendering/impostor-frame-assets');
     expect(ANIMATED_IMPOSTOR_FILE_ORDER).toEqual([6, 1, 4, 3, 2, 5, 0, 7]);
     expect(SCREEN_HORIZONTAL_CORRECTION_FILE_ORDER).toEqual([6, 1, 0, 3, 2, 5, 4, 7]);
-    expect(SIEGE_CONSTRUCT_CORRECTION_FILE_ORDER).toEqual([6, 1, 7, 3, 2, 5, 1, 7]);
+    expect(SIEGE_CONSTRUCT_CORRECTION_FILE_ORDER).toEqual([6, 1, 1, 3, 2, 5, 7, 7]);
+    expect(SPEAR_GUARD_WEAPON_OVERLAY_VIEW_FRAMES).toEqual([2, 4, 5, 6]);
+    for (let view = 0; view < 8; view += 1) {
+      expect(spearGuardNeedsWeaponOverlay(view)).toBe([2, 4, 5, 6].includes(view));
+    }
     for (const slug of ['vanguard', 'ranger']) {
       expect(animatedImpostorFileOrderForSlug(slug)).toEqual(ANIMATED_IMPOSTOR_FILE_ORDER);
     }
@@ -130,9 +136,11 @@ describe('animated unit impostor assets', () => {
     expect(siege[0]).toContain('/right_00.webp');
     expect(siege[16]).toContain('/left_00.webp');
 
-    // Replace malformed exact-side art only on screen right/left.
-    expect(siege[8]).toContain('/front_right_00.webp');
-    expect(siege[24]).toContain('/front_left_00.webp');
+    // Replace malformed exact-side art only on screen right/left. Manual QA
+    // confirmed the prior pair was mirrored, so screen-right uses front-left
+    // and screen-left uses front-right.
+    expect(siege[8]).toContain('/front_left_00.webp');
+    expect(siege[24]).toContain('/front_right_00.webp');
   });
 
   it('maps runtime view and animation frame into the 32-frame material table', () => {

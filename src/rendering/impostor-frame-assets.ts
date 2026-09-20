@@ -64,7 +64,21 @@ export const SCREEN_HORIZONTAL_CORRECTION_FILE_ORDER = [6, 1, 0, 3, 2, 5, 4, 7] 
  *
  * Screen up/down and the four diagonal runtime slots are otherwise preserved.
  */
-export const SIEGE_CONSTRUCT_CORRECTION_FILE_ORDER = [6, 1, 7, 3, 2, 5, 1, 7] as const;
+export const SIEGE_CONSTRUCT_CORRECTION_FILE_ORDER = [6, 1, 1, 3, 2, 5, 7, 7] as const;
+
+/**
+ * Spear Guard source art has insufficient pike silhouette in these otherwise
+ * direction-correct runtime views. Keep the accepted direction mapping intact
+ * and add the existing GLB weapon geometry only for these screen slots.
+ */
+export const SPEAR_GUARD_WEAPON_OVERLAY_VIEW_FRAMES = [2, 4, 5, 6] as const;
+
+export function spearGuardNeedsWeaponOverlay(viewFrame: number): boolean {
+  const normalized = ((Math.round(viewFrame) % 8) + 8) % 8;
+  return SPEAR_GUARD_WEAPON_OVERLAY_VIEW_FRAMES.includes(
+    normalized as typeof SPEAR_GUARD_WEAPON_OVERLAY_VIEW_FRAMES[number],
+  );
+}
 
 const SCREEN_HORIZONTAL_CORRECTION_SLUGS = new Set([
   'elementalist-fire',

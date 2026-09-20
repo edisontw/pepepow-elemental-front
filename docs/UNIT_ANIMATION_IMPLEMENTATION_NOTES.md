@@ -100,10 +100,16 @@ Do not resume that path by default.
   screen-horizontal correction `[6, 1, 0, 3, 2, 5, 4, 7]`: only slots
   `2/6` differ from the accepted base mapping; screen up/down stays unchanged.
 - Siege Construct also corrects screen right/left, but its exact side source
-  artwork has a foreshortened/missing-looking barrel. For the two horizontal
-  runtime slots it reuses the existing full-barrel front diagonals:
-  `slot 2 -> front_right`, `slot 6 -> front_left`, giving
-  `[6, 1, 7, 3, 2, 5, 1, 7]`.
+  artwork has a foreshortened/missing-looking barrel. Manual browser QA showed
+  the first full-barrel pair was itself mirrored, so the horizontal runtime slots
+  are now `slot 2 -> front_left`, `slot 6 -> front_right`, giving
+  `[6, 1, 1, 3, 2, 5, 7, 7]`.
+- Spear Guard keeps its accepted direction mapping. Its pike is visually lost in
+  screen right / up / up-left / left views despite direction being correct, so
+  those runtime slots `2/4/5/6` receive a presentation-only weapon overlay
+  using the existing `unit-spear-guard.glb` Weapon subtree. The sprite remains
+  authoritative for the body and direction; the overlay exists only to restore
+  the missing pike silhouette.
 - Future fixes must identify the runtime slot first, then inspect the actual atlas
   tile; never infer screen movement from source stem names.
 - The legacy static-turnaround diagonal swap remains separate and is not reused
