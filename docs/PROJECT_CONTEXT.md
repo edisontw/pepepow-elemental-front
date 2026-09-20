@@ -4,8 +4,8 @@
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v10`
-**Current replay format:** `ef-replay-v10`
+**Current authoritative gameplay ruleset:** `ef-standard-v11`
+**Current replay format:** `ef-replay-v11`
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE4_CLOSURE_REPORT.md`
 
@@ -69,8 +69,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v10`;
-- replay: `ef-replay-v10`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v11`;
+- replay: `ef-replay-v11`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -177,7 +177,7 @@ During the current visual-production pass, keep these gameplay items deferred un
 
 ## 6. Current formal work point — Phase 4 + Visual Production
 
-Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A–P4-E originally closed under `ef-standard-v7` / `ef-replay-v7`; post-closure pacing shipped as v8, automatic POI securing as v9, and the current control/automation pass advances active identity to `ef-standard-v10` / `ef-replay-v10`. The active work point remains visual production and bounded gameplay/control follow-up.
+Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A–P4-E originally closed under `ef-standard-v7` / `ef-replay-v7`; post-closure pacing shipped as v8, automatic POI securing as v9, RTS control/automation shipped as v10, and forced-Move disengage advances the active identity to `ef-standard-v11` / `ef-replay-v11`. The active work point remains visual production and bounded gameplay/control follow-up.
 
 Primary scope:
 
@@ -357,6 +357,17 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
 - Build: `npm run art:atlases` (Python/Pillow); originals remain committed inputs.
   Deployment omits the 1,760 raw action frames. Worldgen remains `m02-standard-v1`.
 - See `docs/RTS_CONTROL_AUTOMATION_RUNTIME_PASS.md` for acceptance and validation.
+
+### Forced Move disengage — v11
+
+- Normal MOVE now has explicit forced-disengage behavior while a destination is active.
+- MOVE clears combat pursuit and suppresses automatic encounter target acquisition until
+  arrival or cancellation, so melee units can be pulled away from enemies.
+- ATTACK_MOVE, HOLD, and explicit ATTACK retain their existing combat semantics.
+- S/X Stop cancels travel and restores ordinary idle auto-aggro on the following tick.
+- This authoritative gameplay correction advances challenge/replay identity to
+  `ef-standard-v11` / `ef-replay-v11`; world generation remains `m02-standard-v1`.
+
 - Status: `WAITING_FOR_WEBGL_ACCEPTANCE`; no cloud WebGL/FPS claim.
 
 ### Token-efficient validation policy
