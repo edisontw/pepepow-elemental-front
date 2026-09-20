@@ -490,7 +490,6 @@ export class M06Simulation extends M05Simulation {
 
   private spawnTowerDefenseWave(wave: number): void {
     const spawn = this.generatedWorld.spawns.find((candidate) => candidate.id === 'ENEMY');
-    const core = this.run.snapshot().playerCore;
     if (!spawn) return;
     const start = this.navigation.resolveWalkableTarget({ column: spawn.cell.x, row: spawn.cell.z });
     if (!start) return;
@@ -511,15 +510,15 @@ export class M06Simulation extends M05Simulation {
       ids.push(this.entities.createUnit({ archetype, playerId: 1, x: position.x, z: position.z, ...UNITS[archetype].spawn }));
     }
     for (const entityId of ids) this.objectiveAttackOrders.set(entityId, 'PLAYER_CORE');
-    super.enqueueCommand({ type: 'MOVE', targetTick, playerId: 1, entityIds: ids, targetX: core.x, targetZ: core.z });
   }
 
-  private syncTowerDefenseObjectiveIntent(targetTick: number): void {
-    const core = this.run.snapshot().playerCore;
-    const ids = this.entities.entityIds().filter((entityId) => this.entities.hasUnit(entityId)
-      && this.entities.factions.get(entityId)?.playerId === 1).sort((a, b) => a - b);
+  private syncTowerDefenseObjectiveIntent(): void {
+    const ids = this.entities.entityIds().filter((entityId) => (
+      this.entities.hasUnit(entityId)
+      && this.entities.factions.get(entityId)?.playerId === 1
+      && this.entities.health.get(entityId)?.alive === true
+    )).sort((a, b) => a - b);
     for (const entityId of ids) this.objectiveAttackOrders.set(entityId, 'PLAYER_CORE');
-    if (ids.length > 0) super.enqueueCommand({ type: 'MOVE', targetTick, playerId: 1, entityIds: ids, targetX: core.x, targetZ: core.z });
   }
 
   private applyCoreHealing(currentTick: number): void {
