@@ -1,7 +1,7 @@
 import { ANIMATED_IMPOSTOR_FILE_ORDER } from './impostor-frame-assets';
 import type { ImpostorAnimationAction } from './impostor-animation';
 
-export const IMPOSTOR_ATLAS_REVISION = '20260920-atlas-direction-v5';
+export const IMPOSTOR_ATLAS_REVISION = '20260920-atlas-direction-v6';
 export const ATLAS_WIDTH = 1568;
 export const ATLAS_HEIGHT = 1040;
 
