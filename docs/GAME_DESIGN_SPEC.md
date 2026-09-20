@@ -1532,3 +1532,15 @@ Design rationale:
 - Explicit ATTACK orders remain pursuit-capable.
 - This deterministic gameplay correction advances challenge/replay identity to
   `ef-standard-v11` / `ef-replay-v11`. World generation remains `m02-standard-v1`.
+
+
+# 63. Scout vision — v12
+
+- Ordinary combat-unit fog vision remains 9 m.
+- Scout fog vision is 15 m, matching its reconnaissance role and the established
+  vision baseline in section 46.
+- The larger Scout radius affects authoritative visibility and therefore target
+  information / enemy memory.
+- This gameplay change advances challenge/replay identity to
+  `ef-standard-v12` / `ef-replay-v12`.
+- World generation remains `m02-standard-v1`.
