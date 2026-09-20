@@ -47,6 +47,16 @@ export function acquireEncounterTargets(
     const combat = entities.combat.get(entityId);
     const movement = entities.movements.get(entityId);
     if (!faction || !position || !combat || !movement) continue;
+
+    const normalMoveActive = movement.orderMode === 'NORMAL'
+      && movement.targetX !== null
+      && movement.targetZ !== null;
+    if (normalMoveActive) {
+      combat.targetEntityId = null;
+      combat.pursuitTargetCellKey = null;
+      continue;
+    }
+
     if (combat.targetEntityId !== null && entities.hasUnit(combat.targetEntityId)) {
       const target = entities.positions.get(combat.targetEntityId)!;
       const heldTargetValid = squaredDistance(position, target) <= combat.attackRange * combat.attackRange
@@ -60,11 +70,6 @@ export function acquireEncounterTargets(
       combat.targetEntityId = null;
       combat.pursuitTargetCellKey = null;
     }
-
-    const normalMoveActive = movement.orderMode === 'NORMAL'
-      && movement.targetX !== null
-      && movement.targetZ !== null;
-    if (normalMoveActive) continue;
 
     const range = movement.orderMode === 'HOLD' ? combat.attackRange : Math.max(
       combat.attackRange + IDLE_RANGE_PADDING,
