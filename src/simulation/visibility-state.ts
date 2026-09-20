@@ -3,6 +3,7 @@ import type { EntityStore } from './entity-store';
 import type { GridCell, NavigationGrid } from './navigation';
 
 export const VISION_RADIUS = 9_000;
+export const SCOUT_VISION_RADIUS = 15_000;
 
 export const enum VisibilityLevel {
   UNEXPLORED = 0,
@@ -54,7 +55,8 @@ export class VisibilityState {
       const playerId = entities.factions.get(entityId)!.playerId;
       const position = entities.positions.get(entityId);
       if (!position) continue;
-      this.revealAround(playerId, position.x, position.z, VISION_RADIUS, navigation);
+      const radius = entities.archetypes.get(entityId) === 'SCOUT' ? SCOUT_VISION_RADIUS : VISION_RADIUS;
+      this.revealAround(playerId, position.x, position.z, radius, navigation);
     }
 
     for (const source of additionalSources) {
