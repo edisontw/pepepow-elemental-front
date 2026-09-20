@@ -91,15 +91,20 @@ Do not resume that path by default.
 - This table remains the authoritative runtime direction contract. Source stems
   are asset filenames, not screen-space movement names. Do not derive a replacement
   mapping from intuition about `front/rear/left/right`.
-- Follow-up manual browser QA on 2026-09-20 established the fixed-camera cardinal
-  pair explicitly: runtime slots `0/4` are screen up/down, while `2/6` are
-  screen left/right. The prior source calibration incorrectly swapped `0/4`,
-  which inverted up/down and did not repair left/right.
-- The four Elementalists, Engineer, Golem, Scout, and Siege Construct now use
-  `[6, 1, 0, 3, 2, 5, 4, 7]`: slots `0/4` stay at the accepted base mapping,
-  slots `2/6` are swapped, and all four diagonals remain unchanged.
-- Do not infer screen-space direction from source filenames. Future fixes must
-  identify the runtime slot pair first, then verify the loaded source stem.
+- Follow-up manual browser QA on 2026-09-20 established the actual fixed-camera
+  cardinal pairs: runtime slots `0/4` are screen right/left, while `2/6`
+  are screen down/up. Source filenames alone are not sufficient to infer this.
+- The four Elementalists, Engineer, Golem, and Scout use the screen-vertical
+  correction `[6, 1, 0, 3, 2, 5, 4, 7]`.
+- Spear Guard uses the screen-horizontal correction
+  `[2, 1, 4, 3, 6, 5, 0, 7]`.
+- Siege Construct needs both a corrected vertical pair and a presentation
+  workaround for malformed exact side art. Its generated `left/right` source
+  frames have a foreshortened/missing-looking barrel, so exact screen right/left
+  use the existing opposite diagonal views with a fully readable cannon:
+  `[7, 1, 0, 3, 3, 5, 4, 7]`.
+- Future fixes must identify the runtime slot first, then inspect the actual atlas
+  tile; do not infer screen movement from source stem names.
 - The legacy static-turnaround diagonal swap remains separate and is not reused
   for the animated five-action atlases.
 - One texture per loaded config/action; immutable UV materials shared across units.

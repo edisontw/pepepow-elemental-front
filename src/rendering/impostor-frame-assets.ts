@@ -36,21 +36,26 @@ export const DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER = [0, 7, 2, 5, 4, 3, 6, 1] as con
 export const ANIMATED_IMPOSTOR_FILE_ORDER = [6, 1, 4, 3, 2, 5, 0, 7] as const;
 
 /**
- * FIXED-CAMERA CARDINAL CALIBRATION — manual browser QA, 2026-09-20.
+ * FIXED-CAMERA SOURCE CALIBRATION — manual browser QA, 2026-09-20.
  *
- * Important: source stem names are observer-relative artwork labels, not
- * screen-space movement labels. With the fixed 45-degree RTS camera:
- * - runtime slots 0 / 4 are the screen vertical cardinal pair;
- * - runtime slots 2 / 6 are the screen horizontal cardinal pair.
+ * Source stems describe observer-relative artwork, not screen movement.
+ * Browser validation established the actual screen cardinal pairs:
+ * - runtime slots 0 / 4 = screen right / left;
+ * - runtime slots 2 / 6 = screen down / up.
  *
- * The previous correction mistakenly swapped slots 0 / 4, which inverted
- * screen up/down while leaving screen left/right wrong. The affected art batch
- * therefore keeps slots 0 / 4 at the accepted base mapping and swaps only
- * slots 2 / 6. Diagonals remain unchanged.
+ * Several later-production units need only the screen-vertical pair swapped.
+ * Spear Guard instead needs only the screen-horizontal pair swapped.
+ *
+ * Siege Construct needs both: its screen vertical pair matches the later batch,
+ * while its generated exact side source art has a malformed/foreshortened cannon.
+ * For exact screen right/left, use the existing opposite diagonal views with a
+ * full readable barrel (front-right / rear-left) rather than the broken side art.
  */
-export const SCREEN_HORIZONTAL_CORRECTION_FILE_ORDER = [6, 1, 0, 3, 2, 5, 4, 7] as const;
+export const SCREEN_VERTICAL_CORRECTION_FILE_ORDER = [6, 1, 0, 3, 2, 5, 4, 7] as const;
+export const SPEAR_GUARD_HORIZONTAL_CORRECTION_FILE_ORDER = [2, 1, 4, 3, 6, 5, 0, 7] as const;
+export const SIEGE_CONSTRUCT_CORRECTION_FILE_ORDER = [7, 1, 0, 3, 3, 5, 4, 7] as const;
 
-const SCREEN_HORIZONTAL_CORRECTION_SLUGS = new Set([
+const SCREEN_VERTICAL_CORRECTION_SLUGS = new Set([
   'elementalist-fire',
   'elementalist-water',
   'elementalist-ice',
@@ -58,12 +63,13 @@ const SCREEN_HORIZONTAL_CORRECTION_SLUGS = new Set([
   'engineer',
   'golem',
   'scout',
-  'siege-construct',
 ]);
 
 export function animatedImpostorFileOrderForSlug(slug: string): readonly number[] {
-  return SCREEN_HORIZONTAL_CORRECTION_SLUGS.has(slug)
-    ? SCREEN_HORIZONTAL_CORRECTION_FILE_ORDER
+  if (slug === 'spear-guard') return SPEAR_GUARD_HORIZONTAL_CORRECTION_FILE_ORDER;
+  if (slug === 'siege-construct') return SIEGE_CONSTRUCT_CORRECTION_FILE_ORDER;
+  return SCREEN_VERTICAL_CORRECTION_SLUGS.has(slug)
+    ? SCREEN_VERTICAL_CORRECTION_FILE_ORDER
     : ANIMATED_IMPOSTOR_FILE_ORDER;
 }
 
