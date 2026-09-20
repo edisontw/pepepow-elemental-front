@@ -76,8 +76,9 @@ Do not resume that path by default.
   browser-calibrated eight-view source order; uploads explicitly retain `flipY=false`.
 - Manual cardinal validation on 2026-09-20 showed the identity order was still
   rotated/reflected on screen: up appeared right, down left, right rear, and
-  left front. The animated pack therefore uses one roster-wide mapping
-  `[6, 5, 4, 3, 2, 1, 0, 7]`.
+  left front. A follow-up manual pass found screen-down-right and screen-up-left
+  reversed; the animated pack therefore uses the final roster-wide mapping
+  `[6, 5, 4, 7, 2, 1, 0, 3]`.
 - The legacy static-turnaround diagonal swap remains separate and is not reused
   for the animated five-action atlases.
 - One texture per loaded config/action; immutable UV materials shared across units.
