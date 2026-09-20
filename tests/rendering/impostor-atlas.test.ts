@@ -2,6 +2,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { expect, it } from 'vitest';
 import { impostorAtlasFile, impostorAtlasRect, ATLAS_WIDTH, ATLAS_HEIGHT } from '../../src/rendering/impostor-atlas';
 import { animatedImpostorFrameFiles, IMPOSTOR_ANIMATION_ACTIONS, IMPOSTOR_ANIMATION_DIRECTION_STEMS } from '../../src/rendering/impostor-animation';
+import { animatedImpostorFileOrderForSlug } from '../../src/rendering/impostor-frame-assets';
 
 it('maps every atlas tile to the same canonical direction/frame as the committed pack', () => {
   const manifest = JSON.parse(readFileSync('public/assets/impostor-atlases/manifest.json', 'utf8'));
@@ -23,6 +24,7 @@ it('maps every atlas tile to the same canonical direction/frame as the committed
       expect(rect.y).toBeGreaterThan(0);
       tiles.add(`${row},${column}`);
     }
-    expect(tiles.size).toBe(32);
+    const expectedUniqueTiles = new Set(animatedImpostorFileOrderForSlug(slug)).size * 4;
+    expect(tiles.size).toBe(expectedUniqueTiles);
   }
 });
