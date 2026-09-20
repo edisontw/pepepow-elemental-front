@@ -4,8 +4,8 @@
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v13`
-**Current replay format:** `ef-replay-v13`
+**Current authoritative gameplay ruleset:** `ef-standard-v14`
+**Current replay format:** `ef-replay-v14`
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE4_CLOSURE_REPORT.md`
 
@@ -69,8 +69,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v13`;
-- replay: `ef-replay-v13`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v14`;
+- replay: `ef-replay-v14`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -181,10 +181,12 @@ Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-Aâ€
 
 ### Tower Defense vertical slice
 
-- `TOWER_DEFENSE` is a separate deterministic run mode under `ef-standard-v13` / `ef-replay-v13`.
+- `TOWER_DEFENSE` is a separate deterministic run mode introduced in v13; its corrected active authority is `ef-standard-v14` / `ef-replay-v14`.
 - It clears the usual starting enemy force, allows 30 seconds to prepare, then sends seven escalating waves from the enemy approach toward the player Core.
 - The live HUD exposes the current wave, next hostile composition, countdown, and hostile count.
 - Existing construction, production, units, spells, and Core recovery remain the first playable defense kit.
+- v14 fixes a wave-path regression: Tower Defense assault units no longer receive an identical MOVE every fixed tick, which had repeatedly recentered A* paths and could stall them before the Core.
+- Dedicated Tower Defense Core-assault intent now owns enemy wave movement; generic Enemy War unit orders do not override that assault path.
 
 Primary scope:
 
