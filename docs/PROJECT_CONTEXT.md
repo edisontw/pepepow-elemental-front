@@ -271,9 +271,10 @@ Current decision:
 - do not resume Blender-first modeling by default;
 - use the canonical art to build coherent eight-direction animated WebP atlases;
 - preserve one shared direction convention across the roster; manual browser
-  validation on 2026-09-20 established a single animated-pack calibration
-  `[6, 1, 4, 3, 2, 5, 0, 7]` for runtime observer slots, while the older
-  static-turnaround diagonal swap remains legacy-only;
+  validation on 2026-09-20 **LOCKED** the animated-pack runtime-to-source mapping
+  at `[6, 1, 4, 3, 2, 5, 0, 7]`; do not reinterpret or replace it from filename
+  semantics, and verify runtime slot + loaded source stem before any future direction
+  change; the older static-turnaround diagonal swap remains legacy-only;
 - fix scale drift with per-view normalization where necessary rather than relabeling directions;
 - see `docs/UNIT_ANIMATION_IMPLEMENTATION_NOTES.md` for the exact active resume contract.
 
