@@ -74,12 +74,26 @@ Do not resume that path by default.
   after lossless encoding. Canonical source direction-major order is unchanged.
 - `impostor-atlas.ts` maps the refreshed action pack through one shared
   browser-calibrated eight-view source order; uploads explicitly retain `flipY=false`.
-- Manual cardinal validation on 2026-09-20 showed the identity order was still
-  rotated/reflected on screen: up appeared right, down left, right rear, and
-  left front. Final manual validation then showed all four diagonal views were
-  180 degrees opposite while the four cardinal views were correct. The animated
-  pack therefore uses the roster-wide mapping
+- **Direction contract is LOCKED by manual browser acceptance (2026-09-20).**
+  The accepted animated runtime-to-source mapping is
   `[6, 1, 4, 3, 2, 5, 0, 7]`.
+- Exact slot contract:
+  | Runtime slot | Source index | Source stem |
+  | ---: | ---: | --- |
+  | 0 | 6 | `right` |
+  | 1 | 1 | `front_left` |
+  | 2 | 4 | `rear` |
+  | 3 | 3 | `rear_left` |
+  | 4 | 2 | `left` |
+  | 5 | 5 | `rear_right` |
+  | 6 | 0 | `front` |
+  | 7 | 7 | `front_right` |
+- This table is authoritative for the current five-action pack. Source stems are
+  asset filenames, not screen-space movement names. Do not derive a replacement
+  mapping from intuition about `front/rear/left/right`.
+- Do not change this mapping, relabel directions, or reuse the legacy static
+  diagonal swap unless a new manual WebGL check identifies a specific incorrect
+  movement direction and the loaded runtime slot/source stem is verified first.
 - The legacy static-turnaround diagonal swap remains separate and is not reused
   for the animated five-action atlases.
 - One texture per loaded config/action; immutable UV materials shared across units.
