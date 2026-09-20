@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { generateWorld } from '../../src/world/generator';
-import { TerrainType, WorldCellFlag } from '../../src/world/world-definition';
+import { BiomeType, TerrainType, WorldCellFlag } from '../../src/world/world-definition';
 import { environmentPlacements } from '../../src/rendering/environment-placement-system';
 
 describe('asset-backed environment placement', () => {
@@ -11,7 +11,13 @@ describe('asset-backed environment placement', () => {
     const low = environmentPlacements(world, true);
     expect(environmentPlacements(world, false)).toEqual(full);
     expect(low.length).toBeLessThan(full.length);
-    expect(new Set(full.filter(p => p.sheet === 'trees').map(p => p.frame)).size).toBe(6);
+    const fullTrees = full.filter(p => p.sheet === 'trees');
+    const woodlandCells = Array.from(world.biome).filter(biome => biome === BiomeType.WOODLAND).length;
+    const woodlandTrees = fullTrees.filter(p => world.biome[p.cell] === BiomeType.WOODLAND);
+    expect(new Set(fullTrees.map(p => p.frame)).size).toBe(6);
+    // Full-quality woodland should read as a continuous terrain mass rather than
+    // isolated decorative trees. This is presentation density only.
+    expect(woodlandTrees.length).toBeGreaterThan(woodlandCells * 0.25);
     for (const p of full) {
       expect(world.terrain[p.cell]).toBe(TerrainType.GROUND);
       expect((world.flags[p.cell]! & WorldCellFlag.ROUTE)).toBe(0);

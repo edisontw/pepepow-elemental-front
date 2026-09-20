@@ -395,6 +395,17 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
 - World generation remains `m02-standard-v1`.
 
 
+
+### Forest massing / terrain-density pass — 2026-09-20
+
+- The environment pass now treats generated `WOODLAND` as a continuous visual terrain mass instead of sparse isolated tree decoration.
+- Full quality uses denser core groves with layered tall/medium/understory atlas cards, uncommon pocket clearings, irregular fringe vegetation, and more forest-floor deadwood/scrub.
+- Open highland/plains cells receive somewhat more restrained rock/scrub dressing so large empty fields are reduced without obscuring routes, build space, selection markers, or combat.
+- The presentation target is for forest mass to read across roughly **one quarter to one third of the battlefield where the generated woodland footprint supports it**; the authoritative `FOREST` flags and `m02-standard-v1` world generation are unchanged.
+- Road and strategic-site setbacks remain, and `?quality=low` still substantially thins the environment.
+- This is presentation-only and does not change `ef-standard-v12`, `ef-replay-v12`, or `m02-standard-v1`.
+
+
 ### Token-efficient validation policy
 
 For presentation-only batches:
