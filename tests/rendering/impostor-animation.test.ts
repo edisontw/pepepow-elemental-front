@@ -68,11 +68,17 @@ describe('animated unit impostor assets', () => {
       `assets/impostors/vanguard/idle/front_02.webp${revision}`,
       `assets/impostors/vanguard/idle/front_03.webp${revision}`,
     ]);
-    expect(files.slice(28, 32)).toEqual([
+    expect(files.slice(12, 16)).toEqual([
       `assets/impostors/vanguard/idle/front_right_00.webp${revision}`,
       `assets/impostors/vanguard/idle/front_right_01.webp${revision}`,
       `assets/impostors/vanguard/idle/front_right_02.webp${revision}`,
       `assets/impostors/vanguard/idle/front_right_03.webp${revision}`,
+    ]);
+    expect(files.slice(28, 32)).toEqual([
+      `assets/impostors/vanguard/idle/rear_left_00.webp${revision}`,
+      `assets/impostors/vanguard/idle/rear_left_01.webp${revision}`,
+      `assets/impostors/vanguard/idle/rear_left_02.webp${revision}`,
+      `assets/impostors/vanguard/idle/rear_left_03.webp${revision}`,
     ]);
   });
 
