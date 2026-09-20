@@ -180,6 +180,38 @@ describe('M06 full run', () => {
     expect(final.run.result?.reason).toBe('BOSS_DEFEATED');
   }, 15_000);
 
+  it('keeps Tower Defense wave movement advancing toward the player Core', () => {
+    const simulation = new M06Simulation(generateWorld(1_000_010), {
+      mode: 'TOWER_DEFENSE',
+      pace: 'SMOKE',
+      difficulty: 'CASUAL',
+    });
+    for (let tick = 1; tick <= 300; tick += 1) simulation.step();
+
+    const core = simulation.run.snapshot().playerCore;
+    const enemyIds = livingIds(simulation, 1);
+    expect(enemyIds.length).toBeGreaterThan(0);
+    const firstEnemyId = enemyIds[0];
+    expect(firstEnemyId).toBeDefined();
+    if (firstEnemyId === undefined) return;
+    const beforePosition = simulation.entities.positions.get(firstEnemyId)!;
+    const beforeDx = beforePosition.x - core.x;
+    const beforeDz = beforePosition.z - core.z;
+    const beforeDistanceSquared = beforeDx * beforeDx + beforeDz * beforeDz;
+
+    for (let tick = 0; tick < 20; tick += 1) simulation.step();
+
+    const afterPosition = simulation.entities.positions.get(firstEnemyId)!;
+    const afterDx = afterPosition.x - core.x;
+    const afterDz = afterPosition.z - core.z;
+    const afterDistanceSquared = afterDx * afterDx + afterDz * afterDz;
+    expect(afterDistanceSquared).toBeLessThan(beforeDistanceSquared);
+    expect(simulation.run.snapshot().objectiveAttackOrders).toContainEqual({
+      entityId: firstEnemyId,
+      objective: 'PLAYER_CORE',
+    });
+  }, 15_000);
+
   it('records a versioned replay packet with exact world/run/enemy identity', () => {
     const simulation = new M06Simulation(generateWorld(1_000_005), {
       mode: 'DESTROY',
@@ -202,7 +234,7 @@ describe('M06 full run', () => {
     expect(packet).not.toBeNull();
     expect(isM06ReplayPacket(packet)).toBe(true);
     expect(packet?.header).toMatchObject({
-      version: 'ef-replay-v13',
+      version: 'ef-replay-v14',
       blockHeight: 1_000_005,
       mode: 'DESTROY',
       pace: 'SMOKE',

@@ -1544,3 +1544,15 @@ Design rationale:
 - This gameplay change advances challenge/replay identity to
   `ef-standard-v12` / `ef-replay-v12`.
 - World generation remains `m02-standard-v1`.
+
+---
+
+# 64. Tower Defense run mode — v13/v14
+
+- `TOWER_DEFENSE` is a separate deterministic run mode introduced in v13.
+- The player receives a 30-second preparation window, followed by seven escalating waves from the enemy approach toward the player Elemental Core.
+- Wave units carry explicit `PLAYER_CORE` objective-attack intent and must continue advancing until they enter legal structure-attack range.
+- Core-assault movement is persistent. The simulation must not reissue an identical MOVE every fixed tick; repeated MOVE replacement recenters the active A* path and can stall a unit inside its current cell.
+- Generic Enemy War unit orders do not override Tower Defense wave movement. Local combat remains governed by the existing forced-Move/objective-attack rules and normal authoritative attack cadence.
+- The v14 correction fixes this wave-movement authority without changing `m02-standard-v1` world generation.
+- Active Tower Defense gameplay/replay identity is `ef-standard-v14` / `ef-replay-v14`.

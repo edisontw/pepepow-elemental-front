@@ -47,7 +47,7 @@ export type M06ReplayEntry =
   | { channel: 'RUN'; command: M06RunCommand };
 
 export interface M06ReplayHeader {
-  version: 'ef-replay-v13';
+  version: 'ef-replay-v14';
   blockHeight: number;
   rulesetVersion: string;
   worldGameplayHash: string;
@@ -122,7 +122,7 @@ export function isM06ReplayPacket(value: unknown): value is M06ReplayPacket {
   if (typeof value !== 'object' || value === null) return false;
   const packet = value as Partial<M06ReplayPacket>;
   const header = packet.header as Partial<M06ReplayHeader> | undefined;
-  if (!header || header.version !== 'ef-replay-v13') return false;
+  if (!header || header.version !== 'ef-replay-v14') return false;
   if (!Number.isSafeInteger(header.blockHeight) || !Number.isSafeInteger(header.generationAttempt)) return false;
   if (typeof header.rulesetVersion !== 'string' || typeof header.worldGameplayHash !== 'string') return false;
   if (!validStartingAttunements(header.startingAttunements)) return false;
@@ -177,6 +177,7 @@ export class M06Simulation extends M05Simulation {
 
   override enqueueCommand(command: M04GameCommand): void {
     if (this.playback && !this.internalCommand) return;
+    if (this.internalCommand && this.run?.mode === 'TOWER_DEFENSE' && command.playerId === 1) return;
     // External/player orders replace an explicit objective attack. Internal
     // Enemy War commands are reconciled against the AI decision after its step.
     super.enqueueCommand(command);
@@ -238,8 +239,8 @@ export class M06Simulation extends M05Simulation {
       const frame = super.step();
       this.neutralEncounters.advance(frame.tick);
       const wave = this.run.consumeTowerDefenseWave(frame.tick);
-      if (wave) this.spawnTowerDefenseWave(wave, frame.tick + 1);
-      if (this.run.mode === 'TOWER_DEFENSE') this.syncTowerDefenseObjectiveIntent(frame.tick + 1);
+      if (wave) this.spawnTowerDefenseWave(wave);
+      if (this.run.mode === 'TOWER_DEFENSE') this.syncTowerDefenseObjectiveIntent();
       else this.syncEnemyCoreObjectiveIntent(frame.tick + 1);
       const intent = this.run.advance(
         frame.tick,
@@ -316,7 +317,7 @@ export class M06Simulation extends M05Simulation {
   private buildReplayPacket(snapshot: M06SimulationSnapshot): M06ReplayPacket {
     return {
       header: {
-        version: 'ef-replay-v13',
+        version: 'ef-replay-v14',
         blockHeight: this.generatedWorld.identity.blockHeight,
         rulesetVersion: CURRENT_CHALLENGE_RULESET_VERSION,
         worldGameplayHash: this.generatedWorld.gameplayHash,
@@ -487,9 +488,8 @@ export class M06Simulation extends M05Simulation {
     });
   }
 
-  private spawnTowerDefenseWave(wave: number, targetTick: number): void {
+  private spawnTowerDefenseWave(wave: number): void {
     const spawn = this.generatedWorld.spawns.find((candidate) => candidate.id === 'ENEMY');
-    const core = this.run.snapshot().playerCore;
     if (!spawn) return;
     const start = this.navigation.resolveWalkableTarget({ column: spawn.cell.x, row: spawn.cell.z });
     if (!start) return;
@@ -510,15 +510,15 @@ export class M06Simulation extends M05Simulation {
       ids.push(this.entities.createUnit({ archetype, playerId: 1, x: position.x, z: position.z, ...UNITS[archetype].spawn }));
     }
     for (const entityId of ids) this.objectiveAttackOrders.set(entityId, 'PLAYER_CORE');
-    super.enqueueCommand({ type: 'MOVE', targetTick, playerId: 1, entityIds: ids, targetX: core.x, targetZ: core.z });
   }
 
-  private syncTowerDefenseObjectiveIntent(targetTick: number): void {
-    const core = this.run.snapshot().playerCore;
-    const ids = this.entities.entityIds().filter((entityId) => this.entities.hasUnit(entityId)
-      && this.entities.factions.get(entityId)?.playerId === 1).sort((a, b) => a - b);
+  private syncTowerDefenseObjectiveIntent(): void {
+    const ids = this.entities.entityIds().filter((entityId) => (
+      this.entities.hasUnit(entityId)
+      && this.entities.factions.get(entityId)?.playerId === 1
+      && this.entities.health.get(entityId)?.alive === true
+    )).sort((a, b) => a - b);
     for (const entityId of ids) this.objectiveAttackOrders.set(entityId, 'PLAYER_CORE');
-    if (ids.length > 0) super.enqueueCommand({ type: 'MOVE', targetTick, playerId: 1, entityIds: ids, targetX: core.x, targetZ: core.z });
   }
 
   private applyCoreHealing(currentTick: number): void {
