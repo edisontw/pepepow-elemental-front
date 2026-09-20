@@ -14,10 +14,13 @@ describe('asset-backed environment placement', () => {
     const fullTrees = full.filter(p => p.sheet === 'trees');
     const woodlandCells = Array.from(world.biome).filter(biome => biome === BiomeType.WOODLAND).length;
     const woodlandTrees = fullTrees.filter(p => world.biome[p.cell] === BiomeType.WOODLAND);
+    const macroTrees = fullTrees.filter(p => world.biome[p.cell] !== BiomeType.WOODLAND);
     expect(new Set(fullTrees.map(p => p.frame)).size).toBe(6);
-    // Full-quality woodland should read as a continuous terrain mass rather than
-    // isolated decorative trees. This is presentation density only.
+    // Generated woodland remains dense, while the presentation pass now adds
+    // substantial visual forest mass beyond authoritative WOODLAND cells.
     expect(woodlandTrees.length).toBeGreaterThan(woodlandCells * 0.25);
+    expect(macroTrees.length).toBeGreaterThan(20);
+    expect(low.filter(p => p.sheet === 'trees' && world.biome[p.cell] !== BiomeType.WOODLAND).length).toBeLessThan(macroTrees.length);
     for (const p of full) {
       expect(world.terrain[p.cell]).toBe(TerrainType.GROUND);
       expect((world.flags[p.cell]! & WorldCellFlag.ROUTE)).toBe(0);

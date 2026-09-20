@@ -396,14 +396,14 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
 
 
 
-### Forest massing / terrain-density pass — 2026-09-20
+### Forest mass expansion pass — 2026-09-20
 
-- The environment pass now treats generated `WOODLAND` as a continuous visual terrain mass instead of sparse isolated tree decoration.
-- Full quality uses denser core groves with layered tall/medium/understory atlas cards, uncommon pocket clearings, irregular fringe vegetation, and more forest-floor deadwood/scrub.
-- Open highland/plains cells receive somewhat more restrained rock/scrub dressing so large empty fields are reduced without obscuring routes, build space, selection markers, or combat.
-- The presentation target is for forest mass to read across roughly **one quarter to one third of the battlefield where the generated woodland footprint supports it**; the authoritative `FOREST` flags and `m02-standard-v1` world generation are unchanged.
-- Road and strategic-site setbacks remain, and `?quality=low` still substantially thins the environment.
-- This is presentation-only and does not change `ef-standard-v12`, `ef-replay-v12`, or `m02-standard-v1`.
+- Generated `WOODLAND` remains the authoritative forest/cover footprint and still receives the densest core/edge/understory treatment.
+- A separate deterministic presentation-only coarse noise mask now creates several macro wooded regions across otherwise suitable ground, ranked per battlefield so forest mass targets about **30% of eligible sampled ground** and is capped near one third where composition allows.
+- Macro groves use tall/medium canopy cores, sapling/shrub edges, deadwood/scrub understory, and wider low-profile open-ground dressing so the battlefield no longer reads as mostly empty grassland.
+- Two-cell route setbacks plus larger spawn/base, POI, resource, objective, and boss clearances preserve movement corridors and important battle space.
+- `?quality=low` keeps the same macro composition but substantially thins tree/understory placement.
+- The macro mask is rendering data only: authoritative terrain flags, forest cover semantics, navigation, fog authority, world generation, replay, `ef-standard-v12`, `ef-replay-v12`, and `m02-standard-v1` remain unchanged.
 
 
 ### Token-efficient validation policy
