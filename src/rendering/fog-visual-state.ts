@@ -2,7 +2,7 @@ import { VisibilityLevel } from '../simulation/visibility-state';
 
 export const FOG_ALPHA = {
   visible: 0,
-  explored: 104,
+  explored: 92,
   unexplored: 230,
 } as const;
 

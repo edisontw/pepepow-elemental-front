@@ -308,18 +308,17 @@ Phase 4 remains closed as a feature milestone, but explicit playtest feedback ju
 - the active run HUD is reduced to two compact Core/Target bars; phase/time/difficulty/mode move to the minimap-side metadata line;
 - this authoritative balance revision advances identity to `ef-standard-v8` / `ef-replay-v8`; world generation remains `m02-standard-v1`.
 
-### Visual brightness recalibration — 2026-09-19
+### Battlefield lighting / contrast tuning — 2026-09-20
 
-Manual browser feedback found the previous anti-washout pass too dark. The runtime is recalibrated to a middle exposure target:
+The 2026-09-19 anti-darkness recalibration is superseded by a brighter daylight/contrast pass based on manual browser feedback:
 
-- normal ambient light: approximately 0.13–0.15 instead of 0.10–0.12;
-- normal directional sun intensity: 1.00 instead of 0.88;
-- escalation/finale remain intentionally dimmer, but are lifted to 0.94 / 0.86;
-- player unit impostor emissive: approximately 0.75;
-- environment atlas emissive: approximately 0.72–0.74;
-- building impostor emissive: approximately 0.87;
-- terrain atlas multipliers lifted while retaining stronger contrast than the earlier washed-out presentation;
-- this is presentation-only and does not change `ef-standard-v9`, `ef-replay-v9`, or `m02-standard-v1`.
+- normal ambient light is lifted to approximately 0.16–0.175, with normal directional sun intensity at 1.08;
+- the normal sun is warmer and brighter, while Escalation / Finale retain cooler mood separation at 1.02 / 0.94 rather than becoming gloomy;
+- terrain atlas grading lifts grass/ground midtones modestly and gives dirt-road tiles an additional readability lift without flattening local variation;
+- explored fog darkening is reduced from alpha 104 to 92; unexplored fog remains strongly obscuring at 230;
+- environment atlas emissive is approximately 0.80–0.82, player unit impostors approximately 0.80–0.81, and building impostors approximately 0.90–0.91 so foreground silhouettes stay readable against the brighter battlefield;
+- shadow/contact cues and forest density are preserved; this is a grading/lighting pass rather than a density or geometry rewrite;
+- this pass is presentation-only and does not change `ef-standard-v12`, `ef-replay-v12`, or `m02-standard-v1`.
 
 ### Visual / UX optimization — 2026-09-19 (pre-atlas history)
 

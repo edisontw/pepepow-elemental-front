@@ -438,7 +438,7 @@ export class VisualAssetLibrary {
           const material = new pc.StandardMaterial();
           material.name = `${config.id}.fallback.idle.${view}`;
           material.useLighting = false;
-          material.emissive = new pc.Color(0.75, 0.74, 0.70);
+          material.emissive = new pc.Color(0.81, 0.80, 0.76);
           material.emissiveMap = texture;
           material.opacityMap = texture;
           material.opacityMapChannel = 'a';
@@ -478,7 +478,7 @@ export class VisualAssetLibrary {
           const material = new pc.StandardMaterial();
           material.name = `${config.id}.atlas.${action}.${index}`;
           material.useLighting = false;
-          material.emissive = new pc.Color(0.75, 0.74, 0.70);
+          material.emissive = new pc.Color(0.81, 0.80, 0.76);
           material.emissiveMap = texture;
           material.opacityMap = texture;
           material.emissiveMapTiling.set(rect.width, rect.height);

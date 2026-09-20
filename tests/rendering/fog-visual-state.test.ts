@@ -9,6 +9,8 @@ describe('fog-of-war presentation state', () => {
     expect(fogAlphaForLevel(VisibilityLevel.UNEXPLORED)).toBe(FOG_ALPHA.unexplored);
     expect(FOG_ALPHA.unexplored).toBeGreaterThan(FOG_ALPHA.explored);
     expect(FOG_ALPHA.explored).toBeGreaterThan(FOG_ALPHA.visible);
+    expect(FOG_ALPHA.explored).toBeLessThanOrEqual(96);
+    expect(FOG_ALPHA.unexplored).toBeGreaterThanOrEqual(220);
   });
 
   it('feathers boundaries by averaging cells around each mesh corner', () => {

@@ -122,17 +122,17 @@ export function createSceneShell(
   app.setCanvasResolution(pc.RESOLUTION_AUTO);
   // Keep high-DPI backbuffers bounded so RTS scenes remain fill-rate friendly.
   app.graphicsDevice.maxPixelRatio = lowQuality ? 1 : Math.min(window.devicePixelRatio || 1, 1.5);
-  app.scene.ambientLight = new pc.Color(0.13, 0.15, 0.145);
+  app.scene.ambientLight = new pc.Color(0.16, 0.175, 0.165);
 
   const materials: Record<string, pc.Material> = {
-    ground: createMaterial(new pc.Color(0.13, 0.23, 0.16)),
-    river: createMaterial(new pc.Color(0.06, 0.25, 0.42), new pc.Color(0.01, 0.08, 0.16)),
-    ice: createMaterial(new pc.Color(0.58, 0.88, 0.96), new pc.Color(0.12, 0.34, 0.42), 0.82),
-    bridge: createMaterial(new pc.Color(0.45, 0.32, 0.18)),
-    forest: createMaterial(new pc.Color(0.08, 0.24, 0.10)),
-    trunk: createMaterial(new pc.Color(0.22, 0.13, 0.07)),
-    canopy: createMaterial(new pc.Color(0.08, 0.34, 0.13)),
-    rock: createMaterial(new pc.Color(0.27, 0.29, 0.27)),
+    ground: createMaterial(new pc.Color(0.16, 0.29, 0.19)),
+    river: createMaterial(new pc.Color(0.07, 0.29, 0.47), new pc.Color(0.012, 0.09, 0.18)),
+    ice: createMaterial(new pc.Color(0.62, 0.9, 0.97), new pc.Color(0.13, 0.36, 0.44), 0.82),
+    bridge: createMaterial(new pc.Color(0.50, 0.36, 0.20)),
+    forest: createMaterial(new pc.Color(0.09, 0.29, 0.11)),
+    trunk: createMaterial(new pc.Color(0.26, 0.16, 0.08)),
+    canopy: createMaterial(new pc.Color(0.10, 0.40, 0.15)),
+    rock: createMaterial(new pc.Color(0.32, 0.33, 0.30)),
   };
 
   const generatedWorldBridge = simulation instanceof M03Simulation
@@ -160,8 +160,8 @@ export function createSceneShell(
   const light = new pc.Entity('Sun');
   light.addComponent('light', {
     type: 'directional',
-    color: new pc.Color(0.82, 0.84, 0.77),
-    intensity: 1.00,
+    color: new pc.Color(0.94, 0.91, 0.82),
+    intensity: 1.08,
     castShadows: !lowQuality,
   });
   light.setEulerAngles(48, 28, 0);
@@ -169,7 +169,7 @@ export function createSceneShell(
 
   const cameraEntity = new pc.Entity('RTS Camera');
   cameraEntity.addComponent('camera', {
-    clearColor: new pc.Color(0.025, 0.055, 0.052),
+    clearColor: new pc.Color(0.032, 0.065, 0.058),
     farClip: 500,
     fov: 48,
   });
@@ -285,15 +285,17 @@ export function createSceneShell(
         const phase = simulation.run.snapshot().phase;
         const finale = phase === 'FINALE';
         app.scene.ambientLight = finale
-          ? new pc.Color(0.10, 0.11, 0.14)
+          ? new pc.Color(0.125, 0.135, 0.155)
           : phase === 'ESCALATION'
-            ? new pc.Color(0.115, 0.13, 0.14)
-            : new pc.Color(0.13, 0.15, 0.145);
+            ? new pc.Color(0.145, 0.158, 0.16)
+            : new pc.Color(0.16, 0.175, 0.165);
         if (light.light) {
-          light.light.intensity = finale ? 0.86 : phase === 'ESCALATION' ? 0.94 : 1.00;
+          light.light.intensity = finale ? 0.94 : phase === 'ESCALATION' ? 1.02 : 1.08;
           light.light.color = finale
-            ? new pc.Color(0.68, 0.74, 0.86)
-            : new pc.Color(0.82, 0.84, 0.77);
+            ? new pc.Color(0.74, 0.79, 0.90)
+            : phase === 'ESCALATION'
+              ? new pc.Color(0.88, 0.88, 0.82)
+              : new pc.Color(0.94, 0.91, 0.82);
         }
       }
       battleVfx.sync(frame.snapshot.tick, frame.interpolationAlpha);
