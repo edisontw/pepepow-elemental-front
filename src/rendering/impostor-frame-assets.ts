@@ -13,15 +13,25 @@ export const IDENTITY_IMPOSTOR_FRAME_REMAP = [0, 1, 2, 3, 4, 5, 6, 7] as const;
 export const DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER = [0, 7, 2, 5, 4, 3, 6, 1] as const;
 
 /**
- * Manual gameplay calibration for the refreshed five-action unit pack.
+ * HUMAN-VALIDATED DIRECTION LOCK — 2026-09-20.
  *
- * The source pack's apparent screen-facing axes are rotated/reflected relative
- * to the runtime observer slots. A single roster-wide mapping fixes the four
- * confirmed cardinal cases without per-unit hacks:
- * screen-up -> rear, screen-down -> front, screen-right -> right,
- * screen-left -> left. Final browser validation showed all four diagonal
- * animated views were 180 degrees opposite; the diagonal slots therefore use
- * their opposite source views while the confirmed cardinal slots stay fixed.
+ * This is the accepted roster-wide mapping for the refreshed five-action pack.
+ * Do NOT reinterpret it from filename semantics, camera intuition, or an older
+ * static-turnaround rule. Do NOT change it unless a new manual WebGL check
+ * identifies a specific wrong movement direction.
+ *
+ * Runtime observer slot -> source direction:
+ *   0 -> 6  right
+ *   1 -> 1  front_left
+ *   2 -> 4  rear
+ *   3 -> 3  rear_left
+ *   4 -> 2  left
+ *   5 -> 5  rear_right
+ *   6 -> 0  front
+ *   7 -> 7  front_right
+ *
+ * Runtime slots correspond to the existing heading resolver; source names are
+ * asset filenames, not screen-space movement labels.
  */
 export const ANIMATED_IMPOSTOR_FILE_ORDER = [6, 1, 4, 3, 2, 5, 0, 7] as const;
 
