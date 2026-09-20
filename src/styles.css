@@ -262,6 +262,8 @@ button { font: inherit; }
 .run-health-row > div { height: .48rem; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.09); }
 .run-health-row i { display: block; height: 100%; border-radius: inherit; background: #5dd5ad; }
 .run-health-row.target i { background: #e16b5a; }
+.tower-wave { display: flex; align-items: center; justify-content: space-between; gap: .7rem; margin-top: .42rem; padding-top: .38rem; border-top: 1px solid rgba(240, 180, 84, .22); color: #e7c977; font-size: .58rem; letter-spacing: .04em; }
+.tower-wave span { color: #c7d2ce; text-align: right; }
 .run-objective { margin-top: .48rem; padding-top: .45rem; border-top: 1px solid rgba(255,255,255,.08); color: #f1d982; }
 .run-pressure { margin-top: .28rem; color: #8098a2; font-size: .56rem; }
 .run-critical { margin: .35rem 0 .48rem; padding: .36rem .45rem; border: 1px solid rgba(255, 111, 92, .58); border-radius: .3rem; background: rgba(105, 22, 15, .58); color: #ffb5a7; letter-spacing: .04em; }

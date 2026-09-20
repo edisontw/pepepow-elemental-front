@@ -19,6 +19,8 @@ import {
   type RunOutcome,
   type RunPace,
 } from './m06-content';
+import { UNITS } from './m03-content';
+import type { UnitArchetype } from './components';
 import {
   RunState,
   type BossAbilityIntent,
@@ -45,7 +47,7 @@ export type M06ReplayEntry =
   | { channel: 'RUN'; command: M06RunCommand };
 
 export interface M06ReplayHeader {
-  version: 'ef-replay-v12';
+  version: 'ef-replay-v13';
   blockHeight: number;
   rulesetVersion: string;
   worldGameplayHash: string;
@@ -120,11 +122,11 @@ export function isM06ReplayPacket(value: unknown): value is M06ReplayPacket {
   if (typeof value !== 'object' || value === null) return false;
   const packet = value as Partial<M06ReplayPacket>;
   const header = packet.header as Partial<M06ReplayHeader> | undefined;
-  if (!header || header.version !== 'ef-replay-v12') return false;
+  if (!header || header.version !== 'ef-replay-v13') return false;
   if (!Number.isSafeInteger(header.blockHeight) || !Number.isSafeInteger(header.generationAttempt)) return false;
   if (typeof header.rulesetVersion !== 'string' || typeof header.worldGameplayHash !== 'string') return false;
   if (!validStartingAttunements(header.startingAttunements)) return false;
-  if (header.mode !== 'DESTROY' && header.mode !== 'BOSS_HUNT') return false;
+  if (header.mode !== 'DESTROY' && header.mode !== 'BOSS_HUNT' && header.mode !== 'TOWER_DEFENSE') return false;
   if (header.pace !== 'STANDARD' && header.pace !== 'SMOKE') return false;
   if (!['IRON_LEGION', 'FLAME_CULT', 'WILD_HORDE'].includes(header.faction ?? '')) return false;
   if (!['CASUAL', 'STANDARD', 'HARD'].includes(header.difficulty ?? '')) return false;
@@ -166,6 +168,11 @@ export class M06Simulation extends M05Simulation {
     super(generatedWorld, options);
     this.neutralEncounters = new NeutralEncounterState(generatedWorld, this.entities, this.navigation);
     this.run = new RunState(generatedWorld, options.mode ?? 'DESTROY', options.pace ?? 'STANDARD');
+    if (this.run.mode === 'TOWER_DEFENSE') {
+      for (const entityId of this.entities.entityIds()) {
+        if (this.entities.factions.get(entityId)?.playerId === 1) this.entities.health.get(entityId)!.alive = false;
+      }
+    }
   }
 
   override enqueueCommand(command: M04GameCommand): void {
@@ -230,7 +237,10 @@ export class M06Simulation extends M05Simulation {
       this.neutralEncounters.prepareLeashes(nextTick, (command) => super.enqueueCommand(command));
       const frame = super.step();
       this.neutralEncounters.advance(frame.tick);
-      this.syncEnemyCoreObjectiveIntent(frame.tick + 1);
+      const wave = this.run.consumeTowerDefenseWave(frame.tick);
+      if (wave) this.spawnTowerDefenseWave(wave, frame.tick + 1);
+      if (this.run.mode === 'TOWER_DEFENSE') this.syncTowerDefenseObjectiveIntent(frame.tick + 1);
+      else this.syncEnemyCoreObjectiveIntent(frame.tick + 1);
       const intent = this.run.advance(
         frame.tick,
         this.entities,
@@ -306,7 +316,7 @@ export class M06Simulation extends M05Simulation {
   private buildReplayPacket(snapshot: M06SimulationSnapshot): M06ReplayPacket {
     return {
       header: {
-        version: 'ef-replay-v12',
+        version: 'ef-replay-v13',
         blockHeight: this.generatedWorld.identity.blockHeight,
         rulesetVersion: CURRENT_CHALLENGE_RULESET_VERSION,
         worldGameplayHash: this.generatedWorld.gameplayHash,
@@ -475,6 +485,40 @@ export class M06Simulation extends M05Simulation {
       targetX: target.x,
       targetZ: target.z,
     });
+  }
+
+  private spawnTowerDefenseWave(wave: number, targetTick: number): void {
+    const spawn = this.generatedWorld.spawns.find((candidate) => candidate.id === 'ENEMY');
+    const core = this.run.snapshot().playerCore;
+    if (!spawn) return;
+    const start = this.navigation.resolveWalkableTarget({ column: spawn.cell.x, row: spawn.cell.z });
+    if (!start) return;
+    const composition: readonly UnitArchetype[] = wave < 3
+      ? ['VANGUARD', 'VANGUARD', 'RANGER']
+      : wave < 5
+        ? ['VANGUARD', 'VANGUARD', 'RANGER', 'RANGER', 'SPEAR_GUARD']
+        : ['VANGUARD', 'VANGUARD', 'RANGER', 'RANGER', 'SPEAR_GUARD', 'GOLEM'];
+    const count = composition.length + Math.floor(wave / 2);
+    const ids: number[] = [];
+    for (let index = 0; index < count; index += 1) {
+      const archetype = composition[index % composition.length]!;
+      const cell = this.navigation.resolveWalkableTarget({
+        column: start.column + ((index % 3) - 1) * 2,
+        row: start.row + (Math.floor(index / 3) + 1) * 2,
+      }) ?? start;
+      const position = this.navigation.cellToWorld(cell);
+      ids.push(this.entities.createUnit({ archetype, playerId: 1, x: position.x, z: position.z, ...UNITS[archetype].spawn }));
+    }
+    for (const entityId of ids) this.objectiveAttackOrders.set(entityId, 'PLAYER_CORE');
+    super.enqueueCommand({ type: 'MOVE', targetTick, playerId: 1, entityIds: ids, targetX: core.x, targetZ: core.z });
+  }
+
+  private syncTowerDefenseObjectiveIntent(targetTick: number): void {
+    const core = this.run.snapshot().playerCore;
+    const ids = this.entities.entityIds().filter((entityId) => this.entities.hasUnit(entityId)
+      && this.entities.factions.get(entityId)?.playerId === 1).sort((a, b) => a - b);
+    for (const entityId of ids) this.objectiveAttackOrders.set(entityId, 'PLAYER_CORE');
+    if (ids.length > 0) super.enqueueCommand({ type: 'MOVE', targetTick, playerId: 1, entityIds: ids, targetX: core.x, targetZ: core.z });
   }
 
   private applyCoreHealing(currentTick: number): void {

@@ -78,7 +78,7 @@ export function createBlockChallengeShareUrl(baseUrl: string | URL, identity: Bl
   url.searchParams.set('ruleset', identity.rulesetVersion);
   url.searchParams.set('world', identity.worldGameplayHash);
   url.searchParams.set('attempt', String(identity.generationAttempt));
-  url.searchParams.set('mode', identity.mode === 'BOSS_HUNT' ? 'boss' : 'destroy');
+  url.searchParams.set('mode', identity.mode === 'BOSS_HUNT' ? 'boss' : identity.mode === 'TOWER_DEFENSE' ? 'tower' : 'destroy');
   url.searchParams.set('pace', identity.pace.toLowerCase());
   url.searchParams.set('faction', identity.faction.toLowerCase());
   url.searchParams.set('difficulty', identity.difficulty.toLowerCase());
@@ -98,7 +98,11 @@ export function readBlockChallengeShareRequest(search: string): BlockChallengeSh
   const factionRaw = params.get('faction')?.trim().toLowerCase();
   const difficultyRaw = params.get('difficulty')?.trim().toLowerCase();
 
-  const mode: RunMode = modeRaw === 'boss' || modeRaw === 'boss_hunt' ? 'BOSS_HUNT' : 'DESTROY';
+  const mode: RunMode = modeRaw === 'boss' || modeRaw === 'boss_hunt'
+    ? 'BOSS_HUNT'
+    : modeRaw === 'tower' || modeRaw === 'tower_defense' || modeRaw === 'defense'
+      ? 'TOWER_DEFENSE'
+      : 'DESTROY';
   const pace: RunPace = paceRaw === 'smoke' ? 'SMOKE' : 'STANDARD';
   const faction: EnemyFaction = factionRaw === 'flame' || factionRaw === 'flame_cult'
     ? 'FLAME_CULT'

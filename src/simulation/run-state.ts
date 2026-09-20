@@ -22,6 +22,9 @@ import {
   type RunOutcome,
   type RunPace,
   type RunPhase,
+  TOWER_DEFENSE_FIRST_WAVE_TICKS,
+  TOWER_DEFENSE_WAVE_COUNT,
+  TOWER_DEFENSE_WAVE_INTERVAL_TICKS,
 } from './m06-content';
 import { worldCellToSimulationPosition } from '../world/world-arena';
 import type { GeneratedWorld } from '../world/world-definition';
@@ -29,7 +32,15 @@ import type { GeneratedWorld } from '../world/world-definition';
 const FNV_OFFSET = 0x811c9dc5;
 const FNV_PRIME = 0x01000193;
 
-export type RunResultReason = 'ENEMY_CORE_DESTROYED' | 'BOSS_DEFEATED' | 'PLAYER_CORE_DESTROYED';
+export type RunResultReason = 'ENEMY_CORE_DESTROYED' | 'BOSS_DEFEATED' | 'PLAYER_CORE_DESTROYED' | 'WAVES_SURVIVED';
+
+export interface TowerDefenseSnapshot {
+  currentWave: number;
+  totalWaves: number;
+  nextWaveTick: number | null;
+  nextWaveLabel: string | null;
+  enemiesRemaining: number;
+}
 
 export interface CoreObjectiveSnapshot {
   playerId: number;
@@ -101,6 +112,7 @@ export interface RunSnapshot {
   pressure: RunPressureSnapshot;
   objectiveAttackOrders: readonly ObjectiveAttackOrderSnapshot[];
   result: RunResultSnapshot | null;
+  towerDefense: TowerDefenseSnapshot | null;
 }
 
 export interface BossAbilityIntent {
@@ -160,6 +172,7 @@ export class RunState {
     repairingEngineers: 0,
   };
   private objectiveAttackOrders: ObjectiveAttackOrderSnapshot[] = [];
+  private towerDefense: TowerDefenseSnapshot | null;
 
   constructor(
     readonly world: GeneratedWorld,
@@ -203,6 +216,22 @@ export class RunState {
       active: false,
       lastAbilityTick: 0,
     };
+    this.towerDefense = mode === 'TOWER_DEFENSE' ? {
+      currentWave: 0,
+      totalWaves: TOWER_DEFENSE_WAVE_COUNT,
+      nextWaveTick: TOWER_DEFENSE_FIRST_WAVE_TICKS,
+      nextWaveLabel: this.waveLabel(1),
+      enemiesRemaining: 0,
+    } : null;
+  }
+
+  consumeTowerDefenseWave(tick: number): number | null {
+    const defense = this.towerDefense;
+    if (!defense || this.outcome !== 'IN_PROGRESS' || defense.nextWaveTick === null || tick < defense.nextWaveTick) return null;
+    defense.currentWave += 1;
+    defense.nextWaveTick = defense.currentWave >= defense.totalWaves ? null : tick + TOWER_DEFENSE_WAVE_INTERVAL_TICKS;
+    defense.nextWaveLabel = defense.nextWaveTick === null ? null : this.waveLabel(defense.currentWave + 1);
+    return defense.currentWave;
   }
 
   advance(
@@ -216,6 +245,9 @@ export class RunState {
     this.objectiveAttackOrders = [...objectiveAttackOrders]
       .sort((left, right) => left.entityId - right.entityId || left.objective.localeCompare(right.objective));
     this.phase = phaseForTick(tick, this.pace);
+    if (this.towerDefense) this.towerDefense.enemiesRemaining = entities.entityIds().filter((entityId) => (
+      entities.hasUnit(entityId) && entities.factions.get(entityId)?.playerId === 1
+    )).length;
     this.updateFinaleGate(tick, strategic, roguelite);
 
     const playerCoreAssault = this.objectiveAssault(
@@ -265,6 +297,15 @@ export class RunState {
       }
     } else {
       this.pressure = { ...this.pressure, repairingEngineers: 0 };
+    }
+
+    if (this.mode === 'TOWER_DEFENSE') {
+      this.pressure = { ...this.pressure, enemyCoreAttackers: 0, bossAttackers: 0 };
+      if (this.towerDefense && this.towerDefense.currentWave >= this.towerDefense.totalWaves
+        && this.towerDefense.nextWaveTick === null && this.towerDefense.enemiesRemaining === 0) {
+        this.finish('VICTORY', 'WAVES_SURVIVED', tick, strategic, roguelite, entities);
+      }
+      return null;
     }
 
     if (this.mode === 'DESTROY') {
@@ -355,11 +396,13 @@ export class RunState {
         ...this.result,
         score: { ...this.result.score },
       },
+      towerDefense: this.towerDefense === null ? null : { ...this.towerDefense },
     };
     return { stateHash: this.computeHash(snapshotWithoutHash), ...snapshotWithoutHash };
   }
 
   private updateFinaleGate(tick: number, strategic: StrategicSnapshot, roguelite: RogueliteSnapshot): void {
+    if (this.mode === 'TOWER_DEFENSE') return;
     if (this.finaleUnlocked) return;
     const autoTick = finaleUnlockTick(this.pace);
     const momentumReady = this.pace === 'STANDARD'
@@ -375,6 +418,12 @@ export class RunState {
     this.finaleUnlockReason = momentumReady ? 'MOMENTUM' : 'TIME';
     this.phase = 'FINALE';
     if (this.mode === 'BOSS_HUNT') this.boss.active = true;
+  }
+
+  private waveLabel(wave: number): string {
+    if (wave <= 2) return 'Vanguard & Rangers';
+    if (wave <= 4) return 'Legion Assault';
+    return wave === TOWER_DEFENSE_WAVE_COUNT ? 'Ironbreaker Finale' : 'Heavy Breach Force';
   }
 
   private damagePlayerCore(
@@ -558,6 +607,13 @@ export class RunState {
     for (const order of snapshot.objectiveAttackOrders) {
       hash = hashInteger(hash, order.entityId);
       hash = hashString(hash, order.objective);
+    }
+    if (snapshot.towerDefense) {
+      hash = hashInteger(hash, snapshot.towerDefense.currentWave);
+      hash = hashInteger(hash, snapshot.towerDefense.totalWaves);
+      hash = hashInteger(hash, snapshot.towerDefense.nextWaveTick ?? -1);
+      hash = hashString(hash, snapshot.towerDefense.nextWaveLabel ?? '');
+      hash = hashInteger(hash, snapshot.towerDefense.enemiesRemaining);
     }
     if (snapshot.result) {
       hash = hashString(hash, snapshot.result.outcome);

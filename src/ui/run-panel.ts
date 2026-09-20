@@ -176,7 +176,7 @@ export class RunPanel {
           <button data-run-action="share">${shareLabel}</button>
           <button data-run-action="verify-score" ${this.simulation.isReplayPlayback || this.proofStatus === 'VERIFYING' ? 'disabled' : ''}>${verifyLabel}</button>
           <button data-run-action="replay" ${this.hasStoredReplay() ? '' : 'disabled'}>Replay Last</button>
-          <button data-run-action="mode">${run.mode === 'DESTROY' ? 'Boss Hunt' : 'Destroy'} Mode</button>
+          <button data-run-action="mode">Change Mode</button>
           ${officialButton}
         </div>
         <div class="run-live-actions">
@@ -192,18 +192,21 @@ export class RunPanel {
     const critical = playerCore.state === 'CRITICAL'
       ? `<div class="run-critical">CORE CRITICAL · ${(playerCore.criticalTicksRemaining / 10).toFixed(1)}s · Move an Engineer to the Core</div>`
       : '';
+    const tower = run.towerDefense;
+    const towerReadout = tower ? `<div class="tower-wave"><b>WAVE ${tower.currentWave}/${tower.totalWaves}</b><span>${tower.nextWaveTick === null ? (tower.enemiesRemaining === 0 ? 'Area secure' : `${tower.enemiesRemaining} hostiles remaining`) : `NEXT: ${tower.nextWaveLabel} · ${formatTime(Math.max(0, Math.ceil((tower.nextWaveTick - simulation.tick) / 10)))}`}</span></div>` : '';
     if (this.sideMeta) {
       this.sideMeta.hidden = false;
       this.sideMeta.innerHTML = `
         <b>${run.phase} · ${formatTime(elapsedSeconds)}</b>
-        <span>${identity.difficulty} · ${run.mode.replace('_', ' ')}</span>`;
+        <span>${identity.difficulty} · ${run.mode.replaceAll('_', ' ')}</span>`;
       this.sideMeta.title = `${sourceMeta} · ${challengeMeta}`;
     }
     this.element.innerHTML = `
       <div class="run-health-compact">
         <div class="run-health-row"><span>CORE</span><div><i style="width:${playerPercent}%"></i></div><b>${playerPercent}%</b></div>
-        <div class="run-health-row target"><span>${run.mode === 'DESTROY' ? 'TARGET' : 'BOSS'}</span><div><i style="width:${targetPercent}%"></i></div><b>${targetPercent}%</b></div>
+        ${tower ? `<div class="run-health-row target"><span>HOSTILES</span><div><i style="width:${Math.min(100, tower.enemiesRemaining * 10)}%"></i></div><b>${tower.enemiesRemaining}</b></div>` : `<div class="run-health-row target"><span>${run.mode === 'DESTROY' ? 'TARGET' : 'BOSS'}</span><div><i style="width:${targetPercent}%"></i></div><b>${targetPercent}%</b></div>`}
       </div>
+      ${towerReadout}
       ${critical}`;
   }
 
@@ -240,9 +243,10 @@ export class RunPanel {
     url.searchParams.set('pace', this.simulation.run.pace.toLowerCase());
     url.searchParams.set('faction', this.simulation.enemyWar.faction.toLowerCase());
     url.searchParams.set('difficulty', this.simulation.enemyWar.difficulty.toLowerCase());
+    const currentMode = this.simulation.run.mode;
     const mode = options.toggleMode
-      ? (this.simulation.run.mode === 'DESTROY' ? 'boss' : 'destroy')
-      : (this.simulation.run.mode === 'BOSS_HUNT' ? 'boss' : 'destroy');
+      ? (currentMode === 'DESTROY' ? 'boss' : currentMode === 'BOSS_HUNT' ? 'tower' : 'destroy')
+      : (currentMode === 'BOSS_HUNT' ? 'boss' : currentMode === 'TOWER_DEFENSE' ? 'tower' : 'destroy');
     url.searchParams.set('mode', mode);
     window.location.assign(url);
   }
@@ -255,7 +259,7 @@ export class RunPanel {
     url.searchParams.set('pace', this.simulation.run.pace.toLowerCase());
     url.searchParams.set('faction', this.simulation.enemyWar.faction.toLowerCase());
     url.searchParams.set('difficulty', this.simulation.enemyWar.difficulty.toLowerCase());
-    url.searchParams.set('mode', this.simulation.run.mode === 'BOSS_HUNT' ? 'boss' : 'destroy');
+    url.searchParams.set('mode', this.simulation.run.mode === 'BOSS_HUNT' ? 'boss' : this.simulation.run.mode === 'TOWER_DEFENSE' ? 'tower' : 'destroy');
     window.location.assign(url);
   }
 
@@ -268,7 +272,7 @@ export class RunPanel {
     url.searchParams.set('pace', this.simulation.run.pace.toLowerCase());
     url.searchParams.set('faction', this.simulation.enemyWar.faction.toLowerCase());
     url.searchParams.set('difficulty', this.simulation.enemyWar.difficulty.toLowerCase());
-    url.searchParams.set('mode', this.simulation.run.mode === 'BOSS_HUNT' ? 'boss' : 'destroy');
+    url.searchParams.set('mode', this.simulation.run.mode === 'BOSS_HUNT' ? 'boss' : this.simulation.run.mode === 'TOWER_DEFENSE' ? 'tower' : 'destroy');
     window.location.assign(url);
   }
 

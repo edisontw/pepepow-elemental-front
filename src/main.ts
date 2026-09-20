@@ -68,6 +68,7 @@ function requestedDifficulty(): EnemyDifficulty {
 
 function requestedMode(): RunMode {
   const raw = new URLSearchParams(window.location.search).get('mode')?.trim().toLowerCase();
+  if (raw === 'tower' || raw === 'tower_defense' || raw === 'defense') return 'TOWER_DEFENSE';
   return raw === 'boss' || raw === 'boss_hunt' ? 'BOSS_HUNT' : 'DESTROY';
 }
 

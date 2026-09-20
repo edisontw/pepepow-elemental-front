@@ -4,8 +4,8 @@
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v12`
-**Current replay format:** `ef-replay-v12`
+**Current authoritative gameplay ruleset:** `ef-standard-v13`
+**Current replay format:** `ef-replay-v13`
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE4_CLOSURE_REPORT.md`
 
@@ -69,8 +69,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v12`;
-- replay: `ef-replay-v12`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v13`;
+- replay: `ef-replay-v13`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -178,6 +178,13 @@ During the current visual-production pass, keep these gameplay items deferred un
 ## 6. Current formal work point — Phase 4 + Visual Production
 
 Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A–P4-E originally closed under `ef-standard-v7` / `ef-replay-v7`; post-closure pacing shipped as v8, automatic POI securing as v9, RTS control/automation shipped as v10, forced-Move disengage shipped as v11, and Scout vision advances the active identity to `ef-standard-v12` / `ef-replay-v12`. The active work point remains visual production and bounded gameplay/control follow-up.
+
+### Tower Defense vertical slice
+
+- `TOWER_DEFENSE` is a separate deterministic run mode under `ef-standard-v13` / `ef-replay-v13`.
+- It clears the usual starting enemy force, allows 30 seconds to prepare, then sends seven escalating waves from the enemy approach toward the player Core.
+- The live HUD exposes the current wave, next hostile composition, countdown, and hostile count.
+- Existing construction, production, units, spells, and Core recovery remain the first playable defense kit.
 
 Primary scope:
 

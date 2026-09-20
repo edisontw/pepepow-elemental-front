@@ -1,12 +1,16 @@
 import { BUILDINGS } from './m03-content';
 
-export type RunMode = 'DESTROY' | 'BOSS_HUNT';
+export type RunMode = 'DESTROY' | 'BOSS_HUNT' | 'TOWER_DEFENSE';
 export type RunPace = 'STANDARD' | 'SMOKE';
 export type RunPhase = 'DISCOVERY' | 'COMMITMENT' | 'EXPANSION' | 'ESCALATION' | 'FINALE' | 'COMPLETE';
 export type RunOutcome = 'IN_PROGRESS' | 'VICTORY' | 'DEFEAT';
 export type FinaleUnlockReason = 'TIME' | 'MOMENTUM';
 export type CoreState = 'ACTIVE' | 'CRITICAL' | 'DESTROYED';
 export type BossType = 'FROST_TITAN' | 'STORM_COLOSSUS' | 'INFERNAL_BEHEMOTH';
+
+export const TOWER_DEFENSE_WAVE_COUNT = 7;
+export const TOWER_DEFENSE_FIRST_WAVE_TICKS = 300;
+export const TOWER_DEFENSE_WAVE_INTERVAL_TICKS = 420;
 
 export interface BossDefinition {
   id: BossType;
