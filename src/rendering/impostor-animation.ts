@@ -1,4 +1,4 @@
-import { IDENTITY_IMPOSTOR_FRAME_REMAP } from './impostor-frame-assets';
+import { ANIMATED_IMPOSTOR_FILE_ORDER } from './impostor-frame-assets';
 
 export const IMPOSTOR_ANIMATION_ACTIONS = [
   'IDLE',
@@ -18,7 +18,7 @@ export interface ImpostorAnimationSample {
 export const IMPOSTOR_ANIMATION_FRAMES_PER_DIRECTION = 4;
 export const IMPOSTOR_MOVE_CYCLE_DISTANCE_METRES = 1.35;
 
-export const IMPOSTOR_ANIMATION_ASSET_REVISION = '20260920-unit-direction-v4';
+export const IMPOSTOR_ANIMATION_ASSET_REVISION = '20260920-unit-direction-v5';
 
 export const IMPOSTOR_ANIMATION_DIRECTION_STEMS = [
   'front',
@@ -53,16 +53,15 @@ const LOOPING_ACTIONS = new Set<ImpostorAnimationAction>(['IDLE', 'MOVE']);
  * Returns the 32 files for one action in runtime view order:
  * 8 camera-relative views x 4 animation frames.
  *
- * The refreshed five-action pack is already named in canonical runtime order.
- * Do not apply the legacy static-turnaround diagonal swap here; doing so mirrors
- * front-left/front-right and rear-left/rear-right during real eight-way travel.
+ * The refreshed five-action pack uses one shared browser-calibrated source order.
+ * Keep that mapping roster-wide; do not introduce per-unit direction hacks.
  */
 export function animatedImpostorFrameFiles(
   slug: string,
   action: ImpostorAnimationAction,
 ): readonly string[] {
   const directory = ACTION_DIRECTORIES[action];
-  return IDENTITY_IMPOSTOR_FRAME_REMAP.flatMap((sourceDirection) => {
+  return ANIMATED_IMPOSTOR_FILE_ORDER.flatMap((sourceDirection) => {
     const stem = IMPOSTOR_ANIMATION_DIRECTION_STEMS[sourceDirection]
       ?? IMPOSTOR_ANIMATION_DIRECTION_STEMS[0];
     return Array.from({ length: IMPOSTOR_ANIMATION_FRAMES_PER_DIRECTION }, (_, frame) => {

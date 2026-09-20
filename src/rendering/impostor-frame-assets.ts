@@ -13,6 +13,17 @@ export const IDENTITY_IMPOSTOR_FRAME_REMAP = [0, 1, 2, 3, 4, 5, 6, 7] as const;
 export const DIAGONAL_SWAP_IMPOSTOR_FILE_ORDER = [0, 7, 2, 5, 4, 3, 6, 1] as const;
 
 /**
+ * Manual gameplay calibration for the refreshed five-action unit pack.
+ *
+ * The source pack's apparent screen-facing axes are rotated/reflected relative
+ * to the runtime observer slots. A single roster-wide mapping fixes the four
+ * confirmed cardinal cases without per-unit hacks:
+ * screen-up -> rear, screen-down -> front, screen-right -> right,
+ * screen-left -> left.
+ */
+export const ANIMATED_IMPOSTOR_FILE_ORDER = [6, 5, 4, 3, 2, 1, 0, 7] as const;
+
+/**
  * Bump whenever canonical public impostor binaries or their runtime file order
  * changes in-place. The public filenames stay stable, so this query revision
  * prevents stale browser/CDN frames from surviving a presentation fix.

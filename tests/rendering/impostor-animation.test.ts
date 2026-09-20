@@ -36,25 +36,37 @@ describe('animated unit impostor assets', () => {
     }
   });
 
-  it('keeps the refreshed action pack in canonical runtime direction order', () => {
+  it('uses the browser-calibrated eight-direction source order', () => {
     const files = animatedImpostorFrameFiles('vanguard', 'IDLE');
     expect(files.slice(0, 4)).toEqual([
+      `assets/impostors/vanguard/idle/right_00.webp${revision}`,
+      `assets/impostors/vanguard/idle/right_01.webp${revision}`,
+      `assets/impostors/vanguard/idle/right_02.webp${revision}`,
+      `assets/impostors/vanguard/idle/right_03.webp${revision}`,
+    ]);
+    expect(files.slice(4, 8)).toEqual([
+      `assets/impostors/vanguard/idle/rear_right_00.webp${revision}`,
+      `assets/impostors/vanguard/idle/rear_right_01.webp${revision}`,
+      `assets/impostors/vanguard/idle/rear_right_02.webp${revision}`,
+      `assets/impostors/vanguard/idle/rear_right_03.webp${revision}`,
+    ]);
+    expect(files.slice(8, 12)).toEqual([
+      `assets/impostors/vanguard/idle/rear_00.webp${revision}`,
+      `assets/impostors/vanguard/idle/rear_01.webp${revision}`,
+      `assets/impostors/vanguard/idle/rear_02.webp${revision}`,
+      `assets/impostors/vanguard/idle/rear_03.webp${revision}`,
+    ]);
+    expect(files.slice(16, 20)).toEqual([
+      `assets/impostors/vanguard/idle/left_00.webp${revision}`,
+      `assets/impostors/vanguard/idle/left_01.webp${revision}`,
+      `assets/impostors/vanguard/idle/left_02.webp${revision}`,
+      `assets/impostors/vanguard/idle/left_03.webp${revision}`,
+    ]);
+    expect(files.slice(24, 28)).toEqual([
       `assets/impostors/vanguard/idle/front_00.webp${revision}`,
       `assets/impostors/vanguard/idle/front_01.webp${revision}`,
       `assets/impostors/vanguard/idle/front_02.webp${revision}`,
       `assets/impostors/vanguard/idle/front_03.webp${revision}`,
-    ]);
-    expect(files.slice(4, 8)).toEqual([
-      `assets/impostors/vanguard/idle/front_left_00.webp${revision}`,
-      `assets/impostors/vanguard/idle/front_left_01.webp${revision}`,
-      `assets/impostors/vanguard/idle/front_left_02.webp${revision}`,
-      `assets/impostors/vanguard/idle/front_left_03.webp${revision}`,
-    ]);
-    expect(files.slice(12, 16)).toEqual([
-      `assets/impostors/vanguard/idle/rear_left_00.webp${revision}`,
-      `assets/impostors/vanguard/idle/rear_left_01.webp${revision}`,
-      `assets/impostors/vanguard/idle/rear_left_02.webp${revision}`,
-      `assets/impostors/vanguard/idle/rear_left_03.webp${revision}`,
     ]);
     expect(files.slice(28, 32)).toEqual([
       `assets/impostors/vanguard/idle/front_right_00.webp${revision}`,
