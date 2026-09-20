@@ -273,14 +273,15 @@ Current decision:
 - preserve one shared runtime direction convention across the roster; manual browser
   validation on 2026-09-20 **LOCKED** the accepted base runtime-to-source mapping
   at `[6, 1, 4, 3, 2, 5, 0, 7]`; do not reinterpret it from filename semantics;
-- follow-up browser QA on the same date established that runtime slots `0/4`
-  are screen right/left and `2/6` are screen down/up under the fixed camera;
-- the four Elementalists, Engineer, Golem, and Scout use the screen-vertical
-  calibration `[6, 1, 0, 3, 2, 5, 4, 7]`;
-- Spear Guard uses `[2, 1, 4, 3, 6, 5, 0, 7]` to correct only screen left/right;
-- Siege Construct uses `[7, 1, 0, 3, 3, 5, 4, 7]`: its exact side source art
-  has a foreshortened/missing-looking cannon barrel, so screen right/left reuse
-  the existing opposite diagonal views with a readable full cannon;
+- follow-up browser QA plus the fixed-camera pan transform **locks the actual
+  screen movement slots** at
+  `0=down, 1=down-right, 2=right, 3=up-right, 4=up, 5=up-left, 6=left, 7=down-left`;
+  this supersedes earlier contradictory cardinal-pair notes;
+- the four Elementalists, Engineer, Golem, Scout, and Spear Guard use
+  `[6, 1, 0, 3, 2, 5, 4, 7]`, correcting only screen right/left slots `2/6`;
+- Siege Construct uses `[6, 1, 7, 3, 2, 5, 1, 7]`: its exact side source art
+  has a foreshortened/missing-looking cannon barrel, so screen right/left use
+  the existing full-barrel `front_right/front_left` views;
 - fix scale drift with per-view normalization where necessary rather than relabeling directions;
 - see `docs/UNIT_ANIMATION_IMPLEMENTATION_NOTES.md` for the exact active resume contract.
 
@@ -358,9 +359,9 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
   while hovered. Additional secured Shrines queue; Region capture remains unchanged.
 - 55 lossless 32-frame atlases replace 1,760 animated frame requests. All eleven
   units retain shared runtime direction semantics, dimensions, baseline and action
-  timings; unit-family source calibration is documented explicitly for the
-  vertical-correction group, Spear Guard, and Siege Construct without changing
-  authoritative facing behavior.
+  timings; the screen-horizontal correction group and Siege Construct's
+  documented full-barrel horizontal-view override do not change authoritative
+  facing behavior.
 - Only instantiated player-side unit configs load Idle. Other actions load on demand;
   textures/materials are shared by config/action and disposed on library teardown.
 - Build: `npm run art:atlases` (Python/Pillow); originals remain committed inputs.

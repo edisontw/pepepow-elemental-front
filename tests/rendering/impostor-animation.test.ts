@@ -30,25 +30,22 @@ describe('animated unit impostor assets', () => {
   it('hard-locks the human-validated runtime-to-source direction contract', async () => {
     const {
       ANIMATED_IMPOSTOR_FILE_ORDER,
-      SCREEN_VERTICAL_CORRECTION_FILE_ORDER,
-      SPEAR_GUARD_HORIZONTAL_CORRECTION_FILE_ORDER,
+      SCREEN_HORIZONTAL_CORRECTION_FILE_ORDER,
       SIEGE_CONSTRUCT_CORRECTION_FILE_ORDER,
       animatedImpostorFileOrderForSlug,
     } = await import('../../src/rendering/impostor-frame-assets');
     expect(ANIMATED_IMPOSTOR_FILE_ORDER).toEqual([6, 1, 4, 3, 2, 5, 0, 7]);
-    expect(SCREEN_VERTICAL_CORRECTION_FILE_ORDER).toEqual([6, 1, 0, 3, 2, 5, 4, 7]);
-    expect(SPEAR_GUARD_HORIZONTAL_CORRECTION_FILE_ORDER).toEqual([2, 1, 4, 3, 6, 5, 0, 7]);
-    expect(SIEGE_CONSTRUCT_CORRECTION_FILE_ORDER).toEqual([7, 1, 0, 3, 3, 5, 4, 7]);
+    expect(SCREEN_HORIZONTAL_CORRECTION_FILE_ORDER).toEqual([6, 1, 0, 3, 2, 5, 4, 7]);
+    expect(SIEGE_CONSTRUCT_CORRECTION_FILE_ORDER).toEqual([6, 1, 7, 3, 2, 5, 1, 7]);
     for (const slug of ['vanguard', 'ranger']) {
       expect(animatedImpostorFileOrderForSlug(slug)).toEqual(ANIMATED_IMPOSTOR_FILE_ORDER);
     }
     for (const slug of [
       'elementalist-fire', 'elementalist-water', 'elementalist-ice', 'elementalist-lightning',
-      'engineer', 'golem', 'scout',
+      'engineer', 'golem', 'scout', 'spear-guard',
     ]) {
-      expect(animatedImpostorFileOrderForSlug(slug)).toEqual(SCREEN_VERTICAL_CORRECTION_FILE_ORDER);
+      expect(animatedImpostorFileOrderForSlug(slug)).toEqual(SCREEN_HORIZONTAL_CORRECTION_FILE_ORDER);
     }
-    expect(animatedImpostorFileOrderForSlug('spear-guard')).toEqual(SPEAR_GUARD_HORIZONTAL_CORRECTION_FILE_ORDER);
     expect(animatedImpostorFileOrderForSlug('siege-construct')).toEqual(SIEGE_CONSTRUCT_CORRECTION_FILE_ORDER);
   });
   it('builds five 8-direction x 4-frame action sets for the full 11-unit roster', () => {
@@ -112,24 +109,30 @@ describe('animated unit impostor assets', () => {
     ]);
   });
 
-  it('keeps the validated screen cardinal pairs explicit per affected source family', () => {
-    const engineer = animatedImpostorFrameFiles('engineer', 'MOVE');
-    expect(engineer[0]).toContain('/right_00.webp');
-    expect(engineer[16]).toContain('/left_00.webp');
-    expect(engineer[8]).toContain('/front_00.webp');
-    expect(engineer[24]).toContain('/rear_00.webp');
+  it('locks screen horizontal correction to runtime slots 2/6 only', () => {
+    for (const slug of ['engineer', 'scout', 'spear-guard']) {
+      const files = animatedImpostorFrameFiles(slug, 'MOVE');
 
-    const spear = animatedImpostorFrameFiles('spear-guard', 'MOVE');
-    expect(spear[0]).toContain('/left_00.webp');
-    expect(spear[16]).toContain('/right_00.webp');
-    expect(spear[8]).toContain('/rear_00.webp');
-    expect(spear[24]).toContain('/front_00.webp');
+      // Screen down/up: runtime slots 0/4 remain unchanged.
+      expect(files[0]).toContain('/right_00.webp');
+      expect(files[16]).toContain('/left_00.webp');
 
+      // Screen right/left: runtime slots 2/6 are the corrected pair.
+      expect(files[8]).toContain('/front_00.webp');
+      expect(files[24]).toContain('/rear_00.webp');
+    }
+  });
+
+  it('uses full-barrel diagonal art for Siege Construct screen right/left', () => {
     const siege = animatedImpostorFrameFiles('siege-construct', 'MOVE');
-    expect(siege[0]).toContain('/front_right_00.webp');
-    expect(siege[16]).toContain('/rear_left_00.webp');
-    expect(siege[8]).toContain('/front_00.webp');
-    expect(siege[24]).toContain('/rear_00.webp');
+
+    // Preserve screen down/up.
+    expect(siege[0]).toContain('/right_00.webp');
+    expect(siege[16]).toContain('/left_00.webp');
+
+    // Replace malformed exact-side art only on screen right/left.
+    expect(siege[8]).toContain('/front_right_00.webp');
+    expect(siege[24]).toContain('/front_left_00.webp');
   });
 
   it('maps runtime view and animation frame into the 32-frame material table', () => {

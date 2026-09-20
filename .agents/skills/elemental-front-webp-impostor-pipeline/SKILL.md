@@ -106,7 +106,13 @@ Every action requires exactly eight genuine observer views in this canonical ass
 
 Direction names describe camera/observer position around the unit.
 
-No final direction may be mirrored, substituted, duplicated, or replaced with a nearby cardinal view.
+For production source art, no final direction may be mirrored, substituted,
+duplicated, or replaced with a nearby cardinal view.
+
+A temporary runtime substitution is allowed only when manual browser QA identifies
+a committed binary defect and the exact exception is documented. The current
+Siege Construct exact side frames are such an exception: runtime screen-horizontal
+slots reuse full-barrel diagonal art until those source frames are regenerated.
 
 Use the stable asymmetric landmark (shield side, sword hand, staff fitting, backpack, quiver, etc.) to verify left/right and diagonals.
 
@@ -122,9 +128,27 @@ source index: 6  1  4  3  2  5  0  7
 source stem : right, front_left, rear, rear_left, left, rear_right, front, front_right
 ```
 
-This exact mapping passed manual browser acceptance on 2026-09-20. Treat it as the
-authoritative current contract. Do not “simplify,” rotate, mirror, or replace it
-because the filename semantics look counter-intuitive.
+This exact base mapping passed manual browser acceptance on 2026-09-20. Treat it
+as the authoritative base contract. Do not “simplify,” rotate, mirror, or replace
+it because the filename semantics look counter-intuitive.
+
+The **screen movement slot table is locked** by the fixed camera transform:
+
+```text
+screen movement : down  down-right  right  up-right  up  up-left  left  down-left
+runtime slot    :   0        1        2       3       4      5      6       7
+```
+
+Therefore:
+- screen right/left is always runtime slot pair `2/6`;
+- screen down/up is always runtime slot pair `0/4`;
+- never use source names such as `front/rear/left/right` to infer screen movement.
+
+Current verified source-pack exceptions are documented in
+`docs/UNIT_ANIMATION_IMPLEMENTATION_NOTES.md`. Spear Guard belongs to the same
+screen-horizontal correction group as Elementalists/Engineer/Golem/Scout.
+Siege Construct is special because its exact side art has a visually missing
+cannon barrel, so its screen-horizontal slots reuse full-barrel diagonal art.
 
 If a future human WebGL report finds a mismatch, first record the exact movement
 direction, movement delta, heading, runtime slot, and loaded source stem. Change

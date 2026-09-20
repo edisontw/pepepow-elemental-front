@@ -48,6 +48,18 @@ describe('impostor frame mapping', () => {
     expect(impostorFrameForHeading(405)).toBe(0);
   });
 
+  it('hard-locks screen movement directions to runtime slots', () => {
+    // Derived from RtsCamera.pan at yaw 45 degrees.
+    expect(impostorFrameForHeading(headingForWorldDelta(1, 1))).toBe(0);    // screen down
+    expect(impostorFrameForHeading(headingForWorldDelta(1, 0))).toBe(1);    // screen down-right
+    expect(impostorFrameForHeading(headingForWorldDelta(1, -1))).toBe(2);   // screen right
+    expect(impostorFrameForHeading(headingForWorldDelta(0, -1))).toBe(3);   // screen up-right
+    expect(impostorFrameForHeading(headingForWorldDelta(-1, -1))).toBe(4);  // screen up
+    expect(impostorFrameForHeading(headingForWorldDelta(-1, 0))).toBe(5);   // screen up-left
+    expect(impostorFrameForHeading(headingForWorldDelta(-1, 1))).toBe(6);   // screen left
+    expect(impostorFrameForHeading(headingForWorldDelta(0, 1))).toBe(7);    // screen down-left
+  });
+
   it('keeps canonical observer-side source progression unchanged', () => {
     const expected = [0, 1, 2, 3, 4, 5, 6, 7] as const;
     for (let frame = 0; frame < 8; frame += 1) {
