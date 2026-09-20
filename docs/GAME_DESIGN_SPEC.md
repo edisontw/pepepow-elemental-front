@@ -1517,3 +1517,18 @@ Design rationale:
 - Camera keyboard movement uses arrows; edge pan and drag remain available.
 - These controls supersede the corresponding Phase 3 deferrals only. All other
   closed Phase 2/3/4 behavior and Region territory authority remain in force.
+
+
+# 62. Forced Move disengage — v11
+
+- A normal right-click MOVE is a forced movement order while its destination remains active.
+- Issuing MOVE clears the unit's current combat target and pursuit state.
+- Units following a normal MOVE do not automatically acquire nearby hostiles, even when
+  struck or in melee contact; this allows the player to pull units out of combat.
+- ATTACK_MOVE remains the command for moving while automatically engaging hostiles.
+- H Hold remains stationary in-range engagement without pursuit.
+- S/X Stop cancels movement and returns the unit to ordinary idle auto-aggro; acquisition
+  resumes on the following fixed tick.
+- Explicit ATTACK orders remain pursuit-capable.
+- This deterministic gameplay correction advances challenge/replay identity to
+  `ef-standard-v11` / `ef-replay-v11`. World generation remains `m02-standard-v1`.
