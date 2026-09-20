@@ -6,9 +6,7 @@ import type { NavigationGrid } from './navigation';
 import type { VisibilityState } from './visibility-state';
 
 const IDLE_MIN_AGGRO_RANGE = 6 * WORLD_UNITS_PER_METER;
-const MOVING_MIN_CONTACT_RANGE = 3.5 * WORLD_UNITS_PER_METER;
 const IDLE_RANGE_PADDING = 2 * WORLD_UNITS_PER_METER;
-const MOVING_RANGE_PADDING = 1 * WORLD_UNITS_PER_METER;
 
 interface TargetCandidate {
   entityId: EntityID;
@@ -26,8 +24,10 @@ function squaredDistance(
 
 /**
  * Acquire a nearby visible hostile when a unit has no explicit combat target.
- * Idle units guard a modest radius; moving units only react to close contact so
- * normal move orders do not become long-range attack-move orders.
+ * Idle units guard a modest radius. A normal MOVE with an active destination is
+ * forced movement: it suppresses automatic target acquisition until the unit
+ * arrives or the order is cancelled. ATTACK_MOVE and HOLD keep their dedicated
+ * engagement semantics.
  *
  * Target choice is deterministic: nearest squared distance, then EntityID.
  */
@@ -61,10 +61,14 @@ export function acquireEncounterTargets(
       combat.pursuitTargetCellKey = null;
     }
 
-    const moving = movement.orderMode !== 'ATTACK_MOVE' && movement.targetX !== null && movement.targetZ !== null;
+    const normalMoveActive = movement.orderMode === 'NORMAL'
+      && movement.targetX !== null
+      && movement.targetZ !== null;
+    if (normalMoveActive) continue;
+
     const range = movement.orderMode === 'HOLD' ? combat.attackRange : Math.max(
-      combat.attackRange + (moving ? MOVING_RANGE_PADDING : IDLE_RANGE_PADDING),
-      moving ? MOVING_MIN_CONTACT_RANGE : IDLE_MIN_AGGRO_RANGE,
+      combat.attackRange + IDLE_RANGE_PADDING,
+      IDLE_MIN_AGGRO_RANGE,
     );
     const rangeSquared = range * range;
     let best: TargetCandidate | null = null;
