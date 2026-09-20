@@ -114,7 +114,22 @@ Use the stable asymmetric landmark (shield side, sword hand, staff fitting, back
 
 Do not confuse screen movement labels with observer-view asset labels.
 
-Under the fixed RTS camera, translate human reports through the shared runtime mapping before modifying art or code. Never fix a reported diagonal issue by swapping files until the movement heading, selected frame index, and loaded filename have been verified.
+The current five-action runtime mapping is **human-validated and locked**:
+
+```text
+runtime slot: 0  1  2  3  4  5  6  7
+source index: 6  1  4  3  2  5  0  7
+source stem : right, front_left, rear, rear_left, left, rear_right, front, front_right
+```
+
+This exact mapping passed manual browser acceptance on 2026-09-20. Treat it as the
+authoritative current contract. Do not “simplify,” rotate, mirror, or replace it
+because the filename semantics look counter-intuitive.
+
+If a future human WebGL report finds a mismatch, first record the exact movement
+direction, movement delta, heading, runtime slot, and loaded source stem. Change
+only the demonstrated bad slot(s). Never perform a broad diagonal/cardinal swap
+from inference alone.
 
 ## 6. Per-action generation gates
 
