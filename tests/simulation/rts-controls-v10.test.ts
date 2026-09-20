@@ -19,7 +19,7 @@ function hostile(sim: Simulation, x: number, z: number) {
   return sim.entities.createUnit({ ...M01_ARENA.units[0]!, playerId: 1, x, z, speedPerTick: 0, attackDamage: 0, attackRange: 0 });
 }
 
-describe('v10 navigation and RTS orders', () => {
+describe('v11 navigation and RTS orders', () => {
   it('travels in all eight directions with diagonal speed bounded by the same unit speed', () => {
     for (const [dx, dz] of [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]]) {
       const sim = new Simulation('eight', arena());
@@ -81,6 +81,64 @@ describe('v10 navigation and RTS orders', () => {
     expect(sim.entities.movements.get(1)!.orderMode).toBe('NORMAL');
   });
 
+  it('normal Move forcibly disengages and suppresses auto-aggro until cancelled or complete', () => {
+    const sim = new Simulation('forced-move-disengage', arena());
+    const enemy = hostile(sim, 3200, 2500);
+    sim.entities.combat.get(1)!.attackDamage = 1;
+
+    acquireEncounterTargets(sim.entities, sim.navigation, sim.visibility, sim.terrain, 1);
+    expect(sim.entities.combat.get(1)!.targetEntityId).toBe(enemy);
+
+    sim.enqueueCommand({
+      type: 'MOVE',
+      targetTick: 1,
+      playerId: 0,
+      entityIds: [1],
+      targetX: 8500,
+      targetZ: 2500,
+    });
+    sim.step();
+    expect(sim.entities.combat.get(1)!.targetEntityId).toBeNull();
+    expect(sim.entities.movements.get(1)!.targetX).not.toBeNull();
+
+    for (let i = 0; i < 4; i++) {
+      tick(sim);
+      expect(sim.entities.combat.get(1)!.targetEntityId).toBeNull();
+      expect(sim.entities.positions.get(1)!.x).toBeGreaterThan(2500);
+    }
+  });
+
+  it('Stop cancels forced Move and restores ordinary automatic aggro on the next tick', () => {
+    const sim = new Simulation('stop-restores-aggro', arena());
+    const enemy = hostile(sim, 3200, 2500);
+    sim.entities.combat.get(1)!.attackDamage = 1;
+
+    sim.enqueueCommand({
+      type: 'MOVE',
+      targetTick: 1,
+      playerId: 0,
+      entityIds: [1],
+      targetX: 8500,
+      targetZ: 2500,
+    });
+    sim.step();
+    tick(sim);
+    expect(sim.entities.combat.get(1)!.targetEntityId).toBeNull();
+
+    sim.enqueueCommand({
+      type: 'STOP',
+      targetTick: sim.snapshot().tick + 1,
+      playerId: 0,
+      entityIds: [1],
+    });
+    tick(sim);
+    expect(sim.entities.movements.get(1)!.targetX).toBeNull();
+    expect(sim.entities.combat.get(1)!.targetEntityId).toBeNull();
+
+    tick(sim);
+    expect(sim.entities.combat.get(1)!.targetEntityId).toBe(enemy);
+  });
+
   it('Hold fires in range without chasing, retargets an in-range enemy, and a new order cancels Hold', () => {
     const sim = new Simulation('hold', arena());
     const far = hostile(sim, 6500, 2500);
@@ -121,7 +179,7 @@ describe('v10 navigation and RTS orders', () => {
     const hashes: string[] = [];
     for (let i = 0; i < 30; i++) hashes.push(source.step().stateHash);
     const packet = source.replayCheckpointPacket();
-    expect(packet.header.version).toBe('ef-replay-v10');
+    expect(packet.header.version).toBe('ef-replay-v11');
     const replay = new M06Simulation(world, { pace: 'SMOKE', difficulty: 'CASUAL' });
     replay.loadReplay(packet);
     for (const hash of hashes) expect(replay.step().stateHash).toBe(hash);
