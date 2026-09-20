@@ -479,9 +479,9 @@ UI/input produces `GameCommand`.
 Current command types:
 - ATTACK_MOVE (semantic formation destination retained across combat)
 - HOLD (normal in-range attacks, no pursuit)
-- MOVE
+- MOVE (forced disengage while a destination is active; no automatic target acquisition)
 - ATTACK
-- STOP
+- STOP (cancels travel; ordinary auto-aggro resumes)
 - CAST
 - BUILD
 - CAPTURE (Region territory only)
@@ -709,8 +709,8 @@ If RPC is unavailable:
 
 # 29. Version separation
 
-Active gameplay/challenge: `ef-standard-v10`; replay: `ef-replay-v10`;
-world generation: `m02-standard-v1`. Order modes and saved Attack Move destinations
+Active gameplay/challenge: `ef-standard-v11`; replay: `ef-replay-v11`;
+world generation: `m02-standard-v1`. Forced-Move disengage, order modes, and saved Attack Move destinations
 are state-hashed; player replacements of Core orders execute at their target tick.
 
 Track independently:
