@@ -240,7 +240,7 @@ export class M06Simulation extends M05Simulation {
       this.neutralEncounters.advance(frame.tick);
       const wave = this.run.consumeTowerDefenseWave(frame.tick);
       if (wave) this.spawnTowerDefenseWave(wave);
-      if (this.run.mode === 'TOWER_DEFENSE') this.syncTowerDefenseObjectiveIntent(frame.tick + 1);
+      if (this.run.mode === 'TOWER_DEFENSE') this.syncTowerDefenseObjectiveIntent();
       else this.syncEnemyCoreObjectiveIntent(frame.tick + 1);
       const intent = this.run.advance(
         frame.tick,
