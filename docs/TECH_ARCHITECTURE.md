@@ -626,6 +626,9 @@ Do not collapse these into one monolithic AI loop.
 
 ---
 
+Scout unit vision is 15 m; ordinary combat-unit fog vision remains 9 m. Vision is
+resolved from authoritative archetype state inside the simulation visibility pass.
+
 # 25. AI information model
 
 AI blackboard may store:
@@ -709,7 +712,7 @@ If RPC is unavailable:
 
 # 29. Version separation
 
-Active gameplay/challenge: `ef-standard-v11`; replay: `ef-replay-v11`;
+Active gameplay/challenge: `ef-standard-v12`; replay: `ef-replay-v12`;
 world generation: `m02-standard-v1`. Forced-Move disengage, order modes, and saved Attack Move destinations
 are state-hashed; player replacements of Core orders execute at their target tick.
 
