@@ -1,6 +1,6 @@
 # RTS Control + Automation + Runtime Optimization Pass
 
-Shipped baseline identity: `ef-standard-v10` / `ef-replay-v10`; current gameplay identity is `ef-standard-v11` / `ef-replay-v11`.
+Shipped baseline identity: `ef-standard-v10` / `ef-replay-v10`; current gameplay identity is `ef-standard-v12` / `ef-replay-v12`.
 World generation remains `m02-standard-v1`; all historical milestone closures remain closed.
 
 ## Implemented contract
