@@ -273,11 +273,12 @@ Current decision:
 - preserve one shared runtime direction convention across the roster; manual browser
   validation on 2026-09-20 **LOCKED** the accepted base runtime-to-source mapping
   at `[6, 1, 4, 3, 2, 5, 0, 7]`; do not reinterpret it from filename semantics;
-- later manual browser QA on the same date found the four Elementalists, Engineer,
-  Golem, and Siege Construct were produced with only their cardinal `left` /
-  `right` source stems mirrored; those seven slugs use source calibration
-  `[2, 1, 4, 3, 6, 5, 0, 7]` while front/rear, diagonals, heading resolution,
-  and runtime direction semantics remain unchanged;
+- follow-up browser QA on the same date established that, under the fixed 45-degree
+  camera, runtime slots `0/4` are the screen vertical pair and `2/6` are the
+  screen horizontal pair; the prior correction had swapped the wrong pair;
+- the four Elementalists, Engineer, Golem, Scout, and Siege Construct therefore use
+  source calibration `[6, 1, 0, 3, 2, 5, 4, 7]`: only runtime slots `2/6`
+  differ from the accepted base map; screen up/down and all diagonals stay unchanged;
 - fix scale drift with per-view normalization where necessary rather than relabeling directions;
 - see `docs/UNIT_ANIMATION_IMPLEMENTATION_NOTES.md` for the exact active resume contract.
 
@@ -355,8 +356,8 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
   while hovered. Additional secured Shrines queue; Region capture remains unchanged.
 - 55 lossless 32-frame atlases replace 1,760 animated frame requests. All eleven
   units retain shared runtime direction semantics, dimensions, baseline and action
-  timings; seven later-production slugs apply the documented cardinal source-file
-  calibration without changing facing behavior.
+  timings; eight affected slugs apply the documented screen-horizontal source-file
+  calibration without changing authoritative facing behavior.
 - Only instantiated player-side unit configs load Idle. Other actions load on demand;
   textures/materials are shared by config/action and disposed on library teardown.
 - Build: `npm run art:atlases` (Python/Pillow); originals remain committed inputs.

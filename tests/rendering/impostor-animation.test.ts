@@ -30,19 +30,19 @@ describe('animated unit impostor assets', () => {
   it('hard-locks the human-validated runtime-to-source direction contract', async () => {
     const {
       ANIMATED_IMPOSTOR_FILE_ORDER,
-      HORIZONTAL_MIRROR_SOURCE_FILE_ORDER,
+      SCREEN_HORIZONTAL_CORRECTION_FILE_ORDER,
       animatedImpostorFileOrderForSlug,
     } = await import('../../src/rendering/impostor-frame-assets');
     expect(ANIMATED_IMPOSTOR_FILE_ORDER).toEqual([6, 1, 4, 3, 2, 5, 0, 7]);
-    expect(HORIZONTAL_MIRROR_SOURCE_FILE_ORDER).toEqual([2, 1, 4, 3, 6, 5, 0, 7]);
-    for (const slug of ['vanguard', 'spear-guard', 'ranger', 'scout']) {
+    expect(SCREEN_HORIZONTAL_CORRECTION_FILE_ORDER).toEqual([6, 1, 0, 3, 2, 5, 4, 7]);
+    for (const slug of ['vanguard', 'spear-guard', 'ranger']) {
       expect(animatedImpostorFileOrderForSlug(slug)).toEqual(ANIMATED_IMPOSTOR_FILE_ORDER);
     }
     for (const slug of [
       'elementalist-fire', 'elementalist-water', 'elementalist-ice', 'elementalist-lightning',
-      'engineer', 'golem', 'siege-construct',
+      'engineer', 'golem', 'scout', 'siege-construct',
     ]) {
-      expect(animatedImpostorFileOrderForSlug(slug)).toEqual(HORIZONTAL_MIRROR_SOURCE_FILE_ORDER);
+      expect(animatedImpostorFileOrderForSlug(slug)).toEqual(SCREEN_HORIZONTAL_CORRECTION_FILE_ORDER);
     }
   });
   it('builds five 8-direction x 4-frame action sets for the full 11-unit roster', () => {
@@ -106,26 +106,24 @@ describe('animated unit impostor assets', () => {
     ]);
   });
 
-  it('corrects only cardinal left/right source files for the affected art batch', () => {
-    const files = animatedImpostorFrameFiles('engineer', 'MOVE');
-    expect(files.slice(0, 4)).toEqual([
-      `assets/impostors/engineer/move/left_00.webp${revision}`,
-      `assets/impostors/engineer/move/left_01.webp${revision}`,
-      `assets/impostors/engineer/move/left_02.webp${revision}`,
-      `assets/impostors/engineer/move/left_03.webp${revision}`,
-    ]);
-    expect(files.slice(16, 20)).toEqual([
-      `assets/impostors/engineer/move/right_00.webp${revision}`,
-      `assets/impostors/engineer/move/right_01.webp${revision}`,
-      `assets/impostors/engineer/move/right_02.webp${revision}`,
-      `assets/impostors/engineer/move/right_03.webp${revision}`,
-    ]);
-    expect(files[4]).toContain('/front_left_00.webp');
-    expect(files[8]).toContain('/rear_00.webp');
-    expect(files[12]).toContain('/rear_left_00.webp');
-    expect(files[20]).toContain('/rear_right_00.webp');
-    expect(files[24]).toContain('/front_00.webp');
-    expect(files[28]).toContain('/front_right_00.webp');
+  it('corrects the screen-horizontal cardinal pair without flipping screen up/down', () => {
+    for (const slug of ['engineer', 'scout', 'siege-construct']) {
+      const files = animatedImpostorFrameFiles(slug, 'MOVE');
+
+      // Runtime slots 0/4 are the fixed-camera screen vertical pair: unchanged.
+      expect(files[0]).toContain('/right_00.webp');
+      expect(files[16]).toContain('/left_00.webp');
+
+      // Runtime slots 2/6 are the fixed-camera screen horizontal pair: swapped.
+      expect(files[8]).toContain('/front_00.webp');
+      expect(files[24]).toContain('/rear_00.webp');
+
+      // Diagonals remain untouched.
+      expect(files[4]).toContain('/front_left_00.webp');
+      expect(files[12]).toContain('/rear_left_00.webp');
+      expect(files[20]).toContain('/rear_right_00.webp');
+      expect(files[28]).toContain('/front_right_00.webp');
+    }
   });
 
   it('maps runtime view and animation frame into the 32-frame material table', () => {
