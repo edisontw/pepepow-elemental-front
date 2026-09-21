@@ -1,4 +1,5 @@
 import { CURRENT_CHALLENGE_RULESET_VERSION, isSupportedChallengeRuleset } from '../challenge/ruleset';
+import { WORLD_UNITS_PER_METER } from './arena';
 import type { StartingAttunements } from './attunement-state';
 import type { M04GameCommand } from './commands';
 import { isElementId } from './element-types';
@@ -7,6 +8,7 @@ import type { M04Command } from './m04-commands';
 import type { EnemyDifficulty, EnemyFaction } from './m05-content';
 import { M05Simulation, type M05SimulationOptions, type M05SimulationSnapshot } from './m05-simulation';
 import {
+  NEUTRAL_CAMP_AGGRO_RADIUS,
   NeutralEncounterState,
   type NeutralEncounterSnapshot,
 } from './neutral-encounter-state';
@@ -47,7 +49,7 @@ export type M06ReplayEntry =
   | { channel: 'RUN'; command: M06RunCommand };
 
 export interface M06ReplayHeader {
-  version: 'ef-replay-v14';
+  version: 'ef-replay-v15';
   blockHeight: number;
   rulesetVersion: string;
   worldGameplayHash: string;
@@ -122,7 +124,7 @@ export function isM06ReplayPacket(value: unknown): value is M06ReplayPacket {
   if (typeof value !== 'object' || value === null) return false;
   const packet = value as Partial<M06ReplayPacket>;
   const header = packet.header as Partial<M06ReplayHeader> | undefined;
-  if (!header || header.version !== 'ef-replay-v14') return false;
+  if (!header || header.version !== 'ef-replay-v15') return false;
   if (!Number.isSafeInteger(header.blockHeight) || !Number.isSafeInteger(header.generationAttempt)) return false;
   if (typeof header.rulesetVersion !== 'string' || typeof header.worldGameplayHash !== 'string') return false;
   if (!validStartingAttunements(header.startingAttunements)) return false;
@@ -317,7 +319,7 @@ export class M06Simulation extends M05Simulation {
   private buildReplayPacket(snapshot: M06SimulationSnapshot): M06ReplayPacket {
     return {
       header: {
-        version: 'ef-replay-v14',
+        version: 'ef-replay-v15',
         blockHeight: this.generatedWorld.identity.blockHeight,
         rulesetVersion: CURRENT_CHALLENGE_RULESET_VERSION,
         worldGameplayHash: this.generatedWorld.gameplayHash,
@@ -403,6 +405,9 @@ export class M06Simulation extends M05Simulation {
   }
 
   private prepareObjectiveAttackers(targetTick: number): void {
+    const towerAvoidance = this.run.mode === 'TOWER_DEFENSE'
+      ? this.towerDefenseNeutralAvoidanceCells()
+      : null;
     for (const [entityId, objective] of [...this.objectiveAttackOrders.entries()]) {
       if (!this.entities.hasUnit(entityId) || this.entities.health.get(entityId)?.alive !== true) {
         this.objectiveAttackOrders.delete(entityId);
@@ -426,6 +431,15 @@ export class M06Simulation extends M05Simulation {
       const inRange = dx * dx + dz * dz <= attackRange * attackRange;
       const playerId = this.entities.factions.get(entityId)?.playerId;
       if (playerId === undefined) continue;
+      const towerAssault = this.run.mode === 'TOWER_DEFENSE'
+        && playerId === 1
+        && objective === 'PLAYER_CORE';
+
+      // Tower Defense attackers are allowed to stop and answer local player fire.
+      // Their Core objective remains stored separately and resumes after combat.
+      if (towerAssault && combat.targetEntityId !== null && this.entities.hasUnit(combat.targetEntityId)) {
+        continue;
+      }
 
       if (inRange) {
         if (movement.targetX !== null || movement.targetZ !== null) {
@@ -435,6 +449,17 @@ export class M06Simulation extends M05Simulation {
       }
 
       if (movement.targetX === null || movement.targetZ === null || movement.pathIndex >= movement.path.length) {
+        if (towerAssault) {
+          const assigned = this.assignPath(entityId, target.x, target.z, towerAvoidance);
+          if (!assigned) this.assignPath(entityId, target.x, target.z);
+          movement.orderMode = 'ATTACK_MOVE';
+          // Objective authority, not the generic ATTACK_MOVE destination, owns
+          // resumption after local combat. This forces a fresh neutral-safe route.
+          movement.attackMoveX = null;
+          movement.attackMoveZ = null;
+          combat.pursuitTargetCellKey = null;
+          continue;
+        }
         super.enqueueCommand({
           type: 'MOVE',
           targetTick,
@@ -521,6 +546,33 @@ export class M06Simulation extends M05Simulation {
     for (const entityId of ids) this.objectiveAttackOrders.set(entityId, 'PLAYER_CORE');
   }
 
+  private towerDefenseNeutralAvoidanceCells(): Set<string> {
+    const avoided = new Set<string>();
+    const radius = NEUTRAL_CAMP_AGGRO_RADIUS + WORLD_UNITS_PER_METER;
+    const radiusSquared = radius * radius;
+    const radiusCells = Math.ceil(radius / this.navigation.definition.cellSize);
+    for (const camp of this.neutralEncounters.snapshot().camps) {
+      if (camp.cleared || camp.aliveGuardianCount === 0) continue;
+      for (const guardianId of camp.guardianEntityIds) {
+        if (!this.entities.hasUnit(guardianId)) continue;
+        const guardian = this.entities.positions.get(guardianId);
+        if (!guardian) continue;
+        const center = this.navigation.worldToCell(guardian.x, guardian.z);
+        for (let row = center.row - radiusCells; row <= center.row + radiusCells; row += 1) {
+          for (let column = center.column - radiusCells; column <= center.column + radiusCells; column += 1) {
+            const cell = { column, row };
+            if (!this.navigation.isWalkable(cell)) continue;
+            const point = this.navigation.cellToWorld(cell);
+            const dx = point.x - guardian.x;
+            const dz = point.z - guardian.z;
+            if (dx * dx + dz * dz <= radiusSquared) avoided.add(this.navigation.cellKey(cell));
+          }
+        }
+      }
+    }
+    return avoided;
+  }
+
   private applyCoreHealing(currentTick: number): void {
     const run = this.run.snapshot();
     for (const core of [run.playerCore, run.enemyCore]) {
@@ -574,6 +626,12 @@ export class M06Simulation extends M05Simulation {
 
   private objectiveAttackSnapshot(): ObjectiveAttackOrderSnapshot[] {
     return [...this.objectiveAttackOrders.entries()]
+      .filter(([entityId, objective]) => !(
+        this.run.mode === 'TOWER_DEFENSE'
+        && objective === 'PLAYER_CORE'
+        && this.entities.factions.get(entityId)?.playerId === 1
+        && this.entities.combat.get(entityId)?.targetEntityId !== null
+      ))
       .map(([entityId, objective]) => ({ entityId, objective }))
       .sort((left, right) => left.entityId - right.entityId || left.objective.localeCompare(right.objective));
   }
