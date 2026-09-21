@@ -46,57 +46,78 @@
     {
       "id": "sfx.element.fire-ignite",
       "kind": "sfx",
-      "status": "PLACEHOLDER",
-      "path": "webaudio://procedural/fire-ignite",
-      "canonicalFilename": "sfx-fire-ignite.ogg",
-      "license": "N/A — runtime synthesized placeholder",
-      "notes": "Event-driven placeholder."
+      "status": "FINAL",
+      "path": "audio/sfx/cc0/rpg/spell_fire_01.ogg",
+      "canonicalFilename": "spell_fire_01.ogg",
+      "license": "Creative Commons CC0 1.0 Universal",
+      "notes": "Unmodified CC0 RPG fire-spell samples; runtime keeps a restrained procedural flame/noise layer for elemental identity.",
+      "variants": [
+        "audio/sfx/cc0/rpg/spell_fire_02.ogg"
+      ],
+      "sourceUrl": "https://opengameart.org/content/80-cc0-rpg-sfx",
+      "attribution": "rubberduck (optional under CC0)"
     },
     {
       "id": "sfx.element.water-burst",
       "kind": "sfx",
-      "status": "PLACEHOLDER",
-      "path": "webaudio://procedural/water-burst",
-      "canonicalFilename": "sfx-water-burst.ogg",
-      "license": "N/A — runtime synthesized placeholder",
-      "notes": "Event-driven placeholder."
+      "status": "FINAL",
+      "path": "audio/sfx/cc0/water/splash_03.ogg",
+      "canonicalFilename": "splash_03.ogg",
+      "license": "Creative Commons CC0 1.0 Universal",
+      "notes": "Unmodified CC0 splash samples selected for short tactical water bursts.",
+      "variants": [
+        "audio/sfx/cc0/water/splash_05.ogg"
+      ],
+      "sourceUrl": "https://opengameart.org/content/40-cc0-water-splash-slime-sfx",
+      "attribution": "rubberduck (optional under CC0)"
     },
     {
       "id": "sfx.element.ice-form",
       "kind": "sfx",
-      "status": "PLACEHOLDER",
-      "path": "webaudio://procedural/ice-form",
-      "canonicalFilename": "sfx-ice-form.ogg",
-      "license": "N/A — runtime synthesized placeholder",
-      "notes": "Event-driven placeholder."
+      "status": "FINAL",
+      "path": "audio/sfx/kenney/impact/impactGlass_light_000.ogg",
+      "canonicalFilename": "impactGlass_light_000.ogg",
+      "license": "Creative Commons CC0 1.0 Universal",
+      "notes": "Unmodified light glass transient layered with procedural shimmer to read as rapid ice crystallization.",
+      "sourceUrl": "https://kenney.nl/assets/impact-sounds",
+      "attribution": "Kenney (optional under CC0)"
     },
     {
       "id": "sfx.element.ice-break",
       "kind": "sfx",
-      "status": "PLACEHOLDER",
-      "path": "webaudio://procedural/ice-break",
-      "canonicalFilename": "sfx-ice-break.ogg",
-      "license": "N/A — runtime synthesized placeholder",
-      "notes": "Event-driven placeholder."
+      "status": "FINAL",
+      "path": "audio/sfx/kenney/impact/impactGlass_heavy_000.ogg",
+      "canonicalFilename": "impactGlass_heavy_000.ogg",
+      "license": "Creative Commons CC0 1.0 Universal",
+      "notes": "Unmodified heavy glass transient used as the primary ice fracture cue.",
+      "sourceUrl": "https://kenney.nl/assets/impact-sounds",
+      "attribution": "Kenney (optional under CC0)"
     },
     {
       "id": "sfx.element.lightning-chain",
       "kind": "sfx",
-      "status": "PLACEHOLDER",
-      "path": "webaudio://procedural/lightning-chain",
-      "canonicalFilename": "sfx-lightning-chain.ogg",
-      "license": "N/A — runtime synthesized placeholder",
-      "notes": "Event-driven placeholder."
+      "status": "FINAL",
+      "path": "audio/sfx/kenney/scifi/laserSmall_000.ogg",
+      "canonicalFilename": "laserSmall_000.ogg",
+      "license": "Creative Commons CC0 1.0 Universal",
+      "notes": "Unmodified short sci-fi energy transients layered under the existing high-frequency chain-lightning synthesis.",
+      "variants": [
+        "audio/sfx/kenney/scifi/laserSmall_001.ogg"
+      ],
+      "sourceUrl": "https://kenney.nl/assets/sci-fi-sounds",
+      "attribution": "Kenney (optional under CC0)"
     },
     {
       "id": "ambience.battlefield.low",
       "kind": "ambient",
-      "status": "PLACEHOLDER",
-      "path": "webaudio://procedural/battlefield-low",
-      "canonicalFilename": "ambience-battlefield-low.ogg",
-      "license": "N/A — runtime synthesized placeholder",
+      "status": "FINAL",
+      "path": "audio/ambience/cc0/ambient_01.ogg",
+      "canonicalFilename": "ambient_01.ogg",
+      "license": "Creative Commons CC0 1.0 Universal",
       "loop": true,
-      "notes": "Very low-volume procedural ambience starts only after browser audio unlock."
+      "notes": "Unmodified low-volume CC0 ambient loop; procedural sub-bed remains underneath as a fallback and tonal anchor.",
+      "sourceUrl": "https://opengameart.org/content/30-cc0-sfx-loops",
+      "attribution": "rubberduck (optional under CC0)"
     },
     {
       "id": "music.run.main",
@@ -190,7 +211,19 @@
       "sourceUrl": "https://kenney.nl/assets/voiceover-pack",
       "attribution": "Kenney (optional under CC0)",
       "notes": "Unmodified male ready voice used for unit selection and restrained HOLD/STOP acknowledgement."
+    },
+    {
+      "id": "ambience.battlefield.industry",
+      "kind": "ambient",
+      "status": "FINAL",
+      "path": "audio/ambience/cc0/machine_02.ogg",
+      "canonicalFilename": "machine_02.ogg",
+      "license": "Creative Commons CC0 1.0 Universal",
+      "sourceUrl": "https://opengameart.org/content/30-cc0-sfx-loops",
+      "attribution": "rubberduck (optional under CC0)",
+      "loop": true,
+      "notes": "Very low-volume machine loop adding distant Arcane-Industrial battlefield texture beneath the outdoor bed."
     }
   ],
-  "notes": "Selected Kenney CC0 OGG files are kept unmodified with official source pages and provenance recorded. Real combat, movement, command UI and command voice samples are active; procedural elemental/ambient layers and browser speech remain fallbacks/placeholders."
+  "notes": "Selected redistribution-safe CC0 OGG files are active for combat, movement, commands, elemental skills, command voices, and battlefield ambience. Procedural synthesis remains only as accent/fallback; browser speech remains a fallback when recorded command voice samples cannot play."
 }
