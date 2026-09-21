@@ -15,7 +15,7 @@ const DRAG_THRESHOLD = 6;
 const DOUBLE_CLICK_MS = 350;
 const UNIT_PICK_RADIUS = 54;
 
-export type UnitCommandFeedback = 'MOVE' | 'ATTACK_MOVE' | 'ATTACK' | 'HOLD' | 'STOP';
+export type UnitCommandFeedback = 'SELECT' | 'MOVE' | 'ATTACK_MOVE' | 'ATTACK' | 'HOLD' | 'STOP';
 
 const FACING_QA_DIRECTIONS = [
   { label: 'Down', glyph: '↓', yawDegrees: 45 },
@@ -174,17 +174,20 @@ export class UnitControls {
           this.lastClickEntityId = entityId;
           this.lastClickTimeMs = event.timeStamp;
         }
+        this.onCommandFeedback('SELECT');
       } else if (!event.shiftKey) {
         this.selection.select([], 'REPLACE');
         this.lastClickEntityId = null;
         this.lastClickTimeMs = Number.NEGATIVE_INFINITY;
       }
     } else {
-      this.selection.select(this.bridge.pickBox(
+      const boxSelection = this.bridge.pickBox(
         this.camera,
         Math.min(start.x, end.x), Math.min(start.y, end.y),
         Math.max(start.x, end.x), Math.max(start.y, end.y),
-      ), event.shiftKey ? 'ADD' : 'REPLACE');
+      );
+      this.selection.select(boxSelection, event.shiftKey ? 'ADD' : 'REPLACE');
+      if (boxSelection.length > 0) this.onCommandFeedback('SELECT');
       this.lastClickEntityId = null;
       this.lastClickTimeMs = Number.NEGATIVE_INFINITY;
     }
