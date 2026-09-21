@@ -147,10 +147,11 @@ export class RtsCamera {
   private readonly onPointerMove = (event: PointerEvent): void => {
     if (!this.dragging) {
       const bounds = this.canvas.getBoundingClientRect();
-      this.pointerInsideCanvas = event.clientX >= bounds.left
+      const insideBounds = event.clientX >= bounds.left
         && event.clientX <= bounds.right
         && event.clientY >= bounds.top
         && event.clientY <= bounds.bottom;
+      this.pointerInsideCanvas = insideBounds && this.pointerHitsBattlefieldSurface(event.clientX, event.clientY);
       this.pointerX = event.clientX;
       this.pointerY = event.clientY;
       return;
@@ -177,6 +178,11 @@ export class RtsCamera {
 
   private isPressed(...keys: string[]): boolean {
     return keys.some((key) => this.pressedKeys.has(key));
+  }
+
+  private pointerHitsBattlefieldSurface(clientX: number, clientY: number): boolean {
+    const hit = document.elementFromPoint(clientX, clientY);
+    return hit === this.canvas || (hit instanceof Element && this.canvas.contains(hit));
   }
 
   private battlefieldViewportBounds(): { left: number; right: number; top: number; bottom: number } {
