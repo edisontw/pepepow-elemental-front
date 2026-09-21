@@ -2,6 +2,7 @@ import * as pc from 'playcanvas';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
 import type { UnitArchetype } from '../simulation/components';
 import type { M04SimulationSnapshot } from '../simulation/m04-simulation';
+import type { M06SimulationSnapshot } from '../simulation/m06-simulation';
 import type { StrategicBuilding, StrategicSnapshot } from '../simulation/strategic-state';
 import type { EntitySnapshot, SimulationSnapshot } from '../simulation/simulation';
 import { BattleVfx, ELEMENT_TINTS } from './battle-vfx';
@@ -186,6 +187,8 @@ export class CombatPresentationPass {
     const previousById = snapshotMap(previous);
     const currentById = snapshotMap(current);
     const authority = (current as Partial<M04SimulationSnapshot>).elementalAuthority;
+    const run = (current as Partial<M06SimulationSnapshot>).run;
+    const objectiveOrders = new Map(run?.objectiveAttackOrders.map((order) => [order.entityId, order.objective]) ?? []);
     const alignments = new Map(authority?.alignedElementalists.map((entry) => [entry.entityId, entry.element]));
 
     for (const unit of current.entities) {
@@ -197,29 +200,40 @@ export class CombatPresentationPass {
         continue;
       }
 
-      if (
-        !unit.alive
-        || !unit.visibleToPlayer
-        || unit.attackTargetEntityId === null
-        || unit.nextAttackTick <= prior.nextAttackTick
-      ) continue;
+      if (!unit.alive || !unit.visibleToPlayer || unit.nextAttackTick <= prior.nextAttackTick) continue;
 
-      const target = currentById.get(unit.attackTargetEntityId);
-      if (!target || (!target.visibleToPlayer && target.playerId !== 0)) continue;
+      const target = unit.attackTargetEntityId === null ? null : currentById.get(unit.attackTargetEntityId);
+      if (target && !target.visibleToPlayer && target.playerId !== 0) continue;
+      const objective = objectiveOrders.get(unit.id);
+      const objectiveTarget = objective === 'ENEMY_CORE'
+        ? run?.enemyCore
+        : objective === 'PLAYER_CORE'
+          ? run?.playerCore
+          : objective === 'BOSS'
+            ? run?.boss
+            : null;
+      if (!target && !objectiveTarget) continue;
+      const structureTarget = objective === 'ENEMY_CORE' || objective === 'PLAYER_CORE';
+      const end = target
+        ? entityPoint(target, 0.48)
+        : new pc.Vec3(
+            metres(objectiveTarget!.x),
+            structureTarget ? buildingVisualProfile('ELEMENTAL_CORE').height * 0.42 : 1.35,
+            metres(objectiveTarget!.z),
+          );
       const style = unitVisualProfile(unit.archetype).projectile;
       const alignment = alignments.get(unit.id);
       const tint = alignment ? ELEMENT_TINTS[alignment] : unit.playerId === 0
         ? ([0.42, 1, 0.86] as const)
         : ([1, 0.42, 0.12] as const);
 
-      if (style === 'NONE') this.spawnMeleeAttack(unit, target, current.tick);
-      else this.spawnRangedAttack(unit, target, style, tint, alignment ?? null, current.tick);
+      if (style === 'NONE') this.spawnMeleeAttack(unit, end, current.tick, structureTarget);
+      else this.spawnRangedAttack(unit, end, style, tint, alignment ?? null, current.tick, structureTarget);
     }
   }
 
-  private spawnMeleeAttack(attacker: EntitySnapshot, target: EntitySnapshot, tick: number): void {
+  private spawnMeleeAttack(attacker: EntitySnapshot, end: pc.Vec3, tick: number, structureTarget = false): void {
     const start = entityPoint(attacker, 0.48);
-    const end = entityPoint(target, 0.48);
     const yaw = yawBetween(start, end);
     const heavy = isHeavyMelee(attacker.archetype);
     const root = new pc.Entity(`Melee motion ${attacker.id}`);
@@ -266,23 +280,22 @@ export class CombatPresentationPass {
       end.z,
       heavy ? [1, 0.48, 0.08] : [1, 0.78, 0.28],
       tick,
-      heavy ? 9 : 5,
-      heavy ? 0.85 : 0.54,
+      structureTarget ? (heavy ? 14 : 9) : (heavy ? 9 : 5),
+      structureTarget ? (heavy ? 1.05 : 0.72) : (heavy ? 0.85 : 0.54),
     );
   }
 
   private spawnRangedAttack(
     attacker: EntitySnapshot,
-    target: EntitySnapshot,
+    end: pc.Vec3,
     style: UnitProjectileStyle,
     tint: Tint,
     element: ElementKey | null,
     tick: number,
+    structureTarget = false,
   ): void {
     const attackerProfile = unitVisualProfile(attacker.archetype);
-    const targetProfile = unitVisualProfile(target.archetype);
     const start = new pc.Vec3(metres(attacker.x), attackerProfile.height * 0.66, metres(attacker.z));
-    const end = new pc.Vec3(metres(target.x), targetProfile.height * 0.48, metres(target.z));
     const yaw = yawBetween(start, end);
     const material = element ? this.elementMaterials[element]
       : attacker.playerId === 0 ? this.playerEnergy : this.enemyEnergy;
@@ -375,7 +388,9 @@ export class CombatPresentationPass {
       end,
       baseScale: 1,
       impactTint: tint,
-      impactForce: style === 'SHELL' ? 0.95 : element === 'FIRE' ? 0.82 : element === 'ICE' ? 0.74 : style === 'ORB' ? 0.68 : 0.52,
+      impactForce: structureTarget
+        ? (style === 'SHELL' ? 1.18 : element === 'FIRE' ? 1.02 : 0.82)
+        : style === 'SHELL' ? 0.95 : element === 'FIRE' ? 0.82 : element === 'ICE' ? 0.74 : style === 'ORB' ? 0.68 : 0.52,
       element: element ?? undefined,
       yaw,
     });

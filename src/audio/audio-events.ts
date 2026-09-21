@@ -1,10 +1,12 @@
 import type { EntityID } from '../simulation/components';
+import type { M06SimulationSnapshot } from '../simulation/m06-simulation';
 import type { EntitySnapshot, SimulationSnapshot } from '../simulation/simulation';
 
 export type AudioCueId =
   | 'sfx.combat.attack'
   | 'sfx.combat.hit'
   | 'sfx.combat.death'
+  | 'sfx.combat.structure-hit'
   | 'sfx.element.fire-ignite'
   | 'sfx.element.water-burst'
   | 'sfx.element.ice-form'
@@ -49,6 +51,9 @@ export function deriveAudioCues(
   const cues: AudioCue[] = [];
   const previousById = snapshotMap(previous);
   const lightningTargets = newlyDamagedLightningTargets(previousById, current);
+  const currentRun = (current as Partial<M06SimulationSnapshot>).run;
+  const previousRun = (previous as Partial<M06SimulationSnapshot>).run;
+  const objectiveAttackIds = new Set(currentRun?.objectiveAttackOrders.map((order) => order.entityId) ?? []);
   let visibleAttacks = 0;
   let visibleHits = 0;
   let visibleDeaths = 0;
@@ -58,7 +63,7 @@ export function deriveAudioCues(
     if (!prior || !prior.visibleToPlayer) continue;
     if (
       entity.alive
-      && entity.attackTargetEntityId !== null
+      && (entity.attackTargetEntityId !== null || objectiveAttackIds.has(entity.id))
       && entity.nextAttackTick > prior.nextAttackTick
     ) visibleAttacks += 1;
     if (prior.alive && !entity.alive) visibleDeaths += 1;
@@ -97,6 +102,13 @@ export function deriveAudioCues(
   }
   if (visibleAttacks > 0) {
     cues.push({ id: 'sfx.combat.attack', intensity: intensityFromCount(visibleAttacks) });
+  }
+  if (currentRun && previousRun) {
+    const structureHits = Number(currentRun.playerCore.currentHealth < previousRun.playerCore.currentHealth)
+      + Number(currentRun.enemyCore.currentHealth < previousRun.enemyCore.currentHealth);
+    if (structureHits > 0) {
+      cues.push({ id: 'sfx.combat.structure-hit', intensity: intensityFromCount(structureHits) });
+    }
   }
   if (visibleDeaths > 0) {
     cues.push({ id: 'sfx.combat.death', intensity: intensityFromCount(visibleDeaths) });

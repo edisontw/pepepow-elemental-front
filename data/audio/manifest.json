@@ -91,7 +91,34 @@
       "canonicalFilename": "music-elemental-front-main.ogg",
       "loop": true,
       "notes": "User-supplied Gemini background music. Keep absent until manually approved and uploaded; integration must not affect simulation."
+    },
+    {
+      "id": "sfx.combat.structure-hit",
+      "kind": "sfx",
+      "status": "PLACEHOLDER",
+      "path": "webaudio://procedural/structure-hit",
+      "canonicalFilename": "sfx-combat-structure-hit.ogg",
+      "license": "N/A — runtime synthesized placeholder",
+      "notes": "Layered low thump, filtered impact noise, and metallic transient for Core/structure hits."
+    },
+    {
+      "id": "sfx.command.move",
+      "kind": "sfx",
+      "status": "PLACEHOLDER",
+      "path": "webaudio://procedural/command-move",
+      "canonicalFilename": "sfx-command-move.ogg",
+      "license": "N/A — runtime synthesized placeholder",
+      "notes": "Short UI/radio acknowledgement for player move and formation commands."
+    },
+    {
+      "id": "voice.command.acknowledge",
+      "kind": "voice",
+      "status": "PLACEHOLDER",
+      "path": "browser://speech-synthesis/unit-command",
+      "canonicalFilename": "voice-command-acknowledge.ogg",
+      "license": "N/A — browser speech synthesis placeholder",
+      "notes": "Low-volume English command acknowledgement. Replace with licensed or original recorded unit voices for final audio."
     }
   ],
-  "notes": "M08 uses license-free runtime synthesis for development placeholders. No external audio is treated as FINAL."
+  "notes": "Runtime procedural synthesis plus browser speech-synthesis placeholders remain redistribution-safe development audio. Final external files must record license and provenance before promotion."
 }

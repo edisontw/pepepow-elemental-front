@@ -15,6 +15,8 @@ const DRAG_THRESHOLD = 6;
 const DOUBLE_CLICK_MS = 350;
 const UNIT_PICK_RADIUS = 54;
 
+export type UnitCommandFeedback = 'MOVE' | 'ATTACK_MOVE' | 'ATTACK' | 'HOLD' | 'STOP';
+
 const FACING_QA_DIRECTIONS = [
   { label: 'Down', glyph: '↓', yawDegrees: 45 },
   { label: 'Down-Right', glyph: '↘', yawDegrees: 90 },
@@ -50,6 +52,7 @@ export class UnitControls {
     private readonly simulation: M04Simulation,
     private readonly bridge: UnitRenderBridge,
     private readonly selectionBox: HTMLElement,
+    private readonly onCommandFeedback: (kind: UnitCommandFeedback) => void = () => undefined,
   ) {
     canvas.addEventListener('pointerdown', this.onPointerDown);
     canvas.addEventListener('contextmenu', this.onContextMenu);
@@ -91,6 +94,7 @@ export class UnitControls {
       targetZ,
       formation: this.formation,
     });
+    this.onCommandFeedback(type);
   }
 
   syncSelection(): void {
@@ -274,12 +278,14 @@ export class UnitControls {
     event.preventDefault();
     this.setAttackMoveArmed(false);
     this.disableFacingQa();
+    const type = event.code === 'KeyH' ? 'HOLD' : 'STOP';
     this.simulation.enqueueCommand({
       targetTick: this.simulation.snapshot().tick + 1,
       playerId: 0,
-      type: event.code === 'KeyH' ? 'HOLD' : 'STOP',
+      type,
       entityIds: this.selection.ids,
     });
+    this.onCommandFeedback(type);
   };
 
   private setAttackMoveArmed(armed: boolean): void {
@@ -415,6 +421,7 @@ export class UnitControls {
         entityIds: this.selection.ids,
         targetEntityId: picked,
       });
+      this.onCommandFeedback('ATTACK');
       return;
     }
     const target = this.worldPointFromClient(clientX, clientY);
@@ -449,6 +456,7 @@ export class UnitControls {
 
     this.disableFacingQa();
     objectiveSimulation.enqueueObjectiveAttack(this.selection.ids, 'ENEMY_CORE');
+    this.onCommandFeedback('ATTACK');
     return true;
   }
 

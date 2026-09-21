@@ -1,5 +1,6 @@
 import * as pc from 'playcanvas';
 import type { M04SimulationSnapshot } from '../simulation/m04-simulation';
+import type { M06SimulationSnapshot } from '../simulation/m06-simulation';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
 import type { EntityID } from '../simulation/components';
 import type { EntitySnapshot, SimulationSnapshot } from '../simulation/simulation';
@@ -74,6 +75,8 @@ export class AnimatedUnitRenderBridge extends UnitRenderBridge {
       authority?.alignedElementalists.map((entry) => [entry.entityId, entry.element]) ?? [],
     );
     const cast = authority?.lastCastResult;
+    const run = (current as Partial<M06SimulationSnapshot>).run;
+    const objectiveAttackIds = new Set(run?.objectiveAttackOrders.map((order) => order.entityId) ?? []);
 
     for (const unit of current.entities) {
       const modelId = modelIdForUnit(unit, alignments);
@@ -90,7 +93,7 @@ export class AnimatedUnitRenderBridge extends UnitRenderBridge {
       const prior = previousById.get(unit.id) ?? unit;
       const moving = unit.frozenTicks === 0 && (unit.x !== prior.x || unit.z !== prior.z);
       const attacked = unit.alive
-        && unit.attackTargetEntityId !== null
+        && (unit.attackTargetEntityId !== null || objectiveAttackIds.has(unit.id))
         && unit.nextAttackTick > prior.nextAttackTick;
       const casted = unit.alive
         && cast?.status === 'CAST'

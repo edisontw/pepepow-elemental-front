@@ -232,7 +232,14 @@ export function createSceneShell(
     simulation.visibility.cellsForPlayer(0),
     simulation instanceof M06Simulation ? simulation.neutralEncounters.snapshot() : undefined,
   );
-  const controls = new UnitControls(canvas, cameraComponent, simulation, bridge, selectionBox);
+  const controls = new UnitControls(
+    canvas,
+    cameraComponent,
+    simulation,
+    bridge,
+    selectionBox,
+    (kind) => audioFeedback.command(kind),
+  );
   const minimapCanvas = document.getElementById('world-debug-canvas');
   const minimapControls = simulation instanceof M03Simulation && minimapCanvas instanceof HTMLCanvasElement
     ? new MinimapControls(minimapCanvas, simulation.generatedWorld, camera, controls)
