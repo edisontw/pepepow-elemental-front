@@ -339,14 +339,24 @@ export class Simulation {
     }
   }
 
-  private assignPath(entityId: EntityID, targetX: number, targetZ: number): boolean {
+  protected assignPath(
+    entityId: EntityID,
+    targetX: number,
+    targetZ: number,
+    avoidedCellKeys: ReadonlySet<string> | null = null,
+  ): boolean {
     const position = this.entities.positions.get(entityId);
     const movement = this.entities.movements.get(entityId);
     if (!position || !movement) return false;
-    const resolved = this.navigation.resolveWalkableTarget(this.navigation.worldToCell(targetX, targetZ));
+    const requested = this.navigation.worldToCell(targetX, targetZ);
+    const resolved = avoidedCellKeys === null
+      ? this.navigation.resolveWalkableTarget(requested)
+      : this.navigation.resolveWalkableTargetAvoiding(requested, avoidedCellKeys);
     if (!resolved) { this.clearMovement(entityId); return false; }
     const start = this.navigation.worldToCell(position.x, position.z);
-    const path = this.navigation.findPath(start, resolved);
+    const path = avoidedCellKeys === null
+      ? this.navigation.findPath(start, resolved)
+      : this.navigation.findPathAvoiding(start, resolved, avoidedCellKeys);
     if (!path) { this.clearMovement(entityId); return false; }
     const resolvedWorld = this.navigation.cellToWorld(resolved);
     movement.targetX = resolvedWorld.x;
