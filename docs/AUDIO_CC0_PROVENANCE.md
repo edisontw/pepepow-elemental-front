@@ -34,3 +34,28 @@ The files are stored under `public/audio/` and are not re-encoded.
 Because the connected GitHub workflow was used to move binary assets into this repository, selected source bytes were checked against independent public GitHub mirrors. Matching Git blob SHAs were confirmed for representative Impact, RPG Audio, Interface Sounds, and all three selected voice clips before inclusion. The mirrors are byte-transport checks only; they are not the licensing authority.
 
 Runtime resolves these files through stable IDs in `data/audio/manifest.json`. Missing or not-yet-decoded samples fall back to the existing procedural audio or browser speech presentation and never affect simulation authority.
+
+
+## Elemental + ambience extension — 2026-09-22
+
+Additional licensing authorities:
+
+- 80 CC0 RPG SFX — https://opengameart.org/content/80-cc0-rpg-sfx — rubberduck — Creative Commons CC0.
+- 40 CC0 water / splash / slime SFX — https://opengameart.org/content/40-cc0-water-splash-slime-sfx — rubberduck — Creative Commons CC0.
+- 30 CC0 SFX loops — https://opengameart.org/content/30-cc0-sfx-loops — rubberduck — Creative Commons CC0.
+- Sci-fi Sounds — https://kenney.nl/assets/sci-fi-sounds — Kenney — Creative Commons CC0.
+- Impact Sounds — https://kenney.nl/assets/impact-sounds — Kenney — Creative Commons CC0.
+
+| Purpose | Original file(s) | Source |
+|---|---|---|
+| Fire spell | `spell_fire_01.ogg`, `spell_fire_02.ogg` | 80 CC0 RPG SFX |
+| Water burst | `splash_03.ogg`, `splash_05.ogg` | 40 CC0 water / splash / slime SFX |
+| Ice crystallization | `impactGlass_light_000.ogg` | Kenney Impact Sounds |
+| Ice fracture | `impactGlass_heavy_000.ogg` | Kenney Impact Sounds |
+| Chain lightning | `laserSmall_000.ogg`, `laserSmall_001.ogg` | Kenney Sci-fi Sounds |
+| Battlefield ambient bed | `ambient_01.ogg` | 30 CC0 SFX loops |
+| Distant industrial bed | `machine_02.ogg` | 30 CC0 SFX loops |
+
+The runtime layers these samples with restrained procedural synthesis. This is intentional: the recorded/transient material provides physical texture, while the procedural layer preserves clear Fire / Water / Ice / Lightning differentiation at RTS scale. Battlefield ambience loops at low gain and remains presentation-only.
+
+The Kenney ice and lightning source files were byte-checked against independent public GitHub mirrors before inclusion. The OpenGameArt pack pages above are the licensing authority for the rubberduck source files.

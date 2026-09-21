@@ -3,7 +3,7 @@ import type { SimulationSnapshot } from '../simulation/simulation';
 import { deriveAudioCues, type AudioCue } from './audio-events';
 
 const MASTER_GAIN = 0.48;
-const AMBIENT_GAIN = 0.018;
+const AMBIENT_GAIN = 0.012;
 const SAMPLE_BASE_GAIN = 0.72;
 
 type AudioManifestEntry = {
@@ -26,7 +26,9 @@ export class AudioFeedback {
   private context: AudioContext | null = null;
   private masterGain: GainNode | null = null;
   private ambientGain: GainNode | null = null;
+  private ambientSampleGain: GainNode | null = null;
   private readonly ambientOscillators: OscillatorNode[] = [];
+  private readonly ambientSources: AudioBufferSourceNode[] = [];
   private muted = false;
   private lastTick = -1;
   private lastCommandAt = Number.NEGATIVE_INFINITY;
@@ -90,8 +92,15 @@ export class AudioFeedback {
       oscillator.disconnect();
     }
     this.ambientOscillators.length = 0;
+    for (const source of this.ambientSources) {
+      try { source.stop(); } catch { /* already stopped */ }
+      source.disconnect();
+    }
+    this.ambientSources.length = 0;
     this.ambientGain?.disconnect();
     this.ambientGain = null;
+    this.ambientSampleGain?.disconnect();
+    this.ambientSampleGain = null;
     window.speechSynthesis?.cancel();
     const context = this.context;
     this.context = null;
@@ -156,27 +165,30 @@ export class AudioFeedback {
         this.tone(130, 38, 0.30, 'sine', 0.24 * strength);
         break;
       case 'sfx.element.fire-ignite':
-        this.tone(290, 92, 0.2, 'sawtooth', 0.28 * strength);
-        this.tone(520, 155, 0.16, 'triangle', 0.18 * strength, 0.025);
+        this.playSample('sfx.element.fire-ignite', 0.27 * strength, 0.98);
+        this.tone(310, 96, 0.18, 'sawtooth', 0.16 * strength);
+        this.noise(0.12, 0.07 * strength, 1750, 0.012);
         break;
       case 'sfx.element.water-burst':
-        this.tone(430, 155, 0.24, 'sine', 0.31 * strength);
-        this.tone(720, 240, 0.18, 'triangle', 0.18 * strength, 0.018);
-        this.tone(190, 92, 0.28, 'sine', 0.16 * strength, 0.035);
+        this.playSample('sfx.element.water-burst', 0.31 * strength, 0.96);
+        this.tone(390, 138, 0.22, 'sine', 0.16 * strength);
+        this.tone(680, 220, 0.15, 'triangle', 0.10 * strength, 0.018);
         break;
       case 'sfx.element.ice-form':
-        this.tone(980, 360, 0.34, 'sine', 0.36 * strength);
-        this.tone(1460, 620, 0.25, 'triangle', 0.23 * strength, 0.028);
-        this.tone(620, 280, 0.3, 'sine', 0.16 * strength, 0.055);
+        this.playSample('sfx.element.ice-form', 0.23 * strength, 1.12);
+        this.tone(1040, 430, 0.30, 'sine', 0.22 * strength);
+        this.tone(1540, 690, 0.22, 'triangle', 0.14 * strength, 0.028);
         break;
       case 'sfx.element.ice-break':
-        this.tone(520, 105, 0.22, 'square', 0.32 * strength);
-        this.tone(240, 58, 0.28, 'triangle', 0.22 * strength, 0.022);
+        this.playSample('sfx.element.ice-break', 0.31 * strength, 0.92);
+        this.tone(480, 96, 0.20, 'square', 0.18 * strength);
+        this.noise(0.09, 0.08 * strength, 3100, 0.01);
         break;
       case 'sfx.element.lightning-chain':
-        this.tone(1760, 125, 0.19, 'sawtooth', 0.43 * strength);
-        this.tone(920, 160, 0.23, 'square', 0.28 * strength, 0.015);
-        this.tone(2380, 460, 0.12, 'triangle', 0.22 * strength, 0.035);
+        this.playSample('sfx.element.lightning-chain', 0.28 * strength, 1.04);
+        this.tone(1820, 145, 0.17, 'sawtooth', 0.31 * strength);
+        this.tone(960, 180, 0.20, 'square', 0.18 * strength, 0.012);
+        this.noise(0.07, 0.08 * strength, 5200, 0.018);
         break;
     }
   }
@@ -216,8 +228,15 @@ export class AudioFeedback {
       ...samplePaths('sfx.combat.hit'),
       ...samplePaths('sfx.combat.death'),
       ...samplePaths('sfx.combat.structure-hit'),
+      ...samplePaths('sfx.element.fire-ignite'),
+      ...samplePaths('sfx.element.water-burst'),
+      ...samplePaths('sfx.element.ice-form'),
+      ...samplePaths('sfx.element.ice-break'),
+      ...samplePaths('sfx.element.lightning-chain'),
       ...samplePaths('sfx.command.move'),
       ...samplePaths('sfx.movement.footstep'),
+      ...samplePaths('ambience.battlefield.low'),
+      ...samplePaths('ambience.battlefield.industry'),
       ...samplePaths('voice.command.move'),
       ...samplePaths('voice.command.attack'),
       ...samplePaths('voice.command.ready'),
@@ -233,8 +252,40 @@ export class AudioFeedback {
       } catch {
         // Procedural layers remain as a safe fallback when a sample cannot load.
       }
-    })).then(() => undefined);
+    })).then(() => {
+      if (this.context === context) this.startAmbientSamples();
+    });
     return this.sampleLoadPromise;
+  }
+
+  private startAmbientSamples(): void {
+    const context = this.context;
+    const master = this.masterGain;
+    if (!context || !master || context.state !== 'running' || this.ambientSources.length > 0) return;
+
+    this.ambientSampleGain = context.createGain();
+    this.ambientSampleGain.gain.setValueAtTime(1, context.currentTime);
+    this.ambientSampleGain.connect(master);
+
+    for (const [id, level, playbackRate] of [
+      ['ambience.battlefield.low', 0.030, 1],
+      ['ambience.battlefield.industry', 0.012, 0.94],
+    ] as const) {
+      const path = samplePaths(id).find((candidate) => this.sampleBuffers.has(candidate));
+      if (!path) continue;
+      const buffer = this.sampleBuffers.get(path)!;
+      const source = context.createBufferSource();
+      const gain = context.createGain();
+      source.buffer = buffer;
+      source.loop = true;
+      source.playbackRate.setValueAtTime(playbackRate, context.currentTime);
+      gain.gain.setValueAtTime(level * SAMPLE_BASE_GAIN, context.currentTime);
+      source.connect(gain);
+      gain.connect(this.ambientSampleGain);
+      source.start();
+      source.addEventListener('ended', () => gain.disconnect(), { once: true });
+      this.ambientSources.push(source);
+    }
   }
 
   private playSample(id: string, level: number, playbackRate = 1, delay = 0): boolean {
