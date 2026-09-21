@@ -196,8 +196,8 @@ export class ContextInspector {
       .context-inspector button:disabled { opacity: 0.42; cursor: default; }
       .context-inspector button small { display: block; color: #8fa9a2; font-size: 9px; }
       .context-inspector .context-note { margin-top: 7px; color: #7f9690; font-size: 10px; }
-      @media (max-width: 980px) {
-        .context-inspector { left: 8px; bottom: 8px; width: min(310px, calc(100vw - 16px)); }
+      @media (max-width: 800px) {
+        .context-inspector { left: 8px; bottom: calc(38vh + 16px); width: min(310px, calc(100vw - 16px)); }
         .context-inspector .context-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       }
     `;
