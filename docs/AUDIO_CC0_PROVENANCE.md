@@ -59,3 +59,19 @@ Additional licensing authorities:
 The runtime layers these samples with restrained procedural synthesis. This is intentional: the recorded/transient material provides physical texture, while the procedural layer preserves clear Fire / Water / Ice / Lightning differentiation at RTS scale. Battlefield ambience loops at low gain and remains presentation-only.
 
 The Kenney ice and lightning source files were byte-checked against independent public GitHub mirrors before inclusion. The OpenGameArt pack pages above are the licensing authority for the rubberduck source files.
+
+
+## Radio command voice extension — 2026-09-22
+
+Additional unmodified Kenney Voiceover Pack clips:
+
+| Command | Original file | Runtime use |
+|---|---|---|
+| Attack Move | `war_go_go_go.ogg` | Short urgent advance acknowledgement |
+| Hold Position | `hold.ogg` | Dedicated hold acknowledgement |
+
+Both files are from the same official Kenney Voiceover Pack source already listed above and are CC0. Their Git blob SHAs were independently matched between two public mirrors before inclusion.
+
+The runtime applies a presentation-only radio chain to command voices: high-pass and low-pass filtering, moderate compression, a very short synthetic radio click/static cue, and temporary ambience ducking so spoken orders stay intelligible. The source OGG files remain unmodified in the repository.
+
+`war_go_go_go.ogg` is an independent Kenney CC0 recording. It is not a Counter-Strike asset and no Counter-Strike audio was imported.
