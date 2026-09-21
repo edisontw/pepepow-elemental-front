@@ -27,6 +27,9 @@ interface BuildingPresentation {
   beacon: pc.Entity;
   identityMarker: pc.Entity;
   rally: pc.Entity;
+  lastRallyX: number | null;
+  lastRallyZ: number | null;
+  rallyChangedAtTick: number;
   healthBack: pc.Entity;
   healthBar: pc.Entity;
   defenseStem: pc.Entity;
@@ -90,6 +93,19 @@ function createMaterial(color: pc.Color, emissive?: pc.Color, opacity = 1): pc.S
   return material;
 }
 
+const RALLY_HINT_TICKS = 18;
+
+function createOverlayMaterial(color: pc.Color, opacity: number): pc.StandardMaterial {
+  const material = new pc.StandardMaterial();
+  material.diffuse = color;
+  material.opacity = opacity;
+  material.blendType = pc.BLEND_NORMAL;
+  material.depthWrite = false;
+  material.cull = pc.CULLFACE_NONE;
+  material.update();
+  return material;
+}
+
 function constructionProgress(building: StrategicBuilding, tick: number): number {
   if (building.destroyed) return 0;
   if (building.completed) return 1;
@@ -128,13 +144,14 @@ export class StrategicRenderBridge {
   private readonly constructionMaterial = createMaterial(new pc.Color(0.46, 0.43, 0.3), new pc.Color(0.08, 0.07, 0.03));
   private readonly destroyedMaterial = createMaterial(new pc.Color(0.12, 0.13, 0.13), new pc.Color(0.018, 0.018, 0.018));
   private readonly workMaterial = createMaterial(new pc.Color(.94, .66, .22), new pc.Color(.25, .12, .02));
-  private readonly identityMaterial = createMaterial(new pc.Color(.92, .73, .34), new pc.Color(.26, .13, .02));
-  private readonly arcaneIdentityMaterial = createMaterial(new pc.Color(.67, .52, .96), new pc.Color(.22, .08, .42));
-  private readonly coreIdentityMaterial = createMaterial(new pc.Color(.46, .92, .88), new pc.Color(.05, .34, .28));
+  private readonly identityMaterial = createMaterial(new pc.Color(.70, .55, .28));
+  private readonly arcaneIdentityMaterial = createMaterial(new pc.Color(.52, .40, .78));
+  private readonly coreIdentityMaterial = createMaterial(new pc.Color(.36, .72, .68));
+  private readonly rallyMaterial = createOverlayMaterial(new pc.Color(.42, .72, .64), .20);
   private readonly workGlowMaterial = createMaterial(
-    new pc.Color(.98, .76, .30),
-    new pc.Color(.72, .32, .035),
-    .56,
+    new pc.Color(.78, .56, .20),
+    new pc.Color(.18, .07, .01),
+    .26,
   );
   private readonly networkMaterial = createMaterial(
     new pc.Color(0.18, 0.78, 0.7),
@@ -207,31 +224,25 @@ export class StrategicRenderBridge {
       const useCompletedPlayerImpostor = building.playerId === 0
         && building.completed
         && !building.destroyed;
-      presentation.footprint.enabled = !building.destroyed && !useCompletedPlayerImpostor;
+      presentation.footprint.enabled = !building.destroyed && !building.completed;
       if (presentation.footprint.render) {
-        presentation.footprint.render.material = building.destroyed
-          ? this.destroyedMaterial
-          : building.completed
-            ? this.materialFor(building.playerId, 'ACCENT')
-            : this.constructionMaterial;
+        presentation.footprint.render.material = this.constructionMaterial;
       }
       if (presentation.beacon.render) {
         presentation.beacon.render.material = building.completed
           ? this.materialFor(building.playerId, 'ACCENT')
           : this.constructionMaterial;
       }
-      presentation.beacon.enabled = building.type !== 'ELEMENTAL_CORE'
-        && !building.destroyed
-        && presentation.impostor?.entity == null;
+      presentation.beacon.enabled = false;
 
       const profile = buildingVisualProfile(building.type);
       const showIdentityMarker = building.playerId === 0 && building.completed && !building.destroyed;
       presentation.identityMarker.enabled = showIdentityMarker;
       if (showIdentityMarker) {
-        const identityPulse = 1 + Math.sin(tick * 0.14 + building.id * 0.73) * 0.035;
-        presentation.identityMarker.setLocalPosition(0, profile.height + 0.58, 0);
-        presentation.identityMarker.setLocalScale(identityPulse, identityPulse, identityPulse);
-        presentation.identityMarker.setLocalEulerAngles(0, tick * 1.15 + building.id * 17, 0);
+        const attachedHeight = Math.max(0.62, profile.height * 0.78);
+        presentation.identityMarker.setLocalPosition(0, attachedHeight, -profile.footprint * 0.08);
+        presentation.identityMarker.setLocalScale(0.78, 0.78, 0.78);
+        presentation.identityMarker.setLocalEulerAngles(0, 0, 0);
       }
       const buildProgress = constructionProgress(building, tick);
       const constructing = !building.completed && !building.destroyed;
@@ -407,18 +418,32 @@ export class StrategicRenderBridge {
         if (presentation.defenseHead.render) presentation.defenseHead.render.material = this.materialFor(building.playerId, 'ACCENT');
       }
 
+      const rallyChanged = building.rallyPointX !== presentation.lastRallyX
+        || building.rallyPointZ !== presentation.lastRallyZ;
+      if (rallyChanged) {
+        presentation.lastRallyX = building.rallyPointX;
+        presentation.lastRallyZ = building.rallyPointZ;
+        presentation.rallyChangedAtTick = tick;
+      }
+      const rallyAge = presentation.rallyChangedAtTick < 0
+        ? RALLY_HINT_TICKS
+        : Math.max(0, tick - presentation.rallyChangedAtTick);
       const showRally = building.playerId === 0
         && building.completed
         && !building.destroyed
         && building.rallyPointX !== null
-        && building.rallyPointZ !== null;
+        && building.rallyPointZ !== null
+        && rallyAge < RALLY_HINT_TICKS;
       presentation.rally.enabled = showRally;
       if (showRally && building.rallyPointX !== null && building.rallyPointZ !== null) {
+        const fade = 1 - rallyAge / RALLY_HINT_TICKS;
+        const scale = 0.36 + fade * 0.22;
         presentation.rally.setLocalPosition(
           (building.rallyPointX - building.x) / WORLD_UNITS_PER_METER,
-          0.055,
+          0.045,
           (building.rallyPointZ - building.z) / WORLD_UNITS_PER_METER,
         );
+        presentation.rally.setLocalScale(scale, 0.018, scale);
       }
     }
     for (const [buildingId, presentation] of [...this.entities]) {
@@ -444,6 +469,7 @@ export class StrategicRenderBridge {
     this.arcaneIdentityMaterial.destroy();
     this.coreIdentityMaterial.destroy();
     this.workGlowMaterial.destroy();
+    this.rallyMaterial.destroy();
     this.networkMaterial.destroy();
     this.networkGlowMaterial.destroy();
     this.networkPulseMaterial.destroy();
@@ -502,6 +528,11 @@ export class StrategicRenderBridge {
       }
     }
     this.updateNetwork(tick);
+    // Strategic relay authority remains unchanged, but persistent ground cyan
+    // guides are suppressed. Future contextual targeting UI may re-enable them
+    // only while the network is actively being inspected or used.
+    for (const link of this.networkLinks) link.root.enabled = false;
+    for (const anchor of this.networkAnchors) anchor.root.enabled = false;
   }
 
   private clearNetwork(): void {
@@ -684,9 +715,10 @@ export class StrategicRenderBridge {
     const rally = new pc.Entity(`${building.type} ${building.id} Rally Point`);
     rally.addComponent('render', {
       type: 'cylinder',
-      material: this.materialFor(building.playerId, 'ACCENT'),
+      material: this.rallyMaterial,
+      castShadows: false,
     });
-    rally.setLocalScale(0.72, 0.035, 0.72);
+    rally.setLocalScale(0.58, 0.018, 0.58);
     rally.enabled = false;
     root.addChild(rally);
 
@@ -790,6 +822,9 @@ export class StrategicRenderBridge {
       beacon,
       identityMarker,
       rally,
+      lastRallyX: building.rallyPointX,
+      lastRallyZ: building.rallyPointZ,
+      rallyChangedAtTick: -1,
       healthBack,
       healthBar,
       defenseStem,
@@ -845,6 +880,7 @@ export class StrategicRenderBridge {
       add('Left Post', 'box', [-0.23, 0, 0], [0.10, 0.10, 0.56]);
       add('Right Post', 'box', [0.23, 0, 0], [0.10, 0.10, 0.56]);
       add('Lintel', 'box', [0, 0, -0.23], [0.56, 0.10, 0.10]);
+      add('Shield', 'cylinder', [0, 0.08, 0.06], [0.17, 0.035, 0.17]);
     } else if (profile.marker === 'ORB') {
       add('Core', 'sphere', [0, 0, 0], [0.20, 0.20, 0.20]);
       add('North', 'sphere', [0, 0, -0.34], [0.08, 0.08, 0.08]);
@@ -854,15 +890,21 @@ export class StrategicRenderBridge {
     } else if (profile.marker === 'TOOLS') {
       add('Tool A', 'box', [0, 0, 0], [0.10, 0.10, 0.72], 45);
       add('Tool B', 'box', [0, 0, 0], [0.10, 0.10, 0.72], -45);
-      add('Hub', 'sphere', [0, 0, 0], [0.12, 0.12, 0.12]);
+      add('Hub', 'cylinder', [0, 0.06, 0], [0.15, 0.05, 0.15]);
+      add('Gear North', 'box', [0, 0.05, -0.22], [0.08, 0.06, 0.14]);
+      add('Gear South', 'box', [0, 0.05, 0.22], [0.08, 0.06, 0.14]);
+      add('Gear East', 'box', [0.22, 0.05, 0], [0.14, 0.06, 0.08]);
+      add('Gear West', 'box', [-0.22, 0.05, 0], [0.14, 0.06, 0.08]);
     } else if (profile.marker === 'BEACON') {
       add('Stem', 'cylinder', [0, 0.18, 0], [0.10, 0.38, 0.10]);
       add('Head', 'sphere', [0, 0.46, 0], [0.16, 0.16, 0.16]);
       add('Crossbar', 'box', [0, 0.20, 0], [0.52, 0.08, 0.08]);
+      add('Banner', 'box', [0.18, 0.28, 0], [0.28, 0.30, 0.055]);
     } else if (profile.marker === 'PUMP') {
       add('Pump', 'cylinder', [0, 0, 0], [0.20, 0.12, 0.20]);
       add('Arm', 'box', [0.28, 0.03, 0], [0.48, 0.08, 0.10]);
       add('Valve', 'sphere', [-0.24, 0.03, 0], [0.11, 0.11, 0.11]);
+      add('Drill', 'cylinder', [0.50, -0.01, 0], [0.08, 0.22, 0.08]);
     } else {
       add('Well', 'cylinder', [0, 0, 0], [0.34, 0.07, 0.34]);
       add('Mana', 'sphere', [0, 0.16, 0], [0.17, 0.17, 0.17]);
