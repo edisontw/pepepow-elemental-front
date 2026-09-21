@@ -14,7 +14,7 @@ type AudioManifestEntry = {
 
 const AUDIO_ENTRIES = (manifest as { entries: readonly AudioManifestEntry[] }).entries;
 
-export type UnitCommandFeedback = 'MOVE' | 'ATTACK_MOVE' | 'ATTACK' | 'HOLD' | 'STOP';
+export type UnitCommandFeedback = 'SELECT' | 'MOVE' | 'ATTACK_MOVE' | 'ATTACK' | 'HOLD' | 'STOP';
 
 function samplePaths(id: string): readonly string[] {
   const entry = AUDIO_ENTRIES.find((candidate) => candidate.id === id);
@@ -65,14 +65,19 @@ export class AudioFeedback {
       if (now - this.lastCommandAt < 0.16) return;
       this.lastCommandAt = now;
       const attack = kind === 'ATTACK' || kind === 'ATTACK_MOVE';
-      const sampled = this.playSample('sfx.command.move', attack ? 0.12 : 0.09, attack ? 0.96 : 1.04);
+      const sampled = this.playSample('sfx.command.move', attack ? 0.12 : kind === 'SELECT' ? 0.075 : 0.09, attack ? 0.96 : 1.04);
       if (!sampled) {
         this.tone(attack ? 360 : 250, attack ? 520 : 330, 0.075, 'triangle', attack ? 0.14 : 0.09);
         this.noise(attack ? 0.055 : 0.035, attack ? 0.055 : 0.032, attack ? 1800 : 1050, 0.012);
       }
       if (now - this.lastVoiceAt >= 0.85) {
         this.lastVoiceAt = now;
-        this.speakCommand(kind);
+        const voiceId = kind === 'ATTACK'
+          ? 'voice.command.attack'
+          : kind === 'MOVE' || kind === 'ATTACK_MOVE'
+            ? 'voice.command.move'
+            : 'voice.command.ready';
+        if (!this.playSample(voiceId, 0.18, 1)) this.speakCommand(kind);
       }
     });
   }
@@ -213,6 +218,9 @@ export class AudioFeedback {
       ...samplePaths('sfx.combat.structure-hit'),
       ...samplePaths('sfx.command.move'),
       ...samplePaths('sfx.movement.footstep'),
+      ...samplePaths('voice.command.move'),
+      ...samplePaths('voice.command.attack'),
+      ...samplePaths('voice.command.ready'),
     ])];
 
     this.sampleLoadPromise = Promise.all(paths.map(async (path) => {
@@ -269,6 +277,7 @@ export class AudioFeedback {
   private speakCommand(kind: UnitCommandFeedback): void {
     if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') return;
     const phrase: Readonly<Record<UnitCommandFeedback, string>> = {
+      SELECT: 'Ready.',
       MOVE: 'Moving.',
       ATTACK_MOVE: 'Advancing.',
       ATTACK: 'Engaging.',
