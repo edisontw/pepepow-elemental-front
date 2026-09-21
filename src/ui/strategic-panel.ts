@@ -11,7 +11,6 @@ import { WORLD_UNITS_PER_METER } from '../simulation/arena';
 import type { UnitArchetype } from '../simulation/components';
 import { WorldCellFlag } from '../world/world-definition';
 import { worldCellToSimulationPosition } from '../world/world-arena';
-import { buildingVisualProfile } from '../rendering/building-visual-profile';
 
 const PLAYER_ID = 0;
 const TICKS_PER_SECOND = 10;
@@ -33,15 +32,15 @@ const BUILDING_ROLE: Readonly<Record<Exclude<BuildingType, 'ELEMENTAL_CORE'>, st
   MANA_WELL: 'Mana',
 };
 
-const UNIT_UI: Readonly<Record<UnitArchetype, { code: string; role: string }>> = {
-  VANGUARD: { code: 'VAN', role: 'Frontline' },
-  SPEAR_GUARD: { code: 'SPG', role: 'Guard' },
-  RANGER: { code: 'RNG', role: 'Ranged' },
-  SCOUT: { code: 'SCT', role: 'Recon' },
-  ELEMENTALIST: { code: 'ELM', role: 'Arcane' },
-  ENGINEER: { code: 'ENG', role: 'Support' },
-  GOLEM: { code: 'GLM', role: 'Heavy' },
-  SIEGE_CONSTRUCT: { code: 'SGE', role: 'Siege' },
+const UNIT_ROLE: Readonly<Record<UnitArchetype, string>> = {
+  VANGUARD: 'Frontline',
+  SPEAR_GUARD: 'Guard',
+  RANGER: 'Ranged',
+  SCOUT: 'Recon',
+  ELEMENTALIST: 'Arcane',
+  ENGINEER: 'Support',
+  GOLEM: 'Heavy',
+  SIEGE_CONSTRUCT: 'Siege',
 };
 
 function formatResource(milli: number): string {
@@ -562,8 +561,7 @@ export class StrategicPanel {
         queue > 0 ? `Q${queue}` : 'Ready',
         building.rallyPointX === null ? '' : 'Rally',
       ].filter(Boolean).join(' · ');
-      const code = buildingVisualProfile(building.type).shortCode;
-      return `<button class="${active.trim()}" data-action="select-producer" data-value="${building.id}" title="Preferred source for matching recruit cards"><span class="command-badge small">${code}</span><span class="command-copy"><b>${label(building.type)} #${building.id}</b><small>${details}</small></span></button>`;
+      return `<button class="${active.trim()}" data-action="select-producer" data-value="${building.id}" title="Preferred source for matching recruit cards"><span class="command-copy"><b>${label(building.type)} #${building.id}</b><small>${details}</small></span></button>`;
     }).join('');
     return `<div class="producer-select"><strong>Preferred production building</strong><div>${buttons}</div><small>Recruit cards auto-route to a matching supplied producer; the selected building is preferred when compatible.</small></div>`;
   }
@@ -611,7 +609,6 @@ export class StrategicPanel {
     const buildingButtons = BUILD_ORDER.map((buildingType) => {
       const cost = BUILDINGS[buildingType].cost;
       const active = this.pendingBuildType === buildingType ? ' active' : '';
-      const profile = buildingVisualProfile(buildingType);
       const title = buildingType === 'EXTRACTOR'
         ? 'Extractor harvests an amber Material Deposit'
         : buildingType === 'MANA_WELL'
@@ -620,7 +617,7 @@ export class StrategicPanel {
             ? 'Outpost costs 10 Influence and claims an adjacent neutral region when construction completes'
             : 'Choose this building, then place it inside controlled supplied territory';
       const costText = `${cost.material}M${cost.mana ? ` · ${cost.mana}A` : ''}${cost.influence ? ` · ${cost.influence}I` : ''}`;
-      return `<button class="command-card ${active.trim()}" data-action="build" data-value="${buildingType}" title="${title}"><span class="command-badge">${profile.shortCode}</span><span class="command-copy"><b>${label(buildingType)}</b><small>${BUILDING_ROLE[buildingType]} · ${costText}</small></span></button>`;
+      return `<button class="command-card ${active.trim()}" data-action="build" data-value="${buildingType}" title="${title}"><span class="command-copy"><b>${label(buildingType)}</b><small>${BUILDING_ROLE[buildingType]} · ${costText}</small></span></button>`;
     }).join('');
     const available = this.availableProducers(snapshot);
     const queuedByUnit = new Map<UnitArchetype, number>();
@@ -631,11 +628,10 @@ export class StrategicPanel {
     const trainButtons = TRAIN_ORDER.map((unitType) => {
       const definition = UNITS[unitType];
       const enabled = available.some((building) => building.type === definition.producer);
-      const ui = UNIT_UI[unitType];
       const queued = queuedByUnit.get(unitType) ?? 0;
       const costText = `${definition.cost.material}M${definition.cost.mana ? ` · ${definition.cost.mana}A` : ''} · P${definition.population}`;
       const queueText = queued > 0 ? ` · Q${queued}` : '';
-      return `<button class="command-card recruit-card" data-action="train" data-value="${unitType}" ${enabled ? '' : 'disabled'} title="Click to queue 1. Shift-click to queue up to 5."><span class="command-badge">${ui.code}</span><span class="command-copy"><b>${label(unitType)}</b><small>${ui.role} · ${costText}${queueText}</small></span></button>`;
+      return `<button class="command-card recruit-card" data-action="train" data-value="${unitType}" ${enabled ? '' : 'disabled'} title="Click to queue 1. Shift-click to queue up to 5."><span class="command-copy"><b>${label(unitType)}</b><small>${UNIT_ROLE[unitType]} · ${costText}${queueText}</small></span></button>`;
     }).join('');
     const rallyActive = this.pendingRallyBuildingId !== null ? ' active' : '';
     const outpostMissing = missingResourceParts(BUILDINGS.OUTPOST.cost, stock);
@@ -664,9 +660,10 @@ export class StrategicPanel {
       ${selectedMarkup}
       <nav class="command-tabs" aria-label="Command category"><button data-action="command-view" data-value="build" aria-pressed="${this.commandView === 'build'}">Construction</button><button data-action="command-view" data-value="army" aria-pressed="${this.commandView === 'army'}">Army</button></nav>
       <div class="build-view">${this.queueMarkup(simulationSnapshot.tick, snapshot, 'build')}</div>
-      <div class="army-view">${this.armyMarkup(simulationSnapshot)}${this.queueMarkup(simulationSnapshot.tick, snapshot, 'army')}</div>
       <div class="strategy-section build-view"><strong>Construct</strong><div class="strategy-buttons construction-grid">${buildingButtons}</div><div class="command-hint">Click a card, then place on the battlefield · Shift-place repeats · Esc/right-click cancels</div></div>
-      <div class="strategy-section army-view"><strong>Recruit</strong>${this.producerMarkup(snapshot)}<div class="strategy-buttons compact recruit-grid">${trainButtons}</div><div class="command-hint">Click = queue 1 · Shift-click = queue up to 5 · matching producer is chosen automatically</div><div class="strategy-buttons secondary-actions"><button class="${rallyActive.trim()}" data-action="set-rally" ${this.selectedProducerId !== null ? '' : 'disabled'}>Set Rally for Preferred</button></div></div>
+      <div class="strategy-section army-view army-recruit-section"><strong>Recruit</strong><div class="strategy-buttons compact recruit-grid">${trainButtons}</div><div class="command-hint">Click = queue 1 · Shift-click = queue up to 5 · matching producer is chosen automatically</div></div>
+      <div class="strategy-section army-view army-producer-section">${this.producerMarkup(snapshot)}<div class="strategy-buttons secondary-actions"><button class="${rallyActive.trim()}" data-action="set-rally" ${this.selectedProducerId !== null ? '' : 'disabled'}>Set Rally for Preferred</button></div></div>
+      <div class="army-view army-lower-priority">${this.queueMarkup(simulationSnapshot.tick, snapshot, 'army')}${this.armyMarkup(simulationSnapshot)}</div>
       ${this.message ? `<div class="strategy-message" aria-live="polite">${this.message}</div>` : ''}
       <div class="strategy-section territory-info build-view"><div class="expansion-compact"><span>${expansionHint}</span></div></div>
     `;

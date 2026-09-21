@@ -20,18 +20,19 @@ describe('M08 building visual profiles', () => {
       expect(profile.parts.length).toBeGreaterThanOrEqual(3);
       expect(profile.footprint).toBeGreaterThan(0);
       expect(profile.height).toBeGreaterThan(0);
-      expect(profile.shortCode.length).toBeGreaterThanOrEqual(3);
       expect(profile.marker.length).toBeGreaterThan(0);
       expect(profile.parts.some((part) => part.material === 'ACCENT')).toBe(true);
     }
   });
 
-  it('uses unique compact codes for fast building identification', () => {
-    const codes = BUILDING_TYPES.map((type) => BUILDING_VISUAL_PROFILES[type].shortCode);
-    expect(new Set(codes).size).toBe(BUILDING_TYPES.length);
-    expect(BUILDING_VISUAL_PROFILES.BARRACKS.shortCode).toBe('BRK');
-    expect(BUILDING_VISUAL_PROFILES.ARCANE_TOWER.shortCode).toBe('ARC');
-    expect(BUILDING_VISUAL_PROFILES.WORKSHOP.shortCode).toBe('WRK');
+  it('uses distinct in-world identity motifs instead of UI codes', () => {
+    const markers = BUILDING_TYPES.map((type) => BUILDING_VISUAL_PROFILES[type].marker);
+    expect(new Set(markers).size).toBe(BUILDING_TYPES.length);
+    expect(BUILDING_VISUAL_PROFILES.BARRACKS.marker).toBe('GATE');
+    expect(BUILDING_VISUAL_PROFILES.ARCANE_TOWER.marker).toBe('ORB');
+    expect(BUILDING_VISUAL_PROFILES.WORKSHOP.marker).toBe('TOOLS');
+    expect(BUILDING_VISUAL_PROFILES.EXTRACTOR.marker).toBe('PUMP');
+    expect(BUILDING_VISUAL_PROFILES.MANA_WELL.marker).toBe('WELL');
   });
 
   it('gives the Elemental Core the strongest scale hierarchy', () => {

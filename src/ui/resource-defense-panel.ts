@@ -57,13 +57,13 @@ export class ResourceDefensePanel {
     if (this.rendering) return;
     this.rendering = true;
     try {
-      const buildSection = this.strategyElement.querySelector<HTMLElement>('.strategy-section');
-      if (!buildSection) return;
+      const armyAnchor = this.strategyElement.querySelector<HTMLElement>('.army-lower-priority');
+      if (!armyAnchor) return;
       let section = this.strategyElement.querySelector<HTMLElement>('.resource-defense-section');
       if (!section) {
         section = document.createElement('div');
-        section.className = 'strategy-section resource-defense-section';
-        buildSection.insertAdjacentElement('afterend', section);
+        section.className = 'strategy-section resource-defense-section army-view';
+        armyAnchor.insertAdjacentElement('afterend', section);
       }
 
       const snapshot = this.simulation.strategy.snapshot();
