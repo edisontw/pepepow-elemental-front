@@ -405,9 +405,7 @@ export class M06Simulation extends M05Simulation {
   }
 
   private prepareObjectiveAttackers(targetTick: number): void {
-    const towerAvoidance = this.run.mode === 'TOWER_DEFENSE'
-      ? this.towerDefenseNeutralAvoidanceCells()
-      : null;
+    let towerAvoidance: Set<string> | null = null;
     for (const [entityId, objective] of [...this.objectiveAttackOrders.entries()]) {
       if (!this.entities.hasUnit(entityId) || this.entities.health.get(entityId)?.alive !== true) {
         this.objectiveAttackOrders.delete(entityId);
@@ -450,6 +448,7 @@ export class M06Simulation extends M05Simulation {
 
       if (movement.targetX === null || movement.targetZ === null || movement.pathIndex >= movement.path.length) {
         if (towerAssault) {
+          towerAvoidance ??= this.towerDefenseNeutralAvoidanceCells();
           const assigned = this.assignPath(entityId, target.x, target.z, towerAvoidance);
           if (!assigned) this.assignPath(entityId, target.x, target.z);
           movement.orderMode = 'ATTACK_MOVE';
