@@ -19,11 +19,18 @@ const required = [
   'sfx.combat.hit',
   'sfx.combat.death',
   'sfx.combat.structure-hit',
+  'sfx.element.fire-ignite',
+  'sfx.element.water-burst',
+  'sfx.element.ice-form',
+  'sfx.element.ice-break',
+  'sfx.element.lightning-chain',
   'sfx.command.move',
   'sfx.movement.footstep',
   'voice.command.move',
   'voice.command.attack',
   'voice.command.ready',
+  'ambience.battlefield.low',
+  'ambience.battlefield.industry',
 ] as const;
 
 describe('CC0 production audio assets', () => {
@@ -33,13 +40,20 @@ describe('CC0 production audio assets', () => {
       expect(entry, id).toBeDefined();
       expect(entry!.status, id).toBe('FINAL');
       expect(entry!.license, id).toContain('CC0');
-      expect(entry!.sourceUrl, id).toMatch(/^https:\/\/kenney\.nl\/assets\//);
+      expect(entry!.sourceUrl, id).toMatch(/^https:\/\/(?:kenney\.nl\/assets\/|opengameart\.org\/content\/)/);
 
       for (const path of [entry!.path, ...(entry!.variants ?? [])]) {
         expect(path, id).not.toContain('://');
         const bytes = readFileSync(join('public', path));
         expect(bytes.subarray(0, 4).toString('ascii'), path).toBe('OggS');
       }
+    }
+  });
+
+  it('marks both battlefield ambience beds as looped production assets', () => {
+    for (const id of ['ambience.battlefield.low', 'ambience.battlefield.industry']) {
+      const entry = entries.find((candidate) => candidate.id === id) as Entry & { loop?: boolean } | undefined;
+      expect(entry?.loop, id).toBe(true);
     }
   });
 
