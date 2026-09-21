@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { WORLD_UNITS_PER_METER } from '../../src/simulation/arena';
 import { UNITS } from '../../src/simulation/m03-content';
+import { NEUTRAL_CAMP_AGGRO_RADIUS } from '../../src/simulation/neutral-encounter-state';
 import { finaleUnlockTick, phaseForTick } from '../../src/simulation/m06-content';
 import { M06Simulation, isM06ReplayPacket } from '../../src/simulation/m06-simulation';
 import { generateWorld } from '../../src/world/generator';
@@ -180,36 +182,94 @@ describe('M06 full run', () => {
     expect(final.run.result?.reason).toBe('BOSS_DEFEATED');
   }, 15_000);
 
-  it('keeps Tower Defense wave movement advancing toward the player Core', () => {
+  it('keeps Tower Defense waves moving on neutral-safe assault paths', () => {
     const simulation = new M06Simulation(generateWorld(1_000_010), {
       mode: 'TOWER_DEFENSE',
       pace: 'SMOKE',
       difficulty: 'CASUAL',
     });
-    for (let tick = 1; tick <= 300; tick += 1) simulation.step();
+    for (let tick = 1; tick <= 301; tick += 1) simulation.step();
 
-    const core = simulation.run.snapshot().playerCore;
     const enemyIds = livingIds(simulation, 1);
     expect(enemyIds.length).toBeGreaterThan(0);
     const firstEnemyId = enemyIds[0];
     expect(firstEnemyId).toBeDefined();
     if (firstEnemyId === undefined) return;
-    const beforePosition = simulation.entities.positions.get(firstEnemyId)!;
-    const beforeDx = beforePosition.x - core.x;
-    const beforeDz = beforePosition.z - core.z;
-    const beforeDistanceSquared = beforeDx * beforeDx + beforeDz * beforeDz;
 
+    const movement = simulation.entities.movements.get(firstEnemyId)!;
+    expect(movement.orderMode).toBe('ATTACK_MOVE');
+    expect(movement.path.length).toBeGreaterThan(0);
+
+    const safeRadius = NEUTRAL_CAMP_AGGRO_RADIUS + WORLD_UNITS_PER_METER;
+    const safeRadiusSquared = safeRadius * safeRadius;
+    const guardianPositions = simulation.snapshot().neutralEncounters.camps
+      .filter((camp) => !camp.cleared)
+      .flatMap((camp) => camp.guardianEntityIds)
+      .filter((entityId) => simulation.entities.hasUnit(entityId))
+      .map((entityId) => simulation.entities.positions.get(entityId)!)
+      .filter((position) => position !== undefined);
+    for (const point of movement.path) {
+      expect(guardianPositions.every((guardian) => {
+        const dx = point.x - guardian.x;
+        const dz = point.z - guardian.z;
+        return dx * dx + dz * dz > safeRadiusSquared;
+      })).toBe(true);
+    }
+
+    const before = { ...simulation.entities.positions.get(firstEnemyId)! };
     for (let tick = 0; tick < 20; tick += 1) simulation.step();
+    const after = simulation.entities.positions.get(firstEnemyId)!;
+    expect(after.x !== before.x || after.z !== before.z).toBe(true);
+  }, 15_000);
 
-    const afterPosition = simulation.entities.positions.get(firstEnemyId)!;
-    const afterDx = afterPosition.x - core.x;
-    const afterDz = afterPosition.z - core.z;
-    const afterDistanceSquared = afterDx * afterDx + afterDz * afterDz;
-    expect(afterDistanceSquared).toBeLessThan(beforeDistanceSquared);
-    expect(simulation.run.snapshot().objectiveAttackOrders).toContainEqual({
-      entityId: firstEnemyId,
-      objective: 'PLAYER_CORE',
+  it('makes Tower Defense attackers retaliate against player fire before resuming the Core assault', () => {
+    const simulation = new M06Simulation(generateWorld(1_000_011), {
+      mode: 'TOWER_DEFENSE',
+      pace: 'SMOKE',
+      difficulty: 'CASUAL',
     });
+    for (let tick = 1; tick <= 301; tick += 1) simulation.step();
+
+    const enemyId = livingIds(simulation, 1)[0];
+    const ranger = simulation.snapshot().entities.find((entity) => entity.playerId === 0 && entity.archetype === 'RANGER');
+    expect(enemyId).toBeDefined();
+    expect(ranger).toBeDefined();
+    if (enemyId === undefined || !ranger) return;
+
+    const enemyPosition = simulation.entities.positions.get(enemyId)!;
+    const core = simulation.run.snapshot().playerCore;
+    const towardCoreX = core.x - enemyPosition.x;
+    const towardCoreZ = core.z - enemyPosition.z;
+    const length = Math.max(1, Math.hypot(towardCoreX, towardCoreZ));
+    const retaliationDistance = 8 * WORLD_UNITS_PER_METER;
+    const rangerPosition = simulation.entities.positions.get(ranger.id)!;
+    rangerPosition.x = enemyPosition.x + Math.round((towardCoreX * retaliationDistance) / length);
+    rangerPosition.z = enemyPosition.z + Math.round((towardCoreZ * retaliationDistance) / length);
+    const rangerCombat = simulation.entities.combat.get(ranger.id)!;
+    rangerCombat.attackDamage = 1;
+    rangerCombat.attackIntervalTicks = 1;
+    rangerCombat.nextAttackTick = 0;
+
+    simulation.enqueueCommand({
+      targetTick: simulation.snapshot().tick + 1,
+      playerId: 0,
+      type: 'ATTACK',
+      entityIds: [ranger.id],
+      targetEntityId: enemyId,
+    });
+    simulation.step();
+
+    expect(simulation.entities.combat.get(enemyId)?.targetEntityId).toBe(ranger.id);
+    expect(simulation.run.snapshot().objectiveAttackOrders.some((order) => order.entityId === enemyId)).toBe(false);
+
+    rangerPosition.x = core.x;
+    rangerPosition.z = core.z;
+    simulation.step();
+    simulation.step();
+
+    expect(simulation.entities.combat.get(enemyId)?.targetEntityId).toBeNull();
+    expect(simulation.entities.movements.get(enemyId)?.targetX).not.toBeNull();
+    expect(simulation.entities.movements.get(enemyId)?.orderMode).toBe('ATTACK_MOVE');
   }, 15_000);
 
   it('records a versioned replay packet with exact world/run/enemy identity', () => {
@@ -234,7 +294,7 @@ describe('M06 full run', () => {
     expect(packet).not.toBeNull();
     expect(isM06ReplayPacket(packet)).toBe(true);
     expect(packet?.header).toMatchObject({
-      version: 'ef-replay-v14',
+      version: 'ef-replay-v15',
       blockHeight: 1_000_005,
       mode: 'DESTROY',
       pace: 'SMOKE',

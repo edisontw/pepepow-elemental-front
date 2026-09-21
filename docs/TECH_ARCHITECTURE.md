@@ -397,6 +397,12 @@ and an octile heuristic. Expansion order is N/E/S/W/NE/SE/SW/NW; both adjacent
 cardinal cells must be walkable for a diagonal. Cardinal BFS slot resolution is
 unchanged. Repaths recenter in the current cell to avoid clipping blocked corners.
 
+v15 adds deterministic caller-supplied path-avoidance cells without mutating the
+authoritative terrain grid or `navVersion`. Tower Defense uses this overlay for
+living Neutral Camp guardian aggro envelopes; safe routes are preferred, with the
+ordinary walkable path retained only as a fallback when avoidance would make the
+objective unreachable.
+
 Terrain changes must alter navigation.
 
 Example:
@@ -712,7 +718,7 @@ If RPC is unavailable:
 
 # 29. Version separation
 
-Active gameplay/challenge: `ef-standard-v14`; replay: `ef-replay-v14`;
+Active gameplay/challenge: `ef-standard-v15`; replay: `ef-replay-v15`;
 world generation: `m02-standard-v1`. Forced-Move disengage, order modes, and saved Attack Move destinations
 are state-hashed; player replacements of Core orders execute at their target tick.
 

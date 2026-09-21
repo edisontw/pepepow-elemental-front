@@ -32,6 +32,17 @@ describe('M01 deterministic static navigation', () => {
     expect(tiePath).toEqual([{ column: 21, row: 20 }, { column: 22, row: 21 }]);
   });
 
+  it('detours deterministically around caller-supplied avoidance cells', () => {
+    const navigation = new NavigationGrid(M01_ARENA.traversal);
+    const avoided = new Set([navigation.cellKey({ column: 21, row: 20 })]);
+    const first = navigation.findPathAvoiding({ column: 20, row: 19 }, { column: 22, row: 21 }, avoided);
+    const second = navigation.findPathAvoiding({ column: 20, row: 19 }, { column: 22, row: 21 }, avoided);
+    expect(first).toEqual(second);
+    expect(first).not.toBeNull();
+    expect(first?.some((cell) => avoided.has(navigation.cellKey(cell)))).toBe(false);
+    expect(first).not.toEqual([{ column: 21, row: 20 }, { column: 22, row: 21 }]);
+  });
+
   it('moves a unit through the crossing without ever occupying blocked cells', () => {
     const simulation = new Simulation('river-crossing');
     simulation.enqueueCommand({ targetTick: 1, playerId: 0, type: 'MOVE', entityIds: [1], targetX: 10_500, targetZ: -8_500 });

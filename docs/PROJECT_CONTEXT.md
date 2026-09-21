@@ -4,8 +4,8 @@
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v14`
-**Current replay format:** `ef-replay-v14`
+**Current authoritative gameplay ruleset:** `ef-standard-v15`
+**Current replay format:** `ef-replay-v15`
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE4_CLOSURE_REPORT.md`
 
@@ -69,8 +69,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v14`;
-- replay: `ef-replay-v14`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v15`;
+- replay: `ef-replay-v15`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -181,12 +181,14 @@ Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-Aâ€
 
 ### Tower Defense vertical slice
 
-- `TOWER_DEFENSE` is a separate deterministic run mode introduced in v13; its corrected active authority is `ef-standard-v14` / `ef-replay-v14`.
+- `TOWER_DEFENSE` is a separate deterministic run mode introduced in v13; its active authority is `ef-standard-v15` / `ef-replay-v15`.
 - It clears the usual starting enemy force, allows 30 seconds to prepare, then sends seven escalating waves from the enemy approach toward the player Core.
 - The live HUD exposes the current wave, next hostile composition, countdown, and hostile count.
 - Existing construction, production, units, spells, and Core recovery remain the first playable defense kit.
 - v14 fixes a wave-path regression: Tower Defense assault units no longer receive an identical MOVE every fixed tick, which had repeatedly recentered A* paths and could stall them before the Core.
 - Dedicated Tower Defense Core-assault intent now owns enemy wave movement; generic Enemy War unit orders do not override that assault path.
+- v15 changes Tower Defense assault movement from blind forced-Move behavior to tactical assault behavior: wave units retaliate when attacked, temporarily fight local player defenders, then resume the Core objective.
+- v15 path planning treats living Neutral Camp guardians as temporary hazard zones and deterministically routes waves around their aggro radius where a safe route exists; neutral encounters remain optional rather than accidental wave targets.
 
 Primary scope:
 

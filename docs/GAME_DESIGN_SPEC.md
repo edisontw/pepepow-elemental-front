@@ -1555,4 +1555,8 @@ Design rationale:
 - Core-assault movement is persistent. The simulation must not reissue an identical MOVE every fixed tick; repeated MOVE replacement recenters the active A* path and can stall a unit inside its current cell.
 - Generic Enemy War unit orders do not override Tower Defense wave movement. Local combat remains governed by the existing forced-Move/objective-attack rules and normal authoritative attack cadence.
 - The v14 correction fixes this wave-movement authority without changing `m02-standard-v1` world generation.
-- Active Tower Defense gameplay/replay identity is `ef-standard-v14` / `ef-replay-v14`.
+- v14 fixed persistent Core-assault movement without changing `m02-standard-v1`.
+- v15 adds tactical response during that assault: wave units retaliate against player fire, suspend Core damage while locally engaged, then resume the Core objective.
+- Living Neutral Camp guardians are treated as deterministic route hazards; wave pathing avoids their aggro envelope where a safe route exists instead of deliberately entering neutral encounters.
+- Forced player MOVE semantics remain unchanged: player-issued normal MOVE still disengages as defined in section 62.
+- Active Tower Defense gameplay/replay identity is `ef-standard-v15` / `ef-replay-v15`.

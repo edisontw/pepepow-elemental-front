@@ -140,7 +140,25 @@ export class NavigationGrid {
   }
 
   findPath(start: GridCell, requestedGoal: GridCell): GridCell[] | null {
-    const goal = this.resolveWalkableTarget(requestedGoal);
+    return this.findPathInternal(start, requestedGoal, null);
+  }
+
+  findPathAvoiding(
+    start: GridCell,
+    requestedGoal: GridCell,
+    avoidedCellKeys: ReadonlySet<string>,
+  ): GridCell[] | null {
+    return this.findPathInternal(start, requestedGoal, avoidedCellKeys);
+  }
+
+  private findPathInternal(
+    start: GridCell,
+    requestedGoal: GridCell,
+    avoidedCellKeys: ReadonlySet<string> | null,
+  ): GridCell[] | null {
+    const goal = avoidedCellKeys === null
+      ? this.resolveWalkableTarget(requestedGoal)
+      : this.resolveWalkableTargetAvoiding(requestedGoal, avoidedCellKeys);
     if (!goal || !this.isWalkable(start)) return null;
     const startKey = this.cellKey(start);
     const goalKey = this.cellKey(goal);
@@ -157,7 +175,7 @@ export class NavigationGrid {
       if (currentKey === goalKey) return this.reconstruct(cameFrom, startKey, current);
       for (const offset of PATH_NEIGHBORS) {
         const neighbor = { column: current.column + offset.column, row: current.row + offset.row };
-        if (!this.canTraverse(current, neighbor)) continue;
+        if (!this.canTraversePath(current, neighbor, avoidedCellKeys, startKey, goalKey)) continue;
         const key = this.cellKey(neighbor);
         const tentativeG = current.g + (offset.column !== 0 && offset.row !== 0 ? DIAGONAL_COST : CARDINAL_COST);
         const previousG = bestG.get(key);
@@ -169,6 +187,28 @@ export class NavigationGrid {
       }
     }
     return null;
+  }
+
+  private canTraversePath(
+    from: GridCell,
+    to: GridCell,
+    avoidedCellKeys: ReadonlySet<string> | null,
+    startKey: string,
+    goalKey: string,
+  ): boolean {
+    if (!this.canTraverse(from, to) || avoidedCellKeys === null || avoidedCellKeys.size === 0) {
+      return this.canTraverse(from, to);
+    }
+    const isAllowed = (cell: GridCell): boolean => {
+      const key = this.cellKey(cell);
+      return key === startKey || key === goalKey || !avoidedCellKeys.has(key);
+    };
+    if (!isAllowed(to)) return false;
+    const dx = to.column - from.column;
+    const dz = to.row - from.row;
+    if (dx === 0 || dz === 0) return true;
+    return isAllowed({ column: from.column + dx, row: from.row })
+      && isAllowed({ column: from.column, row: from.row + dz });
   }
 
   private reconstruct(cameFrom: Map<string, GridCell>, startKey: string, goal: GridCell): GridCell[] {
