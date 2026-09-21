@@ -1,10 +1,26 @@
+import manifest from '../../data/audio/manifest.json';
 import type { SimulationSnapshot } from '../simulation/simulation';
 import { deriveAudioCues, type AudioCue } from './audio-events';
 
 const MASTER_GAIN = 0.48;
 const AMBIENT_GAIN = 0.018;
+const SAMPLE_BASE_GAIN = 0.72;
+
+type AudioManifestEntry = {
+  id: string;
+  path: string;
+  variants?: readonly string[];
+};
+
+const AUDIO_ENTRIES = (manifest as { entries: readonly AudioManifestEntry[] }).entries;
 
 export type UnitCommandFeedback = 'MOVE' | 'ATTACK_MOVE' | 'ATTACK' | 'HOLD' | 'STOP';
+
+function samplePaths(id: string): readonly string[] {
+  const entry = AUDIO_ENTRIES.find((candidate) => candidate.id === id);
+  if (!entry || entry.path.includes('://')) return [];
+  return [entry.path, ...(entry.variants ?? [])];
+}
 
 export class AudioFeedback {
   private context: AudioContext | null = null;
@@ -15,6 +31,10 @@ export class AudioFeedback {
   private lastTick = -1;
   private lastCommandAt = Number.NEGATIVE_INFINITY;
   private lastVoiceAt = Number.NEGATIVE_INFINITY;
+  private nextFootstepAt = Number.NEGATIVE_INFINITY;
+  private readonly sampleBuffers = new Map<string, AudioBuffer>();
+  private readonly sampleCursor = new Map<string, number>();
+  private sampleLoadPromise: Promise<void> | null = null;
   private readonly onPointerDown = (): void => { void this.unlock(); };
   private readonly onKeyDown = (event: KeyboardEvent): void => {
     if (event.code === 'KeyM' && !event.repeat) {
@@ -35,6 +55,7 @@ export class AudioFeedback {
     this.lastTick = current.tick;
     if (!this.context || this.context.state !== 'running' || this.muted) return;
     for (const cue of deriveAudioCues(previous, current)) this.playCue(cue);
+    this.playMovement(previous, current);
   }
 
   command(kind: UnitCommandFeedback): void {
@@ -44,8 +65,11 @@ export class AudioFeedback {
       if (now - this.lastCommandAt < 0.16) return;
       this.lastCommandAt = now;
       const attack = kind === 'ATTACK' || kind === 'ATTACK_MOVE';
-      this.tone(attack ? 360 : 250, attack ? 520 : 330, 0.075, 'triangle', attack ? 0.14 : 0.09);
-      this.noise(attack ? 0.055 : 0.035, attack ? 0.055 : 0.032, attack ? 1800 : 1050, 0.012);
+      const sampled = this.playSample('sfx.command.move', attack ? 0.12 : 0.09, attack ? 0.96 : 1.04);
+      if (!sampled) {
+        this.tone(attack ? 360 : 250, attack ? 520 : 330, 0.075, 'triangle', attack ? 0.14 : 0.09);
+        this.noise(attack ? 0.055 : 0.035, attack ? 0.055 : 0.032, attack ? 1800 : 1050, 0.012);
+      }
       if (now - this.lastVoiceAt >= 0.85) {
         this.lastVoiceAt = now;
         this.speakCommand(kind);
@@ -79,6 +103,7 @@ export class AudioFeedback {
     }
     if (this.context.state === 'suspended') await this.context.resume();
     this.startAmbient();
+    void this.preloadSamples();
   }
 
   private startAmbient(): void {
@@ -109,22 +134,21 @@ export class AudioFeedback {
     const strength = 1 + (cue.intensity - 1) * 0.18;
     switch (cue.id) {
       case 'sfx.combat.attack':
-        this.tone(560, 210, 0.115, 'triangle', 0.28 * strength);
-        this.tone(330, 140, 0.085, 'square', 0.12 * strength, 0.014);
-        this.noise(0.075, 0.11 * strength, 2100, 0.006);
+        this.playSample('sfx.combat.attack', 0.16 * strength, 0.98);
+        this.tone(510, 190, 0.10, 'triangle', 0.15 * strength);
         break;
       case 'sfx.combat.hit':
-        this.tone(220, 72, 0.14, 'triangle', 0.32 * strength);
-        this.noise(0.085, 0.13 * strength, 1250);
+        this.playSample('sfx.combat.hit', 0.28 * strength, 0.98);
+        this.tone(205, 72, 0.11, 'triangle', 0.16 * strength);
         break;
       case 'sfx.combat.structure-hit':
-        this.tone(125, 46, 0.24, 'sine', 0.40 * strength);
-        this.tone(390, 110, 0.13, 'triangle', 0.18 * strength, 0.008);
-        this.noise(0.16, 0.20 * strength, 780, 0.004);
+        this.playSample('sfx.combat.structure-hit', 0.36 * strength, 0.9);
+        this.tone(118, 42, 0.22, 'sine', 0.30 * strength);
+        this.noise(0.12, 0.11 * strength, 720, 0.004);
         break;
       case 'sfx.combat.death':
-        this.tone(155, 42, 0.34, 'sawtooth', 0.42 * strength);
-        this.tone(82, 34, 0.38, 'sine', 0.27 * strength, 0.02);
+        this.playSample('sfx.combat.death', 0.25 * strength, 0.84);
+        this.tone(130, 38, 0.30, 'sine', 0.24 * strength);
         break;
       case 'sfx.element.fire-ignite':
         this.tone(290, 92, 0.2, 'sawtooth', 0.28 * strength);
@@ -150,6 +174,96 @@ export class AudioFeedback {
         this.tone(2380, 460, 0.12, 'triangle', 0.22 * strength, 0.035);
         break;
     }
+  }
+
+  private playMovement(previous: SimulationSnapshot, current: SimulationSnapshot): void {
+    const context = this.context;
+    if (!context || context.currentTime < this.nextFootstepAt) return;
+    const previousById = new Map(previous.entities.map((entity) => [entity.id, entity]));
+    const moving = current.entities.reduce((count, entity) => {
+      const prior = previousById.get(entity.id);
+      if (
+        !prior
+        || !entity.alive
+        || entity.playerId !== 0
+        || !entity.visibleToPlayer
+        || entity.frozenTicks > 0
+        || (entity.x === prior.x && entity.z === prior.z)
+      ) return count;
+      return count + 1;
+    }, 0);
+    if (moving === 0) return;
+
+    const gain = 0.045 + Math.min(0.07, Math.max(0, moving - 1) * 0.012);
+    const rate = 0.94 + ((current.tick + moving) % 5) * 0.025;
+    if (this.playSample('sfx.movement.footstep', gain, rate)) {
+      this.nextFootstepAt = context.currentTime + (moving >= 5 ? 0.24 : moving >= 2 ? 0.29 : 0.34);
+    }
+  }
+
+  private async preloadSamples(): Promise<void> {
+    const context = this.context;
+    if (!context) return;
+    if (this.sampleLoadPromise) return this.sampleLoadPromise;
+
+    const paths = [...new Set([
+      ...samplePaths('sfx.combat.attack'),
+      ...samplePaths('sfx.combat.hit'),
+      ...samplePaths('sfx.combat.death'),
+      ...samplePaths('sfx.combat.structure-hit'),
+      ...samplePaths('sfx.command.move'),
+      ...samplePaths('sfx.movement.footstep'),
+    ])];
+
+    this.sampleLoadPromise = Promise.all(paths.map(async (path) => {
+      try {
+        const response = await fetch(`${import.meta.env.BASE_URL}${path}`);
+        if (!response.ok) return;
+        const data = await response.arrayBuffer();
+        const decoded = await context.decodeAudioData(data);
+        if (this.context === context) this.sampleBuffers.set(path, decoded);
+      } catch {
+        // Procedural layers remain as a safe fallback when a sample cannot load.
+      }
+    })).then(() => undefined);
+    return this.sampleLoadPromise;
+  }
+
+  private playSample(id: string, level: number, playbackRate = 1, delay = 0): boolean {
+    const context = this.context;
+    const master = this.masterGain;
+    if (!context || !master || context.state !== 'running') return false;
+    const paths = samplePaths(id);
+    if (paths.length === 0) return false;
+
+    const startIndex = this.sampleCursor.get(id) ?? 0;
+    let path: string | null = null;
+    let buffer: AudioBuffer | null = null;
+    for (let offset = 0; offset < paths.length; offset += 1) {
+      const candidate = paths[(startIndex + offset) % paths.length]!;
+      const loaded = this.sampleBuffers.get(candidate);
+      if (loaded) {
+        path = candidate;
+        buffer = loaded;
+        this.sampleCursor.set(id, (startIndex + offset + 1) % paths.length);
+        break;
+      }
+    }
+    if (!path || !buffer) return false;
+
+    const source = context.createBufferSource();
+    const gain = context.createGain();
+    source.buffer = buffer;
+    source.playbackRate.setValueAtTime(playbackRate, context.currentTime + delay);
+    gain.gain.setValueAtTime(Math.max(0.0001, level * SAMPLE_BASE_GAIN), context.currentTime + delay);
+    source.connect(gain);
+    gain.connect(master);
+    source.start(context.currentTime + delay);
+    source.addEventListener('ended', () => {
+      source.disconnect();
+      gain.disconnect();
+    }, { once: true });
+    return true;
   }
 
   private speakCommand(kind: UnitCommandFeedback): void {
