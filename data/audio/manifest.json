@@ -142,7 +142,7 @@
       "path": "browser://speech-synthesis/unit-command",
       "canonicalFilename": "voice-command-acknowledge.ogg",
       "license": "N/A — browser speech synthesis placeholder",
-      "notes": "Low-volume English command acknowledgement. Replace with licensed or original recorded unit voices for final audio."
+      "notes": "Browser speech-synthesis fallback used only when the real CC0 command voice sample has not loaded or cannot play."
     },
     {
       "id": "sfx.movement.footstep",
@@ -157,7 +157,40 @@
       "sourceUrl": "https://kenney.nl/assets/rpg-audio",
       "attribution": "Kenney (optional under CC0)",
       "notes": "Unmodified RPG Audio footsteps. Runtime uses one bounded army-march cue rather than per-unit spam."
+    },
+    {
+      "id": "voice.command.move",
+      "kind": "voice",
+      "status": "FINAL",
+      "path": "audio/voice/kenney/male/go.ogg",
+      "canonicalFilename": "go.ogg",
+      "license": "Creative Commons CC0 1.0 Universal",
+      "sourceUrl": "https://kenney.nl/assets/voiceover-pack",
+      "attribution": "Kenney (optional under CC0)",
+      "notes": "Unmodified male 'go' command voice used for MOVE and ATTACK_MOVE acknowledgements."
+    },
+    {
+      "id": "voice.command.attack",
+      "kind": "voice",
+      "status": "FINAL",
+      "path": "audio/voice/kenney/male/war_target_engaged.ogg",
+      "canonicalFilename": "war_target_engaged.ogg",
+      "license": "Creative Commons CC0 1.0 Universal",
+      "sourceUrl": "https://kenney.nl/assets/voiceover-pack",
+      "attribution": "Kenney (optional under CC0)",
+      "notes": "Unmodified male target-engaged voice used for explicit ATTACK acknowledgement."
+    },
+    {
+      "id": "voice.command.ready",
+      "kind": "voice",
+      "status": "FINAL",
+      "path": "audio/voice/kenney/male/ready.ogg",
+      "canonicalFilename": "ready.ogg",
+      "license": "Creative Commons CC0 1.0 Universal",
+      "sourceUrl": "https://kenney.nl/assets/voiceover-pack",
+      "attribution": "Kenney (optional under CC0)",
+      "notes": "Unmodified male ready voice used for unit selection and restrained HOLD/STOP acknowledgement."
     }
   ],
-  "notes": "Selected Kenney CC0 OGG files are kept unmodified with official source pages and provenance recorded. Procedural elemental/ambient layers and browser speech remain development placeholders until separately replaced."
+  "notes": "Selected Kenney CC0 OGG files are kept unmodified with official source pages and provenance recorded. Real combat, movement, command UI and command voice samples are active; procedural elemental/ambient layers and browser speech remain fallbacks/placeholders."
 }
