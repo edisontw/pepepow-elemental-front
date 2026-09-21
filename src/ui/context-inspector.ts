@@ -167,20 +167,6 @@ export class ContextInspector {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 5px;
       }
-      .context-inspector .building-code {
-        display: inline-grid;
-        place-items: center;
-        min-width: 38px;
-        margin-right: 6px;
-        padding: 2px 5px;
-        border: 1px solid rgba(230, 190, 102, 0.36);
-        border-radius: 4px;
-        background: rgba(103, 74, 28, 0.34);
-        color: #efd68d;
-        font-size: 10px;
-        letter-spacing: 0.08em;
-        vertical-align: middle;
-      }
       .context-inspector button {
         min-height: 34px;
         padding: 5px 7px;
@@ -401,7 +387,7 @@ export class ContextInspector {
       : '';
     return `
       <div class="context-kicker">BUILDING #${building.id}</div>
-      <h3><span class="building-code">${buildingVisualProfile(building.type).shortCode}</span>${label(building.type)}</h3>
+      <h3>${label(building.type)}</h3>
       <span class="context-subtitle">${BUILDING_PURPOSE[building.type]}</span>
       <div class="context-health"><i style="width:${healthRatio * 100}%"></i></div>
       <span class="context-subtitle">${building.currentHealth} / ${building.maxHealth} HP · ${state}</span>
