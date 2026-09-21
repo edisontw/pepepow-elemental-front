@@ -465,6 +465,15 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
 - original third-party game clips such as Counter-Strike radio commands are not ingested; any future classic-game-style command pass should use original or clearly licensed recordings with similar pacing rather than copied assets;
 - presentation/audio only: element rules/effects, combat, simulation, replay semantics, `ef-standard-v15`, `ef-replay-v15`, and `m02-standard-v1` are unchanged.
 
+### Classic radio command voice pass — 2026-09-22
+
+- command acknowledgements now use a dedicated presentation-only radio processing chain with band-limited EQ, moderate compression, a short radio click/static cue, and temporary ambience ducking;
+- normal Move retains Kenney `go.ogg`; Attack Move now uses the independent CC0 `war_go_go_go.ogg`; explicit Attack keeps `war_target_engaged.ogg`; Hold Position now uses `hold.ogg`; unit selection keeps `ready.ogg`;
+- Stop intentionally uses only a short radio click rather than assigning an inaccurate spoken phrase;
+- all recorded command clips are unmodified Kenney Voiceover Pack CC0 assets; no Counter-Strike or other proprietary game audio is included;
+- command voice cooldown remains bounded, so rapid RTS input does not create overlapping speech spam;
+- presentation/audio only: command semantics, simulation, replay authority, `ef-standard-v15`, `ef-replay-v15`, and `m02-standard-v1` are unchanged.
+
 ### Token-efficient validation policy
 
 For presentation-only batches:

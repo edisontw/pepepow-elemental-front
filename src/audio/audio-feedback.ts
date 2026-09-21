@@ -76,10 +76,20 @@ export class AudioFeedback {
         this.lastVoiceAt = now;
         const voiceId = kind === 'ATTACK'
           ? 'voice.command.attack'
-          : kind === 'MOVE' || kind === 'ATTACK_MOVE'
-            ? 'voice.command.move'
-            : 'voice.command.ready';
-        if (!this.playSample(voiceId, 0.18, 1)) this.speakCommand(kind);
+          : kind === 'ATTACK_MOVE'
+            ? 'voice.command.attack-move'
+            : kind === 'MOVE'
+              ? 'voice.command.move'
+              : kind === 'HOLD'
+                ? 'voice.command.hold'
+                : kind === 'SELECT'
+                  ? 'voice.command.ready'
+                  : null;
+        if (voiceId) {
+          if (!this.playVoiceSample(voiceId, 0.22, 1)) this.speakCommand(kind);
+        } else if (kind === 'STOP') {
+          this.radioClick(0.7);
+        }
       }
     });
   }
@@ -238,7 +248,9 @@ export class AudioFeedback {
       ...samplePaths('ambience.battlefield.low'),
       ...samplePaths('ambience.battlefield.industry'),
       ...samplePaths('voice.command.move'),
+      ...samplePaths('voice.command.attack-move'),
       ...samplePaths('voice.command.attack'),
+      ...samplePaths('voice.command.hold'),
       ...samplePaths('voice.command.ready'),
     ])];
 
@@ -286,6 +298,88 @@ export class AudioFeedback {
       source.addEventListener('ended', () => gain.disconnect(), { once: true });
       this.ambientSources.push(source);
     }
+  }
+
+  private playVoiceSample(id: string, level: number, playbackRate = 1): boolean {
+    const context = this.context;
+    const master = this.masterGain;
+    if (!context || !master || context.state !== 'running') return false;
+    const paths = samplePaths(id);
+    if (paths.length === 0) return false;
+
+    const startIndex = this.sampleCursor.get(id) ?? 0;
+    let buffer: AudioBuffer | null = null;
+    for (let offset = 0; offset < paths.length; offset += 1) {
+      const candidate = paths[(startIndex + offset) % paths.length]!;
+      const loaded = this.sampleBuffers.get(candidate);
+      if (loaded) {
+        buffer = loaded;
+        this.sampleCursor.set(id, (startIndex + offset + 1) % paths.length);
+        break;
+      }
+    }
+    if (!buffer) return false;
+
+    const start = context.currentTime + 0.018;
+    const source = context.createBufferSource();
+    const highpass = context.createBiquadFilter();
+    const lowpass = context.createBiquadFilter();
+    const compressor = context.createDynamicsCompressor();
+    const gain = context.createGain();
+
+    source.buffer = buffer;
+    source.playbackRate.setValueAtTime(playbackRate, start);
+    highpass.type = 'highpass';
+    highpass.frequency.setValueAtTime(240, start);
+    highpass.Q.setValueAtTime(0.7, start);
+    lowpass.type = 'lowpass';
+    lowpass.frequency.setValueAtTime(3800, start);
+    lowpass.Q.setValueAtTime(0.85, start);
+    compressor.threshold.setValueAtTime(-26, start);
+    compressor.knee.setValueAtTime(12, start);
+    compressor.ratio.setValueAtTime(5, start);
+    compressor.attack.setValueAtTime(0.004, start);
+    compressor.release.setValueAtTime(0.12, start);
+    gain.gain.setValueAtTime(Math.max(0.0001, level * SAMPLE_BASE_GAIN), start);
+
+    source.connect(highpass);
+    highpass.connect(lowpass);
+    lowpass.connect(compressor);
+    compressor.connect(gain);
+    gain.connect(master);
+
+    this.duckAmbience(0.58);
+    this.radioClick(1);
+    source.start(start);
+    source.addEventListener('ended', () => {
+      source.disconnect();
+      highpass.disconnect();
+      lowpass.disconnect();
+      compressor.disconnect();
+      gain.disconnect();
+    }, { once: true });
+    return true;
+  }
+
+  private duckAmbience(duration: number): void {
+    const context = this.context;
+    if (!context) return;
+    const now = context.currentTime;
+    if (this.ambientSampleGain) {
+      this.ambientSampleGain.gain.cancelScheduledValues(now);
+      this.ambientSampleGain.gain.setTargetAtTime(0.42, now, 0.015);
+      this.ambientSampleGain.gain.setTargetAtTime(1, now + duration, 0.12);
+    }
+    if (this.ambientGain) {
+      this.ambientGain.gain.cancelScheduledValues(now);
+      this.ambientGain.gain.setTargetAtTime(AMBIENT_GAIN * 0.45, now, 0.015);
+      this.ambientGain.gain.setTargetAtTime(AMBIENT_GAIN, now + duration, 0.12);
+    }
+  }
+
+  private radioClick(strength: number): void {
+    this.noise(0.028, 0.022 * strength, 4200);
+    this.tone(1180, 760, 0.024, 'square', 0.025 * strength, 0.004);
   }
 
   private playSample(id: string, level: number, playbackRate = 1, delay = 0): boolean {
