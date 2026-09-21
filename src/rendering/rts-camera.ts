@@ -197,7 +197,7 @@ export class RtsCamera {
       if (rect.right > left && rect.left < right) left = Math.min(right, rect.right + HUD_EDGE_GAP_PX);
     }
 
-    for (const id of ['world-debug', 'context-inspector', 'elemental-jobs']) {
+    for (const id of ['world-debug', 'elemental-jobs']) {
       const element = document.getElementById(id) ?? document.querySelector(`.${id}`);
       if (!(element instanceof HTMLElement) || element.getClientRects().length === 0) continue;
       const rect = element.getBoundingClientRect();
