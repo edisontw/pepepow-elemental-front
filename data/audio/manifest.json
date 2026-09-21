@@ -4,29 +4,44 @@
     {
       "id": "sfx.combat.attack",
       "kind": "sfx",
-      "status": "PLACEHOLDER",
-      "path": "webaudio://procedural/combat-attack",
-      "canonicalFilename": "sfx-combat-attack.ogg",
-      "license": "N/A — runtime synthesized placeholder",
-      "notes": "Event-driven placeholder. Replace only with redistribution-safe final audio."
+      "status": "FINAL",
+      "path": "audio/sfx/kenney/rpg/drawKnife1.ogg",
+      "canonicalFilename": "drawKnife1.ogg",
+      "license": "Creative Commons CC0 1.0 Universal",
+      "notes": "Unmodified Kenney RPG Audio weapon-handling samples; procedural tone remains a restrained Arcane-Industrial layer.",
+      "variants": [
+        "audio/sfx/kenney/rpg/drawKnife2.ogg"
+      ],
+      "sourceUrl": "https://kenney.nl/assets/rpg-audio",
+      "attribution": "Kenney (optional under CC0)"
     },
     {
       "id": "sfx.combat.hit",
       "kind": "sfx",
-      "status": "PLACEHOLDER",
-      "path": "webaudio://procedural/combat-hit",
-      "canonicalFilename": "sfx-combat-hit.ogg",
-      "license": "N/A — runtime synthesized placeholder",
-      "notes": "Event-driven placeholder. Replace only with redistribution-safe final audio."
+      "status": "FINAL",
+      "path": "audio/sfx/kenney/impact/impactMetal_light_000.ogg",
+      "canonicalFilename": "impactMetal_light_000.ogg",
+      "license": "Creative Commons CC0 1.0 Universal",
+      "notes": "Unmodified light metal impacts, round-robin variants.",
+      "variants": [
+        "audio/sfx/kenney/impact/impactMetal_light_001.ogg"
+      ],
+      "sourceUrl": "https://kenney.nl/assets/impact-sounds",
+      "attribution": "Kenney (optional under CC0)"
     },
     {
       "id": "sfx.combat.death",
       "kind": "sfx",
-      "status": "PLACEHOLDER",
-      "path": "webaudio://procedural/combat-death",
-      "canonicalFilename": "sfx-combat-death.ogg",
-      "license": "N/A — runtime synthesized placeholder",
-      "notes": "Event-driven placeholder. Replace only with redistribution-safe final audio."
+      "status": "FINAL",
+      "path": "audio/sfx/kenney/impact/impactMetal_medium_000.ogg",
+      "canonicalFilename": "impactMetal_medium_000.ogg",
+      "license": "Creative Commons CC0 1.0 Universal",
+      "notes": "Unmodified medium metal impacts used as a grounded death/fall layer.",
+      "variants": [
+        "audio/sfx/kenney/impact/impactMetal_medium_001.ogg"
+      ],
+      "sourceUrl": "https://kenney.nl/assets/impact-sounds",
+      "attribution": "Kenney (optional under CC0)"
     },
     {
       "id": "sfx.element.fire-ignite",
@@ -95,20 +110,30 @@
     {
       "id": "sfx.combat.structure-hit",
       "kind": "sfx",
-      "status": "PLACEHOLDER",
-      "path": "webaudio://procedural/structure-hit",
-      "canonicalFilename": "sfx-combat-structure-hit.ogg",
-      "license": "N/A — runtime synthesized placeholder",
-      "notes": "Layered low thump, filtered impact noise, and metallic transient for Core/structure hits."
+      "status": "FINAL",
+      "path": "audio/sfx/kenney/impact/impactPlate_heavy_000.ogg",
+      "canonicalFilename": "impactPlate_heavy_000.ogg",
+      "license": "Creative Commons CC0 1.0 Universal",
+      "notes": "Unmodified heavy plate impacts for Elemental Core and structure hits.",
+      "variants": [
+        "audio/sfx/kenney/impact/impactPlate_heavy_001.ogg"
+      ],
+      "sourceUrl": "https://kenney.nl/assets/impact-sounds",
+      "attribution": "Kenney (optional under CC0)"
     },
     {
       "id": "sfx.command.move",
       "kind": "sfx",
-      "status": "PLACEHOLDER",
-      "path": "webaudio://procedural/command-move",
-      "canonicalFilename": "sfx-command-move.ogg",
-      "license": "N/A — runtime synthesized placeholder",
-      "notes": "Short UI/radio acknowledgement for player move and formation commands."
+      "status": "FINAL",
+      "path": "audio/sfx/kenney/interface/confirmation_001.ogg",
+      "canonicalFilename": "confirmation_001.ogg",
+      "license": "Creative Commons CC0 1.0 Universal",
+      "notes": "Short confirmation samples for MOVE / ATTACK_MOVE / ATTACK / HOLD / STOP acknowledgement.",
+      "variants": [
+        "audio/sfx/kenney/interface/confirmation_002.ogg"
+      ],
+      "sourceUrl": "https://kenney.nl/assets/interface-sounds",
+      "attribution": "Kenney (optional under CC0)"
     },
     {
       "id": "voice.command.acknowledge",
@@ -118,7 +143,21 @@
       "canonicalFilename": "voice-command-acknowledge.ogg",
       "license": "N/A — browser speech synthesis placeholder",
       "notes": "Low-volume English command acknowledgement. Replace with licensed or original recorded unit voices for final audio."
+    },
+    {
+      "id": "sfx.movement.footstep",
+      "kind": "sfx",
+      "status": "FINAL",
+      "path": "audio/sfx/kenney/rpg/footstep00.ogg",
+      "variants": [
+        "audio/sfx/kenney/rpg/footstep01.ogg"
+      ],
+      "canonicalFilename": "footstep00.ogg",
+      "license": "Creative Commons CC0 1.0 Universal",
+      "sourceUrl": "https://kenney.nl/assets/rpg-audio",
+      "attribution": "Kenney (optional under CC0)",
+      "notes": "Unmodified RPG Audio footsteps. Runtime uses one bounded army-march cue rather than per-unit spam."
     }
   ],
-  "notes": "Runtime procedural synthesis plus browser speech-synthesis placeholders remain redistribution-safe development audio. Final external files must record license and provenance before promotion."
+  "notes": "Selected Kenney CC0 OGG files are kept unmodified with official source pages and provenance recorded. Procedural elemental/ambient layers and browser speech remain development placeholders until separately replaced."
 }
