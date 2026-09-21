@@ -435,12 +435,10 @@ export class Simulation {
     if (!this.entities.hasUnit(defenderId) || !this.entities.hasUnit(attackerId)) return;
     const combat = this.entities.combat.get(defenderId);
     const movement = this.entities.movements.get(defenderId);
-    if (!combat || !movement || movement.orderMode === 'HOLD') return;
+    // Retaliatory pursuit belongs to ATTACK_MOVE semantics. Normal MOVE keeps
+    // v11 forced-disengage behavior, while idle/HOLD behavior stays unchanged.
+    if (!combat || !movement || movement.orderMode !== 'ATTACK_MOVE') return;
     if (combat.targetEntityId !== null && this.entities.hasUnit(combat.targetEntityId)) return;
-    const forcedMoveActive = movement.orderMode === 'NORMAL'
-      && movement.targetX !== null
-      && movement.targetZ !== null;
-    if (forcedMoveActive) return;
     combat.targetEntityId = attackerId;
     combat.pursuitTargetCellKey = null;
     combat.nextAttackTick = Math.min(combat.nextAttackTick, this.tick);
