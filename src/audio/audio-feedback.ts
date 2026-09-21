@@ -4,6 +4,8 @@ import { deriveAudioCues, type AudioCue } from './audio-events';
 const MASTER_GAIN = 0.48;
 const AMBIENT_GAIN = 0.018;
 
+export type UnitCommandFeedback = 'MOVE' | 'ATTACK_MOVE' | 'ATTACK' | 'HOLD' | 'STOP';
+
 export class AudioFeedback {
   private context: AudioContext | null = null;
   private masterGain: GainNode | null = null;
@@ -11,11 +13,14 @@ export class AudioFeedback {
   private readonly ambientOscillators: OscillatorNode[] = [];
   private muted = false;
   private lastTick = -1;
+  private lastCommandAt = Number.NEGATIVE_INFINITY;
+  private lastVoiceAt = Number.NEGATIVE_INFINITY;
   private readonly onPointerDown = (): void => { void this.unlock(); };
   private readonly onKeyDown = (event: KeyboardEvent): void => {
     if (event.code === 'KeyM' && !event.repeat) {
       this.muted = !this.muted;
       this.updateMasterGain();
+      if (this.muted) window.speechSynthesis?.cancel();
     }
     void this.unlock();
   };
@@ -32,6 +37,22 @@ export class AudioFeedback {
     for (const cue of deriveAudioCues(previous, current)) this.playCue(cue);
   }
 
+  command(kind: UnitCommandFeedback): void {
+    void this.unlock().then(() => {
+      if (!this.context || this.context.state !== 'running' || this.muted) return;
+      const now = this.context.currentTime;
+      if (now - this.lastCommandAt < 0.16) return;
+      this.lastCommandAt = now;
+      const attack = kind === 'ATTACK' || kind === 'ATTACK_MOVE';
+      this.tone(attack ? 360 : 250, attack ? 520 : 330, 0.075, 'triangle', attack ? 0.14 : 0.09);
+      this.noise(attack ? 0.055 : 0.035, attack ? 0.055 : 0.032, attack ? 1800 : 1050, 0.012);
+      if (now - this.lastVoiceAt >= 0.85) {
+        this.lastVoiceAt = now;
+        this.speakCommand(kind);
+      }
+    });
+  }
+
   destroy(): void {
     window.removeEventListener('pointerdown', this.onPointerDown);
     window.removeEventListener('keydown', this.onKeyDown);
@@ -42,6 +63,7 @@ export class AudioFeedback {
     this.ambientOscillators.length = 0;
     this.ambientGain?.disconnect();
     this.ambientGain = null;
+    window.speechSynthesis?.cancel();
     const context = this.context;
     this.context = null;
     this.masterGain = null;
@@ -87,11 +109,18 @@ export class AudioFeedback {
     const strength = 1 + (cue.intensity - 1) * 0.18;
     switch (cue.id) {
       case 'sfx.combat.attack':
-        this.tone(540, 230, 0.11, 'triangle', 0.3 * strength);
-        this.tone(310, 155, 0.08, 'square', 0.13 * strength, 0.018);
+        this.tone(560, 210, 0.115, 'triangle', 0.28 * strength);
+        this.tone(330, 140, 0.085, 'square', 0.12 * strength, 0.014);
+        this.noise(0.075, 0.11 * strength, 2100, 0.006);
         break;
       case 'sfx.combat.hit':
-        this.tone(210, 78, 0.13, 'triangle', 0.34 * strength);
+        this.tone(220, 72, 0.14, 'triangle', 0.32 * strength);
+        this.noise(0.085, 0.13 * strength, 1250);
+        break;
+      case 'sfx.combat.structure-hit':
+        this.tone(125, 46, 0.24, 'sine', 0.40 * strength);
+        this.tone(390, 110, 0.13, 'triangle', 0.18 * strength, 0.008);
+        this.noise(0.16, 0.20 * strength, 780, 0.004);
         break;
       case 'sfx.combat.death':
         this.tone(155, 42, 0.34, 'sawtooth', 0.42 * strength);
@@ -121,6 +150,55 @@ export class AudioFeedback {
         this.tone(2380, 460, 0.12, 'triangle', 0.22 * strength, 0.035);
         break;
     }
+  }
+
+  private speakCommand(kind: UnitCommandFeedback): void {
+    if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') return;
+    const phrase: Readonly<Record<UnitCommandFeedback, string>> = {
+      MOVE: 'Moving.',
+      ATTACK_MOVE: 'Advancing.',
+      ATTACK: 'Engaging.',
+      HOLD: 'Holding.',
+      STOP: 'Stopping.',
+    };
+    const utterance = new SpeechSynthesisUtterance(phrase[kind]);
+    utterance.volume = 0.16;
+    utterance.rate = 1.08;
+    utterance.pitch = 0.82;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  }
+
+  private noise(duration: number, level: number, cutoff: number, delay = 0): void {
+    const context = this.context;
+    const master = this.masterGain;
+    if (!context || !master || context.state !== 'running') return;
+    const sampleRate = context.sampleRate;
+    const frameCount = Math.max(1, Math.floor(sampleRate * duration));
+    const buffer = context.createBuffer(1, frameCount, sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let index = 0; index < frameCount; index += 1) {
+      const raw = Math.sin((index + 1) * 12.9898) * 43758.5453;
+      data[index] = ((raw - Math.floor(raw)) * 2 - 1) * (1 - index / frameCount);
+    }
+    const source = context.createBufferSource();
+    const filter = context.createBiquadFilter();
+    const gain = context.createGain();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(cutoff, context.currentTime);
+    gain.gain.setValueAtTime(level, context.currentTime + delay);
+    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + delay + duration);
+    source.buffer = buffer;
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(master);
+    source.start(context.currentTime + delay);
+    source.stop(context.currentTime + delay + duration + 0.01);
+    source.addEventListener('ended', () => {
+      source.disconnect();
+      filter.disconnect();
+      gain.disconnect();
+    }, { once: true });
   }
 
   private tone(
