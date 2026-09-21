@@ -61,6 +61,37 @@ describe('M08 audio event derivation', () => {
     expect(deriveAudioCues(previous, attacking)).toContainEqual({ id: 'sfx.combat.attack', intensity: 1 });
   });
 
+
+  it('derives attack and structure-hit cues from objective attacks against a Core', () => {
+    const [previous, current] = snapshots();
+    const attacker = current.entities[0]!;
+    const priorAttacker = previous.entities.find((entity) => entity.id === attacker.id)!;
+    const previousWithRun = {
+      ...previous,
+      run: {
+        objectiveAttackOrders: [],
+        playerCore: { currentHealth: 2_000 },
+        enemyCore: { currentHealth: 2_000 },
+      },
+    } as unknown as typeof previous;
+    const currentWithRun = {
+      ...current,
+      entities: current.entities.map((entity) => entity.id === attacker.id
+        ? { ...entity, attackTargetEntityId: null, nextAttackTick: priorAttacker.nextAttackTick + 10 }
+        : entity),
+      run: {
+        objectiveAttackOrders: [{ entityId: attacker.id, objective: 'ENEMY_CORE' }],
+        playerCore: { currentHealth: 2_000 },
+        enemyCore: { currentHealth: 1_980 },
+      },
+    } as unknown as typeof current;
+
+    expect(deriveAudioCues(previousWithRun, currentWithRun)).toEqual([
+      { id: 'sfx.combat.attack', intensity: 1 },
+      { id: 'sfx.combat.structure-hit', intensity: 1 },
+    ]);
+  });
+
   it('aggregates visible combat hit and death feedback without changing simulation state', () => {
     const [previous, current] = snapshots();
     const first = current.entities[0]!;
