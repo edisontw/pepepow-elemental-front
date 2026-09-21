@@ -417,7 +417,23 @@ export class Simulation {
       health.current = Math.max(0, health.current - combat.attackDamage);
       combat.nextAttackTick = this.tick + combat.attackIntervalTicks;
       if (health.current === 0) this.awardCombatKillExperience(entityId, targetId);
+      else this.tryRetaliate(targetId, entityId);
     }
+  }
+
+  private tryRetaliate(defenderId: EntityID, attackerId: EntityID): void {
+    if (!this.entities.hasUnit(defenderId) || !this.entities.hasUnit(attackerId)) return;
+    const combat = this.entities.combat.get(defenderId);
+    const movement = this.entities.movements.get(defenderId);
+    if (!combat || !movement || movement.orderMode === 'HOLD') return;
+    if (combat.targetEntityId !== null && this.entities.hasUnit(combat.targetEntityId)) return;
+    const forcedMoveActive = movement.orderMode === 'NORMAL'
+      && movement.targetX !== null
+      && movement.targetZ !== null;
+    if (forcedMoveActive) return;
+    combat.targetEntityId = attackerId;
+    combat.pursuitTargetCellKey = null;
+    combat.nextAttackTick = Math.min(combat.nextAttackTick, this.tick);
   }
 
   private awardCombatKillExperience(attackerId: EntityID, targetId: EntityID): void {
