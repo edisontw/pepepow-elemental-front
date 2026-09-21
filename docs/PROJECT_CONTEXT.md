@@ -437,6 +437,16 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
 - persistent strategic relay ground lines/rings and completed-building highlight discs are suppressed; Rally Point feedback is now a short, faint confirmation cue rather than an always-on marker;
 - these changes are presentation/UI only and do not alter TRAIN/BUILD rules, economy, replay semantics, `ef-standard-v15`, `ef-replay-v15`, or `m02-standard-v1`.
 
+### Core combat presentation + command audio pass — 2026-09-22
+
+- objective attacks against either Elemental Core now drive the same Attack animation intent as ordinary unit attacks, including GLB fallback animation controllers;
+- Core attacks now receive the normal melee/ranged presentation path: slash/thrust or muzzle flash, projectile/tracer, and stronger structure-impact bursts;
+- audio cue derivation now recognizes objective attacks and Core health impacts instead of depending only on `attackTargetEntityId`;
+- procedural combat audio adds filtered impact-noise layers and a dedicated low structure-hit response;
+- player MOVE / ATTACK_MOVE / ATTACK / HOLD / STOP orders emit restrained command acknowledgement audio; browser speech synthesis supplies low-volume English placeholder acknowledgements when available;
+- the audio manifest records the new procedural/voice placeholders; final recorded assets must retain explicit redistribution-safe license/provenance metadata;
+- presentation/audio only: attack timing, damage, commands, replay semantics, `ef-standard-v15`, `ef-replay-v15`, and `m02-standard-v1` are unchanged.
+
 ### Token-efficient validation policy
 
 For presentation-only batches:
