@@ -27,7 +27,9 @@ const required = [
   'sfx.command.move',
   'sfx.movement.footstep',
   'voice.command.move',
+  'voice.command.attack-move',
   'voice.command.attack',
+  'voice.command.hold',
   'voice.command.ready',
   'ambience.battlefield.low',
   'ambience.battlefield.industry',
@@ -48,6 +50,14 @@ describe('CC0 production audio assets', () => {
         expect(bytes.subarray(0, 4).toString('ascii'), path).toBe('OggS');
       }
     }
+  });
+
+  it('keeps command voice meanings distinct where dedicated CC0 clips exist', () => {
+    const ids = ['voice.command.move', 'voice.command.attack-move', 'voice.command.attack', 'voice.command.hold', 'voice.command.ready'];
+    const paths = ids.map((id) => entries.find((candidate) => candidate.id === id)?.path);
+    expect(new Set(paths).size).toBe(ids.length);
+    expect(entries.find((entry) => entry.id === 'voice.command.attack-move')?.path).toContain('war_go_go_go.ogg');
+    expect(entries.find((entry) => entry.id === 'voice.command.hold')?.path).toContain('hold.ogg');
   });
 
   it('marks both battlefield ambience beds as looped production assets', () => {
