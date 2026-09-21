@@ -429,6 +429,14 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
 - this pass changes presentation/input ergonomics only. Authoritative TRAIN/BUILD commands, economy, production timing, replay semantics, `ef-standard-v15`, `ef-replay-v15`, and `m02-standard-v1` are unchanged.
 
 
+### Construction / army UI cleanup — 2026-09-21
+
+- left command cards now use full English building and unit names; compact `BRK / ARC / WRK / VAN / RNG`-style badges are removed from build/recruit UI;
+- Army order is Recruit first, Preferred Production Building second, then active queue/army summary and Resource Defense;
+- player building identity stays on the battlefield through small attached gate/shield, orb, tools/gear, beacon/banner, pump/drill, and well/orb ornaments rather than floating text or UI abbreviations;
+- persistent strategic relay ground lines/rings and completed-building highlight discs are suppressed; Rally Point feedback is now a short, faint confirmation cue rather than an always-on marker;
+- these changes are presentation/UI only and do not alter TRAIN/BUILD rules, economy, replay semantics, `ef-standard-v15`, `ef-replay-v15`, or `m02-standard-v1`.
+
 ### Token-efficient validation policy
 
 For presentation-only batches:
