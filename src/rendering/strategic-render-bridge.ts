@@ -6,7 +6,11 @@ import type { NavigationGrid } from '../simulation/navigation';
 import type { VisibilityState } from '../simulation/visibility-state';
 import { BUILDINGS } from '../simulation/m03-content';
 import type { StrategicBuilding, StrategicSnapshot } from '../simulation/strategic-state';
-import { buildingVisualProfile, type BuildingVisualMaterialRole } from './building-visual-profile';
+import {
+  buildingVisualProfile,
+  type BuildingVisualMaterialRole,
+  type BuildingVisualProfile,
+} from './building-visual-profile';
 
 interface BuildingPartPresentation {
   entity: pc.Entity;
@@ -21,6 +25,7 @@ interface BuildingPresentation {
   parts: readonly BuildingPartPresentation[];
   footprint: pc.Entity;
   beacon: pc.Entity;
+  identityMarker: pc.Entity;
   rally: pc.Entity;
   healthBack: pc.Entity;
   healthBar: pc.Entity;
@@ -123,6 +128,9 @@ export class StrategicRenderBridge {
   private readonly constructionMaterial = createMaterial(new pc.Color(0.46, 0.43, 0.3), new pc.Color(0.08, 0.07, 0.03));
   private readonly destroyedMaterial = createMaterial(new pc.Color(0.12, 0.13, 0.13), new pc.Color(0.018, 0.018, 0.018));
   private readonly workMaterial = createMaterial(new pc.Color(.94, .66, .22), new pc.Color(.25, .12, .02));
+  private readonly identityMaterial = createMaterial(new pc.Color(.92, .73, .34), new pc.Color(.26, .13, .02));
+  private readonly arcaneIdentityMaterial = createMaterial(new pc.Color(.67, .52, .96), new pc.Color(.22, .08, .42));
+  private readonly coreIdentityMaterial = createMaterial(new pc.Color(.46, .92, .88), new pc.Color(.05, .34, .28));
   private readonly workGlowMaterial = createMaterial(
     new pc.Color(.98, .76, .30),
     new pc.Color(.72, .32, .035),
@@ -217,6 +225,14 @@ export class StrategicRenderBridge {
         && presentation.impostor?.entity == null;
 
       const profile = buildingVisualProfile(building.type);
+      const showIdentityMarker = building.playerId === 0 && building.completed && !building.destroyed;
+      presentation.identityMarker.enabled = showIdentityMarker;
+      if (showIdentityMarker) {
+        const identityPulse = 1 + Math.sin(tick * 0.14 + building.id * 0.73) * 0.035;
+        presentation.identityMarker.setLocalPosition(0, profile.height + 0.58, 0);
+        presentation.identityMarker.setLocalScale(identityPulse, identityPulse, identityPulse);
+        presentation.identityMarker.setLocalEulerAngles(0, tick * 1.15 + building.id * 17, 0);
+      }
       const buildProgress = constructionProgress(building, tick);
       const constructing = !building.completed && !building.destroyed;
       const constructionCompletionAge = presentation.completedAtTick < 0
@@ -424,6 +440,9 @@ export class StrategicRenderBridge {
     }
     this.buildingImpostors.destroy();
     this.workMaterial.destroy();
+    this.identityMaterial.destroy();
+    this.arcaneIdentityMaterial.destroy();
+    this.coreIdentityMaterial.destroy();
     this.workGlowMaterial.destroy();
     this.networkMaterial.destroy();
     this.networkGlowMaterial.destroy();
@@ -658,6 +677,10 @@ export class StrategicRenderBridge {
     beacon.enabled = building.type !== 'ELEMENTAL_CORE';
     root.addChild(beacon);
 
+    const identityMarker = this.createIdentityMarker(building, profile);
+    identityMarker.enabled = building.playerId === 0 && building.completed && !building.destroyed;
+    root.addChild(identityMarker);
+
     const rally = new pc.Entity(`${building.type} ${building.id} Rally Point`);
     rally.addComponent('render', {
       type: 'cylinder',
@@ -765,6 +788,7 @@ export class StrategicRenderBridge {
       parts,
       footprint,
       beacon,
+      identityMarker,
       rally,
       healthBack,
       healthBar,
@@ -786,6 +810,66 @@ export class StrategicRenderBridge {
       collapsePitch: Math.cos(collapseAngle) * 15,
       collapseRoll: Math.sin(collapseAngle) * 15,
     };
+  }
+
+  private createIdentityMarker(building: StrategicBuilding, profile: BuildingVisualProfile): pc.Entity {
+    const root = new pc.Entity(`${building.type} ${building.id} Identity Marker`);
+    const material = profile.marker === 'CORE'
+      ? this.coreIdentityMaterial
+      : profile.marker === 'ORB' || profile.marker === 'WELL'
+        ? this.arcaneIdentityMaterial
+        : this.identityMaterial;
+    const add = (
+      name: string,
+      type: 'box' | 'cylinder' | 'sphere',
+      position: readonly [number, number, number],
+      scale: readonly [number, number, number],
+      yaw = 0,
+    ): pc.Entity => {
+      const part = new pc.Entity(`${building.type} ${building.id} Identity ${name}`);
+      part.addComponent('render', { type, material, castShadows: false });
+      part.setLocalPosition(position[0], position[1], position[2]);
+      part.setLocalScale(scale[0], scale[1], scale[2]);
+      if (yaw !== 0) part.setLocalEulerAngles(0, yaw, 0);
+      root.addChild(part);
+      return part;
+    };
+
+    if (profile.marker === 'CORE') {
+      add('Core', 'sphere', [0, 0, 0], [0.18, 0.18, 0.18]);
+      add('North Ray', 'box', [0, 0, -0.23], [0.08, 0.07, 0.28]);
+      add('South Ray', 'box', [0, 0, 0.23], [0.08, 0.07, 0.28]);
+      add('East Ray', 'box', [0.23, 0, 0], [0.28, 0.07, 0.08]);
+      add('West Ray', 'box', [-0.23, 0, 0], [0.28, 0.07, 0.08]);
+    } else if (profile.marker === 'GATE') {
+      add('Left Post', 'box', [-0.23, 0, 0], [0.10, 0.10, 0.56]);
+      add('Right Post', 'box', [0.23, 0, 0], [0.10, 0.10, 0.56]);
+      add('Lintel', 'box', [0, 0, -0.23], [0.56, 0.10, 0.10]);
+    } else if (profile.marker === 'ORB') {
+      add('Core', 'sphere', [0, 0, 0], [0.20, 0.20, 0.20]);
+      add('North', 'sphere', [0, 0, -0.34], [0.08, 0.08, 0.08]);
+      add('East', 'sphere', [0.34, 0, 0], [0.08, 0.08, 0.08]);
+      add('South', 'sphere', [0, 0, 0.34], [0.08, 0.08, 0.08]);
+      add('West', 'sphere', [-0.34, 0, 0], [0.08, 0.08, 0.08]);
+    } else if (profile.marker === 'TOOLS') {
+      add('Tool A', 'box', [0, 0, 0], [0.10, 0.10, 0.72], 45);
+      add('Tool B', 'box', [0, 0, 0], [0.10, 0.10, 0.72], -45);
+      add('Hub', 'sphere', [0, 0, 0], [0.12, 0.12, 0.12]);
+    } else if (profile.marker === 'BEACON') {
+      add('Stem', 'cylinder', [0, 0.18, 0], [0.10, 0.38, 0.10]);
+      add('Head', 'sphere', [0, 0.46, 0], [0.16, 0.16, 0.16]);
+      add('Crossbar', 'box', [0, 0.20, 0], [0.52, 0.08, 0.08]);
+    } else if (profile.marker === 'PUMP') {
+      add('Pump', 'cylinder', [0, 0, 0], [0.20, 0.12, 0.20]);
+      add('Arm', 'box', [0.28, 0.03, 0], [0.48, 0.08, 0.10]);
+      add('Valve', 'sphere', [-0.24, 0.03, 0], [0.11, 0.11, 0.11]);
+    } else {
+      add('Well', 'cylinder', [0, 0, 0], [0.34, 0.07, 0.34]);
+      add('Mana', 'sphere', [0, 0.16, 0], [0.17, 0.17, 0.17]);
+      add('Axis', 'box', [0, 0.03, 0], [0.54, 0.06, 0.08], 45);
+    }
+
+    return root;
   }
 
   private materialFor(playerId: number, role: BuildingVisualMaterialRole): pc.Material {
