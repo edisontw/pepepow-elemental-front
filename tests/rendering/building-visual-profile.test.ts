@@ -20,8 +20,18 @@ describe('M08 building visual profiles', () => {
       expect(profile.parts.length).toBeGreaterThanOrEqual(3);
       expect(profile.footprint).toBeGreaterThan(0);
       expect(profile.height).toBeGreaterThan(0);
+      expect(profile.shortCode.length).toBeGreaterThanOrEqual(3);
+      expect(profile.marker.length).toBeGreaterThan(0);
       expect(profile.parts.some((part) => part.material === 'ACCENT')).toBe(true);
     }
+  });
+
+  it('uses unique compact codes for fast building identification', () => {
+    const codes = BUILDING_TYPES.map((type) => BUILDING_VISUAL_PROFILES[type].shortCode);
+    expect(new Set(codes).size).toBe(BUILDING_TYPES.length);
+    expect(BUILDING_VISUAL_PROFILES.BARRACKS.shortCode).toBe('BRK');
+    expect(BUILDING_VISUAL_PROFILES.ARCANE_TOWER.shortCode).toBe('ARC');
+    expect(BUILDING_VISUAL_PROFILES.WORKSHOP.shortCode).toBe('WRK');
   });
 
   it('gives the Elemental Core the strongest scale hierarchy', () => {

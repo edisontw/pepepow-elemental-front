@@ -147,10 +147,11 @@ export class RtsCamera {
   private readonly onPointerMove = (event: PointerEvent): void => {
     if (!this.dragging) {
       const bounds = this.canvas.getBoundingClientRect();
-      this.pointerInsideCanvas = event.clientX >= bounds.left
+      const insideBounds = event.clientX >= bounds.left
         && event.clientX <= bounds.right
         && event.clientY >= bounds.top
         && event.clientY <= bounds.bottom;
+      this.pointerInsideCanvas = insideBounds && this.pointerHitsBattlefieldSurface(event.clientX, event.clientY);
       this.pointerX = event.clientX;
       this.pointerY = event.clientY;
       return;
@@ -179,6 +180,11 @@ export class RtsCamera {
     return keys.some((key) => this.pressedKeys.has(key));
   }
 
+  private pointerHitsBattlefieldSurface(clientX: number, clientY: number): boolean {
+    const hit = document.elementFromPoint(clientX, clientY);
+    return hit === this.canvas || (hit instanceof Element && this.canvas.contains(hit));
+  }
+
   private battlefieldViewportBounds(): { left: number; right: number; top: number; bottom: number } {
     const canvasBounds = this.canvas.getBoundingClientRect();
     let left = canvasBounds.left;
@@ -191,7 +197,7 @@ export class RtsCamera {
       if (rect.right > left && rect.left < right) left = Math.min(right, rect.right + HUD_EDGE_GAP_PX);
     }
 
-    for (const id of ['world-debug', 'context-inspector', 'elemental-jobs']) {
+    for (const id of ['world-debug', 'elemental-jobs']) {
       const element = document.getElementById(id) ?? document.querySelector(`.${id}`);
       if (!(element instanceof HTMLElement) || element.getClientRects().length === 0) continue;
       const rect = element.getBoundingClientRect();

@@ -11,6 +11,7 @@ import { WORLD_UNITS_PER_METER } from '../simulation/arena';
 import type { UnitArchetype } from '../simulation/components';
 import { WorldCellFlag } from '../world/world-definition';
 import { worldCellToSimulationPosition } from '../world/world-arena';
+import { buildingVisualProfile } from '../rendering/building-visual-profile';
 
 const PLAYER_ID = 0;
 const TICKS_PER_SECOND = 10;
@@ -22,6 +23,26 @@ const TRAIN_ORDER: readonly UnitArchetype[] = [
   'VANGUARD', 'SPEAR_GUARD', 'RANGER', 'SCOUT', 'ELEMENTALIST', 'ENGINEER', 'GOLEM', 'SIEGE_CONSTRUCT',
 ];
 const PRODUCER_TYPES: readonly ProducerBuildingType[] = ['BARRACKS', 'ARCANE_TOWER', 'WORKSHOP'];
+
+const BUILDING_ROLE: Readonly<Record<Exclude<BuildingType, 'ELEMENTAL_CORE'>, string>> = {
+  BARRACKS: 'Infantry',
+  ARCANE_TOWER: 'Arcane',
+  WORKSHOP: 'Heavy',
+  OUTPOST: 'Territory',
+  EXTRACTOR: 'Material',
+  MANA_WELL: 'Mana',
+};
+
+const UNIT_UI: Readonly<Record<UnitArchetype, { code: string; role: string }>> = {
+  VANGUARD: { code: 'VAN', role: 'Frontline' },
+  SPEAR_GUARD: { code: 'SPG', role: 'Guard' },
+  RANGER: { code: 'RNG', role: 'Ranged' },
+  SCOUT: { code: 'SCT', role: 'Recon' },
+  ELEMENTALIST: { code: 'ELM', role: 'Arcane' },
+  ENGINEER: { code: 'ENG', role: 'Support' },
+  GOLEM: { code: 'GLM', role: 'Heavy' },
+  SIEGE_CONSTRUCT: { code: 'SGE', role: 'Siege' },
+};
 
 function formatResource(milli: number): string {
   const value = milli / 1000;
@@ -154,7 +175,7 @@ export class StrategicPanel {
     const action = target.dataset.action;
     if (action === 'command-view' && (target.dataset.value === 'build' || target.dataset.value === 'army')) this.commandView = target.dataset.value;
     else if (action === 'build') this.beginBuild(target.dataset.value as Exclude<BuildingType, 'ELEMENTAL_CORE'>);
-    else if (action === 'train') this.queueTrain(target.dataset.value as UnitArchetype);
+    else if (action === 'train') this.queueTrain(target.dataset.value as UnitArchetype, event.shiftKey ? 5 : 1);
     else if (action === 'select-producer') this.selectProducer(Number(target.dataset.value));
     else if (action === 'set-rally') this.beginRallyPlacement();
     this.render();
@@ -430,46 +451,70 @@ export class StrategicPanel {
     this.message = `Production source selected: ${label(producer.type)} #${producer.id}.`;
   }
 
-  private queueTrain(unitType: UnitArchetype): void {
+  private queueTrain(unitType: UnitArchetype, requestedCount = 1): void {
     const definition = UNITS[unitType];
     const snapshot = this.simulation.strategy.snapshot();
-    const producer = snapshot.buildings.find((building) => building.id === this.selectedProducerId);
-    if (!producer || producer.playerId !== PLAYER_ID || !producer.completed || producer.type !== definition.producer) {
-      this.message = `Select a completed ${label(definition.producer)} as the production source for ${label(unitType)}.`;
+    const producers = this.availableProducers(snapshot)
+      .filter((building) => building.type === definition.producer)
+      .sort((left, right) => {
+        const leftQueue = snapshot.productionQueue.filter((order) => order.buildingId === left.id).length;
+        const rightQueue = snapshot.productionQueue.filter((order) => order.buildingId === right.id).length;
+        return leftQueue - rightQueue || left.id - right.id;
+      });
+    const preferred = producers.find((building) => building.id === this.selectedProducerId);
+    const producer = preferred ?? producers[0];
+    if (!producer) {
+      this.message = `Build a completed, supplied ${label(definition.producer)} before recruiting ${label(unitType)}.`;
       return;
     }
-    if (!snapshot.suppliedRegions[PLAYER_ID]?.includes(producer.regionId)) {
-      this.message = `${label(producer.type)} #${producer.id} is cut off from supply.`;
-      return;
-    }
+    this.selectedProducerId = producer.id;
+
     const stock = snapshot.resources[PLAYER_ID];
     if (!stock) {
       this.message = 'Player resource stock is unavailable.';
       return;
     }
-    const missing = missingResourceParts(definition.cost, stock);
-    if (missing.length > 0) {
-      this.message = `Cannot train ${label(unitType)}: need ${missing.join(', ')}.`;
-      return;
-    }
+
     const queuedPopulation = snapshot.productionQueue
       .filter((order) => order.playerId === PLAYER_ID)
       .reduce((sum, order) => sum + UNITS[order.unitType].population, 0);
     const committedPopulation = (snapshot.populationUsed[PLAYER_ID] ?? 0) + queuedPopulation;
     const populationCap = snapshot.populationCap[PLAYER_ID] ?? 0;
-    if (committedPopulation + definition.population > populationCap) {
-      const needed = committedPopulation + definition.population - populationCap;
-      this.message = `Cannot train ${label(unitType)}: need ${needed} more Population capacity.`;
+    const populationLimit = Math.floor(
+      Math.max(0, populationCap - committedPopulation) / Math.max(1, definition.population),
+    );
+    const resourceLimits = [
+      definition.cost.material > 0 ? Math.floor(stock.materialMilli / (definition.cost.material * 1000)) : Number.POSITIVE_INFINITY,
+      definition.cost.mana > 0 ? Math.floor(stock.manaMilli / (definition.cost.mana * 1000)) : Number.POSITIVE_INFINITY,
+      definition.cost.influence > 0 ? Math.floor(stock.influenceMilli / (definition.cost.influence * 1000)) : Number.POSITIVE_INFINITY,
+    ];
+    const resourceLimit = Math.min(...resourceLimits);
+    const requested = Math.max(1, Math.min(5, Math.floor(requestedCount)));
+    const accepted = Math.min(requested, populationLimit, resourceLimit);
+
+    if (accepted <= 0) {
+      const missing = missingResourceParts(definition.cost, stock);
+      if (missing.length > 0) {
+        this.message = `Cannot train ${label(unitType)}: need ${missing.join(', ')}.`;
+      } else {
+        const needed = Math.max(1, committedPopulation + definition.population - populationCap);
+        this.message = `Cannot train ${label(unitType)}: need ${needed} more Population capacity.`;
+      }
       return;
     }
-    this.simulation.enqueueStrategicCommand({
-      targetTick: this.simulation.snapshot().tick + 1,
-      playerId: PLAYER_ID,
-      type: 'TRAIN',
-      buildingId: producer.id,
-      unitType,
-    });
-    this.message = `Queued ${label(unitType)} at ${label(producer.type)} #${producer.id}.`;
+
+    const targetTick = this.simulation.snapshot().tick + 1;
+    for (let index = 0; index < accepted; index += 1) {
+      this.simulation.enqueueStrategicCommand({
+        targetTick,
+        playerId: PLAYER_ID,
+        type: 'TRAIN',
+        buildingId: producer.id,
+        unitType,
+      });
+    }
+    const limited = accepted < requested ? ` · limited to ${accepted} by current resources/population` : '';
+    this.message = `Queued ${accepted}× ${label(unitType)} at ${label(producer.type)} #${producer.id}${limited}.`;
   }
 
   private availableProducers(snapshot: ReturnType<M03Simulation['strategy']['snapshot']>) {
@@ -504,20 +549,23 @@ export class StrategicPanel {
 
   private producerMarkup(snapshot: ReturnType<M03Simulation['strategy']['snapshot']>): string {
     const producers = this.availableProducers(snapshot);
-    if (producers.length === 0) return '<div class="producer-select"><strong>Produce at</strong><small>Build a Barracks, Arcane Tower, or Workshop.</small></div>';
+    if (producers.length === 0) {
+      return '<div class="producer-select"><strong>Production</strong><small>Build a Barracks, Arcane Tower, or Workshop. Recruit cards will activate automatically.</small></div>';
+    }
     const buttons = producers.map((building) => {
       const sameTypeCount = producers.filter((candidate) => candidate.type === building.type).length;
       const speed = productionSpeedPercent(sameTypeCount);
       const queue = snapshot.productionQueue.filter((order) => order.buildingId === building.id).length;
       const active = building.id === this.selectedProducerId ? ' active' : '';
       const details = [
-        speed > 100 ? `${speed}%` : '',
-        queue > 0 ? `Q${queue}` : '',
+        speed > 100 ? `${speed}% speed` : '',
+        queue > 0 ? `Q${queue}` : 'Ready',
         building.rallyPointX === null ? '' : 'Rally',
       ].filter(Boolean).join(' · ');
-      return `<button class="${active.trim()}" data-action="select-producer" data-value="${building.id}">${label(building.type)} #${building.id}${details ? `<small>${details}</small>` : ''}</button>`;
+      const code = buildingVisualProfile(building.type).shortCode;
+      return `<button class="${active.trim()}" data-action="select-producer" data-value="${building.id}" title="Preferred source for matching recruit cards"><span class="command-badge small">${code}</span><span class="command-copy"><b>${label(building.type)} #${building.id}</b><small>${details}</small></span></button>`;
     }).join('');
-    return `<div class="producer-select"><strong>Produce at</strong><div>${buttons}</div></div>`;
+    return `<div class="producer-select"><strong>Preferred production building</strong><div>${buttons}</div><small>Recruit cards auto-route to a matching supplied producer; the selected building is preferred when compatible.</small></div>`;
   }
 
   private queueMarkup(
@@ -563,6 +611,7 @@ export class StrategicPanel {
     const buildingButtons = BUILD_ORDER.map((buildingType) => {
       const cost = BUILDINGS[buildingType].cost;
       const active = this.pendingBuildType === buildingType ? ' active' : '';
+      const profile = buildingVisualProfile(buildingType);
       const title = buildingType === 'EXTRACTOR'
         ? 'Extractor harvests an amber Material Deposit'
         : buildingType === 'MANA_WELL'
@@ -570,13 +619,23 @@ export class StrategicPanel {
           : buildingType === 'OUTPOST'
             ? 'Outpost costs 10 Influence and claims an adjacent neutral region when construction completes'
             : 'Choose this building, then place it inside controlled supplied territory';
-      return `<button class="${active.trim()}" data-action="build" data-value="${buildingType}" title="${title}">${label(buildingType)}<small>${cost.material}M${cost.mana ? ` · ${cost.mana}A` : ''}${cost.influence ? ` · ${cost.influence}I` : ''}</small></button>`;
+      const costText = `${cost.material}M${cost.mana ? ` · ${cost.mana}A` : ''}${cost.influence ? ` · ${cost.influence}I` : ''}`;
+      return `<button class="command-card ${active.trim()}" data-action="build" data-value="${buildingType}" title="${title}"><span class="command-badge">${profile.shortCode}</span><span class="command-copy"><b>${label(buildingType)}</b><small>${BUILDING_ROLE[buildingType]} · ${costText}</small></span></button>`;
     }).join('');
-    const selectedProducer = snapshot.buildings.find((building) => building.id === this.selectedProducerId);
+    const available = this.availableProducers(snapshot);
+    const queuedByUnit = new Map<UnitArchetype, number>();
+    for (const order of snapshot.productionQueue) {
+      if (order.playerId !== PLAYER_ID) continue;
+      queuedByUnit.set(order.unitType, (queuedByUnit.get(order.unitType) ?? 0) + 1);
+    }
     const trainButtons = TRAIN_ORDER.map((unitType) => {
       const definition = UNITS[unitType];
-      const enabled = selectedProducer?.type === definition.producer;
-      return `<button data-action="train" data-value="${unitType}" ${enabled ? '' : 'disabled'}>${label(unitType)}<small>${definition.cost.material}M${definition.cost.mana ? ` · ${definition.cost.mana}A` : ''} · P${definition.population}</small></button>`;
+      const enabled = available.some((building) => building.type === definition.producer);
+      const ui = UNIT_UI[unitType];
+      const queued = queuedByUnit.get(unitType) ?? 0;
+      const costText = `${definition.cost.material}M${definition.cost.mana ? ` · ${definition.cost.mana}A` : ''} · P${definition.population}`;
+      const queueText = queued > 0 ? ` · Q${queued}` : '';
+      return `<button class="command-card recruit-card" data-action="train" data-value="${unitType}" ${enabled ? '' : 'disabled'} title="Click to queue 1. Shift-click to queue up to 5."><span class="command-badge">${ui.code}</span><span class="command-copy"><b>${label(unitType)}</b><small>${ui.role} · ${costText}${queueText}</small></span></button>`;
     }).join('');
     const rallyActive = this.pendingRallyBuildingId !== null ? ' active' : '';
     const outpostMissing = missingResourceParts(BUILDINGS.OUTPOST.cost, stock);
@@ -606,8 +665,8 @@ export class StrategicPanel {
       <nav class="command-tabs" aria-label="Command category"><button data-action="command-view" data-value="build" aria-pressed="${this.commandView === 'build'}">Construction</button><button data-action="command-view" data-value="army" aria-pressed="${this.commandView === 'army'}">Army</button></nav>
       <div class="build-view">${this.queueMarkup(simulationSnapshot.tick, snapshot, 'build')}</div>
       <div class="army-view">${this.armyMarkup(simulationSnapshot)}${this.queueMarkup(simulationSnapshot.tick, snapshot, 'army')}</div>
-      <div class="strategy-section build-view"><strong>Construct</strong><div class="strategy-buttons">${buildingButtons}</div></div>
-      <div class="strategy-section army-view"><strong>Recruit</strong>${this.producerMarkup(snapshot)}<div class="strategy-buttons compact">${trainButtons}</div><div class="strategy-buttons secondary-actions"><button class="${rallyActive.trim()}" data-action="set-rally" ${selectedProducer ? '' : 'disabled'}>Set Rally</button></div></div>
+      <div class="strategy-section build-view"><strong>Construct</strong><div class="strategy-buttons construction-grid">${buildingButtons}</div><div class="command-hint">Click a card, then place on the battlefield · Shift-place repeats · Esc/right-click cancels</div></div>
+      <div class="strategy-section army-view"><strong>Recruit</strong>${this.producerMarkup(snapshot)}<div class="strategy-buttons compact recruit-grid">${trainButtons}</div><div class="command-hint">Click = queue 1 · Shift-click = queue up to 5 · matching producer is chosen automatically</div><div class="strategy-buttons secondary-actions"><button class="${rallyActive.trim()}" data-action="set-rally" ${this.selectedProducerId !== null ? '' : 'disabled'}>Set Rally for Preferred</button></div></div>
       ${this.message ? `<div class="strategy-message" aria-live="polite">${this.message}</div>` : ''}
       <div class="strategy-section territory-info build-view"><div class="expansion-compact"><span>${expansionHint}</span></div></div>
     `;

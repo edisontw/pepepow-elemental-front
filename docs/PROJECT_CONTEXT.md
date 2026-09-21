@@ -417,6 +417,18 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
 - The macro mask is rendering data only: authoritative terrain flags, forest cover semantics, navigation, fog authority, world generation, replay, `ef-standard-v12`, `ef-replay-v12`, and `m02-standard-v1` remain unchanged.
 
 
+### Construction / production UX pass — 2026-09-21
+
+- edge-pan now activates only when the pointer is actually over the battlefield canvas surface; HUD/button interaction no longer moves the camera merely because the pointer is near the screen edge;
+- Construction and Recruit controls use compact scan-friendly cards with stable short codes and role/cost summaries;
+- building codes are presentation-only: `CORE / BRK / ARC / WRK / OUT / EXT / MANA`;
+- completed player buildings gain restrained roofline identity markers with distinct silhouettes so Barracks, Arcane Tower, Workshop, Outpost, Extractor, and Mana Well are easier to distinguish at RTS zoom;
+- Recruit cards no longer require manually matching the currently selected producer type: a compatible supplied producer is selected automatically, while a manually selected compatible producer remains preferred;
+- normal click queues one unit; Shift-click queues up to five units, bounded by current resources and population;
+- clicking a production building still opens its local production context, now positioned beside rather than over the left command panel;
+- this pass changes presentation/input ergonomics only. Authoritative TRAIN/BUILD commands, economy, production timing, replay semantics, `ef-standard-v15`, `ef-replay-v15`, and `m02-standard-v1` are unchanged.
+
+
 ### Token-efficient validation policy
 
 For presentation-only batches:
