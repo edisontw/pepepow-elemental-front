@@ -188,7 +188,7 @@
       "license": "Creative Commons CC0 1.0 Universal",
       "sourceUrl": "https://kenney.nl/assets/voiceover-pack",
       "attribution": "Kenney (optional under CC0)",
-      "notes": "Unmodified male 'go' command voice used for MOVE and ATTACK_MOVE acknowledgements."
+      "notes": "Unmodified male 'go' command voice used for normal MOVE acknowledgement through the runtime radio filter."
     },
     {
       "id": "voice.command.attack",
@@ -199,7 +199,7 @@
       "license": "Creative Commons CC0 1.0 Universal",
       "sourceUrl": "https://kenney.nl/assets/voiceover-pack",
       "attribution": "Kenney (optional under CC0)",
-      "notes": "Unmodified male target-engaged voice used for explicit ATTACK acknowledgement."
+      "notes": "Unmodified male target-engaged voice used for explicit ATTACK acknowledgement through the runtime radio filter."
     },
     {
       "id": "voice.command.ready",
@@ -210,7 +210,7 @@
       "license": "Creative Commons CC0 1.0 Universal",
       "sourceUrl": "https://kenney.nl/assets/voiceover-pack",
       "attribution": "Kenney (optional under CC0)",
-      "notes": "Unmodified male ready voice used for unit selection and restrained HOLD/STOP acknowledgement."
+      "notes": "Unmodified male ready voice used for unit selection acknowledgement through the runtime radio filter."
     },
     {
       "id": "ambience.battlefield.industry",
@@ -223,7 +223,29 @@
       "attribution": "rubberduck (optional under CC0)",
       "loop": true,
       "notes": "Very low-volume machine loop adding distant Arcane-Industrial battlefield texture beneath the outdoor bed."
+    },
+    {
+      "id": "voice.command.attack-move",
+      "kind": "voice",
+      "status": "FINAL",
+      "path": "audio/voice/kenney/male/war_go_go_go.ogg",
+      "canonicalFilename": "war_go_go_go.ogg",
+      "license": "Creative Commons CC0 1.0 Universal",
+      "sourceUrl": "https://kenney.nl/assets/voiceover-pack",
+      "attribution": "Kenney (optional under CC0)",
+      "notes": "Unmodified male 'go go go' radio-style command used for ATTACK_MOVE; independent CC0 asset, not sourced from Counter-Strike."
+    },
+    {
+      "id": "voice.command.hold",
+      "kind": "voice",
+      "status": "FINAL",
+      "path": "audio/voice/kenney/male/hold.ogg",
+      "canonicalFilename": "hold.ogg",
+      "license": "Creative Commons CC0 1.0 Universal",
+      "sourceUrl": "https://kenney.nl/assets/voiceover-pack",
+      "attribution": "Kenney (optional under CC0)",
+      "notes": "Unmodified male 'hold' command used for HOLD acknowledgement through the runtime radio filter."
     }
   ],
-  "notes": "Selected redistribution-safe CC0 OGG files are active for combat, movement, commands, elemental skills, command voices, and battlefield ambience. Procedural synthesis remains only as accent/fallback; browser speech remains a fallback when recorded command voice samples cannot play."
+  "notes": "Selected redistribution-safe CC0 OGG files are active for combat, movement, commands, elemental skills, command voices, and battlefield ambience. Recorded command voices use runtime radio EQ/compression and brief static cues; STOP intentionally uses a short radio click without a semantically incorrect borrowed voice. Procedural synthesis and browser speech remain fallback/accent layers."
 }
