@@ -10,9 +10,13 @@ export interface BuildingVisualPart {
   scale: readonly [number, number, number];
 }
 
+export type BuildingIdentityMarker = 'CORE' | 'GATE' | 'ORB' | 'TOOLS' | 'BEACON' | 'PUMP' | 'WELL';
+
 export interface BuildingVisualProfile {
   footprint: number;
   height: number;
+  shortCode: string;
+  marker: BuildingIdentityMarker;
   parts: readonly BuildingVisualPart[];
 }
 
@@ -20,6 +24,8 @@ export const BUILDING_VISUAL_PROFILES: Readonly<Record<BuildingType, BuildingVis
   ELEMENTAL_CORE: {
     footprint: 3.6,
     height: 4.2,
+    shortCode: 'CORE',
+    marker: 'CORE',
     parts: [
       { primitive: 'cylinder', material: 'TEAM', position: [0, 0.62, 0], scale: [3.5, 1.1, 3.5] },
       { primitive: 'cylinder', material: 'TEAM', position: [0, 1.68, 0], scale: [2.35, 1.7, 2.35] },
@@ -33,6 +39,8 @@ export const BUILDING_VISUAL_PROFILES: Readonly<Record<BuildingType, BuildingVis
   BARRACKS: {
     footprint: 2.7,
     height: 2.1,
+    shortCode: 'BRK',
+    marker: 'GATE',
     parts: [
       { primitive: 'box', material: 'TEAM', position: [0, 0.72, 0], scale: [2.8, 1.3, 2.3] },
       { primitive: 'box', material: 'ACCENT', position: [-1.05, 1.52, 0.35], scale: [0.48, 0.9, 0.48] },
@@ -43,6 +51,8 @@ export const BUILDING_VISUAL_PROFILES: Readonly<Record<BuildingType, BuildingVis
   ARCANE_TOWER: {
     footprint: 2.1,
     height: 3.8,
+    shortCode: 'ARC',
+    marker: 'ORB',
     parts: [
       { primitive: 'cylinder', material: 'TEAM', position: [0, 1.25, 0], scale: [1.7, 2.5, 1.7] },
       { primitive: 'cylinder', material: 'ACCENT', position: [0, 2.4, 0], scale: [1.05, 0.32, 1.05] },
@@ -52,6 +62,8 @@ export const BUILDING_VISUAL_PROFILES: Readonly<Record<BuildingType, BuildingVis
   WORKSHOP: {
     footprint: 3.0,
     height: 2.6,
+    shortCode: 'WRK',
+    marker: 'TOOLS',
     parts: [
       { primitive: 'box', material: 'TEAM', position: [0, 0.76, 0], scale: [3.25, 1.42, 2.7] },
       { primitive: 'box', material: 'ACCENT', position: [0, 1.56, -0.55], scale: [1.85, 0.46, 1.0] },
@@ -62,6 +74,8 @@ export const BUILDING_VISUAL_PROFILES: Readonly<Record<BuildingType, BuildingVis
   OUTPOST: {
     footprint: 2.2,
     height: 3.1,
+    shortCode: 'OUT',
+    marker: 'BEACON',
     parts: [
       { primitive: 'cylinder', material: 'TEAM', position: [0, 0.62, 0], scale: [2.2, 1.05, 2.2] },
       { primitive: 'box', material: 'TEAM', position: [0, 1.7, 0], scale: [0.55, 1.75, 0.55] },
@@ -71,6 +85,8 @@ export const BUILDING_VISUAL_PROFILES: Readonly<Record<BuildingType, BuildingVis
   EXTRACTOR: {
     footprint: 1.8,
     height: 1.8,
+    shortCode: 'EXT',
+    marker: 'PUMP',
     parts: [
       { primitive: 'cylinder', material: 'TEAM', position: [0, 0.48, 0], scale: [1.72, 0.78, 1.72] },
       { primitive: 'cylinder', material: 'ACCENT', position: [0, 1.02, 0], scale: [0.76, 0.72, 0.76] },
@@ -81,6 +97,8 @@ export const BUILDING_VISUAL_PROFILES: Readonly<Record<BuildingType, BuildingVis
   MANA_WELL: {
     footprint: 1.8,
     height: 2.0,
+    shortCode: 'MANA',
+    marker: 'WELL',
     parts: [
       { primitive: 'cylinder', material: 'TEAM', position: [0, 0.34, 0], scale: [1.75, 0.5, 1.75] },
       { primitive: 'cylinder', material: 'ACCENT', position: [0, 0.78, 0], scale: [1.08, 0.4, 1.08] },
