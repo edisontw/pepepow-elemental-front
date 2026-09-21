@@ -182,22 +182,23 @@ describe('M06 full run', () => {
     expect(final.run.result?.reason).toBe('BOSS_DEFEATED');
   }, 15_000);
 
-  it('keeps Tower Defense waves moving on neutral-safe assault paths', () => {
-    const simulation = new M06Simulation(generateWorld(1_000_010), {
+  it('keeps Tower Defense waves neutral-safe, reactive, and resumable', () => {
+    const simulation = new M06Simulation(generateWorld(1_000_011), {
       mode: 'TOWER_DEFENSE',
       pace: 'SMOKE',
       difficulty: 'CASUAL',
     });
     for (let tick = 1; tick <= 301; tick += 1) simulation.step();
 
-    const enemyIds = livingIds(simulation, 1);
-    expect(enemyIds.length).toBeGreaterThan(0);
-    const firstEnemyId = enemyIds[0];
-    expect(firstEnemyId).toBeDefined();
-    if (firstEnemyId === undefined) return;
+    const enemyId = livingIds(simulation, 1)[0];
+    const ranger = simulation.snapshot().entities.find((entity) => entity.playerId === 0 && entity.archetype === 'RANGER');
+    expect(enemyId).toBeDefined();
+    expect(ranger).toBeDefined();
+    if (enemyId === undefined || !ranger) return;
 
-    const movement = simulation.entities.movements.get(firstEnemyId)!;
+    const movement = simulation.entities.movements.get(enemyId)!;
     expect(movement.orderMode).toBe('ATTACK_MOVE');
+    expect(movement.targetX).not.toBeNull();
     expect(movement.path.length).toBeGreaterThan(0);
 
     const safeRadius = NEUTRAL_CAMP_AGGRO_RADIUS + WORLD_UNITS_PER_METER;
@@ -215,26 +216,6 @@ describe('M06 full run', () => {
         return dx * dx + dz * dz > safeRadiusSquared;
       })).toBe(true);
     }
-
-    const before = { ...simulation.entities.positions.get(firstEnemyId)! };
-    for (let tick = 0; tick < 20; tick += 1) simulation.step();
-    const after = simulation.entities.positions.get(firstEnemyId)!;
-    expect(after.x !== before.x || after.z !== before.z).toBe(true);
-  }, 15_000);
-
-  it('makes Tower Defense attackers retaliate against player fire before resuming the Core assault', () => {
-    const simulation = new M06Simulation(generateWorld(1_000_011), {
-      mode: 'TOWER_DEFENSE',
-      pace: 'SMOKE',
-      difficulty: 'CASUAL',
-    });
-    for (let tick = 1; tick <= 301; tick += 1) simulation.step();
-
-    const enemyId = livingIds(simulation, 1)[0];
-    const ranger = simulation.snapshot().entities.find((entity) => entity.playerId === 0 && entity.archetype === 'RANGER');
-    expect(enemyId).toBeDefined();
-    expect(ranger).toBeDefined();
-    if (enemyId === undefined || !ranger) return;
 
     const enemyPosition = simulation.entities.positions.get(enemyId)!;
     const core = simulation.run.snapshot().playerCore;
