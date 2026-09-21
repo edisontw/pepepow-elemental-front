@@ -456,6 +456,15 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
 - elemental spell and battlefield ambient audio remain procedural placeholders for a later focused replacement pass;
 - presentation/audio only: simulation, combat cadence/damage, movement authority, replay identity, `ef-standard-v15`, `ef-replay-v15`, and `m02-standard-v1` are unchanged.
 
+### Elemental skills + battlefield ambience audio pass — 2026-09-22
+
+- Fire, Water, Ice, and Lightning event cues now use redistribution-safe CC0 OGG samples as the primary physical layer while retaining reduced procedural synthesis for elemental identity and load/failure fallback;
+- Fire uses CC0 fantasy fire-spell samples; Water uses short CC0 splash variants; Ice uses light/heavy glass transients for crystallization/fracture; Lightning uses short Kenney sci-fi energy transients beneath the existing high-frequency chain signature;
+- battlefield ambience now adds two low-gain looped CC0 beds after browser audio unlock: a neutral ambient bed plus a quieter distant machine texture matching the Arcane-Industrial Frontier direction;
+- ambient loops, spell samples, combat samples, movement, and recorded command voices all resolve through stable IDs in `data/audio/manifest.json`; licensing/provenance is recorded in `docs/AUDIO_CC0_PROVENANCE.md`;
+- original third-party game clips such as Counter-Strike radio commands are not ingested; any future classic-game-style command pass should use original or clearly licensed recordings with similar pacing rather than copied assets;
+- presentation/audio only: element rules/effects, combat, simulation, replay semantics, `ef-standard-v15`, `ef-replay-v15`, and `m02-standard-v1` are unchanged.
+
 ### Token-efficient validation policy
 
 For presentation-only batches:
