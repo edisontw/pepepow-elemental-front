@@ -447,6 +447,15 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
 - the audio manifest records the new procedural/voice placeholders; final recorded assets must retain explicit redistribution-safe license/provenance metadata;
 - presentation/audio only: attack timing, damage, commands, replay semantics, `ef-standard-v15`, `ef-replay-v15`, and `m02-standard-v1` are unchanged.
 
+### CC0 production audio replacement pass — 2026-09-22
+
+- selected unmodified Kenney CC0 OGG clips replace procedural-only combat hit/release/death, Core-impact, command-confirmation, and army-footstep presentation while retaining procedural layers as safe fallback/accent;
+- movement audio is deliberately bounded to one low-volume army-march cue rather than one footstep per moving unit, preventing RTS-scale audio spam;
+- player selection, MOVE / ATTACK_MOVE, explicit ATTACK, HOLD, and STOP now prefer real CC0 command voices (`ready`, `go`, `war_target_engaged`) with browser speech synthesis only as load/failure fallback;
+- all active production clips resolve through stable IDs in `data/audio/manifest.json`; official Kenney source pages, CC0 licensing, original filenames, and intake notes are recorded in `docs/AUDIO_CC0_PROVENANCE.md`;
+- elemental spell and battlefield ambient audio remain procedural placeholders for a later focused replacement pass;
+- presentation/audio only: simulation, combat cadence/damage, movement authority, replay identity, `ef-standard-v15`, `ef-replay-v15`, and `m02-standard-v1` are unchanged.
+
 ### Token-efficient validation policy
 
 For presentation-only batches:
