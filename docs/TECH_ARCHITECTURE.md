@@ -397,6 +397,12 @@ and an octile heuristic. Expansion order is N/E/S/W/NE/SE/SW/NW; both adjacent
 cardinal cells must be walkable for a diagonal. Cardinal BFS slot resolution is
 unchanged. Repaths recenter in the current cell to avoid clipping blocked corners.
 
+v15 adds deterministic caller-supplied path-avoidance cells without mutating the
+authoritative terrain grid or `navVersion`. Tower Defense uses this overlay for
+living Neutral Camp guardian aggro envelopes; safe routes are preferred, with the
+ordinary walkable path retained only as a fallback when avoidance would make the
+objective unreachable.
+
 Terrain changes must alter navigation.
 
 Example:
