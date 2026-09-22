@@ -28,8 +28,7 @@ interface UnitPresentation {
   facingOverrideYaw: number;
   facingOverrideUntilTick: number;
   selection: pc.Entity;
-  healthBack: pc.Entity;
-  healthBar: pc.Entity;
+  criticalPulse: pc.Entity;
   veteranPips: pc.Entity[];
   veteranRing: pc.Entity;
   neutralThreatRing: pc.Entity;
@@ -138,7 +137,7 @@ export class UnitRenderBridge {
   private readonly veteranPipMaterial = createMaterial(new pc.Color(0.82, 0.64, 0.26));
   private readonly veteranRingMaterial = createMaterial(new pc.Color(0.64, 0.48, 0.2), undefined, 0.42);
   private readonly neutralThreatMaterial = createMaterial(new pc.Color(0.62, 0.38, 0.14), undefined, 0.5);
-  private readonly healthBackMaterial = createMaterial(new pc.Color(0.045, 0.055, 0.055));
+  private readonly criticalPulseMaterial = createMaterial(new pc.Color(0.72, 0.28, 0.16), undefined, 0.16);
   private readonly hitMaterial = createMaterial(new pc.Color(1, 0.86, 0.36), new pc.Color(1, 0.32, 0.06), 0.72);
   private readonly deathMaterial = createMaterial(new pc.Color(0.38, 0.4, 0.42), new pc.Color(0.12, 0.12, 0.12), 0.58);
   private readonly playerProjectileMaterial = createMaterial(new pc.Color(0.56, 1, 0.94), new pc.Color(0.06, 0.72, 0.6));
@@ -153,7 +152,6 @@ export class UnitRenderBridge {
     initialSnapshot: SimulationSnapshot,
     private readonly unitMaterials: { player: pc.Material; enemyMelee: pc.Material; enemyRanged: pc.Material },
     private readonly selectionMaterial: pc.Material,
-    private readonly healthMaterial: pc.Material,
     private readonly visualAssets: VisualAssetLibrary,
     private readonly effects: BattleVfx,
   ) {
@@ -203,13 +201,8 @@ export class UnitRenderBridge {
       const dying = !unit.alive && current.tick <= presentation.deathUntilTick && unit.visibleToPlayer;
       presentation.root.enabled = presented || dying;
       presentation.selection.enabled = presented && presentation.selection.enabled;
-      const showHealth = presented && (
-        this.selectedEntityIds.has(unit.id)
-        || unit.currentHealth < unit.maxHealth
-        || unit.attackTargetEntityId !== null
-      );
-      presentation.healthBack.enabled = showHealth;
-      presentation.healthBar.enabled = showHealth;
+      const healthRatio = unit.currentHealth / Math.max(1, unit.maxHealth);
+      presentation.criticalPulse.enabled = presented && unit.playerId === 0 && healthRatio <= 0.35;
       presentation.veteranRing.enabled = presented && unit.playerId !== 2 && unit.level >= 3;
       presentation.neutralThreatRing.enabled = presented && unit.playerId === 2 && unit.neutralCampId !== null;
       for (let index = 0; index < presentation.veteranPips.length; index += 1) {
@@ -363,6 +356,12 @@ export class UnitRenderBridge {
       presentation.coldMarker.setLocalScale(profile.selectionScale * .85, unit.frozenTicks > 0 ? profile.height * .95 : .08, profile.selectionScale * .85);
       presentation.coldMarker.setEulerAngles(0, 45, 0);
       presentation.hitFlash.setPosition(x, profile.height * 0.52, z);
+      if (presentation.criticalPulse.enabled) {
+        const criticalPulse = 0.5 + 0.5 * Math.sin((current.tick + alpha + unit.id * 0.37) * 0.72);
+        const criticalScale = profile.selectionScale * (0.93 + criticalPulse * 0.1);
+        presentation.criticalPulse.setPosition(x, 0.064, z);
+        presentation.criticalPulse.setLocalScale(criticalScale, 1, criticalScale);
+      }
       if (presentation.deathMarker.enabled) {
         presentation.deathMarker.setPosition(metres(prior.x), 0.18, metres(prior.z));
         const remaining = Math.max(0, presentation.deathUntilTick - current.tick);
@@ -371,14 +370,7 @@ export class UnitRenderBridge {
       }
 
       if (!presented) continue;
-      const healthRatio = unit.currentHealth / Math.max(1, unit.maxHealth);
-      const healthWidth = Math.max(1.05, profile.selectionScale * 1.05);
-      const healthY = profile.height + 0.34;
-      presentation.healthBack.setPosition(x, healthY, z);
-      presentation.healthBack.setLocalScale(healthWidth, 0.055, 0.14);
-      presentation.healthBar.setPosition(x - (1 - healthRatio) * healthWidth * 0.5, healthY + 0.044, z);
-      presentation.healthBar.setLocalScale(healthWidth * healthRatio, 0.025, 0.1);
-
+      const pipY = profile.height + 0.24;
       const pipCount = Math.max(0, unit.level - 1);
       const pipSpacing = 0.16;
       const pipPulseActive = current.tick + alpha <= presentation.levelUpUntilTick;
@@ -387,7 +379,7 @@ export class UnitRenderBridge {
         const pip = presentation.veteranPips[index]!;
         if (!pip.enabled) continue;
         const offset = (index - (pipCount - 1) * 0.5) * pipSpacing;
-        pip.setPosition(x + offset, healthY + 0.18, z);
+        pip.setPosition(x + offset, pipY, z);
         pip.setLocalScale(0.105 * pipPulse, 0.035 * pipPulse, 0.075 * pipPulse);
       }
 
@@ -490,7 +482,7 @@ export class UnitRenderBridge {
     this.veteranPipMaterial.destroy();
     this.veteranRingMaterial.destroy();
     this.neutralThreatMaterial.destroy();
-    this.healthBackMaterial.destroy();
+    this.criticalPulseMaterial.destroy();
     this.hitMaterial.destroy();
     this.deathMaterial.destroy();
     this.playerProjectileMaterial.destroy();
@@ -533,12 +525,13 @@ export class UnitRenderBridge {
     selection.enabled = false;
     this.app.root.addChild(selection);
 
-    const healthBack = new pc.Entity(`Health Back ${unit.id}`);
-    healthBack.addComponent('render', { type: 'box', material: this.healthBackMaterial });
-    this.app.root.addChild(healthBack);
-    const healthBar = new pc.Entity(`Health ${unit.id}`);
-    healthBar.addComponent('render', { type: 'box', material: this.healthMaterial });
-    this.app.root.addChild(healthBar);
+    const criticalPulse = new pc.Entity(`Critical Health Pulse ${unit.id}`);
+    criticalPulse.addComponent('render', {
+      meshInstances: [new pc.MeshInstance(this.ring, this.criticalPulseMaterial)],
+      castShadows: false,
+    });
+    criticalPulse.enabled = false;
+    this.app.root.addChild(criticalPulse);
 
     const veteranPips: pc.Entity[] = [];
     for (let index = 0; index < 4; index += 1) {
@@ -602,8 +595,7 @@ export class UnitRenderBridge {
       facingOverrideYaw: 0,
       facingOverrideUntilTick: -1,
       selection,
-      healthBack,
-      healthBar,
+      criticalPulse,
       veteranPips,
       veteranRing,
       neutralThreatRing,
@@ -828,8 +820,7 @@ export class UnitRenderBridge {
     this.visualAssets.release(presentation.model);
     presentation.root.destroy();
     presentation.selection.destroy();
-    presentation.healthBack.destroy();
-    presentation.healthBar.destroy();
+    presentation.criticalPulse.destroy();
     for (const pip of presentation.veteranPips) pip.destroy();
     presentation.veteranRing.destroy();
     presentation.neutralThreatRing.destroy();
