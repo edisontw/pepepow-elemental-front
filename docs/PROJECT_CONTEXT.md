@@ -4,8 +4,8 @@
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v15`
-**Current replay format:** `ef-replay-v15`
+**Current authoritative gameplay ruleset:** `ef-standard-v16`
+**Current replay format:** `ef-replay-v16`
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE4_CLOSURE_REPORT.md`
 
@@ -69,8 +69,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v15`;
-- replay: `ef-replay-v15`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v16`;
+- replay: `ef-replay-v16`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -181,7 +181,7 @@ Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A�
 
 ### Tower Defense vertical slice
 
-- `TOWER_DEFENSE` is a separate deterministic run mode introduced in v13; its active authority is `ef-standard-v15` / `ef-replay-v15`.
+- `TOWER_DEFENSE` is a separate deterministic run mode introduced in v13; current run authority is `ef-standard-v16` / `ef-replay-v16`.
 - It clears the usual starting enemy force, allows 30 seconds to prepare, then sends seven escalating waves from the enemy approach toward the player Core.
 - The live HUD exposes the current wave, next hostile composition, countdown, and hostile count.
 - Existing construction, production, units, spells, and Core recovery remain the first playable defense kit.
@@ -501,6 +501,14 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
 - acquiring an ATTACK target while still outside melee range no longer produces a false Attack animation;
 - both the base unit presentation and the neutral/enemy GLB animation layer now require the live unit target to be inside its authoritative attack range before treating an attack-timer advance as a visible attack event;
 - pursuit remains movement-only until contact; damage timing, Sentinel stats, leash/aggro rules, simulation, replay semantics, `ef-standard-v15`, `ef-replay-v15`, and `m02-standard-v1` are unchanged.
+
+### Melee contact / Neutral Sentinel pursuit correction — v16 — 2026-09-22
+
+- authoritative melee pursuit now closes the final sub-cell gap when attacker and target occupy the same 1 m navigation cell but their exact positions remain outside attack range; this removes the empty-A* stall observed with the **1.35 m** Neutral Sentinel reach;
+- direct `ATTACK` target acquisition preserves immediate attack readiness without advancing `nextAttackTick` by itself, so acquiring/pursuing a target is no longer misread as a completed attack event;
+- combat presentation also verifies live unit attack range before spawning melee slash / heavy-shock feedback, preventing the large floating yellow cross/slash from appearing while the Sentinel is still approaching;
+- Sentinel stats remain unchanged: Golem-based guardian, 1.35 m attack range, 8 m aggro radius, 12 m camp leash;
+- this changes authoritative pursuit/state semantics and therefore advances gameplay/replay identity to `ef-standard-v16` / `ef-replay-v16`; world generation remains `m02-standard-v1`.
 
 ### Low-health awareness / Army panel pass — 2026-09-22
 
