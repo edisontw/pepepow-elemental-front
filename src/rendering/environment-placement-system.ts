@@ -258,13 +258,14 @@ export function environmentPlacements(world: GeneratedWorld, lowQuality: boolean
     if (poi.type === 'ANCIENT_RUIN') {
       for (const [frame, dx, dz, size] of [[0,-1.7,1.2,1.0],[1,-2.2,-0.4,0.85],[2,1.8,1.5,1.1],[3,2.4,-1.5,1.8],[9,-1.5,-2,1.2],[10,1.4,-2.2,0.65]]) add('props',frame!,x+dx!,z+dz!,size!,size!);
     } else if (poi.type === 'VILLAGE') {
-      for (const [frame, dx, dz, size] of [[4,-2.4,1.6,1.5],[5,2.4,1.7,1.4],[6,-1.8,-1.6,1.25],[7,2,-1.8,1.3]]) add('props',frame!,x+dx!,z+dz!,size!,size!);
+      // Avoid the detached crate/barrel tile at RTS camera distance.
+      for (const [frame, dx, dz, size] of [[4,-2.4,1.6,1.5],[5,2.4,1.7,1.4],[10,-1.8,-1.6,1.05],[7,2,-1.8,1.3]]) add('props',frame!,x+dx!,z+dz!,size!,size!);
     }
   }
-  for (const spawn of world.spawns) for (const [frame, dx, dz] of [[4,-3.8,2.4],[6,3.5,2],[7,-3.5,-2]]) add('props',frame!,spawn.cell.x+dx!,spawn.cell.z+dz!,1.45,1.45);
+  for (const spawn of world.spawns) for (const [frame, dx, dz] of [[4,-3.8,2.4],[8,3.5,2],[7,-3.5,-2]]) add('props',frame!,spawn.cell.x+dx!,spawn.cell.z+dz!,1.45,1.45);
   for (const resource of world.resources) {
     add('props', 8, resource.cell.x - 1.2, resource.cell.z + 1.0, 0.85, 0.85);
-    add('props', resource.type === 'MATERIAL' ? 6 : 10, resource.cell.x + 1.5, resource.cell.z - 0.8, 0.7, 0.7);
+    add('props', resource.type === 'MATERIAL' ? 8 : 10, resource.cell.x + 1.5, resource.cell.z - 0.8, 0.7, 0.7);
   }
   return result;
 }

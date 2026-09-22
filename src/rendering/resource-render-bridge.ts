@@ -89,14 +89,6 @@ export class ResourceRenderBridge {
     0.18,
     0.18,
   );
-  private readonly timber = material(
-    new pc.Color(0.27, 0.16, 0.075),
-    new pc.Color(0.004, 0.002, 0.001),
-    1,
-    0.18,
-    0.1,
-  );
-
   private readonly materialRock = material(
     new pc.Color(0.33, 0.29, 0.23),
     new pc.Color(0.008, 0.006, 0.004),
@@ -119,32 +111,11 @@ export class ResourceRenderBridge {
     0.06,
   );
 
-  private readonly manaStone = material(
-    new pc.Color(0.18, 0.2, 0.24),
-    new pc.Color(0.008, 0.009, 0.018),
-    1,
-    0.3,
-    0.2,
-  );
-  private readonly manaAccent = material(
-    new pc.Color(0.34, 0.3, 0.58),
-    new pc.Color(0.07, 0.035, 0.18),
-    1,
-    0.58,
-    0.34,
-  );
-  private readonly manaCore = material(
-    new pc.Color(0.48, 0.53, 0.72),
-    new pc.Color(0.1, 0.11, 0.27),
-    1,
-    0.64,
-    0.42,
-  );
   private readonly manaPulse = material(
-    new pc.Color(0.31, 0.27, 0.54),
-    new pc.Color(0.07, 0.03, 0.18),
+    new pc.Color(0.24, 0.28, 0.42),
+    new pc.Color(0.025, 0.035, 0.08),
     0.08,
-    0.38,
+    0.28,
     0.06,
   );
 
@@ -173,43 +144,13 @@ export class ResourceRenderBridge {
       if (resource.type === 'MATERIAL') {
         primitive(root, 'sphere', 'Ore Outcrop A', [-0.23 * scale, 0.28 * scale, 0.02], [0.6 * scale, 0.44 * scale, 0.5 * scale], this.materialRock, [7, 18, 4]);
         primitive(root, 'sphere', 'Ore Outcrop B', [0.34 * scale, 0.22 * scale, -0.15 * scale], [0.48 * scale, 0.34 * scale, 0.4 * scale], this.stoneDark, [-5, -21, 8]);
-        primitive(root, 'box', 'Ore Vein A', [-0.28 * scale, 0.43 * scale, 0.05], [0.16 * scale, 0.5 * scale, 0.14 * scale], this.materialOre, [12, 26, 16]);
-        primitive(root, 'box', 'Ore Vein B', [0.22 * scale, 0.34 * scale, -0.16 * scale], [0.13 * scale, 0.4 * scale, 0.12 * scale], this.materialOre, [-8, -20, -11]);
         primitive(root, 'sphere', 'Ore Nodule', [0.35 * scale, 0.21 * scale, 0.23 * scale], [0.2 * scale, 0.14 * scale, 0.17 * scale], this.materialOre);
-        primitive(root, 'cylinder', 'Mine Stake', [-0.64 * scale, 0.3 * scale, -0.4 * scale], [0.055 * scale, 0.55 * scale, 0.055 * scale], this.timber);
-        primitive(root, 'box', 'Mine Crate', [-0.49 * scale, 0.13 * scale, -0.46 * scale], [0.28 * scale, 0.23 * scale, 0.25 * scale], this.timber, [0, 18, 0]);
-        primitive(root, 'cylinder', 'Mine Gantry Left', [-0.63 * scale, 0.47 * scale, 0.38 * scale], [0.055 * scale, 0.82 * scale, 0.055 * scale], this.timber, [0, 0, -4]);
-        primitive(root, 'cylinder', 'Mine Gantry Right', [0.58 * scale, 0.43 * scale, 0.35 * scale], [0.055 * scale, 0.74 * scale, 0.055 * scale], this.timber, [0, 0, 5]);
-        primitive(root, 'box', 'Mine Gantry Beam', [-0.03 * scale, 0.78 * scale, 0.37 * scale], [1.3 * scale, 0.065 * scale, 0.075 * scale], this.timber, [0, 0, 2]);
-        primitive(root, 'box', 'Mine Service Timber A', [-0.28 * scale, 0.055, -0.68 * scale], [0.08 * scale, 0.07 * scale, 0.82 * scale], this.timber, [0, 12, 0]);
-        primitive(root, 'box', 'Mine Service Timber B', [0.08 * scale, 0.052, -0.7 * scale], [0.07 * scale, 0.065 * scale, 0.7 * scale], this.timber, [0, 12, 0]);
         primitive(root, 'sphere', 'Ore Chip A', [-0.82 * scale, 0.055, -0.02], [0.13 * scale, 0.07 * scale, 0.1 * scale], this.materialOre);
         primitive(root, 'sphere', 'Ore Chip B', [0.74 * scale, 0.048, 0.23 * scale], [0.11 * scale, 0.06 * scale, 0.09 * scale], this.materialOre);
       } else {
-        primitive(root, 'cylinder', 'Mana Stone Basin', [0, 0.085 * scale, 0], [0.88 * scale, 0.12 * scale, 0.88 * scale], this.manaStone);
-        primitive(root, 'box', 'Mana Channel A', [-0.72 * scale, 0.055, 0.05], [0.62 * scale, 0.07 * scale, 0.12 * scale], this.manaStone, [0, 18, 0]);
-        primitive(root, 'box', 'Mana Channel B', [0.62 * scale, 0.052, -0.36 * scale], [0.54 * scale, 0.065 * scale, 0.11 * scale], this.manaStone, [0, -27, 0]);
-        for (let ring = 0; ring < 4; ring += 1) {
-          const angle = ring * Math.PI * 0.5 + 0.35;
-          primitive(
-            root,
-            'box',
-            `Mana Ring Stone ${ring + 1}`,
-            [Math.cos(angle) * 0.7 * scale, 0.12 * scale, Math.sin(angle) * 0.7 * scale],
-            [0.34 * scale, 0.18 * scale, 0.22 * scale],
-            ring % 2 === 0 ? this.stoneDark : this.stoneLight,
-            [5, ring * 27, ring % 2 === 0 ? 6 : -5],
-          );
-        }
-        primitive(root, 'box', 'Mana Crystal A', [-0.23 * scale, 0.48 * scale, 0.04], [0.19 * scale, 0.78 * scale, 0.19 * scale], this.manaAccent, [0, 32, 10]);
-        primitive(root, 'box', 'Mana Crystal B', [0.24 * scale, 0.4 * scale, -0.12 * scale], [0.16 * scale, 0.61 * scale, 0.16 * scale], this.manaAccent, [0, -26, -9]);
-        primitive(root, 'box', 'Mana Crystal C', [0.07 * scale, 0.32 * scale, 0.28 * scale], [0.13 * scale, 0.47 * scale, 0.13 * scale], this.manaCore, [0, 10, 16]);
-        primitive(root, 'box', 'Mana Shard A', [-0.46 * scale, 0.18 * scale, -0.25 * scale], [0.09 * scale, 0.27 * scale, 0.09 * scale], this.manaAccent, [0, 18, 22]);
-        primitive(root, 'box', 'Mana Shard B', [0.47 * scale, 0.16 * scale, 0.31 * scale], [0.085 * scale, 0.24 * scale, 0.085 * scale], this.manaAccent, [0, -21, -16]);
-        primitive(root, 'sphere', 'Mana Core', [0, 0.83 * scale, 0], [0.13 * scale, 0.13 * scale, 0.13 * scale], this.manaCore);
-        primitive(root, 'box', 'Mana Outer Shard A', [-0.83 * scale, 0.18 * scale, 0.12], [0.08 * scale, 0.28 * scale, 0.08 * scale], this.manaAccent, [0, 21, 17]);
-        primitive(root, 'box', 'Mana Outer Shard B', [0.72 * scale, 0.16 * scale, -0.46 * scale], [0.07 * scale, 0.24 * scale, 0.07 * scale], this.manaCore, [0, -17, -14]);
-        primitive(root, 'box', 'Mana Outer Shard C', [0.35 * scale, 0.13 * scale, 0.74 * scale], [0.065 * scale, 0.2 * scale, 0.065 * scale], this.manaAccent, [0, 9, 20]);
+        // Mana remains readable through the subdued pulse and the atlas shrub
+        // accent. The former stacked purple/black box kit read as placeholder
+        // geometry from the elevated camera.
       }
 
       const marker = primitive(
@@ -253,13 +194,9 @@ export class ResourceRenderBridge {
     this.groundFootprint.destroy();
     this.stoneDark.destroy();
     this.stoneLight.destroy();
-    this.timber.destroy();
     this.materialRock.destroy();
     this.materialOre.destroy();
     this.materialPulse.destroy();
-    this.manaStone.destroy();
-    this.manaAccent.destroy();
-    this.manaCore.destroy();
     this.manaPulse.destroy();
   }
 }

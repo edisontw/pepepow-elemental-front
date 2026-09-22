@@ -544,6 +544,16 @@ After the visual-production pass reaches a satisfactory baseline, resume the def
 - Hard gate 4: cloud browser reports `WebGL not supported`; manual screen/FPS
   acceptance must precede declaring reference-quality completion.
 
+### Environment art cleanup pass — 2026-09-22
+
+- Removed the presentation-only box-heavy resource dressing: stacked mana
+  crystals/channels/ring blocks and material-site crate/gantry pieces.
+- Replaced repeated crate-like atlas accents around villages, spawns, and
+  resource sites with rocks, shrubs, fences, and logs from the approved prop
+  atlas; roads, lanes, buildings, units, and resource pulse readability remain.
+- Resource values, visibility, terrain, navigation, world generation, replay,
+  and gameplay/replay identities are unchanged.
+
 
 ---
 
