@@ -100,6 +100,27 @@ export const BUILDING_VISUAL_PROFILES: Readonly<Record<BuildingType, BuildingVis
   },
 };
 
+export type BuildingDamageTier = 'HEALTHY' | 'DAMAGED' | 'CRITICAL' | 'DESTROYED';
+
+export interface BuildingDamagePresentation {
+  tier: BuildingDamageTier;
+  healthRatio: number;
+  crackCount: 0 | 1 | 2;
+  smokeCount: 0 | 2;
+}
+
+export function buildingDamagePresentation(
+  currentHealth: number,
+  maxHealth: number,
+  destroyed = false,
+): BuildingDamagePresentation {
+  const healthRatio = Math.max(0, Math.min(1, currentHealth / Math.max(1, maxHealth)));
+  if (destroyed) return { tier: 'DESTROYED', healthRatio, crackCount: 2, smokeCount: 2 };
+  if (healthRatio <= 0.34) return { tier: 'CRITICAL', healthRatio, crackCount: 2, smokeCount: 2 };
+  if (healthRatio <= 0.68) return { tier: 'DAMAGED', healthRatio, crackCount: 1, smokeCount: 0 };
+  return { tier: 'HEALTHY', healthRatio, crackCount: 0, smokeCount: 0 };
+}
+
 export function buildingVisualProfile(type: BuildingType): BuildingVisualProfile {
   return BUILDING_VISUAL_PROFILES[type];
 }

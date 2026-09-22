@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { BuildingType } from '../../src/simulation/m03-content';
-import { BUILDING_VISUAL_PROFILES } from '../../src/rendering/building-visual-profile';
+import {
+  BUILDING_VISUAL_PROFILES,
+  buildingDamagePresentation,
+} from '../../src/rendering/building-visual-profile';
 
 const BUILDING_TYPES: readonly BuildingType[] = [
   'ELEMENTAL_CORE',
@@ -39,5 +42,28 @@ describe('M08 building visual profiles', () => {
     const core = BUILDING_VISUAL_PROFILES.ELEMENTAL_CORE;
     expect(core.height).toBeGreaterThan(BUILDING_VISUAL_PROFILES.OUTPOST.height);
     expect(core.footprint).toBeGreaterThan(BUILDING_VISUAL_PROFILES.WORKSHOP.footprint);
+  });
+
+  it('maps authoritative health into bounded presentation-only damage tiers', () => {
+    expect(buildingDamagePresentation(100, 100)).toMatchObject({
+      tier: 'HEALTHY',
+      crackCount: 0,
+      smokeCount: 0,
+    });
+    expect(buildingDamagePresentation(60, 100)).toMatchObject({
+      tier: 'DAMAGED',
+      crackCount: 1,
+      smokeCount: 0,
+    });
+    expect(buildingDamagePresentation(30, 100)).toMatchObject({
+      tier: 'CRITICAL',
+      crackCount: 2,
+      smokeCount: 2,
+    });
+    expect(buildingDamagePresentation(0, 100, true)).toMatchObject({
+      tier: 'DESTROYED',
+      crackCount: 2,
+      smokeCount: 2,
+    });
   });
 });

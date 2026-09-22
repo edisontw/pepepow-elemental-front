@@ -7,6 +7,7 @@ import type { VisibilityState } from '../simulation/visibility-state';
 import { BUILDINGS } from '../simulation/m03-content';
 import type { StrategicBuilding, StrategicSnapshot } from '../simulation/strategic-state';
 import {
+  buildingDamagePresentation,
   buildingVisualProfile,
   type BuildingVisualMaterialRole,
   type BuildingVisualProfile,
@@ -37,6 +38,12 @@ interface BuildingPresentation {
   constructionFrame: pc.Entity;
   constructionLift: pc.Entity;
   constructionSpark: pc.Entity;
+  constructionLoad: pc.Entity;
+  damageCrackA: pc.Entity;
+  damageCrackB: pc.Entity;
+  damageSmokeA: pc.Entity;
+  damageSmokeB: pc.Entity;
+  damageEmber: pc.Entity;
   productionRig: pc.Entity;
   productionRotor: pc.Entity;
   productionCore: pc.Entity;
@@ -143,6 +150,13 @@ export class StrategicRenderBridge {
   private readonly enemyAccentMaterial = createMaterial(new pc.Color(1, 0.45, 0.16), new pc.Color(0.62, 0.08, 0.01));
   private readonly constructionMaterial = createMaterial(new pc.Color(0.46, 0.43, 0.3), new pc.Color(0.08, 0.07, 0.03));
   private readonly destroyedMaterial = createMaterial(new pc.Color(0.12, 0.13, 0.13), new pc.Color(0.018, 0.018, 0.018));
+  private readonly damageCrackMaterial = createMaterial(new pc.Color(0.09, 0.085, 0.075));
+  private readonly damageSmokeMaterial = createOverlayMaterial(new pc.Color(0.16, 0.17, 0.17), 0.42);
+  private readonly damageEmberMaterial = createMaterial(
+    new pc.Color(0.82, 0.34, 0.08),
+    new pc.Color(0.58, 0.09, 0.01),
+    0.72,
+  );
   private readonly workMaterial = createMaterial(new pc.Color(.94, .66, .22), new pc.Color(.25, .12, .02));
   private readonly identityMaterial = createMaterial(new pc.Color(.70, .55, .28));
   private readonly arcaneIdentityMaterial = createMaterial(new pc.Color(.52, .40, .78));
@@ -170,7 +184,11 @@ export class StrategicRenderBridge {
   );
   private readonly healthBackMaterial = createMaterial(new pc.Color(0.035, 0.045, 0.045));
 
-  constructor(private readonly app: pc.Application, private readonly visualAssets: VisualAssetLibrary) {
+  constructor(
+    private readonly app: pc.Application,
+    private readonly visualAssets: VisualAssetLibrary,
+    private readonly lowQuality = false,
+  ) {
     this.buildingImpostors = new BuildingImpostorLibrary(app);
   }
 
@@ -250,7 +268,8 @@ export class StrategicRenderBridge {
         ? 99
         : Math.max(0, tick - presentation.completedAtTick);
       presentation.constructionFrame.enabled = constructing;
-      presentation.constructionSpark.enabled = constructing;
+      presentation.constructionSpark.enabled = constructing && !this.lowQuality;
+      presentation.constructionLoad.enabled = constructing;
       presentation.constructionLift.enabled = constructing || constructionCompletionAge < 4;
       if (constructing) {
         const buildHeight = Math.max(0.26, profile.height * (0.22 + buildProgress * 0.72));
@@ -270,6 +289,13 @@ export class StrategicRenderBridge {
         );
         const sparkScale = 0.09 + Math.abs(Math.sin(tick * 0.9 + building.id)) * 0.07;
         presentation.constructionSpark.setLocalScale(sparkScale, sparkScale, sparkScale);
+        presentation.constructionLoad.setLocalPosition(0, Math.max(0.16, buildHeight * 0.56), 0);
+        presentation.constructionLoad.setLocalScale(
+          profile.footprint * (0.24 + buildProgress * 0.22),
+          Math.max(0.12, profile.height * (0.08 + buildProgress * 0.12)),
+          profile.footprint * (0.18 + buildProgress * 0.15),
+        );
+        presentation.constructionLoad.setLocalEulerAngles(0, 18 + building.id * 7, 0);
       } else if (constructionCompletionAge < 4) {
         const completionProgress = Math.max(0, Math.min(1, constructionCompletionAge / 4));
         const pulseScale = profile.footprint * (0.78 + completionProgress * 0.72);
@@ -385,6 +411,67 @@ export class StrategicRenderBridge {
         }
       }
 
+      const damage = buildingDamagePresentation(building.currentHealth, building.maxHealth, building.destroyed);
+      const damageEmphasis = building.type === 'ELEMENTAL_CORE'
+        ? 1.3
+        : building.type === 'ARCANE_TOWER'
+          ? 1.18
+          : building.type === 'BARRACKS'
+            ? 1.12
+            : 1;
+      const damaged = damage.tier === 'DAMAGED' || damage.tier === 'CRITICAL';
+      const critical = damage.tier === 'CRITICAL';
+      presentation.damageCrackA.enabled = damaged;
+      presentation.damageCrackB.enabled = damage.crackCount >= 2;
+      presentation.damageSmokeA.enabled = critical;
+      presentation.damageSmokeB.enabled = critical && !this.lowQuality;
+      presentation.damageEmber.enabled = critical && !this.lowQuality;
+      if (damaged) {
+        const crackScale = profile.footprint * 0.38 * damageEmphasis;
+        presentation.damageCrackA.setLocalPosition(
+          profile.footprint * 0.13,
+          Math.max(0.46, profile.height * 0.44),
+          -profile.footprint * 0.32,
+        );
+        presentation.damageCrackA.setLocalScale(crackScale, 0.045, 0.055);
+        presentation.damageCrackA.setLocalEulerAngles(0, 18, 28);
+        if (damage.crackCount >= 2) {
+          presentation.damageCrackB.setLocalPosition(
+            -profile.footprint * 0.18,
+            Math.max(0.62, profile.height * 0.62),
+            profile.footprint * 0.28,
+          );
+          presentation.damageCrackB.setLocalScale(crackScale * 0.82, 0.04, 0.05);
+          presentation.damageCrackB.setLocalEulerAngles(0, -24, -34);
+        }
+      }
+      if (critical) {
+        const phase = tick * 0.21 + building.id * 0.77;
+        const pulse = 0.5 + 0.5 * Math.sin(phase);
+        const smokeScale = (0.40 + pulse * 0.09) * damageEmphasis;
+        presentation.damageSmokeA.setLocalPosition(
+          profile.footprint * 0.14,
+          profile.height * (0.70 + pulse * 0.035),
+          -profile.footprint * 0.06,
+        );
+        presentation.damageSmokeA.setLocalScale(smokeScale, smokeScale * 1.28, smokeScale);
+        if (!this.lowQuality) {
+          presentation.damageSmokeB.setLocalPosition(
+            -profile.footprint * 0.20,
+            profile.height * (0.57 + (1 - pulse) * 0.045),
+            profile.footprint * 0.10,
+          );
+          presentation.damageSmokeB.setLocalScale(smokeScale * 0.72, smokeScale, smokeScale * 0.72);
+          const emberScale = (0.11 + pulse * 0.055) * damageEmphasis;
+          presentation.damageEmber.setLocalPosition(
+            profile.footprint * 0.10,
+            Math.max(0.48, profile.height * 0.43),
+            -profile.footprint * 0.18,
+          );
+          presentation.damageEmber.setLocalScale(emberScale, emberScale, emberScale);
+        }
+      }
+
       const working = !building.completed || order !== undefined;
       const showHealth = !building.destroyed && (working || isResourceSite(building) || building.currentHealth < building.maxHealth);
       presentation.healthBack.enabled = showHealth;
@@ -480,6 +567,9 @@ export class StrategicRenderBridge {
     this.enemyAccentMaterial.destroy();
     this.constructionMaterial.destroy();
     this.destroyedMaterial.destroy();
+    this.damageCrackMaterial.destroy();
+    this.damageSmokeMaterial.destroy();
+    this.damageEmberMaterial.destroy();
     this.healthBackMaterial.destroy();
   }
 
@@ -774,6 +864,12 @@ export class StrategicRenderBridge {
       beam.setLocalPosition(x, frameHeight * 0.82, z);
       beam.setLocalScale(sx, 0.045, sz);
       constructionFrame.addChild(beam);
+
+      const midBeam = new pc.Entity(`${building.type} ${building.id} Scaffold Mid Beam ${index + 1}`);
+      midBeam.addComponent('render', { type: 'box', material: this.constructionMaterial, castShadows: false });
+      midBeam.setLocalPosition(x, frameHeight * 0.46, z);
+      midBeam.setLocalScale(sx, 0.038, sz);
+      constructionFrame.addChild(midBeam);
     }
     constructionFrame.enabled = !building.completed && !building.destroyed;
     root.addChild(constructionFrame);
@@ -785,8 +881,38 @@ export class StrategicRenderBridge {
 
     const constructionSpark = new pc.Entity(`${building.type} ${building.id} Construction Spark`);
     constructionSpark.addComponent('render', { type: 'sphere', material: this.workMaterial, castShadows: false });
-    constructionSpark.enabled = !building.completed && !building.destroyed;
+    constructionSpark.enabled = !building.completed && !building.destroyed && !this.lowQuality;
     root.addChild(constructionSpark);
+
+    const constructionLoad = new pc.Entity(`${building.type} ${building.id} Construction Load`);
+    constructionLoad.addComponent('render', { type: 'box', material: this.constructionMaterial, castShadows: false });
+    constructionLoad.enabled = !building.completed && !building.destroyed;
+    root.addChild(constructionLoad);
+
+    const damageCrackA = new pc.Entity(`${building.type} ${building.id} Damage Crack A`);
+    damageCrackA.addComponent('render', { type: 'box', material: this.damageCrackMaterial, castShadows: false });
+    damageCrackA.enabled = false;
+    root.addChild(damageCrackA);
+
+    const damageCrackB = new pc.Entity(`${building.type} ${building.id} Damage Crack B`);
+    damageCrackB.addComponent('render', { type: 'box', material: this.damageCrackMaterial, castShadows: false });
+    damageCrackB.enabled = false;
+    root.addChild(damageCrackB);
+
+    const damageSmokeA = new pc.Entity(`${building.type} ${building.id} Damage Smoke A`);
+    damageSmokeA.addComponent('render', { type: 'sphere', material: this.damageSmokeMaterial, castShadows: false });
+    damageSmokeA.enabled = false;
+    root.addChild(damageSmokeA);
+
+    const damageSmokeB = new pc.Entity(`${building.type} ${building.id} Damage Smoke B`);
+    damageSmokeB.addComponent('render', { type: 'sphere', material: this.damageSmokeMaterial, castShadows: false });
+    damageSmokeB.enabled = false;
+    root.addChild(damageSmokeB);
+
+    const damageEmber = new pc.Entity(`${building.type} ${building.id} Damage Ember`);
+    damageEmber.addComponent('render', { type: 'sphere', material: this.damageEmberMaterial, castShadows: false });
+    damageEmber.enabled = false;
+    root.addChild(damageEmber);
 
     const productionRig = new pc.Entity(`${building.type} ${building.id} Production Rig`);
     const productionRotor = new pc.Entity(`${building.type} ${building.id} Production Rotor`);
@@ -832,6 +958,12 @@ export class StrategicRenderBridge {
       constructionFrame,
       constructionLift,
       constructionSpark,
+      constructionLoad,
+      damageCrackA,
+      damageCrackB,
+      damageSmokeA,
+      damageSmokeB,
+      damageEmber,
       productionRig,
       productionRotor,
       productionCore,
