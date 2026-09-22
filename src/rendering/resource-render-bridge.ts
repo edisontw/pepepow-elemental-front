@@ -67,6 +67,9 @@ export class ResourceRenderBridge {
   private environmentDetails: EnvironmentDetailLayer | null = null;
   private latestVisibility: Uint8Array | undefined;
   private disposed = false;
+  // Atlas props are now the primary resource-site art. Keep the old primitive kit
+  // only as a dormant fallback so it cannot reappear as dark placeholder blobs.
+  private readonly showLegacyPrimitiveDressing = false;
 
   private readonly groundFootprint = material(
     new pc.Color(0.17, 0.16, 0.12),
@@ -134,23 +137,26 @@ export class ResourceRenderBridge {
       root.setPosition(position.x / WORLD_UNITS_PER_METER, 0.025, position.z / WORLD_UNITS_PER_METER);
       const scale = resource.rich ? 1.18 : 1;
 
-      primitive(root, 'cylinder', 'Resource Disturbed Ground A', [0, 0.012, 0], [1.65 * scale, 0.015, 1.36 * scale], this.groundFootprint);
-      primitive(root, 'cylinder', 'Resource Disturbed Ground B', [0.48 * scale, 0.014, -0.36 * scale], [0.76 * scale, 0.013, 0.52 * scale], this.groundFootprint, [0, 18, 0]);
-      primitive(root, 'cylinder', 'Resource Ground Footprint', [0, 0.028, 0], [1.16 * scale, 0.028, 1.0 * scale], this.groundFootprint);
-      primitive(root, 'sphere', 'Resource Ground Stone A', [-0.77 * scale, 0.08, 0.2 * scale], [0.23 * scale, 0.12 * scale, 0.18 * scale], this.stoneDark);
-      primitive(root, 'sphere', 'Resource Ground Stone B', [0.72 * scale, 0.07, -0.3 * scale], [0.19 * scale, 0.1 * scale, 0.15 * scale], this.stoneLight);
-      primitive(root, 'sphere', 'Resource Ground Stone C', [0.26 * scale, 0.055, 0.74 * scale], [0.16 * scale, 0.08 * scale, 0.13 * scale], this.stoneDark);
+      if (this.showLegacyPrimitiveDressing) {
+        primitive(root, 'cylinder', 'Resource Disturbed Ground A', [0, 0.012, 0], [1.65 * scale, 0.015, 1.36 * scale], this.groundFootprint);
+        primitive(root, 'cylinder', 'Resource Disturbed Ground B', [0.48 * scale, 0.014, -0.36 * scale], [0.76 * scale, 0.013, 0.52 * scale], this.groundFootprint, [0, 18, 0]);
+        primitive(root, 'cylinder', 'Resource Ground Footprint', [0, 0.028, 0], [1.16 * scale, 0.028, 1.0 * scale], this.groundFootprint);
+        primitive(root, 'sphere', 'Resource Ground Stone A', [-0.77 * scale, 0.08, 0.2 * scale], [0.23 * scale, 0.12 * scale, 0.18 * scale], this.stoneDark);
+        primitive(root, 'sphere', 'Resource Ground Stone B', [0.72 * scale, 0.07, -0.3 * scale], [0.19 * scale, 0.1 * scale, 0.15 * scale], this.stoneLight);
+        primitive(root, 'sphere', 'Resource Ground Stone C', [0.26 * scale, 0.055, 0.74 * scale], [0.16 * scale, 0.08 * scale, 0.13 * scale], this.stoneDark);
 
-      if (resource.type === 'MATERIAL') {
-        primitive(root, 'sphere', 'Ore Outcrop A', [-0.23 * scale, 0.28 * scale, 0.02], [0.6 * scale, 0.44 * scale, 0.5 * scale], this.materialRock, [7, 18, 4]);
-        primitive(root, 'sphere', 'Ore Outcrop B', [0.34 * scale, 0.22 * scale, -0.15 * scale], [0.48 * scale, 0.34 * scale, 0.4 * scale], this.stoneDark, [-5, -21, 8]);
-        primitive(root, 'sphere', 'Ore Nodule', [0.35 * scale, 0.21 * scale, 0.23 * scale], [0.2 * scale, 0.14 * scale, 0.17 * scale], this.materialOre);
-        primitive(root, 'sphere', 'Ore Chip A', [-0.82 * scale, 0.055, -0.02], [0.13 * scale, 0.07 * scale, 0.1 * scale], this.materialOre);
-        primitive(root, 'sphere', 'Ore Chip B', [0.74 * scale, 0.048, 0.23 * scale], [0.11 * scale, 0.06 * scale, 0.09 * scale], this.materialOre);
-      } else {
-        // Mana remains readable through the subdued pulse and the atlas shrub
-        // accent. The former stacked purple/black box kit read as placeholder
-        // geometry from the elevated camera.
+        if (resource.type === 'MATERIAL') {
+          primitive(root, 'sphere', 'Ore Outcrop A', [-0.23 * scale, 0.28 * scale, 0.02], [0.6 * scale, 0.44 * scale, 0.5 * scale], this.materialRock, [7, 18, 4]);
+          primitive(root, 'sphere', 'Ore Outcrop B', [0.34 * scale, 0.22 * scale, -0.15 * scale], [0.48 * scale, 0.34 * scale, 0.4 * scale], this.stoneDark, [-5, -21, 8]);
+          primitive(root, 'sphere', 'Ore Nodule', [0.35 * scale, 0.21 * scale, 0.23 * scale], [0.2 * scale, 0.14 * scale, 0.17 * scale], this.materialOre);
+          primitive(root, 'sphere', 'Ore Chip A', [-0.82 * scale, 0.055, -0.02], [0.13 * scale, 0.07 * scale, 0.1 * scale], this.materialOre);
+          primitive(root, 'sphere', 'Ore Chip B', [0.74 * scale, 0.048, 0.23 * scale], [0.11 * scale, 0.06 * scale, 0.09 * scale], this.materialOre);
+        } else {
+          // Mana remains readable through the subdued pulse and the atlas shrub
+          // accent. The former stacked purple/black box kit read as placeholder
+          // geometry from the elevated camera.
+        }
+
       }
 
       const marker = primitive(
