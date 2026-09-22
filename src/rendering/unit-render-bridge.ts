@@ -274,6 +274,24 @@ export class UnitRenderBridge {
         const naturalFacingYaw = facing.yawDegrees;
         const qaFacingYaw = this.qaFacingYawByEntity.get(unit.id);
         const effectiveFacingYaw = qaFacingYaw ?? naturalFacingYaw;
+        const attackAge = presentationTick - presentation.actionTick;
+        const heavyAttackPulse = attackAge >= 0 && attackAge < 2.6
+          ? Math.sin((attackAge / 2.6) * Math.PI)
+          : 0;
+        const heavyAttackOffset = unit.archetype === 'GOLEM'
+          ? 0.12 * heavyAttackPulse
+          : unit.archetype === 'SIEGE_CONSTRUCT'
+            ? -0.11 * heavyAttackPulse
+            : 0;
+        if (heavyAttackOffset !== 0) {
+          const facingRadians = naturalFacingYaw * Math.PI / 180;
+          const rootPosition = presentation.root.getPosition();
+          presentation.root.setPosition(
+            rootPosition.x + Math.sin(facingRadians) * heavyAttackOffset,
+            rootPosition.y,
+            rootPosition.z + Math.cos(facingRadians) * heavyAttackOffset,
+          );
+        }
 
         if (model?.impostor) {
           presentation.root.setEulerAngles(0, naturalFacingYaw, 0);

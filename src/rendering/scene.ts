@@ -222,7 +222,7 @@ export function createSceneShell(
   const bridge = new AnimatedUnitRenderBridge(app, initialSnapshot, unitMaterials, selectionMaterial, healthMaterial, visualAssets, battleVfx);
   const elementalBridge = new ElementalRenderBridge(app, simulation.terrain, initialSnapshot, battleVfx);
   const initialStrategicSnapshot = simulation instanceof M03Simulation ? simulation.strategy.snapshot() : null;
-  const combatPresentation = new CombatPresentationPass(app, battleVfx, initialStrategicSnapshot);
+  const combatPresentation = new CombatPresentationPass(app, battleVfx, initialStrategicSnapshot, lowQuality);
   const audioFeedback = new AudioFeedback();
   const poiBridge = simulation instanceof M03Simulation
     ? new PoiRenderBridge(app, simulation.generatedWorld, cameraComponent, camera, canvas)
@@ -244,7 +244,7 @@ export function createSceneShell(
   const minimapControls = simulation instanceof M03Simulation && minimapCanvas instanceof HTMLCanvasElement
     ? new MinimapControls(minimapCanvas, simulation.generatedWorld, camera, controls)
     : null;
-  const strategicBridge = simulation instanceof M03Simulation ? new StrategicRenderBridge(app, visualAssets) : null;
+  const strategicBridge = simulation instanceof M03Simulation ? new StrategicRenderBridge(app, visualAssets, lowQuality) : null;
   if (simulation instanceof M03Simulation) strategicBridge?.sync(
     simulation.strategy.snapshot(),
     initialSnapshot.tick,

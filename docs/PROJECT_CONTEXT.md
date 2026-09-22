@@ -474,6 +474,16 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
 - command voice cooldown remains bounded, so rapid RTS input does not create overlapping speech spam;
 - presentation/audio only: command semantics, simulation, replay authority, `ef-standard-v15`, `ef-replay-v15`, and `m02-standard-v1` are unchanged.
 
+### Priority C combat impact / destruction polish — 2026-09-22
+
+- Golem and Siege Construct now receive distinct heavy-attack body impulse plus bounded ground-shock/release feedback; Siege shell impacts also receive a short impact ring rather than reading like ordinary ranged fire.
+- completed strategic buildings now derive presentation-only health tiers from authoritative health: damaged structures gain visible crack cues, while critical structures add restrained smoke/ember layers; Elemental Core, Arcane Tower, and Barracks receive slightly stronger readability emphasis.
+- construction presentation adds a second scaffold tier and a rising assembly/load mass alongside the existing progress ring and spark, so unfinished buildings read as actively assembled rather than vertically scaled final art.
+- destruction retains the deterministic collapse pose but adds layered dust, smoke, debris, and a short heavy impact ring; transient counts remain capped.
+- `?quality=low` now also reduces combat/destruction transient capacity, removes secondary construction sparks/smoke/embers/heavy shock rings, and lowers destruction debris count in addition to the existing antialias/shadow/environment reductions.
+- this pass is presentation-only: simulation, damage, construction timing, pathing, replay semantics, `ef-standard-v15`, `ef-replay-v15`, and `m02-standard-v1` are unchanged.
+- manual Standard/Tower Defense WebGL/FPS acceptance remains the final gate and must not be marked complete from non-WebGL automation.
+
 ### Token-efficient validation policy
 
 For presentation-only batches:

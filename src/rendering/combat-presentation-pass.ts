@@ -18,7 +18,9 @@ type TransientKind =
   | 'SHELL_TRACE'
   | 'UNIT_DEATH_DUST'
   | 'UNIT_DEATH_SHARD'
+  | 'HEAVY_SHOCK_RING'
   | 'BUILDING_DUST'
+  | 'BUILDING_SMOKE'
   | 'BUILDING_DEBRIS';
 
 interface CombatTransient {
@@ -55,6 +57,18 @@ function createMaterial(color: pc.Color, emissive?: pc.Color, opacity = 1): pc.S
     material.blendType = pc.BLEND_ADDITIVEALPHA;
     material.depthWrite = false;
   }
+  material.cull = pc.CULLFACE_NONE;
+  material.update();
+  return material;
+}
+
+function createSmokeMaterial(color: pc.Color, opacity: number): pc.StandardMaterial {
+  const material = new pc.StandardMaterial();
+  material.diffuse = color;
+  material.gloss = 0.08;
+  material.opacity = opacity;
+  material.blendType = pc.BLEND_NORMAL;
+  material.depthWrite = false;
   material.cull = pc.CULLFACE_NONE;
   material.update();
   return material;
@@ -114,7 +128,7 @@ export class CombatPresentationPass {
   private readonly transient: CombatTransient[] = [];
   private readonly buildingState = new Map<number, BuildingVisualState>();
   private lastProcessedTick = -1;
-  private readonly maxTransient = 48;
+  private readonly maxTransient: number;
 
   private readonly playerEnergy = createMaterial(
     new pc.Color(0.5, 1, 0.9),
@@ -137,11 +151,12 @@ export class CombatPresentationPass {
     0.48,
   );
   private readonly debrisMaterial = createMaterial(new pc.Color(0.24, 0.23, 0.21));
-  private readonly smokeMaterial = createMaterial(
-    new pc.Color(0.28, 0.3, 0.31),
-    new pc.Color(0.02, 0.02, 0.02),
+  private readonly shockMaterial = createMaterial(
+    new pc.Color(0.86, 0.54, 0.22),
+    new pc.Color(0.24, 0.07, 0.015),
     0.38,
   );
+  private readonly smokeMaterial = createSmokeMaterial(new pc.Color(0.18, 0.19, 0.19), 0.32);
   private readonly elementMaterials = Object.fromEntries(
     Object.entries(ELEMENT_TINTS).map(([element, tint]) => {
       const color = tintColor(tint);
@@ -153,7 +168,9 @@ export class CombatPresentationPass {
     private readonly app: pc.Application,
     private readonly effects: BattleVfx,
     initialStrategic: StrategicSnapshot | null = null,
+    private readonly lowQuality = false,
   ) {
+    this.maxTransient = lowQuality ? 28 : 48;
     if (initialStrategic) this.captureBuildingState(initialStrategic);
   }
 
@@ -179,6 +196,7 @@ export class CombatPresentationPass {
     this.meleeMaterial.destroy();
     this.dustMaterial.destroy();
     this.debrisMaterial.destroy();
+    this.shockMaterial.destroy();
     this.smokeMaterial.destroy();
     for (const material of Object.values(this.elementMaterials)) material.destroy();
   }
@@ -283,6 +301,12 @@ export class CombatPresentationPass {
       structureTarget ? (heavy ? 14 : 9) : (heavy ? 9 : 5),
       structureTarget ? (heavy ? 1.05 : 0.72) : (heavy ? 0.85 : 0.54),
     );
+    if (attacker.archetype === 'GOLEM') {
+      this.spawnHeavyShock(end.x, end.z, tick, structureTarget ? 1.45 : 1.12);
+      if (!this.lowQuality) {
+        this.effects.burst(start.x, 0.18, start.z, [0.52, 0.39, 0.24], tick, 4, 0.42);
+      }
+    }
   }
 
   private spawnRangedAttack(
@@ -404,6 +428,12 @@ export class CombatPresentationPass {
       style === 'SHELL' ? 5 : element === 'LIGHTNING' ? 5 : 3,
       style === 'SHELL' ? 0.42 : element === 'FIRE' ? 0.34 : 0.28,
     );
+    if (attacker.archetype === 'SIEGE_CONSTRUCT') {
+      this.spawnHeavyShock(start.x, start.z, tick, 0.92);
+      if (!this.lowQuality) {
+        this.effects.burst(start.x, 0.22, start.z, [0.48, 0.42, 0.34], tick, 4, 0.36);
+      }
+    }
   }
 
   private spawnUnitDeath(unit: EntitySnapshot, tick: number): void {
@@ -463,7 +493,37 @@ export class CombatPresentationPass {
     const profile = buildingVisualProfile(building.type);
     const x = metres(building.x);
     const z = metres(building.z);
-    this.effects.burst(x, Math.max(0.45, profile.height * 0.35), z, [1, 0.58, 0.2], tick, 5, 0.46);
+    const healthRatio = Math.max(0, Math.min(1, building.currentHealth / Math.max(1, building.maxHealth)));
+    const severity = 1 - healthRatio;
+    const emphasis = building.type === 'ELEMENTAL_CORE'
+      ? 1.32
+      : building.type === 'ARCANE_TOWER'
+        ? 1.18
+        : building.type === 'BARRACKS'
+          ? 1.12
+          : 1;
+    this.effects.burst(
+      x,
+      Math.max(0.45, profile.height * 0.35),
+      z,
+      [1, 0.58, 0.2],
+      tick,
+      this.lowQuality ? 4 : Math.round(5 + severity * 4 * emphasis),
+      (0.44 + severity * 0.23) * emphasis,
+    );
+    if (!this.lowQuality && severity >= 0.66) {
+      const smoke = new pc.Entity(`Building hit smoke ${building.id}`);
+      smoke.addComponent('render', { type: 'sphere', material: this.smokeMaterial, castShadows: false });
+      smoke.setPosition(x, Math.max(0.55, profile.height * 0.56), z);
+      this.app.root.addChild(smoke);
+      this.pushTransient({
+        entity: smoke,
+        kind: 'BUILDING_SMOKE',
+        bornTick: tick,
+        expiresTick: tick + 5,
+        baseScale: profile.footprint * 0.24 * emphasis,
+      });
+    }
   }
 
   private spawnBuildingDestruction(building: StrategicBuilding, tick: number): void {
@@ -484,7 +544,31 @@ export class CombatPresentationPass {
       baseScale: profile.footprint * 0.66,
     });
 
-    const debrisCount = Math.min(9, Math.max(5, Math.round(profile.footprint * 2.2)));
+    this.spawnHeavyShock(x, z, tick, Math.max(1.1, profile.footprint * 0.46));
+
+    const smokeCount = this.lowQuality ? 1 : 3;
+    for (let index = 0; index < smokeCount; index += 1) {
+      const smoke = new pc.Entity(`Building collapse smoke ${building.id}-${index}`);
+      smoke.addComponent('render', { type: 'sphere', material: this.smokeMaterial, castShadows: false });
+      const angle = index * 2.094 + building.id * 0.41;
+      smoke.setPosition(
+        x + Math.cos(angle) * profile.footprint * 0.12,
+        0.34 + index * 0.16,
+        z + Math.sin(angle) * profile.footprint * 0.12,
+      );
+      this.app.root.addChild(smoke);
+      this.pushTransient({
+        entity: smoke,
+        kind: 'BUILDING_SMOKE',
+        bornTick: tick,
+        expiresTick: tick + 9 + index,
+        baseScale: profile.footprint * (0.28 + index * 0.04),
+      });
+    }
+
+    const debrisCount = this.lowQuality
+      ? Math.min(4, Math.max(3, Math.round(profile.footprint)))
+      : Math.min(9, Math.max(5, Math.round(profile.footprint * 2.2)));
     for (let index = 0; index < debrisCount; index += 1) {
       const angle = (index / debrisCount) * Math.PI * 2 + building.id * 0.29;
       const debris = new pc.Entity(`Building debris ${building.id}-${index}`);
@@ -534,6 +618,9 @@ export class CombatPresentationPass {
             branchEnd.y += 0.03;
             branchEnd.z += 0.12;
             this.effects.bolt(branchStart, branchEnd, tick);
+          }
+          if (transient.kind === 'SHELL_TRACE') {
+            this.spawnHeavyShock(transient.end.x, transient.end.z, tick, transient.impactForce ?? 1);
           }
         }
         transient.entity.destroy();
@@ -597,11 +684,19 @@ export class CombatPresentationPass {
       } else if (transient.kind === 'MUZZLE_FLASH') {
         const scale = 1.25 - progress * 0.72;
         transient.entity.setLocalScale(scale, scale, scale);
+      } else if (transient.kind === 'HEAVY_SHOCK_RING') {
+        const scale = transient.baseScale * (0.42 + progress * 1.25);
+        transient.entity.setLocalScale(scale, 0.018, scale);
       } else if (transient.kind === 'UNIT_DEATH_DUST' || transient.kind === 'BUILDING_DUST') {
         const scale = transient.baseScale * (0.72 + progress * 1.35);
         const position = transient.entity.getPosition();
         transient.entity.setPosition(position.x, position.y + 0.025, position.z);
         transient.entity.setLocalScale(scale, scale * (0.38 + progress * 0.32), scale);
+      } else if (transient.kind === 'BUILDING_SMOKE') {
+        const scale = transient.baseScale * (0.66 + progress * 1.12);
+        const position = transient.entity.getPosition();
+        transient.entity.setPosition(position.x, position.y + 0.035, position.z);
+        transient.entity.setLocalScale(scale, scale * (1.08 + progress * 0.38), scale);
       } else if ((transient.kind === 'UNIT_DEATH_SHARD' || transient.kind === 'BUILDING_DEBRIS') && transient.velocity) {
         const position = transient.entity.getPosition();
         const velocity = transient.velocity;
@@ -616,6 +711,22 @@ export class CombatPresentationPass {
         if (transient.spin) transient.entity.rotateLocal(transient.spin.x, transient.spin.y, transient.spin.z);
       }
     }
+  }
+
+  private spawnHeavyShock(x: number, z: number, tick: number, force: number): void {
+    if (this.lowQuality) return;
+    const ring = new pc.Entity('Heavy impact shock ring');
+    ring.addComponent('render', { type: 'cylinder', material: this.shockMaterial, castShadows: false });
+    ring.setPosition(x, 0.075, z);
+    ring.setLocalScale(0.2, 0.018, 0.2);
+    this.app.root.addChild(ring);
+    this.pushTransient({
+      entity: ring,
+      kind: 'HEAVY_SHOCK_RING',
+      bornTick: tick,
+      expiresTick: tick + 3,
+      baseScale: Math.max(0.52, force),
+    });
   }
 
   private pushTransient(transient: CombatTransient): void {
