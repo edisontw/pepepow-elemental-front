@@ -53,9 +53,10 @@ export class BattleVfx {
   private readonly entity = new pc.Entity('Combat sparks and arcs');
   private readonly positions: Float32Array;
   private readonly colors: Uint8Array;
-  private readonly capacity = 192;
+  private readonly capacity: number;
 
-  constructor(app: pc.Application) {
+  constructor(app: pc.Application, capacity = 192) {
+    this.capacity = Math.max(48, Math.floor(capacity));
     this.positions = new Float32Array(this.capacity * 18);
     this.colors = new Uint8Array(this.capacity * 24);
     for (let i = 0; i < this.capacity; i++) {
