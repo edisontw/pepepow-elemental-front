@@ -335,7 +335,7 @@ Vanguard acceptance requires:
 - stable baseline and pivot;
 - broad asymmetric teal shield remains readable;
 - compact one-handed sword remains consistent;
-- selection ring, health bar, fog, Wet/Freeze overlays, and VFX remain readable;
+- selection ring, restrained critical-health cue, fog, Wet/Freeze overlays, and VFX remain readable;
 - one manual WebGL acceptance pass succeeds.
 
 After Vanguard passes, recommended roster order is:
