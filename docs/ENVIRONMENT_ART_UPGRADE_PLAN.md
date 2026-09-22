@@ -518,7 +518,7 @@ The environment upgrade is successful when the normal gameplay screen satisfies 
 - environment assets share one stylized material and lighting language;
 - buildings and units still dominate gameplay attention;
 - team color and elemental identity remain unaffected;
-- selection rings, health bars, build footprints, roads, and spell footprints remain easy to read.
+- selection rings, critical-health cues, build footprints, roads, and spell footprints remain easy to read.
 
 ### Technical
 
