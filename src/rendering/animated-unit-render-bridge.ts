@@ -42,6 +42,16 @@ function loadedModelRoot(unitRoot: pc.Entity): pc.Entity | null {
   return null;
 }
 
+function targetWithinAttackRange(
+  attacker: EntitySnapshot,
+  target: EntitySnapshot | undefined,
+): boolean {
+  if (!target) return false;
+  const dx = attacker.x - target.x;
+  const dz = attacker.z - target.z;
+  return dx * dx + dz * dz <= attacker.attackRange * attacker.attackRange;
+}
+
 /**
  * U0 migration wrapper: preserves the authoritative UnitRenderBridge and layers
  * clip playback/grounding on top. This can be collapsed into UnitRenderBridge
@@ -105,9 +115,15 @@ export class AnimatedUnitRenderBridge extends UnitRenderBridge {
 
       const prior = previousById.get(unit.id) ?? unit;
       const moving = unit.frozenTicks === 0 && (unit.x !== prior.x || unit.z !== prior.z);
+      const unitTarget = unit.attackTargetEntityId === null
+        ? undefined
+        : current.entities.find((candidate) => candidate.id === unit.attackTargetEntityId);
       const attacked = unit.alive
-        && (unit.attackTargetEntityId !== null || objectiveAttackIds.has(unit.id))
-        && unit.nextAttackTick > prior.nextAttackTick;
+        && unit.nextAttackTick > prior.nextAttackTick
+        && (
+          objectiveAttackIds.has(unit.id)
+          || (unit.attackTargetEntityId !== null && targetWithinAttackRange(unit, unitTarget))
+        );
       const casted = unit.alive
         && cast?.status === 'CAST'
         && cast.casterEntityId === unit.id
