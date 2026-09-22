@@ -54,6 +54,45 @@ describe('M01 deterministic direct combat', () => {
     expect(ranged.snapshot().entities[1]?.currentHealth).toBe(88);
   });
 
+  it('finishes sub-cell pursuit when melee units share a navigation cell but remain out of range', () => {
+    const traversal = {
+      originX: 0,
+      originZ: 0,
+      cellSize: 1_000,
+      columns: 4,
+      rows: 4,
+      initialNavVersion: 1,
+      patches: [],
+      freezableWaterPatches: [],
+      vegetationPatches: [],
+    };
+    const simulation = new Simulation('same-cell-melee-gap', {
+      ...M01_ARENA,
+      id: 'same-cell-melee-gap',
+      width: 4_000,
+      depth: 4_000,
+      zones: [],
+      traversal,
+      units: [
+        spawn(0, 1_010, 1_010, 'VANGUARD'),
+        spawn(1, 1_990, 1_990, 'VANGUARD'),
+      ],
+    });
+    const before = simulation.snapshot();
+    const initialDistance = Math.hypot(
+      before.entities[0]!.x - before.entities[1]!.x,
+      before.entities[0]!.z - before.entities[1]!.z,
+    );
+    expect(initialDistance).toBeGreaterThan(before.entities[0]!.attackRange);
+
+    simulation.enqueueCommand(attack());
+    const frame = simulation.step();
+
+    expect(frame.entities[0]!.x).toBeGreaterThan(before.entities[0]!.x);
+    expect(frame.entities[0]!.z).toBeGreaterThan(before.entities[0]!.z);
+    expect(frame.entities[1]!.currentHealth).toBeLessThan(100);
+  });
+
   it('applies damage on the exact integer-tick cadence', () => {
     const simulation = new Simulation('cadence', arenaWith([spawn(0, -5_500, -5_500, 'RANGER'), spawn(1, -1_500, -5_500, 'VANGUARD', 200)]));
     simulation.enqueueCommand(attack());
