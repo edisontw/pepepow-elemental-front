@@ -122,6 +122,8 @@ function impactDirection(
 export class UnitRenderBridge {
   private readonly units = new Map<EntityID, UnitPresentation>();
   private latest = new Map<EntityID, EntitySnapshot>();
+  private previousById = new Map<EntityID, EntitySnapshot>();
+  private snapshotCacheTick = Number.NaN;
   private readonly screenPosition = new pc.Vec3();
   private readonly projectiles: ProjectilePresentation[] = [];
   private readonly qaFacingYawByEntity = new Map<EntityID, number>();
@@ -161,10 +163,14 @@ export class UnitRenderBridge {
   }
 
   sync(previous: SimulationSnapshot, current: SimulationSnapshot, alpha: number): void {
-    this.latest = snapshotMap(current);
     const authority = (current as Partial<M04SimulationSnapshot>).elementalAuthority;
-    this.alignments = new Map(authority?.alignedElementalists.map((entry) => [entry.entityId, entry.element]));
-    const previousById = snapshotMap(previous);
+    if (current.tick !== this.snapshotCacheTick) {
+      this.latest = snapshotMap(current);
+      this.previousById = snapshotMap(previous);
+      this.alignments = new Map(authority?.alignedElementalists.map((entry) => [entry.entityId, entry.element]));
+      this.snapshotCacheTick = current.tick;
+    }
+    const previousById = this.previousById;
     if (current.tick !== this.lastFeedbackTick) {
       this.detectCombatFeedback(previousById, current);
       this.lastFeedbackTick = current.tick;
