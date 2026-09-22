@@ -700,6 +700,7 @@ export class UnitRenderBridge {
         && unit.nextAttackTick > prior.nextAttackTick
         && targetWithinAttackRange(unit, unitTarget);
       const objectiveAttackEvent = objectiveTarget !== null
+        && objectiveTarget !== undefined
         && unit.nextAttackTick > prior.nextAttackTick;
       if (
         !unit.alive
