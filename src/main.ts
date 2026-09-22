@@ -181,6 +181,7 @@ async function boot(): Promise<void> {
       strategyElement,
       simulation,
       () => scene.selectedUnits,
+      (entityId) => scene.selectUnit(entityId, true),
       canvas,
       (clientX, clientY) => scene.screenToSimulationPosition(clientX, clientY),
     );
