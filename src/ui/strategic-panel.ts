@@ -22,6 +22,9 @@ const TRAIN_ORDER: readonly UnitArchetype[] = [
   'VANGUARD', 'SPEAR_GUARD', 'RANGER', 'SCOUT', 'ELEMENTALIST', 'ENGINEER', 'GOLEM', 'SIEGE_CONSTRUCT',
 ];
 const PRODUCER_TYPES: readonly ProducerBuildingType[] = ['BARRACKS', 'ARCANE_TOWER', 'WORKSHOP'];
+const LOW_HEALTH_RATIO = 0.6;
+const CRITICAL_HEALTH_RATIO = 0.35;
+const LOW_HEALTH_VISIBLE_LIMIT = 6;
 
 const BUILDING_ROLE: Readonly<Record<Exclude<BuildingType, 'ELEMENTAL_CORE'>, string>> = {
   BARRACKS: 'Infantry',
@@ -103,6 +106,7 @@ export class StrategicPanel {
     private readonly element: HTMLElement,
     private readonly simulation: M03Simulation,
     private readonly selectedUnits: () => readonly EntitySnapshot[],
+    private readonly selectUnit: (entityId: number) => boolean,
     private readonly battlefieldCanvas: HTMLCanvasElement,
     private readonly screenToSimulationPosition: (clientX: number, clientY: number) => { x: number; z: number } | null,
   ) {
@@ -176,6 +180,10 @@ export class StrategicPanel {
     else if (action === 'build') this.beginBuild(target.dataset.value as Exclude<BuildingType, 'ELEMENTAL_CORE'>);
     else if (action === 'train') this.queueTrain(target.dataset.value as UnitArchetype, event.shiftKey ? 5 : 1);
     else if (action === 'select-producer') this.selectProducer(Number(target.dataset.value));
+    else if (action === 'select-low-health') {
+      const entityId = Number(target.dataset.value);
+      if (this.selectUnit(entityId)) this.message = `Selected ${target.dataset.label ?? 'low-health unit'} #${entityId}.`;
+    }
     else if (action === 'set-rally') this.beginRallyPlacement();
     this.render();
   };
@@ -546,6 +554,36 @@ export class StrategicPanel {
     return rows ? `<div class="army-counts"><strong>Army</strong><div>${rows}</div></div>` : '';
   }
 
+  private lowHealthMarkup(simulationSnapshot: ReturnType<M03Simulation['snapshot']>): string {
+    const selectedIds = new Set(this.selectedUnits().map((unit) => unit.id));
+    const wounded = simulationSnapshot.entities
+      .filter((unit) => (
+        unit.playerId === PLAYER_ID
+        && unit.alive
+        && unit.currentHealth < unit.maxHealth
+        && unit.currentHealth / Math.max(1, unit.maxHealth) <= LOW_HEALTH_RATIO
+      ))
+      .sort((left, right) => (
+        left.currentHealth / Math.max(1, left.maxHealth) - right.currentHealth / Math.max(1, right.maxHealth)
+        || left.id - right.id
+      ));
+    if (wounded.length === 0) return '';
+
+    const visible = wounded.slice(0, LOW_HEALTH_VISIBLE_LIMIT);
+    const rows = visible.map((unit) => {
+      const ratio = unit.currentHealth / Math.max(1, unit.maxHealth);
+      const percent = Math.max(1, Math.round(ratio * 100));
+      const critical = ratio <= CRITICAL_HEALTH_RATIO;
+      const selected = selectedIds.has(unit.id);
+      const classes = ['low-health-unit', critical ? 'critical' : '', selected ? 'active' : ''].filter(Boolean).join(' ');
+      const state = critical ? 'Critical' : 'Wounded';
+      const unitLabel = label(unit.archetype);
+      return `<button class="${classes}" data-action="select-low-health" data-value="${unit.id}" data-label="${unitLabel}" title="Select and focus ${unitLabel} #${unit.id} · ${unit.currentHealth}/${unit.maxHealth} HP"><span><b>${unitLabel} #${unit.id}</b><small>${state}</small></span><em>${percent}%</em><i class="low-health-meter" aria-hidden="true"><b style="width:${percent}%"></b></i></button>`;
+    }).join('');
+    const hidden = wounded.length - visible.length;
+    return `<section class="low-health-section" aria-label="Low-health units"><div class="low-health-heading"><strong>Low-health units</strong><small>Below 60% HP · click to select and focus</small></div><div class="low-health-list">${rows}</div>${hidden > 0 ? `<small class="low-health-more">+${hidden} more below 60% HP</small>` : ''}</section>`;
+  }
+
   private producerMarkup(snapshot: ReturnType<M03Simulation['strategy']['snapshot']>): string {
     const producers = this.availableProducers(snapshot);
     if (producers.length === 0) {
@@ -663,7 +701,7 @@ export class StrategicPanel {
       <div class="strategy-section build-view"><strong>Construct</strong><div class="strategy-buttons construction-grid">${buildingButtons}</div><div class="command-hint">Click a card, then place on the battlefield · Shift-place repeats · Esc/right-click cancels</div></div>
       <div class="strategy-section army-view army-recruit-section"><strong>Recruit</strong><div class="strategy-buttons compact recruit-grid">${trainButtons}</div><div class="command-hint">Click = queue 1 · Shift-click = queue up to 5 · matching producer is chosen automatically</div></div>
       <div class="strategy-section army-view army-producer-section">${this.producerMarkup(snapshot)}<div class="strategy-buttons secondary-actions"><button class="${rallyActive.trim()}" data-action="set-rally" ${this.selectedProducerId !== null ? '' : 'disabled'}>Set Rally for Preferred</button></div></div>
-      <div class="army-view army-lower-priority">${this.queueMarkup(simulationSnapshot.tick, snapshot, 'army')}${this.armyMarkup(simulationSnapshot)}</div>
+      <div class="army-view army-lower-priority">${this.queueMarkup(simulationSnapshot.tick, snapshot, 'army')}${this.lowHealthMarkup(simulationSnapshot)}${this.armyMarkup(simulationSnapshot)}</div>
       ${this.message ? `<div class="strategy-message" aria-live="polite">${this.message}</div>` : ''}
       <div class="strategy-section territory-info build-view"><div class="expansion-compact"><span>${expansionHint}</span></div></div>
     `;
