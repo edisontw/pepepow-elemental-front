@@ -135,6 +135,9 @@ export class PoiRenderBridge {
   private latestPoiOwners: Readonly<Record<string, number>> = {};
   private latestCaptureOrders: StrategicSnapshot['captureOrders'] = [];
   private latestNeutralEncounters: NeutralEncounterSnapshot | null = null;
+  // Environment atlas cards now carry POI art. The old box/cylinder landmark
+  // kit is retained only as a dormant fallback to prevent placeholder geometry.
+  private readonly showLegacyPrimitiveLandmarks = false;
 
   constructor(
     private readonly app: pc.Application,
@@ -165,15 +168,16 @@ export class PoiRenderBridge {
       const cellIndex = presentation.poi.cell.z * this.world.width + presentation.poi.cell.x;
       const level = visibility?.[cellIndex] ?? VisibilityLevel.VISIBLE;
       presentation.root.enabled = level !== VisibilityLevel.UNEXPLORED;
-      presentation.ownershipBase.enabled = level === VisibilityLevel.VISIBLE;
-      presentation.beacon.enabled = level === VisibilityLevel.VISIBLE;
+      const ownership = poiOwnershipState(snapshot.poiOwners[presentation.poi.id]);
+      const showOwnership = level === VisibilityLevel.VISIBLE && ownership !== 'NEUTRAL';
+      presentation.ownershipBase.enabled = showOwnership;
+      presentation.beacon.enabled = showOwnership;
       presentation.pickAnchor.enabled = level === VisibilityLevel.VISIBLE;
       const camp = presentation.poi.type === 'NEUTRAL_CAMP'
         ? neutralEncounters?.camps.find((candidate) => candidate.id === presentation.poi.id)
         : undefined;
       const guarded = level === VisibilityLevel.VISIBLE && camp !== undefined && !camp.cleared;
       for (const marker of presentation.encounterMarkers) marker.enabled = guarded;
-      const ownership = poiOwnershipState(snapshot.poiOwners[presentation.poi.id]);
       if (ownership === presentation.ownership) continue;
       presentation.ownership = ownership;
       const material = this.ownershipMaterial(ownership);
@@ -228,45 +232,47 @@ export class PoiRenderBridge {
       position.z / WORLD_UNITS_PER_METER,
     );
 
-    addPrimitive(
-      root,
-      'cylinder',
-      `${profile.label} Ground Wear A`,
-      [0, 0.012, 0],
-      [1.92, 0.018, 1.58],
-      this.siteGroundMaterial,
-    );
-    addPrimitive(
-      root,
-      'cylinder',
-      `${profile.label} Ground Wear B`,
-      [0.48, 0.014, -0.28],
-      [0.92, 0.016, 0.62],
-      this.siteGroundMaterial,
-      [0, 18, 0],
-    );
-
-    addPrimitive(
-      root,
-      'cylinder',
-      `${profile.label} Stone Apron`,
-      [0, 0.035, 0],
-      [1.34, 0.04, 1.16],
-      this.stoneBaseMaterial,
-    );
-
-    const landmarkMaterial = this.landmarkMaterial(poi.type);
-    for (const [index, part] of profile.landmark.entries()) {
+    if (this.showLegacyPrimitiveLandmarks) {
       addPrimitive(
         root,
-        part.primitive,
-        `${profile.label} Part ${index + 1}`,
-        part.position,
-        part.scale,
-        landmarkMaterial,
+        'cylinder',
+        `${profile.label} Ground Wear A`,
+        [0, 0.012, 0],
+        [1.92, 0.018, 1.58],
+        this.siteGroundMaterial,
       );
+      addPrimitive(
+        root,
+        'cylinder',
+        `${profile.label} Ground Wear B`,
+        [0.48, 0.014, -0.28],
+        [0.92, 0.016, 0.62],
+        this.siteGroundMaterial,
+        [0, 18, 0],
+      );
+
+      addPrimitive(
+        root,
+        'cylinder',
+        `${profile.label} Stone Apron`,
+        [0, 0.035, 0],
+        [1.34, 0.04, 1.16],
+        this.stoneBaseMaterial,
+      );
+
+      const landmarkMaterial = this.landmarkMaterial(poi.type);
+      for (const [index, part] of profile.landmark.entries()) {
+        addPrimitive(
+          root,
+          part.primitive,
+          `${profile.label} Part ${index + 1}`,
+          part.position,
+          part.scale,
+          landmarkMaterial,
+        );
+      }
+      this.addLandmarkDressing(root, poi);
     }
-    this.addLandmarkDressing(root, poi);
 
     const ownershipBase = addPrimitive(
       root,
@@ -286,7 +292,7 @@ export class PoiRenderBridge {
     );
 
     const encounterMarkers: pc.Entity[] = [];
-    if (poi.type === 'NEUTRAL_CAMP') {
+    if (this.showLegacyPrimitiveLandmarks && poi.type === 'NEUTRAL_CAMP') {
       encounterMarkers.push(addPrimitive(
         root,
         'cylinder',
