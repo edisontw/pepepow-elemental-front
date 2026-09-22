@@ -102,6 +102,12 @@ function isHeavyMelee(archetype: UnitArchetype): boolean {
   return archetype === 'GOLEM' || archetype === 'VANGUARD';
 }
 
+function targetWithinAttackRange(attacker: EntitySnapshot, target: EntitySnapshot): boolean {
+  const dx = attacker.x - target.x;
+  const dz = attacker.z - target.z;
+  return dx * dx + dz * dz <= attacker.attackRange * attacker.attackRange;
+}
+
 function addProjectilePart(
   parent: pc.Entity,
   name: string,
@@ -231,6 +237,7 @@ export class CombatPresentationPass {
             ? run?.boss
             : null;
       if (!target && !objectiveTarget) continue;
+      if (target && !targetWithinAttackRange(unit, target)) continue;
       const structureTarget = objective === 'ENEMY_CORE' || objective === 'PLAYER_CORE';
       const end = target
         ? entityPoint(target, 0.48)
