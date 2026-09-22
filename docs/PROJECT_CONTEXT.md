@@ -495,6 +495,13 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
 - these changes are presentation/runtime optimization only: simulation cadence, movement/facing authority, combat, fog authority, replay/state hashes, `ef-standard-v15`, `ef-replay-v15`, and `m02-standard-v1` are unchanged;
 - automated CI can validate TypeScript/tests/build, but final Standard + Tower Defense WebGL/FPS acceptance remains a manual browser gate.
 
+### Neutral Sentinel melee presentation correction — 2026-09-22
+
+- Neutral Camp Ancient Sentinels remain melee guardians implemented with the Golem archetype and an authoritative **1.35 m** attack range;
+- acquiring an ATTACK target while still outside melee range no longer produces a false Attack animation;
+- both the base unit presentation and the neutral/enemy GLB animation layer now require the live unit target to be inside its authoritative attack range before treating an attack-timer advance as a visible attack event;
+- pursuit remains movement-only until contact; damage timing, Sentinel stats, leash/aggro rules, simulation, replay semantics, `ef-standard-v15`, `ef-replay-v15`, and `m02-standard-v1` are unchanged.
+
 ### Low-health awareness / Army panel pass — 2026-09-22
 
 - persistent in-world health bars are removed from combat units to reduce visual clutter; unit health remains authoritative and unchanged;
