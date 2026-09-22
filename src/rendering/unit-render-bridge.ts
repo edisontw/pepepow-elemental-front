@@ -98,6 +98,16 @@ function fallbackImpactDirection(entityId: EntityID): { x: number; z: number } {
   return { x: Math.cos(angle), z: Math.sin(angle) };
 }
 
+function targetWithinAttackRange(
+  attacker: EntitySnapshot,
+  target: EntitySnapshot | undefined,
+): boolean {
+  if (!target) return false;
+  const dx = attacker.x - target.x;
+  const dz = attacker.z - target.z;
+  return dx * dx + dz * dz <= attacker.attackRange * attacker.attackRange;
+}
+
 function impactDirection(
   target: EntitySnapshot,
   previousById: Map<EntityID, EntitySnapshot>,
@@ -683,11 +693,18 @@ export class UnitRenderBridge {
           : objectiveOrder?.objective === 'BOSS'
             ? run?.boss
             : null;
+      const unitTarget = unit.attackTargetEntityId === null
+        ? undefined
+        : currentById.get(unit.attackTargetEntityId);
+      const unitAttackEvent = unit.attackTargetEntityId !== null
+        && unit.nextAttackTick > prior.nextAttackTick
+        && targetWithinAttackRange(unit, unitTarget);
+      const objectiveAttackEvent = objectiveTarget !== null
+        && unit.nextAttackTick > prior.nextAttackTick;
       if (
         !unit.alive
         || !unit.visibleToPlayer
-        || (unit.attackTargetEntityId === null && !objectiveTarget)
-        || unit.nextAttackTick <= prior.nextAttackTick
+        || (!unitAttackEvent && !objectiveAttackEvent)
       ) continue;
       const profile = unitVisualProfile(unit.archetype);
       presentation.actionTick = current.tick;
@@ -699,7 +716,7 @@ export class UnitRenderBridge {
         continue;
       }
 
-      const facing = unit.attackTargetEntityId === null ? undefined : currentById.get(unit.attackTargetEntityId);
+      const facing = unitTarget;
       if (facing?.visibleToPlayer) {
         presentation.facingOverrideYaw = facingYawDegrees(unit.x, unit.z, facing.x, facing.z);
         presentation.facingOverrideUntilTick = current.tick + 1;
