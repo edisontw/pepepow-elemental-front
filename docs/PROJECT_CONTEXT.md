@@ -495,6 +495,14 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
 - these changes are presentation/runtime optimization only: simulation cadence, movement/facing authority, combat, fog authority, replay/state hashes, `ef-standard-v15`, `ef-replay-v15`, and `m02-standard-v1` are unchanged;
 - automated CI can validate TypeScript/tests/build, but final Standard + Tower Defense WebGL/FPS acceptance remains a manual browser gate.
 
+### Low-health awareness / Army panel pass — 2026-09-22
+
+- persistent in-world health bars are removed from combat units to reduce visual clutter; unit health remains authoritative and unchanged;
+- the Army view lists player units at or below **60% HP**, sorted from lowest health upward, with compact percentage meters and direct click-to-select + camera focus;
+- battlefield critical-health feedback is intentionally restrained: player units at or below **35% HP** receive only a faint, slow pulsing ground ring rather than a bright warning or overhead bar;
+- veteran pips remain visible but are anchored independently above the unit instead of being positioned relative to a health bar;
+- this is presentation/UI only: health values, damage, healing, selection authority, simulation, replay semantics, `ef-standard-v15`, `ef-replay-v15`, and `m02-standard-v1` are unchanged.
+
 ### Token-efficient validation policy
 
 For presentation-only batches:
