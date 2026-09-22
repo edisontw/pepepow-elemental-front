@@ -60,11 +60,10 @@ export class AnimatedUnitRenderBridge extends UnitRenderBridge {
     initialSnapshot: SimulationSnapshot,
     unitMaterials: { player: pc.Material; enemyMelee: pc.Material; enemyRanged: pc.Material },
     selectionMaterial: pc.Material,
-    healthMaterial: pc.Material,
     visualAssets: VisualAssetLibrary,
     effects: BattleVfx,
   ) {
-    super(animationApp, initialSnapshot, unitMaterials, selectionMaterial, healthMaterial, visualAssets, effects);
+    super(animationApp, initialSnapshot, unitMaterials, selectionMaterial, visualAssets, effects);
     this.animationControllers = new Map();
     this.lastFacingYaw = new Map();
   }
