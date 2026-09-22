@@ -202,7 +202,7 @@ Manual acceptance should check:
 - grounded movement;
 - distinct Attack/Hit/Death readability;
 - team-color readability;
-- selection ring, health bar, fog, Wet/Freeze overlays, and VFX layering;
+- selection ring, restrained critical-health cue, fog, Wet/Freeze overlays, and VFX layering;
 - target-device performance when available.
 
 ### 7. Continue the roster only after Vanguard passes
