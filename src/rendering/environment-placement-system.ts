@@ -255,11 +255,18 @@ export function environmentPlacements(world: GeneratedWorld, lowQuality: boolean
 
   for (const poi of world.pois) {
     const x = poi.cell.x + 0.5, z = poi.cell.z + 0.5;
-    if (poi.type === 'ANCIENT_RUIN') {
+    if (poi.type === 'SHRINE') {
+      // Stone marker / broken marker / boulders / scrub: readable at RTS scale
+      // without the former purple primitive arch.
+      for (const [frame, dx, dz, size] of [[0,-0.7,0.2,1.35],[1,1.0,-0.6,0.92],[8,-1.3,-1.1,0.9],[10,1.35,1.0,0.78]]) add('props',frame!,x+dx!,z+dz!,size!,size!);
+    } else if (poi.type === 'NEUTRAL_CAMP') {
+      // Frontier clutter without crate/barrel placeholder tiles.
+      for (const [frame, dx, dz, size] of [[4,-1.6,0.8,1.25],[5,1.55,-0.9,1.15],[7,-0.8,-1.45,1.05],[11,1.5,1.15,0.9],[8,0.2,1.55,0.8]]) add('props',frame!,x+dx!,z+dz!,size!,size!);
+    } else if (poi.type === 'ANCIENT_RUIN') {
       for (const [frame, dx, dz, size] of [[0,-1.7,1.2,1.0],[1,-2.2,-0.4,0.85],[2,1.8,1.5,1.1],[3,2.4,-1.5,1.8],[9,-1.5,-2,1.2],[10,1.4,-2.2,0.65]]) add('props',frame!,x+dx!,z+dz!,size!,size!);
     } else if (poi.type === 'VILLAGE') {
-      // Avoid the detached crate/barrel tile at RTS camera distance.
-      for (const [frame, dx, dz, size] of [[4,-2.4,1.6,1.5],[5,2.4,1.7,1.4],[10,-1.8,-1.6,1.05],[7,2,-1.8,1.3]]) add('props',frame!,x+dx!,z+dz!,size!,size!);
+      // Fence, scrub and timber sell a small settlement without tan box huts.
+      for (const [frame, dx, dz, size] of [[4,-2.4,1.6,1.5],[5,2.4,1.7,1.4],[10,-1.8,-1.6,1.05],[7,2,-1.8,1.3],[11,0.4,2.1,0.9]]) add('props',frame!,x+dx!,z+dz!,size!,size!);
     }
   }
   for (const spawn of world.spawns) for (const [frame, dx, dz] of [[4,-3.8,2.4],[8,3.5,2],[7,-3.5,-2]]) add('props',frame!,spawn.cell.x+dx!,spawn.cell.z+dz!,1.45,1.45);
