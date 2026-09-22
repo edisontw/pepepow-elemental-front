@@ -122,7 +122,13 @@ export function createSceneShell(
   app.setCanvasResolution(pc.RESOLUTION_AUTO);
   // Keep high-DPI backbuffers bounded so RTS scenes remain fill-rate friendly.
   app.graphicsDevice.maxPixelRatio = lowQuality ? 1 : Math.min(window.devicePixelRatio || 1, 1.5);
-  app.scene.ambientLight = new pc.Color(0.16, 0.175, 0.165);
+  const ambientNormal = new pc.Color(0.16, 0.175, 0.165);
+  const ambientEscalation = new pc.Color(0.145, 0.158, 0.16);
+  const ambientFinale = new pc.Color(0.125, 0.135, 0.155);
+  const sunNormal = new pc.Color(0.94, 0.91, 0.82);
+  const sunEscalation = new pc.Color(0.88, 0.88, 0.82);
+  const sunFinale = new pc.Color(0.74, 0.79, 0.90);
+  app.scene.ambientLight = ambientNormal;
 
   const materials: Record<string, pc.Material> = {
     ground: createMaterial(new pc.Color(0.16, 0.29, 0.19)),
@@ -217,11 +223,14 @@ export function createSceneShell(
   };
   const selectionMaterial = createMaterial(new pc.Color(0.96, 0.78, 0.2), new pc.Color(0.55, 0.32, 0.03));
   const healthMaterial = createMaterial(new pc.Color(0.18, 0.9, 0.25), new pc.Color(0.03, 0.2, 0.04));
-  const battleVfx = new BattleVfx(app);
+  const battleVfx = new BattleVfx(app, lowQuality ? 96 : 192);
   const visualAssets = new VisualAssetLibrary(app);
   const bridge = new AnimatedUnitRenderBridge(app, initialSnapshot, unitMaterials, selectionMaterial, healthMaterial, visualAssets, battleVfx);
   const elementalBridge = new ElementalRenderBridge(app, simulation.terrain, initialSnapshot, battleVfx);
   const initialStrategicSnapshot = simulation instanceof M03Simulation ? simulation.strategy.snapshot() : null;
+  let cachedStrategicSnapshot = initialStrategicSnapshot;
+  let lastStaticPresentationTick = initialSnapshot.tick - 1;
+  let lastLightingPhase: string | null = null;
   const combatPresentation = new CombatPresentationPass(app, battleVfx, initialStrategicSnapshot, lowQuality);
   const audioFeedback = new AudioFeedback();
   const poiBridge = simulation instanceof M03Simulation
@@ -271,14 +280,18 @@ export function createSceneShell(
     },
     screenToSimulationPosition,
     sync(frame: TickFrame): void {
-      const strategicSnapshot = simulation instanceof M03Simulation ? simulation.strategy.snapshot() : null;
+      const tickAdvanced = frame.snapshot.tick !== lastStaticPresentationTick;
+      if (tickAdvanced && simulation instanceof M03Simulation) {
+        cachedStrategicSnapshot = simulation.strategy.snapshot();
+      }
+      const strategicSnapshot = cachedStrategicSnapshot;
       bridge.sync(frame.previousSnapshot, frame.snapshot, frame.interpolationAlpha);
       elementalBridge.sync(frame.previousSnapshot, frame.snapshot, frame.interpolationAlpha);
       combatPresentation.sync(frame.previousSnapshot, frame.snapshot, frame.interpolationAlpha, strategicSnapshot);
       cameraFeedback.sync(frame.previousSnapshot, frame.snapshot, frame.interpolationAlpha);
       audioFeedback.sync(frame.previousSnapshot, frame.snapshot);
       controls.syncSelection();
-      if (strategicSnapshot) {
+      if (tickAdvanced && strategicSnapshot) {
         strategicBridge?.sync(strategicSnapshot, frame.snapshot.tick, simulation.visibility, simulation.navigation);
         territoryBridge?.sync(strategicSnapshot);
         poiBridge?.sync(
@@ -288,31 +301,39 @@ export function createSceneShell(
         );
       }
       if (simulation instanceof M06Simulation) {
-        runBridge?.sync(simulation.run.snapshot(), frame.snapshot.tick, frame.interpolationAlpha);
-        const phase = simulation.run.snapshot().phase;
-        const finale = phase === 'FINALE';
-        app.scene.ambientLight = finale
-          ? new pc.Color(0.125, 0.135, 0.155)
-          : phase === 'ESCALATION'
-            ? new pc.Color(0.145, 0.158, 0.16)
-            : new pc.Color(0.16, 0.175, 0.165);
-        if (light.light) {
-          light.light.intensity = finale ? 0.94 : phase === 'ESCALATION' ? 1.02 : 1.08;
-          light.light.color = finale
-            ? new pc.Color(0.74, 0.79, 0.90)
+        const runSnapshot = simulation.run.snapshot();
+        runBridge?.sync(runSnapshot, frame.snapshot.tick, frame.interpolationAlpha);
+        const phase = runSnapshot.phase;
+        if (phase !== lastLightingPhase) {
+          lastLightingPhase = phase;
+          const finale = phase === 'FINALE';
+          app.scene.ambientLight = finale
+            ? ambientFinale
             : phase === 'ESCALATION'
-              ? new pc.Color(0.88, 0.88, 0.82)
-              : new pc.Color(0.94, 0.91, 0.82);
+              ? ambientEscalation
+              : ambientNormal;
+          if (light.light) {
+            light.light.intensity = finale ? 0.94 : phase === 'ESCALATION' ? 1.02 : 1.08;
+            light.light.color = finale
+              ? sunFinale
+              : phase === 'ESCALATION'
+                ? sunEscalation
+                : sunNormal;
+          }
         }
       }
       battleVfx.sync(frame.snapshot.tick, frame.interpolationAlpha);
-      resourceBridge?.sync(frame.snapshot.tick, simulation.visibility.cellsForPlayer(0));
-      generatedWorldBridge?.sync(
-        frame.snapshot.navVersion,
-        frame.snapshot.terrain.ice,
-        simulation.visibility.cellsForPlayer(0),
-      );
-      fogOfWarBridge?.sync();
+      if (tickAdvanced) {
+        const visibility = simulation.visibility.cellsForPlayer(0);
+        resourceBridge?.sync(frame.snapshot.tick, visibility);
+        generatedWorldBridge?.sync(
+          frame.snapshot.navVersion,
+          frame.snapshot.terrain.ice,
+          visibility,
+        );
+        fogOfWarBridge?.sync();
+        lastStaticPresentationTick = frame.snapshot.tick;
+      }
       if (freezablePatch?.render) {
         const frozen = frame.snapshot.terrain.ice > 0;
         freezablePatch.enabled = frozen;

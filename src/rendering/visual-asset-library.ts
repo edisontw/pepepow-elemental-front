@@ -170,6 +170,9 @@ export class VisualAssetLibrary {
   private readonly teamMaterials = new Map<string, pc.StandardMaterial>();
   private readonly impostorResources = new Map<string, ImpostorResources>();
   private readonly impostorUpdates = new Set<() => void>();
+  private readonly updateImpostors = (): void => {
+    for (const update of this.impostorUpdates) update();
+  };
   private readonly impostorShadowMaterial: pc.StandardMaterial;
   // Keep the current player-side boundary, but use the same five-action
   // animated WebP runtime for every configured production unit.
@@ -186,6 +189,8 @@ export class VisualAssetLibrary {
     this.impostorShadowMaterial.depthWrite = false;
     this.impostorShadowMaterial.cull = pc.CULLFACE_NONE;
     this.impostorShadowMaterial.update();
+    // One dispatcher is cheaper than one PlayCanvas update listener per unit.
+    this.app.on('update', this.updateImpostors);
   }
 
   attach(parent: pc.Entity, fallback: readonly pc.Entity[], id: string, playerId: number): VisualModel {
@@ -294,7 +299,6 @@ export class VisualAssetLibrary {
     if (!handle) return;
     handle.released = true;
     if (handle.impostor) {
-      this.app.off('update', handle.impostor.update);
       this.impostorUpdates.delete(handle.impostor.update);
       handle.impostor.shadow.destroy();
     }
@@ -303,7 +307,7 @@ export class VisualAssetLibrary {
 
   destroy(): void {
     this.disposed = true;
-    for (const update of this.impostorUpdates) this.app.off('update', update);
+    this.app.off('update', this.updateImpostors);
     for (const material of this.teamMaterials.values()) material.destroy();
     for (const resources of this.impostorResources.values()) {
       for (const material of resources.materials) material.destroy();
@@ -366,8 +370,12 @@ export class VisualAssetLibrary {
       for (const primitive of fallback) primitive.enabled = false;
 
       const update = (): void => {
-        const position = parent.getPosition();
         shadow.enabled = parent.enabled;
+        // Fog-hidden / disabled unit roots do not need per-frame billboard,
+        // shadow-position, or material updates.
+        if (!parent.enabled) return;
+
+        const position = parent.getPosition();
         shadow.setPosition(position.x, 0.022, position.z);
 
         // Primitive 3D units use a stronger procedural gait bob. Counter part
@@ -399,7 +407,6 @@ export class VisualAssetLibrary {
       }
 
       this.impostorUpdates.add(update);
-      this.app.on('update', update);
       update();
     });
   }

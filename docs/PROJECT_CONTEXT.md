@@ -484,6 +484,17 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
 - this pass is presentation-only: simulation, damage, construction timing, pathing, replay semantics, `ef-standard-v15`, `ef-replay-v15`, and `m02-standard-v1` are unchanged.
 - manual Standard/Tower Defense WebGL/FPS acceptance remains the final gate and must not be marked complete from non-WebGL automation.
 
+### Final runtime presentation optimization — 2026-09-22
+
+- static presentation bridges whose inputs only change on the authoritative 10 Hz simulation tick (strategic buildings, territory, POIs, resources, generated-world presentation, and fog) are now tick-gated instead of being redundantly resynchronized at render-frame rate;
+- the scene caches the current strategic snapshot between ticks and avoids per-frame run-lighting color allocations; Run interpolation and combat/unit presentation remain render-rate;
+- player WebP impostors now share one PlayCanvas update dispatcher instead of one `update` listener per rendered unit, and fog-hidden/disabled unit roots skip billboard/material/shadow-position work entirely;
+- UnitRenderBridge caches snapshot lookup maps and elemental alignment maps per simulation tick instead of rebuilding them every render frame;
+- AnimatedUnitRenderBridge no longer performs redundant GLB animation-controller work for player units already owned by the final WebP impostor path; enemy/neutral/compatibility GLB handling remains intact;
+- `?quality=low` now also halves the shared BattleVfx particle/beam buffer from 192 to 96 in addition to the Priority C transient shedding and existing pixel-ratio/antialias reductions;
+- these changes are presentation/runtime optimization only: simulation cadence, movement/facing authority, combat, fog authority, replay/state hashes, `ef-standard-v15`, `ef-replay-v15`, and `m02-standard-v1` are unchanged;
+- automated CI can validate TypeScript/tests/build, but final Standard + Tower Defense WebGL/FPS acceptance remains a manual browser gate.
+
 ### Token-efficient validation policy
 
 For presentation-only batches:
