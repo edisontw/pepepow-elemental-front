@@ -11,7 +11,6 @@ import { poiOwnershipState, poiVisualProfile, type PoiOwnershipState } from './p
 interface PoiPresentation {
   poi: PointOfInterest;
   root: pc.Entity;
-  ownershipBase: pc.Entity;
   beacon: pc.Entity;
   pickAnchor: pc.Entity;
   encounterMarkers: pc.Entity[];
@@ -170,7 +169,6 @@ export class PoiRenderBridge {
       presentation.root.enabled = level !== VisibilityLevel.UNEXPLORED;
       const ownership = poiOwnershipState(snapshot.poiOwners[presentation.poi.id]);
       const showOwnership = level === VisibilityLevel.VISIBLE && ownership !== 'NEUTRAL';
-      presentation.ownershipBase.enabled = showOwnership;
       presentation.beacon.enabled = showOwnership;
       presentation.pickAnchor.enabled = level === VisibilityLevel.VISIBLE;
       const camp = presentation.poi.type === 'NEUTRAL_CAMP'
@@ -181,7 +179,6 @@ export class PoiRenderBridge {
       if (ownership === presentation.ownership) continue;
       presentation.ownership = ownership;
       const material = this.ownershipMaterial(ownership);
-      if (presentation.ownershipBase.render) presentation.ownershipBase.render.material = material;
       if (presentation.beacon.render) presentation.beacon.render.material = material;
     }
     if (this.hoveredPoiId !== null) {
@@ -274,14 +271,8 @@ export class PoiRenderBridge {
       this.addLandmarkDressing(root, poi);
     }
 
-    const ownershipBase = addPrimitive(
-      root,
-      'cylinder',
-      `${profile.label} Ownership Marker`,
-      [0, 0.052, 0],
-      [0.82, 0.025, 0.82],
-      this.neutralOwnershipMaterial,
-    );
+    // Ownership remains available through the elevated beacon and tooltip; no
+    // flat ground ownership disc is rendered in the battlefield.
     const beacon = addPrimitive(
       root,
       'sphere',
@@ -319,7 +310,6 @@ export class PoiRenderBridge {
     this.presentations.set(poi.id, {
       poi,
       root,
-      ownershipBase,
       beacon,
       pickAnchor,
       encounterMarkers,
