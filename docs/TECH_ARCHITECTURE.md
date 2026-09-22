@@ -718,7 +718,7 @@ If RPC is unavailable:
 
 # 29. Version separation
 
-Active gameplay/challenge: `ef-standard-v15`; replay: `ef-replay-v15`;
+Active gameplay/challenge: `ef-standard-v16`; replay: `ef-replay-v16`;
 world generation: `m02-standard-v1`. Forced-Move disengage, order modes, and saved Attack Move destinations
 are state-hashed; player replacements of Core orders execute at their target tick.
 
