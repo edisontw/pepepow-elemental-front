@@ -1559,4 +1559,6 @@ Design rationale:
 - v15 adds tactical response during that assault: wave units retaliate against player fire, suspend Core damage while locally engaged, then resume the Core objective.
 - Living Neutral Camp guardians are treated as deterministic route hazards; wave pathing avoids their aggro envelope where a safe route exists instead of deliberately entering neutral encounters.
 - Forced player MOVE semantics remain unchanged: player-issued normal MOVE still disengages as defined in section 62.
-- Active Tower Defense gameplay/replay identity is `ef-standard-v15` / `ef-replay-v15`.
+- v15 established the current Tower Defense retaliation / neutral-avoidance semantics.
+- v16 fixes deterministic short-range pursuit so a melee attacker that already shares the target's navigation cell still closes the remaining sub-cell gap instead of stalling just outside attack range; target acquisition itself does not count as an attack event.
+- Active gameplay/replay identity is `ef-standard-v16` / `ef-replay-v16`; world generation remains `m02-standard-v1`.
