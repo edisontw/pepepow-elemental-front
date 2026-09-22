@@ -258,7 +258,9 @@ export class Simulation {
           this.clearOrders(entityId);
           combat.targetEntityId = command.targetEntityId;
           combat.pursuitTargetCellKey = null;
-          combat.nextAttackTick = this.tick;
+          // Preserve immediate readiness without making target acquisition look
+          // like an authoritative attack event to presentation consumers.
+          combat.nextAttackTick = Math.min(combat.nextAttackTick, this.tick);
           this.clearMovement(entityId);
         }
       }
@@ -329,10 +331,35 @@ export class Simulation {
       this.clearMovement(entityId);
       return;
     }
+    const position = this.entities.positions.get(entityId)!;
     const targetPosition = this.entities.positions.get(targetEntityId)!;
+    const currentCell = this.navigation.worldToCell(position.x, position.z);
     const targetCell = this.navigation.worldToCell(targetPosition.x, targetPosition.z);
     const targetKey = this.navigation.cellKey(targetCell);
     const movement = this.entities.movements.get(entityId)!;
+
+    // A* paths terminate at cell centers. Two units can occupy the same 1 m
+    // navigation cell while their exact positions are still just outside a
+    // short melee range (for example the 1.35 m Neutral Sentinel reach).
+    // In that case an empty same-cell A* path used to leave the pursuer stuck.
+    // Finish the last sub-cell gap with a deterministic direct waypoint inside
+    // the already-walkable target cell.
+    if (currentCell.column === targetCell.column && currentCell.row === targetCell.row) {
+      combat.pursuitTargetCellKey = targetKey;
+      if (
+        movement.targetX !== targetPosition.x
+        || movement.targetZ !== targetPosition.z
+        || movement.pathIndex >= movement.path.length
+      ) {
+        movement.targetX = targetPosition.x;
+        movement.targetZ = targetPosition.z;
+        movement.path = [{ x: targetPosition.x, z: targetPosition.z }];
+        movement.pathIndex = 0;
+        movement.pathNavVersion = this.navigation.navVersion;
+      }
+      return;
+    }
+
     if (combat.pursuitTargetCellKey !== targetKey || movement.pathNavVersion !== this.navigation.navVersion || movement.pathIndex >= movement.path.length) {
       combat.pursuitTargetCellKey = targetKey;
       this.assignPath(entityId, targetPosition.x, targetPosition.z);
