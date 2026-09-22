@@ -99,6 +99,7 @@ export interface SceneShell {
   camera: RtsCamera;
   get selectedCount(): number;
   get selectedUnits(): readonly EntitySnapshot[];
+  selectUnit(entityId: number, focusCamera?: boolean): boolean;
   screenToSimulationPosition(clientX: number, clientY: number): { x: number; z: number } | null;
   sync(frame: TickFrame): void;
   destroy(): void;
@@ -222,10 +223,9 @@ export function createSceneShell(
     enemyRanged: createMaterial(new pc.Color(0.82, 0.43, 0.12), new pc.Color(0.22, 0.08, 0.01)),
   };
   const selectionMaterial = createMaterial(new pc.Color(0.96, 0.78, 0.2), new pc.Color(0.55, 0.32, 0.03));
-  const healthMaterial = createMaterial(new pc.Color(0.18, 0.9, 0.25), new pc.Color(0.03, 0.2, 0.04));
   const battleVfx = new BattleVfx(app, lowQuality ? 96 : 192);
   const visualAssets = new VisualAssetLibrary(app);
-  const bridge = new AnimatedUnitRenderBridge(app, initialSnapshot, unitMaterials, selectionMaterial, healthMaterial, visualAssets, battleVfx);
+  const bridge = new AnimatedUnitRenderBridge(app, initialSnapshot, unitMaterials, selectionMaterial, visualAssets, battleVfx);
   const elementalBridge = new ElementalRenderBridge(app, simulation.terrain, initialSnapshot, battleVfx);
   const initialStrategicSnapshot = simulation instanceof M03Simulation ? simulation.strategy.snapshot() : null;
   let cachedStrategicSnapshot = initialStrategicSnapshot;
@@ -277,6 +277,13 @@ export function createSceneShell(
     },
     get selectedUnits(): readonly EntitySnapshot[] {
       return controls.selectedUnits;
+    },
+    selectUnit(entityId: number, focusCamera = false): boolean {
+      const selected = controls.selectUnit(entityId);
+      if (!selected || !focusCamera) return selected;
+      const unit = simulation.snapshot().entities.find((entity) => entity.id === entityId && entity.alive && entity.playerId === 0);
+      if (unit) camera.focusAt(metres(unit.x), metres(unit.z));
+      return selected;
     },
     screenToSimulationPosition,
     sync(frame: TickFrame): void {
