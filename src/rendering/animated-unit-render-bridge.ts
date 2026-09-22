@@ -50,6 +50,10 @@ function loadedModelRoot(unitRoot: pc.Entity): pc.Entity | null {
 export class AnimatedUnitRenderBridge extends UnitRenderBridge {
   private animationControllers: Map<EntityID, UnitAnimationController> | undefined;
   private lastFacingYaw: Map<EntityID, number> | undefined;
+  private animationCacheTick = Number.NaN;
+  private animationPreviousById = new Map<EntityID, EntitySnapshot>();
+  private animationAlignments = new Map<number, string>();
+  private objectiveAttackIds = new Set<EntityID>();
 
   constructor(
     private readonly animationApp: pc.Application,
@@ -69,16 +73,26 @@ export class AnimatedUnitRenderBridge extends UnitRenderBridge {
     super.sync(previous, current, alpha);
     if (!this.animationControllers || !this.lastFacingYaw) return;
 
-    const previousById = snapshotMap(previous);
     const authority = (current as Partial<M04SimulationSnapshot>).elementalAuthority;
-    const alignments = new Map<number, string>(
-      authority?.alignedElementalists.map((entry) => [entry.entityId, entry.element]) ?? [],
-    );
-    const cast = authority?.lastCastResult;
     const run = (current as Partial<M06SimulationSnapshot>).run;
-    const objectiveAttackIds = new Set(run?.objectiveAttackOrders.map((order) => order.entityId) ?? []);
+    if (current.tick !== this.animationCacheTick) {
+      this.animationPreviousById = snapshotMap(previous);
+      this.animationAlignments = new Map<number, string>(
+        authority?.alignedElementalists.map((entry) => [entry.entityId, entry.element]) ?? [],
+      );
+      this.objectiveAttackIds = new Set(run?.objectiveAttackOrders.map((order) => order.entityId) ?? []);
+      this.animationCacheTick = current.tick;
+    }
+    const previousById = this.animationPreviousById;
+    const alignments = this.animationAlignments;
+    const objectiveAttackIds = this.objectiveAttackIds;
+    const cast = authority?.lastCastResult;
 
     for (const unit of current.entities) {
+      // Player-side final art is already animated by UnitRenderBridge through
+      // the shared WebP impostor runtime. Keep the GLB clip layer for
+      // enemy/neutral/fallback presentation only.
+      if (unit.playerId === 0) continue;
       const modelId = modelIdForUnit(unit, alignments);
       if (!modelId) continue;
       const unitRoot = this.animationApp.root.findByName(`Unit ${unit.id}`) as pc.Entity | null;
