@@ -21,15 +21,25 @@ const config = { id: 'unit.vanguard', label: 'Vanguard', slug: 'vanguard', width
 type Materials = Record<'IDLE' | 'MOVE' | 'ATTACK' | 'HIT' | 'DEATH', pc.StandardMaterial[]>;
 function harness() {
   vi.stubGlobal('Image', FakeImage);
-  const library = new VisualAssetLibrary({ graphicsDevice: {}, off: vi.fn() } as unknown as pc.Application);
+  const app = { graphicsDevice: {}, on: vi.fn(), off: vi.fn() };
+  const library = new VisualAssetLibrary(app as unknown as pc.Application);
   const loader = library as unknown as {
     loadImpostorMaterials: (c: typeof config) => Promise<Materials | null>;
     impostorResources: Map<string, { requestAction: (a: string) => void }>;
   };
-  return { library, loader };
+  return { app, library, loader };
 }
 afterEach(() => { vi.unstubAllGlobals(); FakeImage.pending = []; textures.length = 0; vi.restoreAllMocks(); });
 const flush = async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); };
+
+it('uses one shared PlayCanvas update dispatcher for animated impostors', () => {
+  const { app, library } = harness();
+  expect(app.on).toHaveBeenCalledTimes(1);
+  expect(app.on).toHaveBeenCalledWith('update', expect.any(Function));
+  library.destroy();
+  expect(app.off).toHaveBeenCalledTimes(1);
+  expect(app.off).toHaveBeenCalledWith('update', expect.any(Function));
+});
 
 it('deduplicates concurrent loads, requests actions on demand, and shares one texture across 32 UV materials', async () => {
   const { library, loader } = harness();
