@@ -193,7 +193,7 @@ Preferred runtime representation:
 - stable world-space anchor at the unit's ground position;
 - shared atlas/material resources across instances;
 - optional soft contact shadow under the unit;
-- selection rings, health bars, fog, Wet/Freeze overlays, and VFX layered independently.
+- selection rings, restrained critical-health cues, fog, Wet/Freeze overlays, and VFX layered independently.
 
 Existing GLB unit assets may remain as compatibility fallback or experimental alternate representation. Do not require them for final unit-art acceptance.
 
