@@ -126,7 +126,6 @@ export class UnitRenderBridge {
   private readonly screenPosition = new pc.Vec3();
   private readonly projectiles: ProjectilePresentation[] = [];
   private readonly qaFacingYawByEntity = new Map<EntityID, number>();
-  private selectedEntityIds = new Set<EntityID>();
   private readonly wetMaterial = createMaterial(new pc.Color(0.04, 0.82, 1), new pc.Color(0.03, 0.55, 0.85), 0.82);
   private readonly chilledMaterial = createMaterial(new pc.Color(0.42, 0.78, 1), new pc.Color(0.04, 0.18, 0.32), 0.82);
   private readonly frozenMaterial = createMaterial(new pc.Color(0.72, 0.94, 1), new pc.Color(0.14, 0.42, 0.55), 0.82);
@@ -397,7 +396,6 @@ export class UnitRenderBridge {
   }
 
   setSelected(entityIds: ReadonlySet<EntityID>): void {
-    this.selectedEntityIds = new Set(entityIds);
     for (const [entityId, presentation] of this.units) {
       presentation.selection.enabled = entityIds.has(entityId) && this.latest.get(entityId)?.alive === true;
     }
@@ -465,7 +463,6 @@ export class UnitRenderBridge {
 
   destroy(): void {
     this.qaFacingYawByEntity.clear();
-    this.selectedEntityIds.clear();
     for (const presentation of this.units.values()) this.destroyPresentation(presentation);
     this.units.clear();
     for (const projectile of this.projectiles) projectile.entity.destroy();
