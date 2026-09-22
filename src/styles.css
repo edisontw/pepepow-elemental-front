@@ -583,3 +583,111 @@ button { font: inherit; }
   padding: .28rem .38rem;
   font-size: .54rem;
 }
+
+
+
+/* Low-health Army roster: replaces persistent in-world unit health bars. */
+.low-health-section {
+  margin-top: .36rem;
+  padding: .36rem;
+  border: 1px solid rgba(207, 123, 83, .15);
+  border-radius: .28rem;
+  background: rgba(119, 55, 34, .045);
+}
+.low-health-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .4rem;
+  margin-bottom: .26rem;
+}
+.low-health-heading strong {
+  color: #cbb7a7;
+  font-size: .54rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.low-health-heading small,
+.low-health-more {
+  color: #82766f;
+  font-size: .44rem;
+  line-height: 1.25;
+}
+.low-health-list {
+  display: grid;
+  gap: .18rem;
+}
+.low-health-unit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto .18rem;
+  gap: .12rem .36rem;
+  align-items: center;
+  min-width: 0;
+  padding: .28rem .34rem;
+  border: 1px solid rgba(148, 115, 95, .18);
+  border-radius: .2rem;
+  background: rgba(255, 255, 255, .025);
+  color: #cbd8d3;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.low-health-unit:hover,
+.low-health-unit.active {
+  border-color: rgba(126, 211, 184, .42);
+  background: rgba(91, 154, 135, .09);
+}
+.low-health-unit.critical {
+  border-color: rgba(210, 103, 70, .3);
+  background: rgba(128, 54, 36, .09);
+}
+.low-health-unit > span {
+  min-width: 0;
+}
+.low-health-unit b,
+.low-health-unit small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.low-health-unit > span > b {
+  color: #cddbd6;
+  font-size: .5rem;
+}
+.low-health-unit > span > small {
+  margin-top: .05rem;
+  color: #927f74;
+  font-size: .43rem;
+}
+.low-health-unit.critical > span > small,
+.low-health-unit.critical > em {
+  color: #d9866b;
+}
+.low-health-unit > em {
+  color: #c59d79;
+  font-size: .48rem;
+  font-style: normal;
+}
+.low-health-meter {
+  grid-column: 1 / -1;
+  display: block;
+  height: .16rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, .32);
+}
+.low-health-meter > b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: rgba(203, 153, 100, .72);
+}
+.low-health-unit.critical .low-health-meter > b {
+  background: rgba(211, 101, 72, .78);
+}
+.low-health-more {
+  display: block;
+  margin-top: .22rem;
+}
