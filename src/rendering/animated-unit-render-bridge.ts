@@ -62,6 +62,7 @@ export class AnimatedUnitRenderBridge extends UnitRenderBridge {
   private lastFacingYaw: Map<EntityID, number> | undefined;
   private animationCacheTick = Number.NaN;
   private animationPreviousById = new Map<EntityID, EntitySnapshot>();
+  private animationCurrentById = new Map<EntityID, EntitySnapshot>();
   private animationAlignments = new Map<number, string>();
   private objectiveAttackIds = new Set<EntityID>();
 
@@ -86,6 +87,7 @@ export class AnimatedUnitRenderBridge extends UnitRenderBridge {
     const run = (current as Partial<M06SimulationSnapshot>).run;
     if (current.tick !== this.animationCacheTick) {
       this.animationPreviousById = snapshotMap(previous);
+      this.animationCurrentById = snapshotMap(current);
       this.animationAlignments = new Map<number, string>(
         authority?.alignedElementalists.map((entry) => [entry.entityId, entry.element]) ?? [],
       );
@@ -93,6 +95,7 @@ export class AnimatedUnitRenderBridge extends UnitRenderBridge {
       this.animationCacheTick = current.tick;
     }
     const previousById = this.animationPreviousById;
+    const currentById = this.animationCurrentById;
     const alignments = this.animationAlignments;
     const objectiveAttackIds = this.objectiveAttackIds;
     const cast = authority?.lastCastResult;
@@ -117,7 +120,7 @@ export class AnimatedUnitRenderBridge extends UnitRenderBridge {
       const moving = unit.frozenTicks === 0 && (unit.x !== prior.x || unit.z !== prior.z);
       const unitTarget = unit.attackTargetEntityId === null
         ? undefined
-        : current.entities.find((candidate) => candidate.id === unit.attackTargetEntityId);
+        : currentById.get(unit.attackTargetEntityId);
       const attacked = unit.alive
         && unit.nextAttackTick > prior.nextAttackTick
         && (
@@ -171,6 +174,7 @@ export class AnimatedUnitRenderBridge extends UnitRenderBridge {
   override destroy(): void {
     for (const controller of this.animationControllers?.values() ?? []) controller.destroy();
     this.animationControllers?.clear();
+    this.animationCurrentById.clear();
     this.lastFacingYaw?.clear();
     super.destroy();
   }
