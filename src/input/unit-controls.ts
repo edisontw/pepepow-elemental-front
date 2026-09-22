@@ -80,6 +80,18 @@ export class UnitControls {
     return this.formation;
   }
 
+  selectUnit(entityId: number): boolean {
+    if (!this.bridge.isControllable(entityId)) return false;
+    this.setAttackMoveArmed(false);
+    this.disableFacingQa();
+    this.selection.select([entityId], 'REPLACE');
+    this.lastClickEntityId = null;
+    this.lastClickTimeMs = Number.NEGATIVE_INFINITY;
+    this.renderSelected();
+    this.onCommandFeedback('SELECT');
+    return true;
+  }
+
   moveSelectionTo(targetX: number, targetZ: number): void {
     const type = this.attackMoveArmed ? 'ATTACK_MOVE' : 'MOVE';
     this.setAttackMoveArmed(false);
