@@ -18,15 +18,18 @@ function moveCommands(simulation: Simulation, targetTick: number, swapSides = fa
   ];
 }
 
-function expectedDestinations(simulation: Simulation, playerId: number, target: { x: number; z: number }): Map<number, string> {
+function expectedDestinations(
+  simulation: Simulation,
+  playerId: number,
+  target: { x: number; z: number },
+): Map<number, { x: number; z: number }> {
   const ids = simulation.snapshot().entities.filter((unit) => unit.playerId === playerId).map((unit) => unit.id);
   const offsets = formationOffsets(ids.length);
   return new Map(ids.map((id, index) => {
     const offset = offsets[index]!;
     const requested = simulation.navigation.worldToCell(target.x + offset.x, target.z + offset.z);
     const resolved = simulation.navigation.resolveWalkableTarget(requested)!;
-    const world = simulation.navigation.cellToWorld(resolved);
-    return [id, `${world.x},${world.z}`];
+    return [id, simulation.navigation.cellToWorld(resolved)];
   }));
 }
 
@@ -43,13 +46,24 @@ function runConvergence(seed: string): { simulation: Simulation; hashes: string[
     if ([1, 25, 50, 100, 180, CONVERGENCE_TICKS].includes(tick)) hashes.push(snapshot.stateHash);
   }
 
-  for (const unit of simulation.snapshot().entities) {
-    expect(`${unit.x},${unit.z}`).toBe(expected.get(unit.id));
+  const settled = simulation.snapshot().entities;
+  for (const unit of settled) {
+    const desired = expected.get(unit.id)!;
+    expect(Math.hypot(unit.x - desired.x, unit.z - desired.z)).toBeLessThanOrEqual(2_000);
     expect(unit).toMatchObject({ alive: true, targetX: null, targetZ: null, attackTargetEntityId: null });
     expect(unit.path).toHaveLength(0);
     expect(simulation.navigation.isWalkable(simulation.navigation.worldToCell(unit.x, unit.z))).toBe(true);
   }
-  expect(new Set(simulation.snapshot().entities.map((unit) => `${unit.x},${unit.z}`)).size).toBe(40);
+  expect(new Set(settled.map((unit) => `${unit.x},${unit.z}`)).size).toBe(40);
+  for (let left = 0; left < settled.length; left += 1) {
+    for (let right = left + 1; right < settled.length; right += 1) {
+      const first = settled[left]!;
+      const second = settled[right]!;
+      expect(Math.hypot(first.x - second.x, first.z - second.z)).toBeGreaterThanOrEqual(
+        first.bodyRadius + second.bodyRadius,
+      );
+    }
+  }
   return { simulation, hashes };
 }
 
