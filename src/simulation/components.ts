@@ -64,6 +64,10 @@ export interface SelectableComponent {
   radius: number;
 }
 
+export interface BodyComponent {
+  radius: number;
+}
+
 export interface ElementalAlignmentComponent {
   element: ElementId;
 }
@@ -81,6 +85,8 @@ export interface UnitSpawn {
   z: number;
   speedPerTick: number;
   selectionRadius: number;
+  /** Authoritative ground-contact radius in world units. Legacy/test spawns may omit it. */
+  bodyRadius?: number;
   maxHealth: number;
   attackDamage: number;
   attackIntervalTicks: number;
