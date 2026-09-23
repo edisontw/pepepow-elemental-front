@@ -474,14 +474,15 @@ Use it for:
 - proximity effects
 - collision/avoidance candidate gathering
 
-Active v18 unit contact uses deterministic 2 m spatial buckets and bounded local
+Active v19 unit contact uses deterministic 2 m spatial buckets and bounded local
 relaxation after authoritative movement. Unit body radii are gameplay state,
 independent from selection/UI radius. Local separation may adjust positions only
-onto walkable cells; A* remains route authority. Same-target melee allies use a
-deterministic tangential combat-ring correction so separation does not repeatedly
-eject them from attack range, and established hostile melee contact anchors the
-defender/heavier body instead of shoving the surrounded target. Building footprints
-remain a separate follow-up.
+onto walkable cells; A* remains route authority. Same-target melee allies enter the
+deterministic tangential combat-ring traffic rule as soon as they share melee target
+intent, so later arrivals fan themselves around an already engaged front unit rather
+than displacing that front unit as an idle blocker. Established hostile melee contact
+still anchors the defender/heavier body. Building footprints remain a separate
+follow-up.
 
 Avoid O(N²) unit scans.
 
@@ -727,9 +728,9 @@ If RPC is unavailable:
 
 # 29. Version separation
 
-Active gameplay/challenge: `ef-standard-v18`; replay: `ef-replay-v18`;
+Active gameplay/challenge: `ef-standard-v19`; replay: `ef-replay-v19`;
 world generation: `m02-standard-v1`. Forced-Move disengage, order modes, saved Attack Move destinations,
-authoritative unit body radii, deterministic contact/separation outcomes, and melee contact-ring outcomes are state-hashed; player
+authoritative unit body radii, deterministic contact/separation outcomes, and melee arrival/contact-ring outcomes are state-hashed; player
 replacements of Core orders execute at their target tick.
 
 Track independently:

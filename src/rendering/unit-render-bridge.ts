@@ -8,6 +8,7 @@ import type { EntityID } from '../simulation/components';
 import type { EntitySnapshot, SimulationSnapshot } from '../simulation/simulation';
 import { unitVisualProfile, type UnitProjectileStyle } from './unit-visual-profile';
 import { resolvePresentationFacing } from './unit-facing';
+import { pointToSegmentDistanceSquared } from './screen-space-pick';
 import {
   impostorAnimationDurationSeconds,
   impostorMoveElapsedSeconds,
@@ -134,6 +135,9 @@ export class UnitRenderBridge {
   private previousById = new Map<EntityID, EntitySnapshot>();
   private snapshotCacheTick = Number.NaN;
   private readonly screenPosition = new pc.Vec3();
+  private readonly pickWorld = new pc.Vec3();
+  private readonly pickBaseScreen = new pc.Vec3();
+  private readonly pickTopScreen = new pc.Vec3();
   private readonly projectiles: ProjectilePresentation[] = [];
   private readonly qaFacingYawByEntity = new Map<EntityID, number>();
   private readonly wetMaterial = createMaterial(new pc.Color(0.04, 0.82, 1), new pc.Color(0.03, 0.55, 0.85), 0.82);
@@ -429,11 +433,27 @@ export class UnitRenderBridge {
     for (const [entityId, presentation] of this.units) {
       const state = this.latest.get(entityId);
       if (!state?.alive || !state.visibleToPlayer) continue;
-      camera.worldToScreen(presentation.root.getPosition(), this.screenPosition);
-      if (this.screenPosition.z < 0) continue;
-      const deltaX = this.screenPosition.x - screenX;
-      const deltaY = this.screenPosition.y - screenY;
-      const distanceSquared = deltaX * deltaX + deltaY * deltaY;
+
+      // Pick against the visible body column instead of only the ground/root
+      // point. Tall neutral monsters and Elementalists otherwise turn a
+      // right-click on their upper sprite into a ground MOVE, which makes
+      // ranged units walk all the way into melee before auto-aggro can resume.
+      const root = presentation.root.getPosition();
+      const profile = unitVisualProfile(state.archetype);
+      this.pickWorld.set(root.x, 0.08, root.z);
+      camera.worldToScreen(this.pickWorld, this.pickBaseScreen);
+      this.pickWorld.y = Math.max(0.5, profile.height * 0.92);
+      camera.worldToScreen(this.pickWorld, this.pickTopScreen);
+      if (this.pickBaseScreen.z < 0 && this.pickTopScreen.z < 0) continue;
+
+      const distanceSquared = pointToSegmentDistanceSquared(
+        screenX,
+        screenY,
+        this.pickBaseScreen.x,
+        this.pickBaseScreen.y,
+        this.pickTopScreen.x,
+        this.pickTopScreen.y,
+      );
       if (distanceSquared <= bestDistanceSquared) {
         bestDistanceSquared = distanceSquared;
         bestId = entityId;

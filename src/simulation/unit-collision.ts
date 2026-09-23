@@ -8,9 +8,9 @@ const RELAXATION_PASSES = 3;
 const MELEE_CONTACT_MAX_RANGE = Math.round(2.5 * WORLD_UNITS_PER_METER);
 const RING_ROTATION_SCALE = 10_000;
 const RING_ROTATIONS = [
-  { cos: 9962, sin: 872 },
-  { cos: 9848, sin: 1736 },
-  { cos: 9659, sin: 2588 },
+  { cos: 9976, sin: 698 },
+  { cos: 9903, sin: 1392 },
+  { cos: 9781, sin: 2079 },
 ] as const;
 export const UNIT_CONTACT_PADDING = 20;
 
@@ -190,15 +190,13 @@ function isMeleeEngagement(entityId: EntityID, targetId: EntityID, entities: Ent
   return dx * dx + dz * dz <= combat.attackRange * combat.attackRange;
 }
 
-function sharedMeleeTarget(leftId: EntityID, rightId: EntityID, entities: EntityStore): EntityID | null {
+function sharedMeleeTargetIntent(leftId: EntityID, rightId: EntityID, entities: EntityStore): EntityID | null {
   const leftCombat = entities.combat.get(leftId);
   const rightCombat = entities.combat.get(rightId);
   if (!leftCombat || !rightCombat) return null;
+  if (leftCombat.attackRange > MELEE_CONTACT_MAX_RANGE || rightCombat.attackRange > MELEE_CONTACT_MAX_RANGE) return null;
   if (leftCombat.targetEntityId === null || leftCombat.targetEntityId !== rightCombat.targetEntityId) return null;
-  const targetId = leftCombat.targetEntityId;
-  if (!entities.hasUnit(targetId)) return null;
-  if (!isMeleeEngagement(leftId, targetId, entities) || !isMeleeEngagement(rightId, targetId, entities)) return null;
-  return targetId;
+  return entities.hasUnit(leftCombat.targetEntityId) ? leftCombat.targetEntityId : null;
 }
 
 function trySharedMeleeRingSeparation(
@@ -228,8 +226,6 @@ function trySharedMeleeRingSeparation(
   const blockerId = moverId === leftId ? rightId : leftId;
   const mover = entities.positions.get(moverId)!;
   const blocker = entities.positions.get(blockerId)!;
-  const moverCombat = entities.combat.get(moverId)!;
-
   const relativeX = mover.x - target.x;
   const relativeZ = mover.z - target.z;
   if (relativeX === 0 && relativeZ === 0) return false;
@@ -259,8 +255,6 @@ function trySharedMeleeRingSeparation(
         z: target.z + candidateRelativeZ,
       };
       if (!canOccupy(candidate.x, candidate.z, navigation)) continue;
-      const targetDistanceSq = candidateRelativeX * candidateRelativeX + candidateRelativeZ * candidateRelativeZ;
-      if (targetDistanceSq > moverCombat.attackRange * moverCombat.attackRange) continue;
       const blockerDx = candidate.x - blocker.x;
       const blockerDz = candidate.z - blocker.z;
       const blockerDistanceSq = blockerDx * blockerDx + blockerDz * blockerDz;
@@ -355,14 +349,24 @@ function resolvePair(
   let leftAmount: number;
   let rightAmount: number;
 
-  const sharedTargetId = sameFaction ? sharedMeleeTarget(leftId, rightId, entities) : null;
+  const sharedTargetId = sameFaction ? sharedMeleeTargetIntent(leftId, rightId, entities) : null;
   const hostileAnchorId = sameFaction ? null : hostileMeleeAnchor(leftId, rightId, entities);
 
   if (sharedTargetId !== null && !leftHard && !rightHard) {
-    // Melee units already attacking the same target should fan around a stable
-    // combat ring instead of shoving one another radially out of attack range.
+    // Units converging on the same melee target are combat-ring traffic, not
+    // ordinary mover-vs-idle traffic. Fan the farther combatant tangentially
+    // around the shared target so an arriving Vanguard never shoves an already
+    // attacking Vanguard sideways by a full body width.
     if (trySharedMeleeRingSeparation(leftId, rightId, sharedTargetId, entities, navigation, minimumDistance)) return;
-    const leftWins = leftId < rightId;
+
+    // If terrain prevents a tangential correction, keep whichever combatant is
+    // already closer to the target stable and let only the outer unit absorb
+    // the minimum radial correction. Exact ties use EntityID.
+    const target = entities.positions.get(sharedTargetId)!;
+    const leftDistance = (left.x - target.x) ** 2 + (left.z - target.z) ** 2;
+    const rightDistance = (right.x - target.x) ** 2 + (right.z - target.z) ** 2;
+    const leftWins = leftDistance < rightDistance
+      || (leftDistance === rightDistance && leftId < rightId);
     if (leftWins) {
       leftAmount = 0;
       rightAmount = overlap;
