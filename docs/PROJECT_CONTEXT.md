@@ -4,8 +4,8 @@
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v18`
-**Current replay format:** `ef-replay-v18`
+**Current authoritative gameplay ruleset:** `ef-standard-v19`
+**Current replay format:** `ef-replay-v19`
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE4_CLOSURE_REPORT.md`
 
@@ -69,8 +69,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v18`;
-- replay: `ef-replay-v18`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v19`;
+- replay: `ef-replay-v19`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -181,7 +181,7 @@ Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A�
 
 ### Tower Defense vertical slice
 
-- `TOWER_DEFENSE` is a separate deterministic run mode introduced in v13; current run authority is `ef-standard-v18` / `ef-replay-v18`.
+- `TOWER_DEFENSE` is a separate deterministic run mode introduced in v13; current run authority is `ef-standard-v19` / `ef-replay-v19`.
 - It clears the usual starting enemy force, allows 30 seconds to prepare, then sends seven escalating waves from the enemy approach toward the player Core.
 - The live HUD exposes the current wave, next hostile composition, countdown, and hostile count.
 - Existing construction, production, units, spells, and Core recovery remain the first playable defense kit.
@@ -528,6 +528,15 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
 - established hostile melee contact anchors the defender / heavier body where possible, so several attackers cannot continuously shove a neutral monster or enemy melee unit across the battlefield;
 - ordinary movement traffic, forced MOVE disengage, Hold, Attack Move, path repair, body radii, and spatial-bucket authority remain unchanged;
 - this changes authoritative contact outcomes and therefore advances gameplay/replay identity to `ef-standard-v18` / `ef-replay-v18`; world generation remains `m02-standard-v1`.
+
+### Same-target melee arrival stabilization + ranged target picking — v19 — 2026-09-24
+
+- same-target melee units are treated as combat-ring traffic from pursuit onset, not only after both attackers have already entered attack range;
+- an arriving Vanguard now fans itself around the shared target while the Vanguard already in contact remains stable, eliminating the near-one-body-width friendly blocker shove seen during real neutral-camp surround fights;
+- combat-ring angular corrections are smaller than v18 so crowd settling is visually smoother while retaining deterministic ordering and walkable-terrain authority;
+- Elementalist basic attack authority remains ranged at **9 m**; no melee-range stat change was required;
+- right-click enemy picking now tests the visible vertical unit body instead of only the ground/root point, preventing clicks on tall neutral monsters from being misread as ground MOVE orders that make ranged units walk into melee before auto-aggro resumes;
+- the melee-arrival correction changes authoritative contact outcomes and advances gameplay/replay identity to `ef-standard-v19` / `ef-replay-v19`; the picking correction is input/presentation only; world generation remains `m02-standard-v1`.
 
 ### Low-health awareness / Army panel pass — 2026-09-22
 
