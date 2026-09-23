@@ -474,15 +474,15 @@ Use it for:
 - proximity effects
 - collision/avoidance candidate gathering
 
-Active v19 unit contact uses deterministic 2 m spatial buckets and bounded local
+Active v20 unit contact uses deterministic 2 m spatial buckets and bounded local
 relaxation after authoritative movement. Unit body radii are gameplay state,
-independent from selection/UI radius. Local separation may adjust positions only
-onto walkable cells; A* remains route authority. Same-target melee allies enter the
-deterministic tangential combat-ring traffic rule as soon as they share melee target
-intent, so later arrivals fan themselves around an already engaged front unit rather
-than displacing that front unit as an idle blocker. Established hostile melee contact
-still anchors the defender/heavier body. Building footprints remain a separate
-follow-up.
+independent from selection/UI radius. Hostile pairs keep full body separation.
+Friendly contact is deliberately soft: settled/same-target melee pairs use 70% of
+combined body radius plus padding, while active friendly traffic uses 85%. This
+permits stable partial overlap in dense combat and prevents post-combat re-separation
+jitter. The deterministic tangential combat-ring rule remains only for penetration
+deeper than the soft friendly threshold. Local correction stays on walkable terrain;
+A* remains route authority. Building footprints remain a separate follow-up.
 
 Avoid O(N²) unit scans.
 
@@ -728,9 +728,9 @@ If RPC is unavailable:
 
 # 29. Version separation
 
-Active gameplay/challenge: `ef-standard-v19`; replay: `ef-replay-v19`;
+Active gameplay/challenge: `ef-standard-v20`; replay: `ef-replay-v20`;
 world generation: `m02-standard-v1`. Forced-Move disengage, order modes, saved Attack Move destinations,
-authoritative unit body radii, deterministic contact/separation outcomes, and melee arrival/contact-ring outcomes are state-hashed; player
+authoritative unit body radii, deterministic contact/separation outcomes, and soft-friendly contact / melee contact outcomes are state-hashed; player
 replacements of Core orders execute at their target tick.
 
 Track independently:
