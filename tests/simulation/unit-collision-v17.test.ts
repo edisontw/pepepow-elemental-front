@@ -123,5 +123,17 @@ describe('v17 authoritative unit contact and separation', () => {
     expect(distance(mover, idle)).toBeGreaterThanOrEqual(
       mover.bodyRadius + idle.bodyRadius + UNIT_CONTACT_PADDING,
     );
+
+    for (let tick = 0; tick < 24; tick += 1) simulation.step();
+    const settled = simulation.snapshot().entities;
+    expect(settled[0]).toMatchObject({ x: 8_000, z: 5_000, targetX: null, targetZ: null });
+    expect(settled[1]).toMatchObject({
+      x: beforeIdle.x,
+      z: beforeIdle.z,
+      targetX: null,
+      targetZ: null,
+      yieldReturnX: null,
+      yieldReturnZ: null,
+    });
   });
 });
