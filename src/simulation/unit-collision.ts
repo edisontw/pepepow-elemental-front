@@ -39,31 +39,36 @@ function buildBuckets(entityIds: readonly EntityID[], entities: EntityStore): Ma
   return buckets;
 }
 
-function isAnchored(entityId: EntityID, entities: EntityStore): boolean {
+function isHardAnchor(entityId: EntityID, entities: EntityStore): boolean {
   const movement = entities.movements.get(entityId);
   const status = entities.statuses.get(entityId);
-  if (!movement) return true;
-  if ((status?.frozenTicks ?? 0) > 0 || movement.orderMode === 'HOLD') return true;
-  return movement.pathIndex >= movement.path.length;
+  return (status?.frozenTicks ?? 0) > 0 || movement?.orderMode === 'HOLD';
+}
+
+function hasMovementIntent(entityId: EntityID, entities: EntityStore): boolean {
+  const movement = entities.movements.get(entityId);
+  return movement?.targetX !== null && movement?.targetZ !== null;
 }
 
 function canOccupy(x: number, z: number, navigation: NavigationGrid): boolean {
   return navigation.isWalkable(navigation.worldToCell(x, z));
 }
 
-function tryFriendlySidestep(
+function tryFriendlyBlockerSidestep(
   moverId: EntityID,
   blockerId: EntityID,
   entities: EntityStore,
   navigation: NavigationGrid,
   minimumDistance: number,
 ): boolean {
-  if (entities.factions.get(moverId)?.playerId !== entities.factions.get(blockerId)?.playerId) return false;
   const mover = entities.positions.get(moverId);
   const blocker = entities.positions.get(blockerId);
   const movement = entities.movements.get(moverId);
-  if (!mover || !blocker || !movement || movement.pathIndex >= movement.path.length) return false;
-  const waypoint = movement.path[movement.pathIndex]!;
+  if (!mover || !blocker || !movement || movement.targetX === null || movement.targetZ === null) return false;
+
+  const waypoint = movement.pathIndex < movement.path.length
+    ? movement.path[movement.pathIndex]!
+    : { x: movement.targetX, z: movement.targetZ };
   const forwardX = waypoint.x - mover.x;
   const forwardZ = waypoint.z - mover.z;
   const forwardLength = Math.round(Math.sqrt(forwardX * forwardX + forwardZ * forwardZ));
@@ -73,27 +78,24 @@ function tryFriendlySidestep(
   const perpendicularZ = forwardX;
   const preferredSign: -1 | 1 = ((moverId * 31 + blockerId * 17) & 1) === 0 ? -1 : 1;
   const signs: readonly (-1 | 1)[] = [preferredSign, preferredSign === 1 ? -1 : 1];
-  const amounts = [minimumDistance, Math.ceil((minimumDistance * 5) / 4)];
 
-  for (const amount of amounts) {
-    for (const sign of signs) {
-      const candidate = displaced(
-        mover.x,
-        mover.z,
-        perpendicularX,
-        perpendicularZ,
-        forwardLength,
-        amount,
-        sign,
-      );
-      if (!canOccupy(candidate.x, candidate.z, navigation)) continue;
-      const dx = candidate.x - blocker.x;
-      const dz = candidate.z - blocker.z;
-      if (dx * dx + dz * dz < minimumDistance * minimumDistance) continue;
-      mover.x = candidate.x;
-      mover.z = candidate.z;
-      return true;
-    }
+  for (const sign of signs) {
+    const candidate = displaced(
+      blocker.x,
+      blocker.z,
+      perpendicularX,
+      perpendicularZ,
+      forwardLength,
+      minimumDistance + 2,
+      sign,
+    );
+    if (!canOccupy(candidate.x, candidate.z, navigation)) continue;
+    const dx = candidate.x - mover.x;
+    const dz = candidate.z - mover.z;
+    if (dx * dx + dz * dz < minimumDistance * minimumDistance) continue;
+    blocker.x = candidate.x;
+    blocker.z = candidate.z;
+    return true;
   }
   return false;
 }
@@ -149,18 +151,44 @@ function resolvePair(
   const overlap = minimumDistance + 2 - distance;
   if (overlap <= 0) return;
 
-  const leftAnchored = isAnchored(leftId, entities);
-  const rightAnchored = isAnchored(rightId, entities);
-  if (leftAnchored && !rightAnchored && tryFriendlySidestep(rightId, leftId, entities, navigation, minimumDistance)) return;
-  if (rightAnchored && !leftAnchored && tryFriendlySidestep(leftId, rightId, entities, navigation, minimumDistance)) return;
+  const sameFaction = entities.factions.get(leftId)?.playerId === entities.factions.get(rightId)?.playerId;
+  const leftHard = isHardAnchor(leftId, entities);
+  const rightHard = isHardAnchor(rightId, entities);
+  const leftMoving = hasMovementIntent(leftId, entities);
+  const rightMoving = hasMovementIntent(rightId, entities);
+
   let leftAmount: number;
   let rightAmount: number;
-  if (leftAnchored && !rightAnchored) {
+
+  if (sameFaction && leftMoving !== rightMoving && !leftHard && !rightHard) {
+    // Friendly transit is soft: an ordered mover keeps route priority and an
+    // ordinary idle friendly yields locally. This prevents friendly crowds
+    // from becoming dynamic walls that A* cannot route around.
+    const moverId = leftMoving ? leftId : rightId;
+    const blockerId = leftMoving ? rightId : leftId;
+    if (tryFriendlyBlockerSidestep(moverId, blockerId, entities, navigation, minimumDistance)) return;
+    if (leftMoving) {
+      leftAmount = 0;
+      rightAmount = overlap;
+    } else {
+      leftAmount = overlap;
+      rightAmount = 0;
+    }
+  } else if (leftHard && !rightHard) {
     leftAmount = 0;
     rightAmount = overlap;
-  } else if (rightAnchored && !leftAnchored) {
+  } else if (rightHard && !leftHard) {
     leftAmount = overlap;
     rightAmount = 0;
+  } else if (!sameFaction && leftMoving !== rightMoving) {
+    // Hostile contact remains hard: the idle defender anchors the contact line.
+    if (leftMoving) {
+      leftAmount = overlap;
+      rightAmount = 0;
+    } else {
+      leftAmount = 0;
+      rightAmount = overlap;
+    }
   } else {
     leftAmount = Math.floor(overlap / 2);
     rightAmount = overlap - leftAmount;
@@ -181,8 +209,8 @@ function resolvePair(
 
   // If terrain blocks one half of the correction, let the other unit absorb
   // the full deterministic correction rather than remaining interpenetrated.
-  const mayMoveLeft = !leftAnchored || rightAnchored;
-  const mayMoveRight = !rightAnchored || leftAnchored;
+  const mayMoveLeft = leftAmount > 0 || rightAmount === 0;
+  const mayMoveRight = rightAmount > 0 || leftAmount === 0;
   if (mayMoveLeft) {
     const fullLeft = displaced(left.x, left.z, axisX, axisZ, divisor, overlap, -1);
     if (canOccupy(fullLeft.x, fullLeft.z, navigation)) {
