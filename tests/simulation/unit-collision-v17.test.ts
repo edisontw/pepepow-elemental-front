@@ -101,7 +101,7 @@ describe('v17 authoritative unit contact and separation', () => {
     expect(attacker.z === target.z && attacker.x === target.x).toBe(false);
   });
 
-  it('keeps a stationary unit anchored while a moving friendly yields around contact', () => {
+  it('gives an ordered friendly passage priority while an ordinary idle friendly yields locally', () => {
     const simulation = new Simulation('unit-contact-yield', openArena([
       unit(0, 4_000, 5_000),
       unit(0, 5_000, 5_000),
@@ -114,13 +114,14 @@ describe('v17 authoritative unit contact and separation', () => {
       targetX: 8_000,
       targetZ: 5_000,
     });
-    const beforeStationary = simulation.snapshot().entities[1]!;
+    const beforeIdle = simulation.snapshot().entities[1]!;
     const frame = simulation.step();
-    const stationary = frame.entities[1]!;
-    expect(stationary.x).toBe(beforeStationary.x);
-    expect(stationary.z).toBe(beforeStationary.z);
-    expect(distance(frame.entities[0]!, stationary)).toBeGreaterThanOrEqual(
-      frame.entities[0]!.bodyRadius + stationary.bodyRadius + UNIT_CONTACT_PADDING,
+    const mover = frame.entities[0]!;
+    const idle = frame.entities[1]!;
+    expect(mover.x).toBeGreaterThan(4_000);
+    expect(idle.x !== beforeIdle.x || idle.z !== beforeIdle.z).toBe(true);
+    expect(distance(mover, idle)).toBeGreaterThanOrEqual(
+      mover.bodyRadius + idle.bodyRadius + UNIT_CONTACT_PADDING,
     );
   });
 });
