@@ -4,11 +4,15 @@ import type { GameCommand } from '../../src/simulation/commands';
 import type { UnitSpawn } from '../../src/simulation/components';
 import { Simulation } from '../../src/simulation/simulation';
 
-function spawn(playerId: number, x: number, z: number, archetype: 'VANGUARD' | 'RANGER', health = 100): UnitSpawn {
+function spawn(playerId: number, x: number, z: number, archetype: 'VANGUARD' | 'RANGER' | 'ELEMENTALIST', health = 100): UnitSpawn {
+  const elemental = archetype === 'ELEMENTALIST';
   const ranged = archetype === 'RANGER';
   return {
-    playerId, x, z, archetype, maxHealth: health, selectionRadius: 700, speedPerTick: 500,
-    attackDamage: ranged ? 12 : 20, attackIntervalTicks: ranged ? 8 : 10, attackRange: ranged ? 6_000 : 1_250,
+    playerId, x, z, archetype, maxHealth: health, selectionRadius: 700, speedPerTick: elemental ? 320 : 500,
+    bodyRadius: elemental ? 420 : undefined,
+    attackDamage: elemental ? 14 : ranged ? 12 : 20,
+    attackIntervalTicks: elemental ? 15 : ranged ? 8 : 10,
+    attackRange: elemental ? 9_000 : ranged ? 6_000 : 1_250,
   };
 }
 
@@ -52,6 +56,31 @@ describe('M01 deterministic direct combat', () => {
     ranged.enqueueCommand(attack());
     ranged.step();
     expect(ranged.snapshot().entities[1]?.currentHealth).toBe(88);
+  });
+
+  it('keeps Elementalist basic attacks at ranged standoff instead of walking into melee', () => {
+    const simulation = new Simulation('elementalist-ranged-standoff', arenaWith([
+      spawn(0, -10_500, -5_500, 'ELEMENTALIST'),
+      spawn(1, -2_500, -5_500, 'VANGUARD', 200),
+    ]));
+    const before = simulation.snapshot().entities[0]!;
+
+    simulation.enqueueCommand({
+      type: 'ATTACK',
+      targetTick: 1,
+      playerId: 0,
+      entityIds: [1],
+      targetEntityId: 2,
+    });
+    const frame = simulation.step();
+    const caster = frame.entities[0]!;
+    const target = frame.entities[1]!;
+
+    expect(caster.x).toBe(before.x);
+    expect(caster.z).toBe(before.z);
+    expect(target.currentHealth).toBe(186);
+    expect(Math.hypot(caster.x - target.x, caster.z - target.z)).toBe(8_000);
+    expect(Math.hypot(caster.x - target.x, caster.z - target.z)).toBeLessThanOrEqual(caster.attackRange);
   });
 
   it('finishes sub-cell pursuit when melee units share a navigation cell but remain out of range', () => {
