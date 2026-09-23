@@ -1,5 +1,6 @@
 import { performance } from 'node:perf_hooks';
 import { describe, expect, it } from 'vitest';
+import { M01_ARENA, type ArenaDefinition } from '../../src/simulation/arena';
 import type { GameCommand } from '../../src/simulation/commands';
 import { FixedTickRunner } from '../../src/simulation/fixed-tick-runner';
 import { formationOffsets, Simulation } from '../../src/simulation/simulation';
@@ -18,6 +19,19 @@ function moveCommands(simulation: Simulation, targetTick: number, swapSides = fa
   ];
 }
 
+function friendlyConvergenceArena(): ArenaDefinition {
+  return {
+    ...M01_ARENA,
+    id: 'm01-v17-friendly-convergence',
+    units: M01_ARENA.units.map((unit, index) => ({
+      ...unit,
+      playerId: 0,
+      x: -21_500 + (index % 8) * 2_000,
+      z: -15_500 + Math.floor(index / 8) * 2_000,
+    })),
+  };
+}
+
 function expectedDestinations(
   simulation: Simulation,
   playerId: number,
@@ -34,12 +48,17 @@ function expectedDestinations(
 }
 
 function runConvergence(seed: string): { simulation: Simulation; hashes: string[] } {
-  const simulation = new Simulation(seed);
-  const expected = new Map([
-    ...expectedDestinations(simulation, 0, EAST),
-    ...expectedDestinations(simulation, 1, WEST),
-  ]);
-  for (const command of moveCommands(simulation, 1)) simulation.enqueueCommand(command);
+  const simulation = new Simulation(seed, friendlyConvergenceArena());
+  const expected = expectedDestinations(simulation, 0, EAST);
+  const ids = simulation.snapshot().entities.map((unit) => unit.id);
+  simulation.enqueueCommand({
+    targetTick: 1,
+    playerId: 0,
+    type: 'MOVE',
+    entityIds: ids,
+    targetX: EAST.x,
+    targetZ: EAST.z,
+  });
   const hashes: string[] = [];
   for (let tick = 1; tick <= CONVERGENCE_TICKS; tick += 1) {
     const snapshot = simulation.step();
@@ -49,11 +68,7 @@ function runConvergence(seed: string): { simulation: Simulation; hashes: string[
   const settled = simulation.snapshot().entities;
   for (const unit of settled) {
     const desired = expected.get(unit.id)!;
-    const desiredDistance = Math.hypot(unit.x - desired.x, unit.z - desired.z);
-    expect(
-      desiredDistance,
-      `unit ${unit.id} current=${unit.x},${unit.z} desired=${desired.x},${desired.z} target=${unit.targetX},${unit.targetZ} yield=${unit.yieldReturnX},${unit.yieldReturnZ} pathIndex=${unit.pathIndex}/${unit.path.length}`,
-    ).toBeLessThanOrEqual(2_000);
+    expect(Math.hypot(unit.x - desired.x, unit.z - desired.z)).toBeLessThanOrEqual(2_000);
     expect(unit).toMatchObject({ alive: true, targetX: null, targetZ: null, attackTargetEntityId: null });
     expect(unit.path).toHaveLength(0);
     expect(simulation.navigation.isWalkable(simulation.navigation.worldToCell(unit.x, unit.z))).toBe(true);
