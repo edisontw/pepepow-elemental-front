@@ -132,7 +132,9 @@ function resolvePair(
 
   // If terrain blocks one half of the correction, let the other unit absorb
   // the full deterministic correction rather than remaining interpenetrated.
-  if (!leftAnchored) {
+  const mayMoveLeft = !leftAnchored || rightAnchored;
+  const mayMoveRight = !rightAnchored || leftAnchored;
+  if (mayMoveLeft) {
     const fullLeft = displaced(left.x, left.z, axisX, axisZ, divisor, overlap, -1);
     if (canOccupy(fullLeft.x, fullLeft.z, navigation)) {
       left.x = fullLeft.x;
@@ -140,7 +142,7 @@ function resolvePair(
       return;
     }
   }
-  if (!rightAnchored) {
+  if (mayMoveRight) {
     const fullRight = displaced(right.x, right.z, axisX, axisZ, divisor, overlap, 1);
     if (canOccupy(fullRight.x, fullRight.z, navigation)) {
       right.x = fullRight.x;
