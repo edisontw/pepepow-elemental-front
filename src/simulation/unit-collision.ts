@@ -5,6 +5,13 @@ import type { NavigationGrid } from './navigation';
 
 const BUCKET_SIZE = 2 * WORLD_UNITS_PER_METER;
 const RELAXATION_PASSES = 3;
+const MELEE_CONTACT_MAX_RANGE = Math.round(2.5 * WORLD_UNITS_PER_METER);
+const RING_ROTATION_SCALE = 10_000;
+const RING_ROTATIONS = [
+  { cos: 9962, sin: 872 },
+  { cos: 9848, sin: 1736 },
+  { cos: 9659, sin: 2588 },
+] as const;
 export const UNIT_CONTACT_PADDING = 20;
 
 const FALLBACK_DIRECTIONS = [
@@ -172,6 +179,120 @@ function tryMoverSidestep(
   return false;
 }
 
+function isMeleeEngagement(entityId: EntityID, targetId: EntityID, entities: EntityStore): boolean {
+  const combat = entities.combat.get(entityId);
+  const position = entities.positions.get(entityId);
+  const target = entities.positions.get(targetId);
+  if (!combat || !position || !target || combat.targetEntityId !== targetId) return false;
+  if (combat.attackRange > MELEE_CONTACT_MAX_RANGE) return false;
+  const dx = position.x - target.x;
+  const dz = position.z - target.z;
+  return dx * dx + dz * dz <= combat.attackRange * combat.attackRange;
+}
+
+function sharedMeleeTarget(leftId: EntityID, rightId: EntityID, entities: EntityStore): EntityID | null {
+  const leftCombat = entities.combat.get(leftId);
+  const rightCombat = entities.combat.get(rightId);
+  if (!leftCombat || !rightCombat) return null;
+  if (leftCombat.targetEntityId === null || leftCombat.targetEntityId !== rightCombat.targetEntityId) return null;
+  const targetId = leftCombat.targetEntityId;
+  if (!entities.hasUnit(targetId)) return null;
+  if (!isMeleeEngagement(leftId, targetId, entities) || !isMeleeEngagement(rightId, targetId, entities)) return null;
+  return targetId;
+}
+
+function trySharedMeleeRingSeparation(
+  leftId: EntityID,
+  rightId: EntityID,
+  targetId: EntityID,
+  entities: EntityStore,
+  navigation: NavigationGrid,
+  minimumDistance: number,
+): boolean {
+  const left = entities.positions.get(leftId);
+  const right = entities.positions.get(rightId);
+  const target = entities.positions.get(targetId);
+  const leftCombat = entities.combat.get(leftId);
+  const rightCombat = entities.combat.get(rightId);
+  if (!left || !right || !target || !leftCombat || !rightCombat) return false;
+
+  // Keep one combatant stable while the other fans around the shared target.
+  // Higher EntityID moves on exact symmetry so replay ordering is fixed.
+  const leftRadiusSq = (left.x - target.x) ** 2 + (left.z - target.z) ** 2;
+  const rightRadiusSq = (right.x - target.x) ** 2 + (right.z - target.z) ** 2;
+  const moverId = leftRadiusSq > rightRadiusSq
+    ? leftId
+    : rightRadiusSq > leftRadiusSq
+      ? rightId
+      : Math.max(leftId, rightId);
+  const blockerId = moverId === leftId ? rightId : leftId;
+  const mover = entities.positions.get(moverId)!;
+  const blocker = entities.positions.get(blockerId)!;
+  const moverCombat = entities.combat.get(moverId)!;
+
+  const relativeX = mover.x - target.x;
+  const relativeZ = mover.z - target.z;
+  if (relativeX === 0 && relativeZ === 0) return false;
+  const blockerX = blocker.x - target.x;
+  const blockerZ = blocker.z - target.z;
+  const cross = relativeX * blockerZ - relativeZ * blockerX;
+  const preferredSign: -1 | 1 = cross < 0
+    ? 1
+    : cross > 0
+      ? -1
+      : ((moverId * 31 + blockerId * 17 + targetId * 13) & 1) === 0 ? -1 : 1;
+  const signs: readonly (-1 | 1)[] = [preferredSign, preferredSign === 1 ? -1 : 1];
+  const currentDx = mover.x - blocker.x;
+  const currentDz = mover.z - blocker.z;
+  const currentDistanceSq = currentDx * currentDx + currentDz * currentDz;
+
+  for (const rotation of RING_ROTATIONS) {
+    for (const sign of signs) {
+      const candidateRelativeX = Math.round(
+        (relativeX * rotation.cos - sign * relativeZ * rotation.sin) / RING_ROTATION_SCALE,
+      );
+      const candidateRelativeZ = Math.round(
+        (sign * relativeX * rotation.sin + relativeZ * rotation.cos) / RING_ROTATION_SCALE,
+      );
+      const candidate = {
+        x: target.x + candidateRelativeX,
+        z: target.z + candidateRelativeZ,
+      };
+      if (!canOccupy(candidate.x, candidate.z, navigation)) continue;
+      const targetDistanceSq = candidateRelativeX * candidateRelativeX + candidateRelativeZ * candidateRelativeZ;
+      if (targetDistanceSq > moverCombat.attackRange * moverCombat.attackRange) continue;
+      const blockerDx = candidate.x - blocker.x;
+      const blockerDz = candidate.z - blocker.z;
+      const blockerDistanceSq = blockerDx * blockerDx + blockerDz * blockerDz;
+      if (blockerDistanceSq <= currentDistanceSq) continue;
+
+      mover.x = candidate.x;
+      mover.z = candidate.z;
+      // A small angular correction may need more than one relaxation pass,
+      // but it never ejects the attacker from its valid melee ring.
+      return blockerDistanceSq >= minimumDistance * minimumDistance || blockerDistanceSq > currentDistanceSq;
+    }
+  }
+  return false;
+}
+
+function hostileMeleeAnchor(
+  leftId: EntityID,
+  rightId: EntityID,
+  entities: EntityStore,
+): EntityID | null {
+  const leftEngaged = isMeleeEngagement(leftId, rightId, entities);
+  const rightEngaged = isMeleeEngagement(rightId, leftId, entities);
+  if (!leftEngaged && !rightEngaged) return null;
+  if (leftEngaged && !rightEngaged) return rightId;
+  if (rightEngaged && !leftEngaged) return leftId;
+
+  const leftRadius = entities.bodies.get(leftId)?.radius ?? 0;
+  const rightRadius = entities.bodies.get(rightId)?.radius ?? 0;
+  if (leftRadius !== rightRadius) return leftRadius > rightRadius ? leftId : rightId;
+  return Math.min(leftId, rightId);
+}
+
 function displaced(
   x: number,
   z: number,
@@ -234,7 +355,33 @@ function resolvePair(
   let leftAmount: number;
   let rightAmount: number;
 
-  if (sameFaction && leftPriority !== rightPriority && !leftHard && !rightHard) {
+  const sharedTargetId = sameFaction ? sharedMeleeTarget(leftId, rightId, entities) : null;
+  const hostileAnchorId = sameFaction ? null : hostileMeleeAnchor(leftId, rightId, entities);
+
+  if (sharedTargetId !== null && !leftHard && !rightHard) {
+    // Melee units already attacking the same target should fan around a stable
+    // combat ring instead of shoving one another radially out of attack range.
+    if (trySharedMeleeRingSeparation(leftId, rightId, sharedTargetId, entities, navigation, minimumDistance)) return;
+    const leftWins = leftId < rightId;
+    if (leftWins) {
+      leftAmount = 0;
+      rightAmount = overlap;
+    } else {
+      leftAmount = overlap;
+      rightAmount = 0;
+    }
+  } else if (hostileAnchorId !== null && !leftHard && !rightHard) {
+    // Once hostile melee contact is established, keep the defender / heavier
+    // combatant stable. Only the other body absorbs accidental penetration so
+    // a surrounded monster does not get pushed across the battlefield.
+    if (hostileAnchorId === leftId) {
+      leftAmount = 0;
+      rightAmount = overlap;
+    } else {
+      leftAmount = overlap;
+      rightAmount = 0;
+    }
+  } else if (sameFaction && leftPriority !== rightPriority && !leftHard && !rightHard) {
     // Explicit friendly movement outranks yield-return movement, which in turn
     // outranks ordinary idle placement. Lower-priority friendlies step aside
     // but remember where to settle again after traffic clears.
