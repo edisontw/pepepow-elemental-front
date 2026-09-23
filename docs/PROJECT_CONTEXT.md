@@ -4,8 +4,8 @@
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v19`
-**Current replay format:** `ef-replay-v19`
+**Current authoritative gameplay ruleset:** `ef-standard-v20`
+**Current replay format:** `ef-replay-v20`
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE4_CLOSURE_REPORT.md`
 
@@ -69,8 +69,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v19`;
-- replay: `ef-replay-v19`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v20`;
+- replay: `ef-replay-v20`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -537,6 +537,16 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
 - Elementalist basic attack authority remains ranged at **9 m**; no melee-range stat change was required;
 - right-click enemy picking now tests the visible vertical unit body instead of only the ground/root point, preventing clicks on tall neutral monsters from being misread as ground MOVE orders that make ranged units walk into melee before auto-aggro resumes;
 - the melee-arrival correction changes authoritative contact outcomes and advances gameplay/replay identity to `ef-standard-v19` / `ef-replay-v19`; the picking correction is input/presentation only; world generation remains `m02-standard-v1`.
+
+### Soft friendly contact / post-combat settling — v20 — 2026-09-24
+
+- friendly units no longer try to maintain full body-radius separation when settled or crowding the same melee target;
+- settled friendlies and same-target melee groups use a **70% body-contact distance**, intentionally permitting roughly 30% body overlap so dense RTS combat groups can visually settle instead of repeatedly searching for perfect non-overlapping slots;
+- friendly units that are still moving through traffic use a wider **85% contact distance** so formations and chokepoint movement do not collapse into a single stack;
+- hostile contact remains **100% hard body separation** and enemy units still cannot pass through one another;
+- the v18/v19 deterministic combat-ring rule is retained only for excessive friendly penetration below the new soft-contact threshold, so ordinary tolerated overlap causes no tangential correction;
+- after combat, tolerated friendly overlap remains stable instead of triggering a second separation phase, eliminating the visible post-combat hopping caused by restoring full body separation;
+- this changes authoritative contact outcomes and advances gameplay/replay identity to `ef-standard-v20` / `ef-replay-v20`; world generation remains `m02-standard-v1`.
 
 ### Low-health awareness / Army panel pass — 2026-09-22
 
