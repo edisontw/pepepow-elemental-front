@@ -50,6 +50,20 @@ function hasMovementIntent(entityId: EntityID, entities: EntityStore): boolean {
   return movement !== undefined && movement.targetX !== null && movement.targetZ !== null;
 }
 
+function movementPriority(entityId: EntityID, entities: EntityStore): number {
+  const movement = entities.movements.get(entityId);
+  if (!movement || movement.targetX === null || movement.targetZ === null) return 0;
+  return movement.yieldReturnX === null ? 2 : 1;
+}
+
+function rememberYieldReturn(entityId: EntityID, entities: EntityStore): void {
+  const movement = entities.movements.get(entityId);
+  const position = entities.positions.get(entityId);
+  if (!movement || !position || movement.yieldReturnX !== null || movement.yieldReturnZ !== null) return;
+  movement.yieldReturnX = position.x;
+  movement.yieldReturnZ = position.z;
+}
+
 function canOccupy(x: number, z: number, navigation: NavigationGrid): boolean {
   return navigation.isWalkable(navigation.worldToCell(x, z));
 }
@@ -93,6 +107,7 @@ function tryFriendlyBlockerSidestep(
     const dx = candidate.x - mover.x;
     const dz = candidate.z - mover.z;
     if (dx * dx + dz * dz < minimumDistance * minimumDistance) continue;
+    rememberYieldReturn(blockerId, entities);
     blocker.x = candidate.x;
     blocker.z = candidate.z;
     return true;
@@ -202,18 +217,22 @@ function resolvePair(
   const rightHard = isHardAnchor(rightId, entities);
   const leftMoving = hasMovementIntent(leftId, entities);
   const rightMoving = hasMovementIntent(rightId, entities);
+  const leftPriority = movementPriority(leftId, entities);
+  const rightPriority = movementPriority(rightId, entities);
 
   let leftAmount: number;
   let rightAmount: number;
 
-  if (sameFaction && leftMoving !== rightMoving && !leftHard && !rightHard) {
-    // Friendly transit is soft: an ordered mover keeps route priority and an
-    // ordinary idle friendly yields locally. This prevents friendly crowds
-    // from becoming dynamic walls that A* cannot route around.
-    const moverId = leftMoving ? leftId : rightId;
-    const blockerId = leftMoving ? rightId : leftId;
+  if (sameFaction && leftPriority !== rightPriority && !leftHard && !rightHard) {
+    // Explicit friendly movement outranks yield-return movement, which in turn
+    // outranks ordinary idle placement. Lower-priority friendlies step aside
+    // but remember where to settle again after traffic clears.
+    const leftWins = leftPriority > rightPriority;
+    const moverId = leftWins ? leftId : rightId;
+    const blockerId = leftWins ? rightId : leftId;
     if (tryFriendlyBlockerSidestep(moverId, blockerId, entities, navigation, minimumDistance)) return;
-    if (leftMoving) {
+    rememberYieldReturn(blockerId, entities);
+    if (leftWins) {
       leftAmount = 0;
       rightAmount = overlap;
     } else {
