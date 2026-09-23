@@ -310,6 +310,33 @@ export class Simulation {
       }
     }
     resolveUnitSeparation(this.entities, this.navigation);
+    this.finalizeCompletedMovement();
+    for (const entityId of this.entities.entityIds()) {
+      if (!this.entities.hasUnit(entityId)) continue;
+      const combat = this.entities.combat.get(entityId)!;
+      const movement = this.entities.movements.get(entityId)!;
+      if (movement.orderMode === 'ATTACK_MOVE' && combat.targetEntityId === null && movement.targetX === null) {
+        movement.orderMode = 'NORMAL';
+        movement.attackMoveX = null;
+        movement.attackMoveZ = null;
+      }
+    }
+  }
+
+  private finalizeCompletedMovement(): void {
+    for (const entityId of this.entities.entityIds()) {
+      if (!this.entities.hasUnit(entityId)) continue;
+      const movement = this.entities.movements.get(entityId)!;
+      if (movement.targetX === null || movement.targetZ === null || movement.pathIndex < movement.path.length) continue;
+      const position = this.entities.positions.get(entityId)!;
+      const targetX = movement.targetX;
+      const targetZ = movement.targetZ;
+      if (position.x === targetX && position.z === targetZ) {
+        this.clearMovement(entityId);
+        continue;
+      }
+      this.assignPath(entityId, targetX, targetZ);
+    }
   }
 
   private validateMovementPath(entityId: EntityID): void {
@@ -423,7 +450,6 @@ export class Simulation {
       position.x = waypoint.x;
       position.z = waypoint.z;
       movement.pathIndex += 1;
-      if (movement.pathIndex >= movement.path.length) this.clearMovement(entityId);
       return;
     }
     position.x += Math.round((deltaX * speedPerTick) / distance);
