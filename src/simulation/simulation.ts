@@ -17,6 +17,7 @@ import { DeterministicRng } from './random';
 import { computeStateHash } from './state-hash';
 import { buildLightningChain, lightningDamage } from './lightning';
 import { SurfaceType, TerrainState, type TerrainCounts, type TerrainEffect, type TerrainEffectId } from './terrain-state';
+import { resolveUnitSeparation } from './unit-collision';
 import { VisibilityState, type VisibilityCounts } from './visibility-state';
 import {
   combatKillXp,
@@ -62,6 +63,7 @@ export interface EntitySnapshot {
   z: number;
   playerId: number;
   selectionRadius: number;
+  bodyRadius: number;
   targetX: number | null;
   targetZ: number | null;
   path: readonly { x: number; z: number }[];
@@ -159,17 +161,18 @@ export class Simulation {
     const movement = this.entities.movements.get(entityId);
     const faction = this.entities.factions.get(entityId);
     const selectable = this.entities.selectables.get(entityId);
+    const body = this.entities.bodies.get(entityId);
     const health = this.entities.health.get(entityId);
     const combat = this.entities.combat.get(entityId);
     const status = this.entities.statuses.get(entityId);
     const archetype = this.entities.archetypes.get(entityId);
     const experience = this.entities.experience.get(entityId);
-    if (!position || !movement || !faction || !selectable || !health || !combat || !status || !archetype || !experience) {
+    if (!position || !movement || !faction || !selectable || !body || !health || !combat || !status || !archetype || !experience) {
       throw new Error(`Entity ${entityId} is missing a required M01 component.`);
     }
     return {
       id: entityId, archetype, x: position.x, z: position.z, playerId: faction.playerId,
-      selectionRadius: selectable.radius, targetX: movement.targetX, targetZ: movement.targetZ,
+      selectionRadius: selectable.radius, bodyRadius: body.radius, targetX: movement.targetX, targetZ: movement.targetZ,
       path: movement.path.map((point) => ({ ...point })), pathIndex: movement.pathIndex,
       pathNavVersion: movement.pathNavVersion, currentHealth: health.current, maxHealth: health.max,
       alive: health.alive, attackDamage: combat.attackDamage,
@@ -306,6 +309,7 @@ export class Simulation {
         movement.attackMoveZ = null;
       }
     }
+    resolveUnitSeparation(this.entities, this.navigation);
   }
 
   private validateMovementPath(entityId: EntityID): void {
