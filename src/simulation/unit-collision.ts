@@ -47,7 +47,7 @@ function isHardAnchor(entityId: EntityID, entities: EntityStore): boolean {
 
 function hasMovementIntent(entityId: EntityID, entities: EntityStore): boolean {
   const movement = entities.movements.get(entityId);
-  return movement?.targetX !== null && movement?.targetZ !== null;
+  return movement !== undefined && movement.targetX !== null && movement.targetZ !== null;
 }
 
 function canOccupy(x: number, z: number, navigation: NavigationGrid): boolean {
@@ -95,6 +95,52 @@ function tryFriendlyBlockerSidestep(
     if (dx * dx + dz * dz < minimumDistance * minimumDistance) continue;
     blocker.x = candidate.x;
     blocker.z = candidate.z;
+    return true;
+  }
+  return false;
+}
+
+function tryMoverSidestep(
+  moverId: EntityID,
+  blockerId: EntityID,
+  entities: EntityStore,
+  navigation: NavigationGrid,
+  minimumDistance: number,
+): boolean {
+  const mover = entities.positions.get(moverId);
+  const blocker = entities.positions.get(blockerId);
+  const movement = entities.movements.get(moverId);
+  if (!mover || !blocker || !movement || movement.targetX === null || movement.targetZ === null) return false;
+
+  const waypoint = movement.pathIndex < movement.path.length
+    ? movement.path[movement.pathIndex]!
+    : { x: movement.targetX, z: movement.targetZ };
+  const forwardX = waypoint.x - mover.x;
+  const forwardZ = waypoint.z - mover.z;
+  const forwardLength = Math.round(Math.sqrt(forwardX * forwardX + forwardZ * forwardZ));
+  if (forwardLength <= 0) return false;
+
+  const perpendicularX = -forwardZ;
+  const perpendicularZ = forwardX;
+  const preferredSign: -1 | 1 = ((moverId * 43 + blockerId * 19) & 1) === 0 ? -1 : 1;
+  const signs: readonly (-1 | 1)[] = [preferredSign, preferredSign === 1 ? -1 : 1];
+
+  for (const sign of signs) {
+    const candidate = displaced(
+      mover.x,
+      mover.z,
+      perpendicularX,
+      perpendicularZ,
+      forwardLength,
+      minimumDistance + 2,
+      sign,
+    );
+    if (!canOccupy(candidate.x, candidate.z, navigation)) continue;
+    const dx = candidate.x - blocker.x;
+    const dz = candidate.z - blocker.z;
+    if (dx * dx + dz * dz < minimumDistance * minimumDistance) continue;
+    mover.x = candidate.x;
+    mover.z = candidate.z;
     return true;
   }
   return false;
@@ -181,7 +227,11 @@ function resolvePair(
     leftAmount = overlap;
     rightAmount = 0;
   } else if (!sameFaction && leftMoving !== rightMoving) {
-    // Hostile contact remains hard: the idle defender anchors the contact line.
+    // Hostile bodies remain hard obstacles, but a forced mover may sidestep
+    // around an idle defender instead of being pushed backward into its route.
+    const moverId = leftMoving ? leftId : rightId;
+    const blockerId = leftMoving ? rightId : leftId;
+    if (tryMoverSidestep(moverId, blockerId, entities, navigation, minimumDistance)) return;
     if (leftMoving) {
       leftAmount = overlap;
       rightAmount = 0;
