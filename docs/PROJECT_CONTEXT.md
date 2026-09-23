@@ -4,8 +4,8 @@
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v16`
-**Current replay format:** `ef-replay-v16`
+**Current authoritative gameplay ruleset:** `ef-standard-v17`
+**Current replay format:** `ef-replay-v17`
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE4_CLOSURE_REPORT.md`
 
@@ -69,8 +69,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v16`;
-- replay: `ef-replay-v16`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v17`;
+- replay: `ef-replay-v17`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -164,7 +164,7 @@ The completed formation slice intentionally does not yet include:
 - `Tab` subgroup cycling;
 - persistent `GUARD` escort/follow relationship;
 - drag-to-set formation facing;
-- advanced local collision/separation steering during transit;
+- advanced crowd steering / flow-field avoidance beyond the bounded v17 local separation pass;
 - Tactical spell targeting/preview UI;
 - Strategic spell relay/network visualization;
 - broad unit/economy/terrain/AI rebalance.
@@ -181,7 +181,7 @@ Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A�
 
 ### Tower Defense vertical slice
 
-- `TOWER_DEFENSE` is a separate deterministic run mode introduced in v13; current run authority is `ef-standard-v16` / `ef-replay-v16`.
+- `TOWER_DEFENSE` is a separate deterministic run mode introduced in v13; current run authority is `ef-standard-v17` / `ef-replay-v17`.
 - It clears the usual starting enemy force, allows 30 seconds to prepare, then sends seven escalating waves from the enemy approach toward the player Core.
 - The live HUD exposes the current wave, next hostile composition, countdown, and hostile count.
 - Existing construction, production, units, spells, and Core recovery remain the first playable defense kit.
@@ -509,6 +509,16 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
 - combat presentation also verifies live unit attack range before spawning melee slash / heavy-shock feedback, preventing the large floating yellow cross/slash from appearing while the Sentinel is still approaching;
 - Sentinel stats remain unchanged: Golem-based guardian, 1.35 m attack range, 8 m aggro radius, 12 m camp leash;
 - this changes authoritative pursuit/state semantics and therefore advances gameplay/replay identity to `ef-standard-v16` / `ef-replay-v16`; world generation remains `m02-standard-v1`.
+
+### Unit contact / deterministic local separation — v17 — 2026-09-23
+
+- living combat units now carry an authoritative ground-contact `bodyRadius` separate from presentation/selection radius;
+- canonical radii are intentionally smaller than sprite silhouettes and represent feet/chassis occupancy, so weapons, staffs, pikes, and cannon barrels do not inflate collision size;
+- after the normal deterministic movement pass, nearby living units are resolved through 2 m spatial buckets and at most three fixed relaxation passes rather than an O(N²) scan;
+- overlapping bodies are separated only into walkable terrain; stationary, Hold, and otherwise anchored units are preferred anchors while actively moving units yield, with EntityID ordering providing deterministic tie-breaking;
+- hostile melee pursuit still uses the existing attack-range authority, but body separation prevents attacker and target centers from collapsing into the same position; canonical melee radii are sized so contact remains inside existing melee reach;
+- body radius is included in snapshots/state hashes, and the replay/challenge identity advances to `ef-standard-v17` / `ef-replay-v17`;
+- building footprints, unit-vs-building blocking, production exit slots, and full flow-field/crowd steering remain follow-up work; world generation remains `m02-standard-v1`.
 
 ### Low-health awareness / Army panel pass — 2026-09-22
 
