@@ -1561,4 +1561,5 @@ Design rationale:
 - Forced player MOVE semantics remain unchanged: player-issued normal MOVE still disengages as defined in section 62.
 - v15 established the current Tower Defense retaliation / neutral-avoidance semantics.
 - v16 fixes deterministic short-range pursuit so a melee attacker that already shares the target's navigation cell still closes the remaining sub-cell gap instead of stalling just outside attack range; target acquisition itself does not count as an attack event.
-- Active gameplay/replay identity is `ef-standard-v16` / `ef-replay-v16`; world generation remains `m02-standard-v1`.
+- v17 gives living units authoritative ground-contact body radii and deterministic local separation after movement. Friendly and hostile units no longer intentionally settle with overlapping body space; stationary/Hold units are preferred anchors while moving units yield where possible. Collision correction remains bounded to walkable terrain and uses spatial buckets rather than all-pairs scans. Building footprints are not part of v17.
+- Active gameplay/replay identity is `ef-standard-v17` / `ef-replay-v17`; world generation remains `m02-standard-v1`.
