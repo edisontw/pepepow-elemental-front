@@ -51,6 +51,53 @@ function canOccupy(x: number, z: number, navigation: NavigationGrid): boolean {
   return navigation.isWalkable(navigation.worldToCell(x, z));
 }
 
+function tryFriendlySidestep(
+  moverId: EntityID,
+  blockerId: EntityID,
+  entities: EntityStore,
+  navigation: NavigationGrid,
+  minimumDistance: number,
+): boolean {
+  if (entities.factions.get(moverId)?.playerId !== entities.factions.get(blockerId)?.playerId) return false;
+  const mover = entities.positions.get(moverId);
+  const blocker = entities.positions.get(blockerId);
+  const movement = entities.movements.get(moverId);
+  if (!mover || !blocker || !movement || movement.pathIndex >= movement.path.length) return false;
+  const waypoint = movement.path[movement.pathIndex]!;
+  const forwardX = waypoint.x - mover.x;
+  const forwardZ = waypoint.z - mover.z;
+  const forwardLength = Math.round(Math.sqrt(forwardX * forwardX + forwardZ * forwardZ));
+  if (forwardLength <= 0) return false;
+
+  const perpendicularX = -forwardZ;
+  const perpendicularZ = forwardX;
+  const preferredSign: -1 | 1 = ((moverId * 31 + blockerId * 17) & 1) === 0 ? -1 : 1;
+  const signs: readonly (-1 | 1)[] = [preferredSign, preferredSign === 1 ? -1 : 1];
+  const amounts = [minimumDistance, Math.ceil((minimumDistance * 5) / 4)];
+
+  for (const amount of amounts) {
+    for (const sign of signs) {
+      const candidate = displaced(
+        mover.x,
+        mover.z,
+        perpendicularX,
+        perpendicularZ,
+        forwardLength,
+        amount,
+        sign,
+      );
+      if (!canOccupy(candidate.x, candidate.z, navigation)) continue;
+      const dx = candidate.x - blocker.x;
+      const dz = candidate.z - blocker.z;
+      if (dx * dx + dz * dz < minimumDistance * minimumDistance) continue;
+      mover.x = candidate.x;
+      mover.z = candidate.z;
+      return true;
+    }
+  }
+  return false;
+}
+
 function displaced(
   x: number,
   z: number,
@@ -99,11 +146,13 @@ function resolvePair(
     divisor = distance;
   }
 
-  const overlap = minimumDistance - distance;
+  const overlap = minimumDistance + 2 - distance;
   if (overlap <= 0) return;
 
   const leftAnchored = isAnchored(leftId, entities);
   const rightAnchored = isAnchored(rightId, entities);
+  if (leftAnchored && !rightAnchored && tryFriendlySidestep(rightId, leftId, entities, navigation, minimumDistance)) return;
+  if (rightAnchored && !leftAnchored && tryFriendlySidestep(leftId, rightId, entities, navigation, minimumDistance)) return;
   let leftAmount: number;
   let rightAmount: number;
   if (leftAnchored && !rightAnchored) {
