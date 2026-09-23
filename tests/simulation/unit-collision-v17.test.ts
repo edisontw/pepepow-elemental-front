@@ -101,6 +101,33 @@ describe('v17 authoritative unit contact and separation', () => {
     expect(attacker.z === target.z && attacker.x === target.x).toBe(false);
   });
 
+  it('replans from an authoritative local displacement when the old next path edge is no longer legal', () => {
+    const simulation = new Simulation('unit-contact-path-repair', openArena([
+      unit(0, 2_500, 2_500),
+    ]));
+    simulation.enqueueCommand({
+      type: 'MOVE',
+      targetTick: 1,
+      playerId: 0,
+      entityIds: [1],
+      targetX: 12_500,
+      targetZ: 2_500,
+    });
+    simulation.step();
+
+    // Emulate a deterministic contact correction into another walkable cell
+    // without changing navVersion. The old next waypoint is now non-adjacent.
+    simulation.entities.positions.set(1, { x: 2_500, z: 4_500 });
+    for (let tick = 0; tick < 30; tick += 1) simulation.step();
+
+    expect(simulation.snapshot().entities[0]).toMatchObject({
+      x: 12_500,
+      z: 2_500,
+      targetX: null,
+      targetZ: null,
+    });
+  });
+
   it('lets the nominal anchor yield when terrain blocks the preferred correction', () => {
     const simulation = new Simulation('unit-contact-wall-fallback', openArena([
       unit(0, 4_500, 5_000),
