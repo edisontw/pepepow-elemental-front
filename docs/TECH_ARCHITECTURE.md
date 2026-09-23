@@ -474,6 +474,12 @@ Use it for:
 - proximity effects
 - collision/avoidance candidate gathering
 
+Active v17 unit contact uses deterministic 2 m spatial buckets and bounded local
+relaxation after authoritative movement. Unit body radii are gameplay state,
+independent from selection/UI radius. Local separation may adjust positions only
+onto walkable cells; A* remains route authority. Building footprints remain a
+separate follow-up.
+
 Avoid O(N²) unit scans.
 
 ---
@@ -718,9 +724,10 @@ If RPC is unavailable:
 
 # 29. Version separation
 
-Active gameplay/challenge: `ef-standard-v16`; replay: `ef-replay-v16`;
-world generation: `m02-standard-v1`. Forced-Move disengage, order modes, and saved Attack Move destinations
-are state-hashed; player replacements of Core orders execute at their target tick.
+Active gameplay/challenge: `ef-standard-v17`; replay: `ef-replay-v17`;
+world generation: `m02-standard-v1`. Forced-Move disengage, order modes, saved Attack Move destinations,
+authoritative unit body radii, and deterministic contact/separation outcomes are state-hashed; player
+replacements of Core orders execute at their target tick.
 
 Track independently:
 
