@@ -761,7 +761,9 @@ export class Simulation {
 
 export function formationOffsets(unitCount: number): Array<{ x: number; z: number }> {
   if (unitCount <= 1) return unitCount === 1 ? [{ x: 0, z: 0 }] : [];
-  const spacing = 1400;
+  // v17 contact bodies require grid-aligned destinations that do not collapse
+  // adjacent compact slots back to a single 1 m contact interval.
+  const spacing = 2000;
   const columns = Math.ceil(Math.sqrt(unitCount));
   const rows = Math.ceil(unitCount / columns);
   return Array.from({ length: unitCount }, (_, index) => {
