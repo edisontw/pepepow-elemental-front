@@ -101,6 +101,49 @@ describe('v18 authoritative unit contact and separation', () => {
     expect(attacker.z === target.z && attacker.x === target.x).toBe(false);
   });
 
+  it('keeps an engaged melee attacker stable when another attacker arrives at the same target', () => {
+    const simulation = new Simulation('unit-contact-melee-arrival', openArena([
+      unit(0, 4_900, 5_000),
+      unit(0, 3_900, 5_000),
+      unit(1, 6_000, 5_000, 600),
+    ]));
+    const targetHealth = simulation.entities.health.get(3)!;
+    targetHealth.current = 2_000;
+    targetHealth.max = 2_000;
+
+    simulation.enqueueCommand({
+      type: 'HOLD',
+      targetTick: 1,
+      playerId: 1,
+      entityIds: [3],
+    });
+    simulation.enqueueCommand({
+      type: 'ATTACK',
+      targetTick: 1,
+      playerId: 0,
+      entityIds: [1],
+      targetEntityId: 3,
+    });
+    simulation.step();
+    const settledFront = { ...simulation.entities.positions.get(1)! };
+
+    simulation.enqueueCommand({
+      type: 'ATTACK',
+      targetTick: 2,
+      playerId: 0,
+      entityIds: [2],
+      targetEntityId: 3,
+    });
+    simulation.step();
+
+    expect(simulation.entities.positions.get(1)).toEqual(settledFront);
+    expect(simulation.entities.positions.get(2)).not.toEqual({ x: 4_400, z: 5_000 });
+    expect(distance(
+      simulation.entities.positions.get(1)!,
+      simulation.entities.positions.get(3)!,
+    )).toBeLessThanOrEqual(simulation.entities.combat.get(1)!.attackRange);
+  });
+
   it('stabilizes multiple melee attackers around one shared target without repeated pursuit jitter', () => {
     const simulation = new Simulation('unit-contact-melee-ring', openArena([
       unit(0, 4_500, 4_500),
