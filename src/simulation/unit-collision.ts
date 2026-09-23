@@ -276,24 +276,29 @@ function resolvePair(
     return;
   }
 
-  // If terrain blocks one half of the correction, let the other unit absorb
-  // the full deterministic correction rather than remaining interpenetrated.
-  const mayMoveLeft = leftAmount > 0 || rightAmount === 0;
-  const mayMoveRight = rightAmount > 0 || leftAmount === 0;
-  if (mayMoveLeft) {
+  // If terrain blocks the preferred correction, try the preferred unit
+  // first, then allow the nominal anchor to absorb the correction as a last
+  // resort. "Anchored" is a preference, never permission to interpenetrate.
+  const tryFullLeft = (): boolean => {
     const fullLeft = displaced(left.x, left.z, axisX, axisZ, divisor, overlap, -1);
-    if (canOccupy(fullLeft.x, fullLeft.z, navigation)) {
-      left.x = fullLeft.x;
-      left.z = fullLeft.z;
-      return;
-    }
-  }
-  if (mayMoveRight) {
+    if (!canOccupy(fullLeft.x, fullLeft.z, navigation)) return false;
+    left.x = fullLeft.x;
+    left.z = fullLeft.z;
+    return true;
+  };
+  const tryFullRight = (): boolean => {
     const fullRight = displaced(right.x, right.z, axisX, axisZ, divisor, overlap, 1);
-    if (canOccupy(fullRight.x, fullRight.z, navigation)) {
-      right.x = fullRight.x;
-      right.z = fullRight.z;
-    }
+    if (!canOccupy(fullRight.x, fullRight.z, navigation)) return false;
+    right.x = fullRight.x;
+    right.z = fullRight.z;
+    return true;
+  };
+  if (leftAmount >= rightAmount) {
+    if (tryFullLeft()) return;
+    tryFullRight();
+  } else {
+    if (tryFullRight()) return;
+    tryFullLeft();
   }
 }
 
