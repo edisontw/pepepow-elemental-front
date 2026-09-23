@@ -24,6 +24,9 @@ export interface MovementComponent {
   speedPerTick: number;
   targetX: number | null;
   targetZ: number | null;
+  /** Low-priority return point after temporarily yielding to a friendly mover. */
+  yieldReturnX: number | null;
+  yieldReturnZ: number | null;
   path: readonly NavigationPoint[];
   pathIndex: number;
   pathNavVersion: number;
