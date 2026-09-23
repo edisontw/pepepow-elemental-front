@@ -106,14 +106,16 @@ describe('v17 authoritative unit contact and separation', () => {
       unit(0, 2_500, 5_500, 600),
       unit(0, 3_500, 5_500, 600),
     ]));
-    simulation.enqueueCommand({
-      type: 'MOVE',
-      targetTick: 1,
-      playerId: 0,
-      entityIds: [1, 2],
-      targetX: 10_500,
-      targetZ: 5_500,
-    });
+    for (const entityId of [1, 2]) {
+      simulation.enqueueCommand({
+        type: 'MOVE',
+        targetTick: 1,
+        playerId: 0,
+        entityIds: [entityId],
+        targetX: 10_500,
+        targetZ: 5_500,
+      });
+    }
 
     const frame = simulation.step();
     const rear = frame.entities[0]!;
