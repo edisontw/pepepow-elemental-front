@@ -1,4 +1,5 @@
 import type {
+  BodyComponent,
   CombatComponent,
   ElementalAlignmentComponent,
   ExperienceComponent,
@@ -18,6 +19,7 @@ export class EntityStore {
   readonly movements = new Map<EntityID, MovementComponent>();
   readonly factions = new Map<EntityID, FactionComponent>();
   readonly selectables = new Map<EntityID, SelectableComponent>();
+  readonly bodies = new Map<EntityID, BodyComponent>();
   readonly health = new Map<EntityID, HealthComponent>();
   readonly statuses = new Map<EntityID, StatusComponent>();
   readonly combat = new Map<EntityID, CombatComponent>();
@@ -43,6 +45,10 @@ export class EntityStore {
     });
     this.factions.set(entityId, { playerId: spawn.playerId });
     this.selectables.set(entityId, { radius: Math.round(spawn.selectionRadius) });
+    // Canonical runtime content supplies bodyRadius explicitly. The small
+    // fallback preserves legacy/unit-test fixtures without making selection UI
+    // radius authoritative for collision semantics.
+    this.bodies.set(entityId, { radius: Math.round(spawn.bodyRadius ?? 250) });
     this.health.set(entityId, { current: spawn.maxHealth, max: spawn.maxHealth, alive: true });
     this.statuses.set(entityId, { wet: false, wetTicks: 0, chilledTicks: 0, frozenTicks: 0 });
     this.combat.set(entityId, {
@@ -76,6 +82,7 @@ export class EntityStore {
       && this.movements.has(entityId)
       && this.factions.has(entityId)
       && this.selectables.has(entityId)
+      && this.bodies.has(entityId)
       && this.health.get(entityId)?.alive === true
       && this.statuses.has(entityId)
       && this.combat.has(entityId)
