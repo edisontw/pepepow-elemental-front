@@ -66,6 +66,8 @@ export interface EntitySnapshot {
   bodyRadius: number;
   targetX: number | null;
   targetZ: number | null;
+  yieldReturnX: number | null;
+  yieldReturnZ: number | null;
   path: readonly { x: number; z: number }[];
   pathIndex: number;
   pathNavVersion: number;
@@ -173,6 +175,7 @@ export class Simulation {
     return {
       id: entityId, archetype, x: position.x, z: position.z, playerId: faction.playerId,
       selectionRadius: selectable.radius, bodyRadius: body.radius, targetX: movement.targetX, targetZ: movement.targetZ,
+      yieldReturnX: movement.yieldReturnX, yieldReturnZ: movement.yieldReturnZ,
       path: movement.path.map((point) => ({ ...point })), pathIndex: movement.pathIndex,
       pathNavVersion: movement.pathNavVersion, currentHealth: health.current, maxHealth: health.max,
       alive: health.alive, attackDamage: combat.attackDamage,
@@ -311,6 +314,7 @@ export class Simulation {
     }
     resolveUnitSeparation(this.entities, this.navigation);
     this.finalizeCompletedMovement();
+    this.resumeYieldReturns();
     for (const entityId of this.entities.entityIds()) {
       if (!this.entities.hasUnit(entityId)) continue;
       const combat = this.entities.combat.get(entityId)!;
@@ -331,12 +335,49 @@ export class Simulation {
       const position = this.entities.positions.get(entityId)!;
       const targetX = movement.targetX;
       const targetZ = movement.targetZ;
+      const completingYieldReturn = movement.yieldReturnX === targetX && movement.yieldReturnZ === targetZ;
       if (position.x === targetX && position.z === targetZ) {
         this.clearMovement(entityId);
+        if (completingYieldReturn) {
+          movement.yieldReturnX = null;
+          movement.yieldReturnZ = null;
+        }
         continue;
       }
-      this.assignPath(entityId, targetX, targetZ);
+      if (completingYieldReturn) this.assignYieldReturnPath(entityId, targetX, targetZ);
+      else this.assignPath(entityId, targetX, targetZ);
     }
+  }
+
+  private resumeYieldReturns(): void {
+    for (const entityId of this.entities.entityIds()) {
+      if (!this.entities.hasUnit(entityId)) continue;
+      const movement = this.entities.movements.get(entityId)!;
+      if (movement.yieldReturnX === null || movement.yieldReturnZ === null) continue;
+      if (movement.orderMode !== 'NORMAL' || movement.targetX !== null || movement.targetZ !== null) continue;
+      if (this.entities.combat.get(entityId)?.targetEntityId !== null) continue;
+      this.assignYieldReturnPath(entityId, movement.yieldReturnX, movement.yieldReturnZ);
+    }
+  }
+
+  private assignYieldReturnPath(entityId: EntityID, targetX: number, targetZ: number): boolean {
+    if (!this.navigation.isWalkable(this.navigation.worldToCell(targetX, targetZ))) {
+      const movement = this.entities.movements.get(entityId);
+      if (movement) {
+        movement.yieldReturnX = null;
+        movement.yieldReturnZ = null;
+      }
+      return false;
+    }
+    if (!this.assignPath(entityId, targetX, targetZ)) return false;
+    const movement = this.entities.movements.get(entityId)!;
+    const last = movement.path[movement.path.length - 1];
+    if (!last || last.x !== targetX || last.z !== targetZ) {
+      movement.path = [...movement.path, { x: targetX, z: targetZ }];
+    }
+    movement.targetX = targetX;
+    movement.targetZ = targetZ;
+    return true;
   }
 
   private validateMovementPath(entityId: EntityID): void {
@@ -701,7 +742,13 @@ export class Simulation {
     const combat = this.entities.combat.get(entityId);
     if (combat) { combat.targetEntityId = null; combat.pursuitTargetCellKey = null; }
     const movement = this.entities.movements.get(entityId);
-    if (movement) { movement.orderMode = 'NORMAL'; movement.attackMoveX = null; movement.attackMoveZ = null; }
+    if (movement) {
+      movement.orderMode = 'NORMAL';
+      movement.attackMoveX = null;
+      movement.attackMoveZ = null;
+      movement.yieldReturnX = null;
+      movement.yieldReturnZ = null;
+    }
     this.clearMovement(entityId);
   }
   private clearMovement(entityId: EntityID): void {
