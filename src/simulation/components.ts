@@ -24,6 +24,9 @@ export interface MovementComponent {
   speedPerTick: number;
   targetX: number | null;
   targetZ: number | null;
+  /** Low-priority return point after temporarily yielding to a friendly mover. */
+  yieldReturnX: number | null;
+  yieldReturnZ: number | null;
   path: readonly NavigationPoint[];
   pathIndex: number;
   pathNavVersion: number;
@@ -64,6 +67,10 @@ export interface SelectableComponent {
   radius: number;
 }
 
+export interface BodyComponent {
+  radius: number;
+}
+
 export interface ElementalAlignmentComponent {
   element: ElementId;
 }
@@ -81,6 +88,8 @@ export interface UnitSpawn {
   z: number;
   speedPerTick: number;
   selectionRadius: number;
+  /** Authoritative ground-contact radius in world units. Legacy/test spawns may omit it. */
+  bodyRadius?: number;
   maxHealth: number;
   attackDamage: number;
   attackIntervalTicks: number;

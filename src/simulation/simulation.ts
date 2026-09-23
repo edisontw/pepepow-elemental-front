@@ -17,6 +17,7 @@ import { DeterministicRng } from './random';
 import { computeStateHash } from './state-hash';
 import { buildLightningChain, lightningDamage } from './lightning';
 import { SurfaceType, TerrainState, type TerrainCounts, type TerrainEffect, type TerrainEffectId } from './terrain-state';
+import { resolveUnitSeparation } from './unit-collision';
 import { VisibilityState, type VisibilityCounts } from './visibility-state';
 import {
   combatKillXp,
@@ -62,8 +63,11 @@ export interface EntitySnapshot {
   z: number;
   playerId: number;
   selectionRadius: number;
+  bodyRadius: number;
   targetX: number | null;
   targetZ: number | null;
+  yieldReturnX: number | null;
+  yieldReturnZ: number | null;
   path: readonly { x: number; z: number }[];
   pathIndex: number;
   pathNavVersion: number;
@@ -159,17 +163,19 @@ export class Simulation {
     const movement = this.entities.movements.get(entityId);
     const faction = this.entities.factions.get(entityId);
     const selectable = this.entities.selectables.get(entityId);
+    const body = this.entities.bodies.get(entityId);
     const health = this.entities.health.get(entityId);
     const combat = this.entities.combat.get(entityId);
     const status = this.entities.statuses.get(entityId);
     const archetype = this.entities.archetypes.get(entityId);
     const experience = this.entities.experience.get(entityId);
-    if (!position || !movement || !faction || !selectable || !health || !combat || !status || !archetype || !experience) {
+    if (!position || !movement || !faction || !selectable || !body || !health || !combat || !status || !archetype || !experience) {
       throw new Error(`Entity ${entityId} is missing a required M01 component.`);
     }
     return {
       id: entityId, archetype, x: position.x, z: position.z, playerId: faction.playerId,
-      selectionRadius: selectable.radius, targetX: movement.targetX, targetZ: movement.targetZ,
+      selectionRadius: selectable.radius, bodyRadius: body.radius, targetX: movement.targetX, targetZ: movement.targetZ,
+      yieldReturnX: movement.yieldReturnX, yieldReturnZ: movement.yieldReturnZ,
       path: movement.path.map((point) => ({ ...point })), pathIndex: movement.pathIndex,
       pathNavVersion: movement.pathNavVersion, currentHealth: health.current, maxHealth: health.max,
       alive: health.alive, attackDamage: combat.attackDamage,
@@ -306,16 +312,102 @@ export class Simulation {
         movement.attackMoveZ = null;
       }
     }
+    resolveUnitSeparation(this.entities, this.navigation);
+    this.finalizeCompletedMovement();
+    this.resumeYieldReturns();
+    for (const entityId of this.entities.entityIds()) {
+      if (!this.entities.hasUnit(entityId)) continue;
+      const combat = this.entities.combat.get(entityId)!;
+      const movement = this.entities.movements.get(entityId)!;
+      if (movement.orderMode === 'ATTACK_MOVE' && combat.targetEntityId === null && movement.targetX === null) {
+        movement.orderMode = 'NORMAL';
+        movement.attackMoveX = null;
+        movement.attackMoveZ = null;
+      }
+    }
+  }
+
+  private finalizeCompletedMovement(): void {
+    for (const entityId of this.entities.entityIds()) {
+      if (!this.entities.hasUnit(entityId)) continue;
+      const movement = this.entities.movements.get(entityId)!;
+      if (movement.targetX === null || movement.targetZ === null || movement.pathIndex < movement.path.length) continue;
+      const position = this.entities.positions.get(entityId)!;
+      const targetX = movement.targetX;
+      const targetZ = movement.targetZ;
+      const completingYieldReturn = movement.yieldReturnX === targetX && movement.yieldReturnZ === targetZ;
+      if (position.x === targetX && position.z === targetZ) {
+        this.clearMovement(entityId);
+        if (completingYieldReturn) {
+          movement.yieldReturnX = null;
+          movement.yieldReturnZ = null;
+        }
+        continue;
+      }
+      if (completingYieldReturn) this.assignYieldReturnPath(entityId, targetX, targetZ);
+      else this.assignPath(entityId, targetX, targetZ);
+    }
+  }
+
+  private resumeYieldReturns(): void {
+    for (const entityId of this.entities.entityIds()) {
+      if (!this.entities.hasUnit(entityId)) continue;
+      const movement = this.entities.movements.get(entityId)!;
+      if (movement.yieldReturnX === null || movement.yieldReturnZ === null) continue;
+      if (movement.orderMode !== 'NORMAL' || movement.targetX !== null || movement.targetZ !== null) continue;
+      if (this.entities.combat.get(entityId)?.targetEntityId !== null) continue;
+      this.assignYieldReturnPath(entityId, movement.yieldReturnX, movement.yieldReturnZ);
+    }
+  }
+
+  private assignYieldReturnPath(entityId: EntityID, targetX: number, targetZ: number): boolean {
+    if (!this.navigation.isWalkable(this.navigation.worldToCell(targetX, targetZ))) {
+      const movement = this.entities.movements.get(entityId);
+      if (movement) {
+        movement.yieldReturnX = null;
+        movement.yieldReturnZ = null;
+      }
+      return false;
+    }
+    if (!this.assignPath(entityId, targetX, targetZ)) return false;
+    const movement = this.entities.movements.get(entityId)!;
+    const last = movement.path[movement.path.length - 1];
+    if (!last || last.x !== targetX || last.z !== targetZ) {
+      movement.path = [...movement.path, { x: targetX, z: targetZ }];
+    }
+    movement.targetX = targetX;
+    movement.targetZ = targetZ;
+    return true;
   }
 
   private validateMovementPath(entityId: EntityID): void {
     const position = this.entities.positions.get(entityId)!;
     const movement = this.entities.movements.get(entityId)!;
-    if (movement.pathNavVersion === this.navigation.navVersion || movement.targetX === null || movement.targetZ === null) return;
-    if (!this.navigation.isWalkable(this.navigation.worldToCell(position.x, position.z))) {
+    if (movement.targetX === null || movement.targetZ === null) return;
+
+    const currentCell = this.navigation.worldToCell(position.x, position.z);
+    if (!this.navigation.isWalkable(currentCell)) {
       this.clearMovement(entityId);
       return;
     }
+
+    const waypoint = movement.pathIndex < movement.path.length
+      ? movement.path[movement.pathIndex]
+      : null;
+    const waypointCell = waypoint ? this.navigation.worldToCell(waypoint.x, waypoint.z) : null;
+    const sameWaypointCell = waypointCell !== null
+      && waypointCell.column === currentCell.column
+      && waypointCell.row === currentCell.row;
+    const staleNav = movement.pathNavVersion !== this.navigation.navVersion;
+    const invalidNextEdge = waypointCell !== null
+      && !sameWaypointCell
+      && !this.navigation.canTraverse(currentCell, waypointCell);
+    if (!staleNav && !invalidNextEdge) return;
+
+    // Local collision/separation may displace a unit into a neighboring
+    // walkable cell without changing navVersion. Replan from that authoritative
+    // position if the old next edge is no longer legal; never discard the
+    // player's destination merely because local contact changed the route.
     const targetX = movement.targetX;
     const targetZ = movement.targetZ;
     this.assignPath(entityId, targetX, targetZ);
@@ -419,7 +511,6 @@ export class Simulation {
       position.x = waypoint.x;
       position.z = waypoint.z;
       movement.pathIndex += 1;
-      if (movement.pathIndex >= movement.path.length) this.clearMovement(entityId);
       return;
     }
     position.x += Math.round((deltaX * speedPerTick) / distance);
@@ -671,7 +762,13 @@ export class Simulation {
     const combat = this.entities.combat.get(entityId);
     if (combat) { combat.targetEntityId = null; combat.pursuitTargetCellKey = null; }
     const movement = this.entities.movements.get(entityId);
-    if (movement) { movement.orderMode = 'NORMAL'; movement.attackMoveX = null; movement.attackMoveZ = null; }
+    if (movement) {
+      movement.orderMode = 'NORMAL';
+      movement.attackMoveX = null;
+      movement.attackMoveZ = null;
+      movement.yieldReturnX = null;
+      movement.yieldReturnZ = null;
+    }
     this.clearMovement(entityId);
   }
   private clearMovement(entityId: EntityID): void {
@@ -684,7 +781,9 @@ export class Simulation {
 
 export function formationOffsets(unitCount: number): Array<{ x: number; z: number }> {
   if (unitCount <= 1) return unitCount === 1 ? [{ x: 0, z: 0 }] : [];
-  const spacing = 1400;
+  // v17 contact bodies require grid-aligned destinations that do not collapse
+  // adjacent compact slots back to a single 1 m contact interval.
+  const spacing = 2000;
   const columns = Math.ceil(Math.sqrt(unitCount));
   const rows = Math.ceil(unitCount / columns);
   return Array.from({ length: unitCount }, (_, index) => {

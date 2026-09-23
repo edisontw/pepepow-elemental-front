@@ -11,7 +11,7 @@ const MELT_CELL_CENTER = { x: 500, z: -2_500 };
 
 function spawn(playerId: number, x: number, z: number): UnitSpawn {
   return {
-    archetype: 'VANGUARD', playerId, x, z, speedPerTick: 420, selectionRadius: 700,
+    archetype: 'VANGUARD', playerId, x, z, speedPerTick: 420, selectionRadius: 700, bodyRadius: 100,
     maxHealth: 500, attackDamage: 18, attackIntervalTicks: 11, attackRange: 1_250,
   };
 }

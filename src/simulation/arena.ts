@@ -56,12 +56,14 @@ const units: UnitSpawn[] = Array.from({ length: PLAYER_UNIT_COUNT }, (_, index) 
       : archetype === 'VANGUARD'
         ? { speedPerTick: 420, maxHealth: 180, attackDamage: 18, attackIntervalTicks: 11, attackRange: 1_250 }
         : { speedPerTick: 420, maxHealth: 110, attackDamage: 12, attackIntervalTicks: 8, attackRange: 6_000 };
+  const bodyRadius = archetype === 'GOLEM' ? 600 : archetype === 'VANGUARD' ? 480 : archetype === 'RANGER' ? 440 : 420;
   return {
     archetype,
     playerId: 0,
     x: (-15 + (index % 4) * 2.1) * METRE,
     z: (-11 + Math.floor(index / 4) * 2.1) * METRE,
     selectionRadius: 700,
+    bodyRadius,
     ...stats,
   };
 });
@@ -75,6 +77,7 @@ for (let index = 0; index < 16; index += 1) {
     z: (index < 8 ? -5 + Math.floor(index / 4) * 10 : index < 12 ? 10 : 14) * METRE,
     speedPerTick: ranged ? 390 : 430,
     selectionRadius: 700,
+    bodyRadius: ranged ? 440 : 480,
     maxHealth: ranged ? 105 : 190,
     attackDamage: ranged ? 13 : 20,
     attackIntervalTicks: ranged ? 8 : 12,

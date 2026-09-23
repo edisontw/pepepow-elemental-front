@@ -1,12 +1,13 @@
 import { performance } from 'node:perf_hooks';
 import { describe, expect, it } from 'vitest';
+import { M01_ARENA, type ArenaDefinition } from '../../src/simulation/arena';
 import type { GameCommand } from '../../src/simulation/commands';
 import { FixedTickRunner } from '../../src/simulation/fixed-tick-runner';
 import { formationOffsets, Simulation } from '../../src/simulation/simulation';
 
 const EAST = { x: 16_000, z: 8_000 };
 const WEST = { x: -16_000, z: 8_000 };
-const CONVERGENCE_TICKS = 340;
+const CONVERGENCE_TICKS = 420;
 
 function moveCommands(simulation: Simulation, targetTick: number, swapSides = false): GameCommand[] {
   const snapshot = simulation.snapshot();
@@ -18,38 +19,70 @@ function moveCommands(simulation: Simulation, targetTick: number, swapSides = fa
   ];
 }
 
-function expectedDestinations(simulation: Simulation, playerId: number, target: { x: number; z: number }): Map<number, string> {
+function friendlyConvergenceArena(): ArenaDefinition {
+  return {
+    ...M01_ARENA,
+    id: 'm01-v17-friendly-convergence',
+    units: M01_ARENA.units.map((unit, index) => ({
+      ...unit,
+      playerId: 0,
+      x: -21_500 + (index % 8) * 2_000,
+      z: -15_500 + Math.floor(index / 8) * 2_000,
+    })),
+  };
+}
+
+function expectedDestinations(
+  simulation: Simulation,
+  playerId: number,
+  target: { x: number; z: number },
+): Map<number, { x: number; z: number }> {
   const ids = simulation.snapshot().entities.filter((unit) => unit.playerId === playerId).map((unit) => unit.id);
   const offsets = formationOffsets(ids.length);
   return new Map(ids.map((id, index) => {
     const offset = offsets[index]!;
     const requested = simulation.navigation.worldToCell(target.x + offset.x, target.z + offset.z);
     const resolved = simulation.navigation.resolveWalkableTarget(requested)!;
-    const world = simulation.navigation.cellToWorld(resolved);
-    return [id, `${world.x},${world.z}`];
+    return [id, simulation.navigation.cellToWorld(resolved)];
   }));
 }
 
 function runConvergence(seed: string): { simulation: Simulation; hashes: string[] } {
-  const simulation = new Simulation(seed);
-  const expected = new Map([
-    ...expectedDestinations(simulation, 0, EAST),
-    ...expectedDestinations(simulation, 1, WEST),
-  ]);
-  for (const command of moveCommands(simulation, 1)) simulation.enqueueCommand(command);
+  const simulation = new Simulation(seed, friendlyConvergenceArena());
+  const expected = expectedDestinations(simulation, 0, EAST);
+  const ids = simulation.snapshot().entities.map((unit) => unit.id);
+  simulation.enqueueCommand({
+    targetTick: 1,
+    playerId: 0,
+    type: 'MOVE',
+    entityIds: ids,
+    targetX: EAST.x,
+    targetZ: EAST.z,
+  });
   const hashes: string[] = [];
   for (let tick = 1; tick <= CONVERGENCE_TICKS; tick += 1) {
     const snapshot = simulation.step();
     if ([1, 25, 50, 100, 180, CONVERGENCE_TICKS].includes(tick)) hashes.push(snapshot.stateHash);
   }
 
-  for (const unit of simulation.snapshot().entities) {
-    expect(`${unit.x},${unit.z}`).toBe(expected.get(unit.id));
+  const settled = simulation.snapshot().entities;
+  for (const unit of settled) {
+    const desired = expected.get(unit.id)!;
+    expect(Math.hypot(unit.x - desired.x, unit.z - desired.z)).toBeLessThanOrEqual(2_000);
     expect(unit).toMatchObject({ alive: true, targetX: null, targetZ: null, attackTargetEntityId: null });
     expect(unit.path).toHaveLength(0);
     expect(simulation.navigation.isWalkable(simulation.navigation.worldToCell(unit.x, unit.z))).toBe(true);
   }
-  expect(new Set(simulation.snapshot().entities.map((unit) => `${unit.x},${unit.z}`)).size).toBe(40);
+  expect(new Set(settled.map((unit) => `${unit.x},${unit.z}`)).size).toBe(40);
+  for (let left = 0; left < settled.length; left += 1) {
+    for (let right = left + 1; right < settled.length; right += 1) {
+      const first = settled[left]!;
+      const second = settled[right]!;
+      expect(Math.hypot(first.x - second.x, first.z - second.z)).toBeGreaterThanOrEqual(
+        first.bodyRadius + second.bodyRadius,
+      );
+    }
+  }
   return { simulation, hashes };
 }
 

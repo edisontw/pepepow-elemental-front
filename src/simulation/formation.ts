@@ -53,10 +53,10 @@ function formationDimensions(formation: FormationId, count: number): {
   depthSpacing: number;
 } {
   if (formation === 'LINE') {
-    return { columns: Math.max(1, Math.min(count, 8)), lateralSpacing: Math.round(1.8 * M), depthSpacing: Math.round(1.8 * M) };
+    return { columns: Math.max(1, Math.min(count, 8)), lateralSpacing: 2 * M, depthSpacing: 2 * M };
   }
   if (formation === 'COLUMN') {
-    return { columns: count <= 4 ? 1 : 2, lateralSpacing: Math.round(1.7 * M), depthSpacing: Math.round(1.8 * M) };
+    return { columns: count <= 4 ? 1 : 2, lateralSpacing: 2 * M, depthSpacing: 2 * M };
   }
   return {
     columns: integerSquareCeiling(Math.max(1, count)),
