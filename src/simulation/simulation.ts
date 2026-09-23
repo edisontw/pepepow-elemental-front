@@ -383,11 +383,31 @@ export class Simulation {
   private validateMovementPath(entityId: EntityID): void {
     const position = this.entities.positions.get(entityId)!;
     const movement = this.entities.movements.get(entityId)!;
-    if (movement.pathNavVersion === this.navigation.navVersion || movement.targetX === null || movement.targetZ === null) return;
-    if (!this.navigation.isWalkable(this.navigation.worldToCell(position.x, position.z))) {
+    if (movement.targetX === null || movement.targetZ === null) return;
+
+    const currentCell = this.navigation.worldToCell(position.x, position.z);
+    if (!this.navigation.isWalkable(currentCell)) {
       this.clearMovement(entityId);
       return;
     }
+
+    const waypoint = movement.pathIndex < movement.path.length
+      ? movement.path[movement.pathIndex]
+      : null;
+    const waypointCell = waypoint ? this.navigation.worldToCell(waypoint.x, waypoint.z) : null;
+    const sameWaypointCell = waypointCell !== null
+      && waypointCell.column === currentCell.column
+      && waypointCell.row === currentCell.row;
+    const staleNav = movement.pathNavVersion !== this.navigation.navVersion;
+    const invalidNextEdge = waypointCell !== null
+      && !sameWaypointCell
+      && !this.navigation.canTraverse(currentCell, waypointCell);
+    if (!staleNav && !invalidNextEdge) return;
+
+    // Local collision/separation may displace a unit into a neighboring
+    // walkable cell without changing navVersion. Replan from that authoritative
+    // position if the old next edge is no longer legal; never discard the
+    // player's destination merely because local contact changed the route.
     const targetX = movement.targetX;
     const targetZ = movement.targetZ;
     this.assignPath(entityId, targetX, targetZ);
