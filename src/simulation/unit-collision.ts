@@ -56,6 +56,17 @@ function movementPriority(entityId: EntityID, entities: EntityStore): number {
   return movement.yieldReturnX === null ? 2 : 1;
 }
 
+function remainingTargetDistanceSquared(entityId: EntityID, entities: EntityStore): number {
+  const movement = entities.movements.get(entityId);
+  const position = entities.positions.get(entityId);
+  if (!movement || !position || movement.targetX === null || movement.targetZ === null) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+  const dx = movement.targetX - position.x;
+  const dz = movement.targetZ - position.z;
+  return dx * dx + dz * dz;
+}
+
 function rememberYieldReturn(entityId: EntityID, entities: EntityStore): void {
   const movement = entities.movements.get(entityId);
   const position = entities.positions.get(entityId);
@@ -232,6 +243,23 @@ function resolvePair(
     const blockerId = leftWins ? rightId : leftId;
     if (tryFriendlyBlockerSidestep(moverId, blockerId, entities, navigation, minimumDistance)) return;
     rememberYieldReturn(blockerId, entities);
+    if (leftWins) {
+      leftAmount = 0;
+      rightAmount = overlap;
+    } else {
+      leftAmount = overlap;
+      rightAmount = 0;
+    }
+  } else if (sameFaction && leftMoving && rightMoving && !leftHard && !rightHard) {
+    // In same-direction traffic, splitting correction equally lets rear units
+    // push the front line backward and can lock a chokepoint. Give deterministic
+    // right-of-way to the unit closer to completing its current destination;
+    // EntityID breaks exact ties. The trailing unit absorbs the separation and
+    // will replan from its corrected authoritative position if necessary.
+    const leftRemaining = remainingTargetDistanceSquared(leftId, entities);
+    const rightRemaining = remainingTargetDistanceSquared(rightId, entities);
+    const leftWins = leftRemaining < rightRemaining
+      || (leftRemaining === rightRemaining && leftId < rightId);
     if (leftWins) {
       leftAmount = 0;
       rightAmount = overlap;
