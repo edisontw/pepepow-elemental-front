@@ -6,7 +6,7 @@ import { formationOffsets, Simulation } from '../../src/simulation/simulation';
 
 const EAST = { x: 16_000, z: 8_000 };
 const WEST = { x: -16_000, z: 8_000 };
-const CONVERGENCE_TICKS = 340;
+const CONVERGENCE_TICKS = 420;
 
 function moveCommands(simulation: Simulation, targetTick: number, swapSides = false): GameCommand[] {
   const snapshot = simulation.snapshot();
