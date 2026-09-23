@@ -101,6 +101,31 @@ describe('v17 authoritative unit contact and separation', () => {
     expect(attacker.z === target.z && attacker.x === target.x).toBe(false);
   });
 
+  it('gives front-most same-faction traffic deterministic right-of-way in a chokepoint queue', () => {
+    const simulation = new Simulation('unit-contact-traffic-priority', openArena([
+      unit(0, 2_500, 5_500, 600),
+      unit(0, 3_500, 5_500, 600),
+    ]));
+    simulation.enqueueCommand({
+      type: 'MOVE',
+      targetTick: 1,
+      playerId: 0,
+      entityIds: [1, 2],
+      targetX: 10_500,
+      targetZ: 5_500,
+    });
+
+    const frame = simulation.step();
+    const rear = frame.entities[0]!;
+    const front = frame.entities[1]!;
+    expect(front.x).toBeGreaterThan(rear.x);
+    expect(front.x).toBeGreaterThanOrEqual(4_000);
+    expect(rear.x).toBeLessThan(3_000);
+    expect(distance(rear, front)).toBeGreaterThanOrEqual(
+      rear.bodyRadius + front.bodyRadius + UNIT_CONTACT_PADDING,
+    );
+  });
+
   it('replans from an authoritative local displacement when the old next path edge is no longer legal', () => {
     const simulation = new Simulation('unit-contact-path-repair', openArena([
       unit(0, 2_500, 2_500),
