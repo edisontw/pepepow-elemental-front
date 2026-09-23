@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { M01_ARENA, type ArenaDefinition } from '../../src/simulation/arena';
 import type { UnitSpawn } from '../../src/simulation/components';
 import { Simulation } from '../../src/simulation/simulation';
-import { UNIT_CONTACT_PADDING } from '../../src/simulation/unit-collision';
+import {
+  FRIENDLY_SETTLED_CONTACT_PERMILLE,
+  FRIENDLY_TRAFFIC_CONTACT_PERMILLE,
+  UNIT_CONTACT_PADDING,
+} from '../../src/simulation/unit-collision';
 
 function unit(playerId: number, x: number, z: number, bodyRadius = 480): UnitSpawn {
   return {
@@ -46,7 +50,15 @@ function distance(left: { x: number; z: number }, right: { x: number; z: number 
   return Math.hypot(left.x - right.x, left.z - right.z);
 }
 
-describe('v18 authoritative unit contact and separation', () => {
+function friendlyContactDistance(
+  left: { bodyRadius: number },
+  right: { bodyRadius: number },
+  permille: number,
+): number {
+  return Math.round(((left.bodyRadius + right.bodyRadius) * permille) / 1000) + UNIT_CONTACT_PADDING;
+}
+
+describe('v20 authoritative unit contact and separation', () => {
   it('separates overlapping idle units deterministically without leaving walkable terrain', () => {
     const first = new Simulation('unit-contact-idle', openArena([
       unit(0, 5_000, 5_000),
@@ -63,7 +75,11 @@ describe('v18 authoritative unit contact and separation', () => {
     const firstFrame = first.step();
     const secondFrame = second.step();
     const [left, right] = firstFrame.entities;
-    expect(distance(left!, right!)).toBeGreaterThanOrEqual(
+    const settledDistance = distance(left!, right!);
+    expect(settledDistance).toBeGreaterThanOrEqual(
+      friendlyContactDistance(left!, right!, FRIENDLY_SETTLED_CONTACT_PERMILLE),
+    );
+    expect(settledDistance).toBeLessThan(
       left!.bodyRadius + right!.bodyRadius + UNIT_CONTACT_PADDING,
     );
     expect(first.navigation.isWalkable(first.navigation.worldToCell(left!.x, left!.z))).toBe(true);
@@ -187,6 +203,48 @@ describe('v18 authoritative unit contact and separation', () => {
     expect(later.entities[3]).toMatchObject({ x: 6_000, z: 5_000 });
   });
 
+  it('keeps tolerated friendly overlap stable after a melee target dies', () => {
+    const simulation = new Simulation('unit-contact-post-combat-settle', openArena([
+      unit(0, 4_900, 5_000),
+      unit(0, 5_200, 5_800),
+      unit(0, 5_200, 4_200),
+      unit(1, 6_000, 5_000, 600),
+    ]));
+    const targetHealth = simulation.entities.health.get(4)!;
+    targetHealth.current = 18;
+    targetHealth.max = 18;
+
+    simulation.enqueueCommand({
+      type: 'HOLD',
+      targetTick: 1,
+      playerId: 1,
+      entityIds: [4],
+    });
+    simulation.enqueueCommand({
+      type: 'ATTACK',
+      targetTick: 1,
+      playerId: 0,
+      entityIds: [1, 2, 3],
+      targetEntityId: 4,
+    });
+
+    const killed = simulation.step();
+    expect(killed.entities[3]!.alive).toBe(false);
+    const settledPositions = killed.entities.slice(0, 3).map((entity) => [entity.x, entity.z]);
+
+    for (let tick = 0; tick < 8; tick += 1) simulation.step();
+    const later = simulation.snapshot().entities.slice(0, 3);
+    expect(later.map((entity) => [entity.x, entity.z])).toEqual(settledPositions);
+
+    const first = later[0]!;
+    const second = later[1]!;
+    const fullBodyDistance = first.bodyRadius + second.bodyRadius + UNIT_CONTACT_PADDING;
+    expect(distance(first, second)).toBeLessThan(fullBodyDistance);
+    expect(distance(first, second)).toBeGreaterThanOrEqual(
+      friendlyContactDistance(first, second, FRIENDLY_SETTLED_CONTACT_PERMILLE),
+    );
+  });
+
   it('keeps the melee defender anchored when accidental penetration is resolved', () => {
     const simulation = new Simulation('unit-contact-melee-anchor', openArena([
       unit(0, 5_500, 5_000),
@@ -237,7 +295,7 @@ describe('v18 authoritative unit contact and separation', () => {
     expect(front.x).toBeGreaterThanOrEqual(4_000);
     expect(rear.x).toBeLessThan(3_000);
     expect(distance(rear, front)).toBeGreaterThanOrEqual(
-      rear.bodyRadius + front.bodyRadius + UNIT_CONTACT_PADDING,
+      friendlyContactDistance(rear, front, FRIENDLY_TRAFFIC_CONTACT_PERMILLE),
     );
   });
 
@@ -289,7 +347,7 @@ describe('v18 authoritative unit contact and separation', () => {
     const anchor = frame.entities[1]!;
     expect(anchor.x !== beforeAnchor.x || anchor.z !== beforeAnchor.z).toBe(true);
     expect(distance(mover, anchor)).toBeGreaterThanOrEqual(
-      mover.bodyRadius + anchor.bodyRadius + UNIT_CONTACT_PADDING,
+      friendlyContactDistance(mover, anchor, FRIENDLY_SETTLED_CONTACT_PERMILLE),
     );
     expect(simulation.navigation.isWalkable(simulation.navigation.worldToCell(anchor.x, anchor.z))).toBe(true);
   });
@@ -314,7 +372,7 @@ describe('v18 authoritative unit contact and separation', () => {
     expect(mover.x).toBeGreaterThan(4_000);
     expect(idle.x !== beforeIdle.x || idle.z !== beforeIdle.z).toBe(true);
     expect(distance(mover, idle)).toBeGreaterThanOrEqual(
-      mover.bodyRadius + idle.bodyRadius + UNIT_CONTACT_PADDING,
+      friendlyContactDistance(mover, idle, FRIENDLY_TRAFFIC_CONTACT_PERMILLE),
     );
 
     for (let tick = 0; tick < 24; tick += 1) simulation.step();
