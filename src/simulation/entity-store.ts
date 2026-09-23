@@ -39,6 +39,8 @@ export class EntityStore {
       speedPerTick: Math.round(spawn.speedPerTick),
       targetX: null,
       targetZ: null,
+      yieldReturnX: null,
+      yieldReturnZ: null,
       path: [],
       pathIndex: 0,
       pathNavVersion: 0,
