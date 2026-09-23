@@ -101,6 +101,32 @@ describe('v17 authoritative unit contact and separation', () => {
     expect(attacker.z === target.z && attacker.x === target.x).toBe(false);
   });
 
+  it('lets the nominal anchor yield when terrain blocks the preferred correction', () => {
+    const simulation = new Simulation('unit-contact-wall-fallback', openArena([
+      unit(0, 4_500, 5_000),
+      unit(0, 5_000, 5_000),
+    ]));
+    simulation.navigation.applyWalkabilityChanges([
+      { cell: { column: 4, row: 5 }, walkable: false },
+    ]);
+    simulation.enqueueCommand({
+      type: 'HOLD',
+      targetTick: 1,
+      playerId: 0,
+      entityIds: [2],
+    });
+
+    const beforeAnchor = simulation.snapshot().entities[1]!;
+    const frame = simulation.step();
+    const mover = frame.entities[0]!;
+    const anchor = frame.entities[1]!;
+    expect(anchor.x !== beforeAnchor.x || anchor.z !== beforeAnchor.z).toBe(true);
+    expect(distance(mover, anchor)).toBeGreaterThanOrEqual(
+      mover.bodyRadius + anchor.bodyRadius + UNIT_CONTACT_PADDING,
+    );
+    expect(simulation.navigation.isWalkable(simulation.navigation.worldToCell(anchor.x, anchor.z))).toBe(true);
+  });
+
   it('gives an ordered friendly passage priority while an ordinary idle friendly yields locally', () => {
     const simulation = new Simulation('unit-contact-yield', openArena([
       unit(0, 4_000, 5_000),
