@@ -46,7 +46,7 @@ function distance(left: { x: number; z: number }, right: { x: number; z: number 
   return Math.hypot(left.x - right.x, left.z - right.z);
 }
 
-describe('v17 authoritative unit contact and separation', () => {
+describe('v18 authoritative unit contact and separation', () => {
   it('separates overlapping idle units deterministically without leaving walkable terrain', () => {
     const first = new Simulation('unit-contact-idle', openArena([
       unit(0, 5_000, 5_000),
@@ -99,6 +99,76 @@ describe('v17 authoritative unit contact and separation', () => {
     expect(centerDistance).toBeLessThanOrEqual(attacker.attackRange);
     expect(attacker.x).not.toBe(target.x);
     expect(attacker.z === target.z && attacker.x === target.x).toBe(false);
+  });
+
+  it('stabilizes multiple melee attackers around one shared target without repeated pursuit jitter', () => {
+    const simulation = new Simulation('unit-contact-melee-ring', openArena([
+      unit(0, 4_500, 4_500),
+      unit(0, 4_500, 5_000),
+      unit(0, 4_500, 5_500),
+      unit(1, 6_000, 5_000, 600),
+    ]));
+    const targetHealth = simulation.entities.health.get(4)!;
+    targetHealth.current = 2_000;
+    targetHealth.max = 2_000;
+    simulation.enqueueCommand({
+      type: 'HOLD',
+      targetTick: 1,
+      playerId: 1,
+      entityIds: [4],
+    });
+    simulation.enqueueCommand({
+      type: 'ATTACK',
+      targetTick: 1,
+      playerId: 0,
+      entityIds: [1, 2, 3],
+      targetEntityId: 4,
+    });
+
+    for (let tick = 0; tick < 24; tick += 1) simulation.step();
+    const settled = simulation.snapshot();
+    const target = settled.entities[3]!;
+    const attackers = settled.entities.slice(0, 3);
+    expect(target).toMatchObject({ x: 6_000, z: 5_000 });
+    expect(target.currentHealth).toBeLessThan(2_000);
+    for (const attacker of attackers) {
+      expect(distance(attacker, target)).toBeLessThanOrEqual(attacker.attackRange);
+      expect(attacker.targetX).toBeNull();
+      expect(attacker.targetZ).toBeNull();
+    }
+
+    const settledPositions = attackers.map((attacker) => [attacker.x, attacker.z]);
+    for (let tick = 0; tick < 10; tick += 1) simulation.step();
+    const later = simulation.snapshot();
+    expect(later.entities.slice(0, 3).map((attacker) => [attacker.x, attacker.z])).toEqual(settledPositions);
+    expect(later.entities[3]).toMatchObject({ x: 6_000, z: 5_000 });
+  });
+
+  it('keeps the melee defender anchored when accidental penetration is resolved', () => {
+    const simulation = new Simulation('unit-contact-melee-anchor', openArena([
+      unit(0, 5_500, 5_000),
+      unit(1, 6_000, 5_000, 600),
+    ]));
+    simulation.enqueueCommand({
+      type: 'HOLD',
+      targetTick: 1,
+      playerId: 1,
+      entityIds: [2],
+    });
+    simulation.enqueueCommand({
+      type: 'ATTACK',
+      targetTick: 1,
+      playerId: 0,
+      entityIds: [1],
+      targetEntityId: 2,
+    });
+
+    const frame = simulation.step();
+    expect(frame.entities[1]).toMatchObject({ x: 6_000, z: 5_000 });
+    expect(distance(frame.entities[0]!, frame.entities[1]!)).toBeGreaterThanOrEqual(
+      frame.entities[0]!.bodyRadius + frame.entities[1]!.bodyRadius + UNIT_CONTACT_PADDING,
+    );
+    expect(distance(frame.entities[0]!, frame.entities[1]!)).toBeLessThanOrEqual(frame.entities[0]!.attackRange);
   });
 
   it('gives front-most same-faction traffic deterministic right-of-way in a chokepoint queue', () => {

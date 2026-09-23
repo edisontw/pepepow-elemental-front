@@ -4,8 +4,8 @@
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v17`
-**Current replay format:** `ef-replay-v17`
+**Current authoritative gameplay ruleset:** `ef-standard-v18`
+**Current replay format:** `ef-replay-v18`
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE4_CLOSURE_REPORT.md`
 
@@ -69,8 +69,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v17`;
-- replay: `ef-replay-v17`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v18`;
+- replay: `ef-replay-v18`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -181,7 +181,7 @@ Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A�
 
 ### Tower Defense vertical slice
 
-- `TOWER_DEFENSE` is a separate deterministic run mode introduced in v13; current run authority is `ef-standard-v17` / `ef-replay-v17`.
+- `TOWER_DEFENSE` is a separate deterministic run mode introduced in v13; current run authority is `ef-standard-v18` / `ef-replay-v18`.
 - It clears the usual starting enemy force, allows 30 seconds to prepare, then sends seven escalating waves from the enemy approach toward the player Core.
 - The live HUD exposes the current wave, next hostile composition, countdown, and hostile count.
 - Existing construction, production, units, spells, and Core recovery remain the first playable defense kit.
@@ -517,9 +517,17 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
 - after the normal deterministic movement pass, nearby living units are resolved through 2 m spatial buckets and at most three fixed relaxation passes rather than an O(N²) scan;
 - overlapping bodies are separated only into walkable terrain; stationary, Hold, and otherwise anchored units are preferred anchors while actively moving units yield, with EntityID ordering providing deterministic tie-breaking;
 - hostile melee pursuit still uses the existing attack-range authority, but body separation prevents attacker and target centers from collapsing into the same position; canonical melee radii are sized so contact remains inside existing melee reach;
-- body radius is included in snapshots/state hashes, and the replay/challenge identity advances to `ef-standard-v17` / `ef-replay-v17`;
+- body radius is included in snapshots/state hashes, and the replay/challenge identity advanced in v17 to `ef-standard-v17` / `ef-replay-v17`;
 - compact MOVE plus Line/Column formation spacing is aligned to a 2 m minimum slot grid so authoritative destinations do not immediately recreate unit-body overlap after arrival;
 - building footprints, unit-vs-building blocking, production exit slots, and full flow-field/crowd steering remain follow-up work; world generation remains `m02-standard-v1`.
+
+### Melee combat-ring stabilization — v18 — 2026-09-23
+
+- same-target allied melee units that are already inside legal attack range no longer resolve body overlap by repeatedly pushing one another radially away from the target;
+- they instead use deterministic small-angle tangential corrections around the shared target, preserving legal attack range while spreading around the contact ring;
+- established hostile melee contact anchors the defender / heavier body where possible, so several attackers cannot continuously shove a neutral monster or enemy melee unit across the battlefield;
+- ordinary movement traffic, forced MOVE disengage, Hold, Attack Move, path repair, body radii, and spatial-bucket authority remain unchanged;
+- this changes authoritative contact outcomes and therefore advances gameplay/replay identity to `ef-standard-v18` / `ef-replay-v18`; world generation remains `m02-standard-v1`.
 
 ### Low-health awareness / Army panel pass — 2026-09-22
 

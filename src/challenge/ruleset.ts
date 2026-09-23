@@ -8,7 +8,7 @@ import { M02_STANDARD_RULES, type WorldGenerationRules } from '../world/world-de
  * the two explicit prevents gameplay redesigns from silently changing established M02
  * battlefield generation or Golden Block world hashes.
  */
-export const CURRENT_CHALLENGE_RULESET_VERSION = 'ef-standard-v17' as const;
+export const CURRENT_CHALLENGE_RULESET_VERSION = 'ef-standard-v18' as const;
 
 export interface ChallengeRulesetDefinition {
   version: string;
@@ -21,9 +21,10 @@ export const CURRENT_CHALLENGE_RULESET: ChallengeRulesetDefinition = {
 };
 
 export function isSupportedChallengeRuleset(version: string): boolean {
-  // v12-v16 challenge links remain parseable as historical non-current runs.
-  // v17 adds authoritative unit body contact and deterministic local separation.
+  // v12-v17 challenge links remain parseable as historical non-current runs.
+  // v18 stabilizes deterministic melee contact rings on top of v17 unit bodies.
   return version === CURRENT_CHALLENGE_RULESET_VERSION
+    || version === 'ef-standard-v17'
     || version === 'ef-standard-v16'
     || version === 'ef-standard-v15'
     || version === 'ef-standard-v14'
