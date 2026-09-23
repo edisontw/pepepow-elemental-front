@@ -6,6 +6,8 @@ import type { NavigationGrid } from './navigation';
 const BUCKET_SIZE = 2 * WORLD_UNITS_PER_METER;
 const RELAXATION_PASSES = 3;
 const MELEE_CONTACT_MAX_RANGE = Math.round(2.5 * WORLD_UNITS_PER_METER);
+export const FRIENDLY_SETTLED_CONTACT_PERMILLE = 700;
+export const FRIENDLY_TRAFFIC_CONTACT_PERMILLE = 850;
 const RING_ROTATION_SCALE = 10_000;
 const RING_ROTATIONS = [
   { cos: 9976, sin: 698 },
@@ -314,7 +316,17 @@ function resolvePair(
   const rightBody = entities.bodies.get(rightId);
   if (!left || !right || !leftBody || !rightBody) return;
 
-  const minimumDistance = leftBody.radius + rightBody.radius + UNIT_CONTACT_PADDING;
+  const sameFaction = entities.factions.get(leftId)?.playerId === entities.factions.get(rightId)?.playerId;
+  const leftMoving = hasMovementIntent(leftId, entities);
+  const rightMoving = hasMovementIntent(rightId, entities);
+  const sharedTargetId = sameFaction ? sharedMeleeTargetIntent(leftId, rightId, entities) : null;
+  const friendlyContactPermille = sharedTargetId !== null || (!leftMoving && !rightMoving)
+    ? FRIENDLY_SETTLED_CONTACT_PERMILLE
+    : FRIENDLY_TRAFFIC_CONTACT_PERMILLE;
+  const bodyDistance = leftBody.radius + rightBody.radius;
+  const minimumDistance = sameFaction
+    ? Math.round((bodyDistance * friendlyContactPermille) / 1000) + UNIT_CONTACT_PADDING
+    : bodyDistance + UNIT_CONTACT_PADDING;
   const dx = right.x - left.x;
   const dz = right.z - left.z;
   const distanceSquared = dx * dx + dz * dz;
@@ -338,18 +350,14 @@ function resolvePair(
   const overlap = minimumDistance + 2 - distance;
   if (overlap <= 0) return;
 
-  const sameFaction = entities.factions.get(leftId)?.playerId === entities.factions.get(rightId)?.playerId;
   const leftHard = isHardAnchor(leftId, entities);
   const rightHard = isHardAnchor(rightId, entities);
-  const leftMoving = hasMovementIntent(leftId, entities);
-  const rightMoving = hasMovementIntent(rightId, entities);
   const leftPriority = movementPriority(leftId, entities);
   const rightPriority = movementPriority(rightId, entities);
 
   let leftAmount: number;
   let rightAmount: number;
 
-  const sharedTargetId = sameFaction ? sharedMeleeTargetIntent(leftId, rightId, entities) : null;
   const hostileAnchorId = sameFaction ? null : hostileMeleeAnchor(leftId, rightId, entities);
 
   if (sharedTargetId !== null && !leftHard && !rightHard) {
@@ -483,7 +491,8 @@ function resolvePair(
 
 /**
  * Deterministic bounded local separation. A* remains route authority; this
- * pass only prevents living unit bodies from occupying the same ground space.
+ * pass prevents hostile body penetration while allowing controlled soft overlap
+ * between friendlies so dense combat groups can visually settle without jitter.
  */
 export function resolveUnitSeparation(entities: EntityStore, navigation: NavigationGrid): void {
   const entityIds = entities.entityIds().filter((entityId) => entities.hasUnit(entityId));
