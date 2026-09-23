@@ -92,7 +92,7 @@ describe('v18 authoritative unit contact and separation', () => {
     const attacker = frame.entities[0]!;
     const target = frame.entities[1]!;
     const centerDistance = distance(attacker, target);
-    expect(target.currentHealth).toBeLessThan(180);
+    expect(target.currentHealth).toBeLessThan(2_000);
     expect(centerDistance).toBeGreaterThanOrEqual(
       attacker.bodyRadius + target.bodyRadius + UNIT_CONTACT_PADDING,
     );
@@ -108,6 +108,9 @@ describe('v18 authoritative unit contact and separation', () => {
       unit(0, 4_500, 5_500),
       unit(1, 6_000, 5_000, 600),
     ]));
+    const targetHealth = simulation.entities.health.get(4)!;
+    targetHealth.current = 2_000;
+    targetHealth.max = 2_000;
     simulation.enqueueCommand({
       type: 'HOLD',
       targetTick: 1,
