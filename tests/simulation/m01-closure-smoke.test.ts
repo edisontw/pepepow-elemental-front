@@ -49,7 +49,11 @@ function runConvergence(seed: string): { simulation: Simulation; hashes: string[
   const settled = simulation.snapshot().entities;
   for (const unit of settled) {
     const desired = expected.get(unit.id)!;
-    expect(Math.hypot(unit.x - desired.x, unit.z - desired.z)).toBeLessThanOrEqual(2_000);
+    const desiredDistance = Math.hypot(unit.x - desired.x, unit.z - desired.z);
+    expect(
+      desiredDistance,
+      `unit ${unit.id} current=${unit.x},${unit.z} desired=${desired.x},${desired.z} target=${unit.targetX},${unit.targetZ} yield=${unit.yieldReturnX},${unit.yieldReturnZ} pathIndex=${unit.pathIndex}/${unit.path.length}`,
+    ).toBeLessThanOrEqual(2_000);
     expect(unit).toMatchObject({ alive: true, targetX: null, targetZ: null, attackTargetEntityId: null });
     expect(unit.path).toHaveLength(0);
     expect(simulation.navigation.isWalkable(simulation.navigation.worldToCell(unit.x, unit.z))).toBe(true);
