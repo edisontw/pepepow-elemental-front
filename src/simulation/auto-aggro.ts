@@ -50,7 +50,8 @@ export function acquireEncounterTargets(
 
     const normalMoveActive = movement.orderMode === 'NORMAL'
       && movement.targetX !== null
-      && movement.targetZ !== null;
+      && movement.targetZ !== null
+      && movement.yieldReturnX === null;
     if (normalMoveActive) {
       combat.targetEntityId = null;
       combat.pursuitTargetCellKey = null;
