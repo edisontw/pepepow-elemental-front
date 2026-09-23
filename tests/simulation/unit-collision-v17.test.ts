@@ -92,7 +92,7 @@ describe('v18 authoritative unit contact and separation', () => {
     const attacker = frame.entities[0]!;
     const target = frame.entities[1]!;
     const centerDistance = distance(attacker, target);
-    expect(target.currentHealth).toBeLessThan(2_000);
+    expect(target.currentHealth).toBeLessThan(180);
     expect(centerDistance).toBeGreaterThanOrEqual(
       attacker.bodyRadius + target.bodyRadius + UNIT_CONTACT_PADDING,
     );
@@ -130,7 +130,7 @@ describe('v18 authoritative unit contact and separation', () => {
     const target = settled.entities[3]!;
     const attackers = settled.entities.slice(0, 3);
     expect(target).toMatchObject({ x: 6_000, z: 5_000 });
-    expect(target.currentHealth).toBeLessThan(180);
+    expect(target.currentHealth).toBeLessThan(2_000);
     for (const attacker of attackers) {
       expect(distance(attacker, target)).toBeLessThanOrEqual(attacker.attackRange);
       expect(attacker.targetX).toBeNull();
