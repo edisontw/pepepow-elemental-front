@@ -127,6 +127,7 @@ export class NeutralEncounterState {
           z: position.z,
           speedPerTick: 210,
           selectionRadius: 900,
+          bodyRadius: 600,
           maxHealth: 260,
           attackDamage: 22,
           attackIntervalTicks: 18,
