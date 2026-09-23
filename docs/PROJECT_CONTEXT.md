@@ -518,6 +518,7 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
 - overlapping bodies are separated only into walkable terrain; stationary, Hold, and otherwise anchored units are preferred anchors while actively moving units yield, with EntityID ordering providing deterministic tie-breaking;
 - hostile melee pursuit still uses the existing attack-range authority, but body separation prevents attacker and target centers from collapsing into the same position; canonical melee radii are sized so contact remains inside existing melee reach;
 - body radius is included in snapshots/state hashes, and the replay/challenge identity advances to `ef-standard-v17` / `ef-replay-v17`;
+- compact MOVE plus Line/Column formation spacing is aligned to a 2 m minimum slot grid so authoritative destinations do not immediately recreate unit-body overlap after arrival;
 - building footprints, unit-vs-building blocking, production exit slots, and full flow-field/crowd steering remain follow-up work; world generation remains `m02-standard-v1`.
 
 ### Low-health awareness / Army panel pass — 2026-09-22
