@@ -126,7 +126,10 @@ describe('v17 authoritative unit contact and separation', () => {
 
     for (let tick = 0; tick < 24; tick += 1) simulation.step();
     const settled = simulation.snapshot().entities;
-    expect(settled[0]).toMatchObject({ x: 8_000, z: 5_000, targetX: null, targetZ: null });
+    const resolvedMove = simulation.navigation.cellToWorld(
+      simulation.navigation.resolveWalkableTarget(simulation.navigation.worldToCell(8_000, 5_000))!,
+    );
+    expect(settled[0]).toMatchObject({ ...resolvedMove, targetX: null, targetZ: null });
     expect(settled[1]).toMatchObject({
       x: beforeIdle.x,
       z: beforeIdle.z,
