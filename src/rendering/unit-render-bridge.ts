@@ -143,10 +143,10 @@ export class UnitRenderBridge {
   private readonly wetMaterial = createMaterial(new pc.Color(0.04, 0.82, 1), new pc.Color(0.03, 0.55, 0.85), 0.82);
   private readonly chilledMaterial = createMaterial(new pc.Color(0.42, 0.78, 1), new pc.Color(0.04, 0.18, 0.32), 0.82);
   private readonly frozenMaterial = createMaterial(new pc.Color(0.72, 0.94, 1), new pc.Color(0.14, 0.42, 0.55), 0.82);
-  private readonly playerAccentMaterial = createMaterial(new pc.Color(0.52, 0.96, 0.9), new pc.Color(0.08, 0.58, 0.48));
-  private readonly enemyAccentMaterial = createMaterial(new pc.Color(1, 0.57, 0.22), new pc.Color(0.7, 0.14, 0.03));
-  private readonly neutralBodyMaterial = createMaterial(new pc.Color(0.32, 0.29, 0.24), new pc.Color(0.04, 0.03, 0.02));
-  private readonly neutralAccentMaterial = createMaterial(new pc.Color(0.74, 0.5, 0.2), new pc.Color(0.18, 0.09, 0.02));
+  private readonly playerAccentMaterial = createMaterial(new pc.Color(0.66, 1, 0.95), new pc.Color(0.12, 0.72, 0.58));
+  private readonly enemyAccentMaterial = createMaterial(new pc.Color(1, 0.66, 0.3), new pc.Color(0.82, 0.18, 0.04));
+  private readonly neutralBodyMaterial = createMaterial(new pc.Color(0.42, 0.36, 0.26), new pc.Color(0.07, 0.05, 0.03));
+  private readonly neutralAccentMaterial = createMaterial(new pc.Color(0.86, 0.58, 0.24), new pc.Color(0.24, 0.12, 0.03));
   private readonly veteranPipMaterial = createMaterial(new pc.Color(0.82, 0.64, 0.26));
   private readonly veteranRingMaterial = createMaterial(new pc.Color(0.64, 0.48, 0.2), undefined, 0.42);
   private readonly neutralThreatMaterial = createMaterial(new pc.Color(0.62, 0.38, 0.14), undefined, 0.5);
