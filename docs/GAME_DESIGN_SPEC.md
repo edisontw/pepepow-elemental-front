@@ -1510,11 +1510,11 @@ Design rationale:
 # 61. RTS controls — v10
 
 - Ground travel supports all eight directions without cutting blocked corners.
-- A then left-click orders Attack Move using the selected formation: engage visible
+- T then left-click orders Attack Move using the selected formation: engage visible
   nearby hostiles, then resume each unit's destination. Esc/right-click cancels targeting.
 - H orders Hold Position: attack within normal range without pursuing. A later order
-  releases Hold. S/X Stop retains normal automatic aggro; neither grants stat bonuses.
-- Camera keyboard movement uses arrows; edge pan and drag remain available.
+  releases Hold. X Stop retains normal automatic aggro; neither grants stat bonuses.
+- Camera keyboard movement uses WASD or arrows; edge pan and drag remain available.
 - These controls supersede the corresponding Phase 3 deferrals only. All other
   closed Phase 2/3/4 behavior and Region territory authority remain in force.
 
@@ -1527,7 +1527,7 @@ Design rationale:
   struck or in melee contact; this allows the player to pull units out of combat.
 - ATTACK_MOVE remains the command for moving while automatically engaging hostiles.
 - H Hold remains stationary in-range engagement without pursuit.
-- S/X Stop cancels movement and returns the unit to ordinary idle auto-aggro; acquisition
+- X Stop cancels movement and returns the unit to ordinary idle auto-aggro; acquisition
   resumes on the following fixed tick.
 - Explicit ATTACK orders remain pursuit-capable.
 - This deterministic gameplay correction advances challenge/replay identity to
@@ -1566,4 +1566,5 @@ Design rationale:
 - v19 extends combat-ring traffic to same-target melee pursuit before every attacker reaches range. Later arrivals fan around the target instead of treating an already attacking friendly as an idle blocker, and smaller deterministic angular corrections reduce visible surround jitter. Elementalist basic attack range remains 9 m. Enemy right-click picking uses the visible unit body column so tall-target clicks reliably issue ATTACK rather than an accidental ground MOVE.
 - v20 replaces full friendly body exclusion with soft friendly contact. Settled/same-target friendlies may overlap to a 70% contact distance, while active friendly traffic uses 85%; hostile pairs retain full hard separation. Tolerated friendly overlap is not corrected after combat, so units do not hop apart merely to restore perfect body spacing.
 - v21 removes the remaining post-combat movement loop. Traffic yield-return points are discarded when a unit enters combat or when its combat target ends, and stationary non-combat friendlies are accepted as a settled cluster with no spacing correction. Active traffic and hostile hard contact remain unchanged.
-- Active gameplay/replay identity is `ef-standard-v21` / `ef-replay-v21`; world generation remains `m02-standard-v1`.
+- v22 adds shared-destination convergence: same-faction units intentionally completing one exact destination may merge inside the final 2 m arrival zone, including around a friendly already stopped on that point. This prevents endpoint collision oscillation without disabling normal traffic separation.
+- Active gameplay/replay identity is `ef-standard-v22` / `ef-replay-v22`; world generation remains `m02-standard-v1`.

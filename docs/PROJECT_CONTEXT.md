@@ -4,8 +4,8 @@
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v21`
-**Current replay format:** `ef-replay-v21`
+**Current authoritative gameplay ruleset:** `ef-standard-v22`
+**Current replay format:** `ef-replay-v22`
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE4_CLOSURE_REPORT.md`
 
@@ -69,8 +69,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v21`;
-- replay: `ef-replay-v21`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v22`;
+- replay: `ef-replay-v22`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -124,10 +124,10 @@ Current player bindings:
 - `Z` Line;
 - `C` Column;
 - `V` Spread;
-- `A`, then left-click a destination: Attack Move (Esc/right-click cancels targeting);
+- `T`, then left-click a destination: Attack Move (Esc/right-click cancels targeting);
 - `H` Hold Position;
-- `S` or `X` Stop;
-- arrow keys / edge pan / drag: camera (WASD retired to avoid A/S command conflicts);
+- `X` Stop;
+- `WASD` or arrow keys / edge pan / drag: camera;
 - `Ctrl+0..9` assign control group;
 - `0..9` recall control group;
 - double-click a controllable unit to select currently on-screen friendly units of the same archetype.
@@ -557,6 +557,15 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
 - active friendly traffic still uses the v20 soft-contact rule, shared-target melee combat still retains bounded deep-overlap correction, and hostile pairs remain hard-separated;
 - this guarantees that a packed group left behind after combat does not enter a return/push/return loop merely to restore pre-combat positions;
 - authoritative movement/contact semantics therefore advance to `ef-standard-v21` / `ef-replay-v21`; world generation remains `m02-standard-v1`.
+
+### Shared-destination convergence + camera/readability pass — v22 — 2026-09-24
+
+- friendly units intentionally ordered to the **same exact destination** may enter a deterministic 2 m destination-merge zone and overlap while completing the final approach;
+- a unit already stopped exactly on that shared destination no longer acts as a blocker to another friendly still completing the same order, eliminating repeated sidestep/push loops at the endpoint;
+- ordinary en-route friendly traffic still uses soft separation, same-target melee handling remains unchanged, and hostile contact remains hard;
+- `WASD` camera panning is restored alongside arrow keys; Attack Move moves from `A` to `T`, Stop uses `X`, and Hold remains `H`, removing camera/command key conflicts;
+- production 2.5D impostors are no longer intentionally dimmed to ~80% emissive color; source artwork now renders at full emissive brightness, while fallback player/enemy/neutral team colors use brighter, more saturated values for battlefield readability;
+- the shared-destination rule changes authoritative movement/contact outcomes and advances gameplay/replay identity to `ef-standard-v22` / `ef-replay-v22`; keyboard remapping and visual brightness are input/presentation changes; world generation remains `m02-standard-v1`.
 
 ### Low-health awareness / Army panel pass — 2026-09-22
 

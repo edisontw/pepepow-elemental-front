@@ -4,6 +4,7 @@ import { acquireEncounterTargets } from '../../src/simulation/auto-aggro';
 import type { UnitSpawn } from '../../src/simulation/components';
 import { Simulation } from '../../src/simulation/simulation';
 import {
+  FRIENDLY_DESTINATION_MERGE_RADIUS,
   FRIENDLY_SETTLED_CONTACT_PERMILLE,
   FRIENDLY_TRAFFIC_CONTACT_PERMILLE,
   UNIT_CONTACT_PADDING,
@@ -59,7 +60,7 @@ function friendlyContactDistance(
   return Math.round(((left.bodyRadius + right.bodyRadius) * permille) / 1000) + UNIT_CONTACT_PADDING;
 }
 
-describe('v21 authoritative unit contact and separation', () => {
+describe('v22 authoritative unit contact and separation', () => {
   it('accepts overlapping stationary friendlies as a deterministic settled cluster', () => {
     const first = new Simulation('unit-contact-idle', openArena([
       unit(0, 5_000, 5_000),
@@ -299,6 +300,34 @@ describe('v21 authoritative unit contact and separation', () => {
 
     const settled = [killed.entities[0]!, killed.entities[1]!].map((entity) => [entity.x, entity.z]);
     for (let tick = 0; tick < 8; tick += 1) simulation.step();
+    expect(simulation.snapshot().entities.slice(0, 2).map((entity) => [entity.x, entity.z])).toEqual(settled);
+  });
+
+  it('lets friendlies converge on one exact destination and settle without oscillation', () => {
+    const simulation = new Simulation('unit-contact-shared-destination', openArena([
+      unit(0, 4_500, 5_500),
+      unit(0, 8_500, 5_500),
+    ]));
+    for (const entityId of [1, 2]) {
+      simulation.enqueueCommand({
+        type: 'MOVE',
+        targetTick: 1,
+        playerId: 0,
+        entityIds: [entityId],
+        targetX: 5_500,
+        targetZ: 5_500,
+      });
+    }
+
+    for (let tick = 0; tick < 20; tick += 1) simulation.step();
+    const arrived = simulation.snapshot().entities.slice(0, 2);
+    expect(arrived[0]).toMatchObject({ x: 5_500, z: 5_500, targetX: null, targetZ: null });
+    expect(arrived[1]).toMatchObject({ x: 5_500, z: 5_500, targetX: null, targetZ: null });
+    expect(distance(arrived[0]!, arrived[1]!)).toBe(0);
+    expect(FRIENDLY_DESTINATION_MERGE_RADIUS).toBe(2_000);
+
+    const settled = arrived.map((entity) => [entity.x, entity.z]);
+    for (let tick = 0; tick < 10; tick += 1) simulation.step();
     expect(simulation.snapshot().entities.slice(0, 2).map((entity) => [entity.x, entity.z])).toEqual(settled);
   });
 

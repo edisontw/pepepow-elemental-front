@@ -6,6 +6,7 @@ import type { NavigationGrid } from './navigation';
 const BUCKET_SIZE = 2 * WORLD_UNITS_PER_METER;
 const RELAXATION_PASSES = 3;
 const MELEE_CONTACT_MAX_RANGE = Math.round(2.5 * WORLD_UNITS_PER_METER);
+export const FRIENDLY_DESTINATION_MERGE_RADIUS = 2 * WORLD_UNITS_PER_METER;
 export const FRIENDLY_SETTLED_CONTACT_PERMILLE = 700;
 export const FRIENDLY_TRAFFIC_CONTACT_PERMILLE = 850;
 const RING_ROTATION_SCALE = 10_000;
@@ -201,6 +202,54 @@ function sharedMeleeTargetIntent(leftId: EntityID, rightId: EntityID, entities: 
   return entities.hasUnit(leftCombat.targetEntityId) ? leftCombat.targetEntityId : null;
 }
 
+function convergingToSharedDestination(leftId: EntityID, rightId: EntityID, entities: EntityStore): boolean {
+  const leftMovement = entities.movements.get(leftId);
+  const rightMovement = entities.movements.get(rightId);
+  const left = entities.positions.get(leftId);
+  const right = entities.positions.get(rightId);
+  if (!leftMovement || !rightMovement || !left || !right) return false;
+
+  let targetX: number | null = null;
+  let targetZ: number | null = null;
+  const leftHasTarget = leftMovement.targetX !== null && leftMovement.targetZ !== null;
+  const rightHasTarget = rightMovement.targetX !== null && rightMovement.targetZ !== null;
+
+  if (
+    leftHasTarget
+    && rightHasTarget
+    && leftMovement.targetX === rightMovement.targetX
+    && leftMovement.targetZ === rightMovement.targetZ
+  ) {
+    targetX = leftMovement.targetX;
+    targetZ = leftMovement.targetZ;
+  } else if (
+    leftHasTarget
+    && !rightHasTarget
+    && right.x === leftMovement.targetX
+    && right.z === leftMovement.targetZ
+  ) {
+    targetX = leftMovement.targetX;
+    targetZ = leftMovement.targetZ;
+  } else if (
+    rightHasTarget
+    && !leftHasTarget
+    && left.x === rightMovement.targetX
+    && left.z === rightMovement.targetZ
+  ) {
+    targetX = rightMovement.targetX;
+    targetZ = rightMovement.targetZ;
+  }
+
+  if (targetX === null || targetZ === null) return false;
+  const radiusSquared = FRIENDLY_DESTINATION_MERGE_RADIUS * FRIENDLY_DESTINATION_MERGE_RADIUS;
+  const leftDx = left.x - targetX;
+  const leftDz = left.z - targetZ;
+  const rightDx = right.x - targetX;
+  const rightDz = right.z - targetZ;
+  return leftDx * leftDx + leftDz * leftDz <= radiusSquared
+    && rightDx * rightDx + rightDz * rightDz <= radiusSquared;
+}
+
 function trySharedMeleeRingSeparation(
   leftId: EntityID,
   rightId: EntityID,
@@ -326,6 +375,12 @@ function resolvePair(
   // combat may legitimately leave units overlapped after a target dies, and
   // pushing them apart here creates visible post-combat oscillation.
   if (sameFaction && !leftMoving && !rightMoving && sharedTargetId === null) return;
+
+  // Units deliberately converging on one exact friendly destination may merge
+  // during the final 2 m of arrival. This prevents a mover that is about to
+  // finish at an occupied destination from entering an endless sidestep/push
+  // loop. Ordinary en-route traffic still uses soft separation.
+  if (sameFaction && sharedTargetId === null && convergingToSharedDestination(leftId, rightId, entities)) return;
 
   const friendlyContactPermille = sharedTargetId !== null
     ? FRIENDLY_SETTLED_CONTACT_PERMILLE
@@ -500,7 +555,8 @@ function resolvePair(
  * Deterministic bounded local separation. A* remains route authority; this
  * pass prevents hostile body penetration while allowing controlled soft overlap
  * between moving/combat friendlies. Stationary non-combat friendly clusters are
- * accepted as settled state and receive no corrective displacement.
+ * accepted as settled state, and units converging on the same exact destination
+ * may merge inside the final arrival zone without corrective displacement.
  */
 export function resolveUnitSeparation(entities: EntityStore, navigation: NavigationGrid): void {
   const entityIds = entities.entityIds().filter((entityId) => entities.hasUnit(entityId));

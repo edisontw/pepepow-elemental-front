@@ -212,7 +212,7 @@ export class UnitControls {
     if (event.target instanceof HTMLElement && (event.target.isContentEditable
       || ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName))) return;
     if (event.code === 'Escape') { this.setAttackMoveArmed(false); return; }
-    if (!event.repeat && !event.ctrlKey && !event.altKey && !event.metaKey && event.code === 'KeyA') {
+    if (!event.repeat && !event.ctrlKey && !event.altKey && !event.metaKey && event.code === 'KeyT') {
       if (this.selection.ids.length > 0) { event.preventDefault(); this.setAttackMoveArmed(true); }
       return;
     }
@@ -289,7 +289,7 @@ export class UnitControls {
       return;
     }
 
-    if ((event.code !== 'KeyX' && event.code !== 'KeyS' && event.code !== 'KeyH') || event.repeat || this.selection.ids.length === 0) return;
+    if ((event.code !== 'KeyX' && event.code !== 'KeyH') || event.repeat || this.selection.ids.length === 0) return;
     event.preventDefault();
     this.setAttackMoveArmed(false);
     this.disableFacingQa();
@@ -318,7 +318,7 @@ export class UnitControls {
     const element = document.getElementById('formation-mode');
     if (!element) return;
     const label = this.formation === 'LINE' ? 'Line' : this.formation === 'COLUMN' ? 'Column' : 'Spread';
-    element.textContent = this.attackMoveArmed ? 'Attack Move: click destination · Esc cancel' : `Formation: ${label} · A Attack Move · H Hold`;
+    element.textContent = this.attackMoveArmed ? 'Attack Move: click destination · Esc cancel' : `Formation: ${label} · T Attack Move · H Hold`;
     element.dataset.formation = this.formation;
   }
 

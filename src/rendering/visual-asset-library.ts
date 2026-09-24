@@ -229,10 +229,10 @@ export class VisualAssetLibrary {
           if (!material) {
             material = (mesh.material as pc.StandardMaterial).clone();
             material.diffuse = playerId === 0
-              ? new pc.Color(.10, .62, .48)
+              ? new pc.Color(.16, .78, .62)
               : playerId === 2
-                ? new pc.Color(.44, .36, .22)
-                : new pc.Color(.78, .16, .12);
+                ? new pc.Color(.56, .43, .24)
+                : new pc.Color(.90, .22, .15);
             material.update();
             this.teamMaterials.set(key, material);
           }
@@ -494,7 +494,7 @@ export class VisualAssetLibrary {
           const material = new pc.StandardMaterial();
           material.name = `${config.id}.fallback.idle.${view}`;
           material.useLighting = false;
-          material.emissive = new pc.Color(0.81, 0.80, 0.76);
+          material.emissive = new pc.Color(1, 1, 1);
           material.emissiveMap = texture;
           material.opacityMap = texture;
           material.opacityMapChannel = 'a';
@@ -534,7 +534,7 @@ export class VisualAssetLibrary {
           const material = new pc.StandardMaterial();
           material.name = `${config.id}.atlas.${action}.${index}`;
           material.useLighting = false;
-          material.emissive = new pc.Color(0.81, 0.80, 0.76);
+          material.emissive = new pc.Color(1, 1, 1);
           material.emissiveMap = texture;
           material.opacityMap = texture;
           material.emissiveMapTiling.set(rect.width, rect.height);

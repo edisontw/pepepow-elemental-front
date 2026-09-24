@@ -5,7 +5,7 @@ import { M06Simulation } from '../../src/simulation/m06-simulation';
 import { generateWorld } from '../../src/world/generator';
 
 describe('post-roadmap competitive ruleset identity', () => {
-  it('versions ef-standard-v21 gameplay independently from the stable M02 world generator', () => {
+  it('versions ef-standard-v22 gameplay independently from the stable M02 world generator', () => {
     const world = generateWorld(4_950_628);
     const challenge = createBlockChallengeIdentity(world, {
       mode: 'DESTROY',
@@ -16,10 +16,10 @@ describe('post-roadmap competitive ruleset identity', () => {
     const replay = new M06Simulation(world).replayCheckpointPacket();
 
     expect(world.identity.rulesetVersion).toBe('m02-standard-v1');
-    expect(CURRENT_CHALLENGE_RULESET_VERSION).toBe('ef-standard-v21');
+    expect(CURRENT_CHALLENGE_RULESET_VERSION).toBe('ef-standard-v22');
     expect(challenge.rulesetVersion).toBe(CURRENT_CHALLENGE_RULESET_VERSION);
     expect(replay.header.rulesetVersion).toBe(CURRENT_CHALLENGE_RULESET_VERSION);
-    expect(replay.header.version).toBe('ef-replay-v21');
+    expect(replay.header.version).toBe('ef-replay-v22');
     expect(replay.header.startingAttunements).toEqual(['FIRE', 'WATER']);
     expect(isSupportedChallengeRuleset(CURRENT_CHALLENGE_RULESET_VERSION)).toBe(true);
     expect(isSupportedChallengeRuleset('ef-standard-v2')).toBe(false);
