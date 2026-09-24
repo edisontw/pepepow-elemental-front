@@ -1510,11 +1510,11 @@ Design rationale:
 # 61. RTS controls — v10
 
 - Ground travel supports all eight directions without cutting blocked corners.
-- A then left-click orders Attack Move using the selected formation: engage visible
+- T then left-click orders Attack Move using the selected formation: engage visible
   nearby hostiles, then resume each unit's destination. Esc/right-click cancels targeting.
 - H orders Hold Position: attack within normal range without pursuing. A later order
-  releases Hold. S/X Stop retains normal automatic aggro; neither grants stat bonuses.
-- Camera keyboard movement uses arrows; edge pan and drag remain available.
+  releases Hold. X Stop retains normal automatic aggro; neither grants stat bonuses.
+- Camera keyboard movement uses WASD or arrows; edge pan and drag remain available.
 - These controls supersede the corresponding Phase 3 deferrals only. All other
   closed Phase 2/3/4 behavior and Region territory authority remain in force.
 
@@ -1527,7 +1527,7 @@ Design rationale:
   struck or in melee contact; this allows the player to pull units out of combat.
 - ATTACK_MOVE remains the command for moving while automatically engaging hostiles.
 - H Hold remains stationary in-range engagement without pursuit.
-- S/X Stop cancels movement and returns the unit to ordinary idle auto-aggro; acquisition
+- X Stop cancels movement and returns the unit to ordinary idle auto-aggro; acquisition
   resumes on the following fixed tick.
 - Explicit ATTACK orders remain pursuit-capable.
 - This deterministic gameplay correction advances challenge/replay identity to
