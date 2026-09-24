@@ -474,17 +474,16 @@ Use it for:
 - proximity effects
 - collision/avoidance candidate gathering
 
-Active v22 unit contact uses deterministic 2 m spatial buckets and bounded local
-relaxation after authoritative movement. Unit body radii are gameplay state,
-independent from selection/UI radius. Hostile pairs keep full body separation.
-Active friendly traffic keeps the v20 soft-contact rule; stationary non-combat
-friendly clusters remain settled as in v21. In addition, friendlies converging on
-one exact destination may merge inside a deterministic final 2 m arrival zone,
-including when one unit has already stopped exactly on that point. This prevents
-endpoint sidestep/push oscillation while preserving normal en-route separation.
-Traffic yield-return retirement from v21 remains active. Local correction stays on
-walkable terrain; A* remains route authority. Building footprints remain a separate
-follow-up.
+Active v23 unit contact uses deterministic 2 m spatial buckets only for hostile
+candidate gathering and bounded hostile separation after authoritative movement.
+Same-faction pairs are non-blocking and receive no contact displacement at all:
+friendly movers may phase through idle or moving friendlies, and friendly melee
+attackers may overlap while converging on a target. Formation destinations remain
+the mechanism for voluntary army spacing. Hostile pairs keep full body separation,
+including defender/heavier-body anchoring for established melee contact and
+walkable-terrain-bounded local corrections. Legacy yield-return fields remain
+state/replay compatible but are no longer produced by unit contact. A* remains
+route authority. Building footprints remain a separate follow-up.
 
 Avoid O(N²) unit scans.
 
@@ -730,9 +729,9 @@ If RPC is unavailable:
 
 # 29. Version separation
 
-Active gameplay/challenge: `ef-standard-v22`; replay: `ef-replay-v22`;
+Active gameplay/challenge: `ef-standard-v23`; replay: `ef-replay-v23`;
 world generation: `m02-standard-v1`. Forced-Move disengage, order modes, saved Attack Move destinations,
-authoritative unit body radii, deterministic contact/separation outcomes, and shared-destination convergence / soft-friendly contact outcomes are state-hashed; player
+authoritative unit body radii, deterministic contact/separation outcomes, and hostile-contact / non-blocking-friendly outcomes are state-hashed; player
 replacements of Core orders execute at their target tick.
 
 Track independently:
