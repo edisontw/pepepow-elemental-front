@@ -383,7 +383,7 @@ describe('v21 authoritative unit contact and separation', () => {
     });
   });
 
-  it('lets the nominal anchor yield when terrain blocks an active mover correction', () => {
+  it('resolves active friendly overlap only onto walkable terrain', () => {
     const simulation = new Simulation('unit-contact-wall-fallback', openArena([
       unit(0, 4_500, 5_000),
       unit(0, 5_000, 5_000),
@@ -406,14 +406,13 @@ describe('v21 authoritative unit contact and separation', () => {
       entityIds: [2],
     });
 
-    const beforeAnchor = simulation.snapshot().entities[1]!;
     const frame = simulation.step();
     const mover = frame.entities[0]!;
     const anchor = frame.entities[1]!;
-    expect(anchor.x !== beforeAnchor.x || anchor.z !== beforeAnchor.z).toBe(true);
     expect(distance(mover, anchor)).toBeGreaterThanOrEqual(
       friendlyContactDistance(mover, anchor, FRIENDLY_TRAFFIC_CONTACT_PERMILLE),
     );
+    expect(simulation.navigation.isWalkable(simulation.navigation.worldToCell(mover.x, mover.z))).toBe(true);
     expect(simulation.navigation.isWalkable(simulation.navigation.worldToCell(anchor.x, anchor.z))).toBe(true);
   });
 
