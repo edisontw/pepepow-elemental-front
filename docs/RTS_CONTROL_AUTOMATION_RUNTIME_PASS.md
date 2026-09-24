@@ -8,13 +8,13 @@ World generation remains `m02-standard-v1`; all historical milestone closures re
 - Eight-neighbor A* uses 10/14 integer costs, octile heuristic, stable neighbor/tie ordering,
   and requires both flank cells to be walkable for diagonals. Formation destination BFS
   remains cardinal and role-aware. Repath starts at the current cell center.
-- A then click (including minimap destination) issues semantic formation Attack Move.
+- T then click (including minimap destination) issues semantic formation Attack Move.
   Visibility/forest-aware nearest-target selection uses EntityID ties. Each unit keeps its
   destination through combat and resumes after target death/loss. H holds ground using
-  normal attack range/cadence; S/X returns to ordinary Stop/aggro. No hidden bonuses.
+  normal attack range/cadence; X returns to ordinary Stop/aggro. No hidden bonuses.
 - v11 follow-up: normal MOVE is forced disengage while its destination remains active.
   It clears the current combat target and ignores automatic encounter acquisition until
-  arrival or cancellation. S/X cancels the move; ordinary auto-aggro resumes next tick.
+  arrival or cancellation. X cancels the move; ordinary auto-aggro resumes next tick.
 - Mode/destination are hashed; Core-order replacement executes at the command tick.
   Existing velocity-derived facing and shared art direction mapping remain unchanged.
 - Secured Shrines automatically present deterministic eligible choices. Pending Shrines
@@ -52,8 +52,8 @@ On the deployed Pages build, inspect:
 
 1. Single unit and Line/Column/Spread movement in eight directions; diagonal travel should
    face its actual velocity. Check bridge/wall corners and freeze/melt rerouting.
-2. A then click: engage and resume destination. H: stand still and fire only in range;
-   moving enemies should not pull units away. S/X and subsequent orders release Hold.
+2. T then click: engage and resume destination. H: stand still and fire only in range;
+   moving enemies should not pull units away. X and subsequent orders release Hold.
 3. Secure a Shrine: three choices appear automatically. Select one: panel compacts;
    queued Shrines appear in stable order, with no extra activation click.
 4. All eleven unit visuals: Idle/Move/Attack/Hit/Death in eight directions, unchanged
