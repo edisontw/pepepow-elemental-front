@@ -8,7 +8,7 @@ import { M02_STANDARD_RULES, type WorldGenerationRules } from '../world/world-de
  * the two explicit prevents gameplay redesigns from silently changing established M02
  * battlefield generation or Golden Block world hashes.
  */
-export const CURRENT_CHALLENGE_RULESET_VERSION = 'ef-standard-v22' as const;
+export const CURRENT_CHALLENGE_RULESET_VERSION = 'ef-standard-v23' as const;
 
 export interface ChallengeRulesetDefinition {
   version: string;
@@ -21,9 +21,10 @@ export const CURRENT_CHALLENGE_RULESET: ChallengeRulesetDefinition = {
 };
 
 export function isSupportedChallengeRuleset(version: string): boolean {
-  // v12-v21 challenge links remain parseable as historical non-current runs.
-  // v22 lets friendly units merge cleanly at a shared exact destination.
+  // v12-v22 challenge links remain parseable as historical non-current runs.
+  // v23 makes same-faction unit contact non-blocking.
   return version === CURRENT_CHALLENGE_RULESET_VERSION
+    || version === 'ef-standard-v22'
     || version === 'ef-standard-v21'
     || version === 'ef-standard-v20'
     || version === 'ef-standard-v19'
