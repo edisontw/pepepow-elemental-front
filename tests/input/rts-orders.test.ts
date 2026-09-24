@@ -7,7 +7,7 @@ import type { UnitRenderBridge } from '../../src/rendering/unit-render-bridge';
 
 class ElementStub { isContentEditable = false; tagName = 'CANVAS'; }
 afterEach(() => vi.unstubAllGlobals());
-it('A arms one destination, Escape/right-click cancel, H emits Hold, and typing never issues commands', () => {
+it('T arms one destination, A/S stay free for camera, H emits Hold, and typing never issues commands', () => {
   const events = new Map<string, (event: unknown) => void>();
   vi.stubGlobal('window', { addEventListener: (name: string, fn: (event: unknown) => void) => events.set(name, fn), removeEventListener: vi.fn() });
   vi.stubGlobal('document', { getElementById: () => null });
@@ -20,6 +20,10 @@ it('A arms one destination, Escape/right-click cancel, H emits Hold, and typing 
   (controls as unknown as { selection: SelectionState }).selection.select([1, 2], 'REPLACE');
   const key = (code: string, target: unknown = null) => events.get('keydown')!({ code, target, repeat: false, preventDefault: vi.fn() });
   key('KeyA');
+  key('KeyS');
+  expect(controls.targetingAttackMove).toBe(false);
+  expect(enqueueCommand).not.toHaveBeenCalled();
+  key('KeyT');
   expect(controls.targetingAttackMove).toBe(true);
   expect(enqueueCommand).not.toHaveBeenCalled();
   controls.moveSelectionTo(8500, 9500);
@@ -27,9 +31,9 @@ it('A arms one destination, Escape/right-click cancel, H emits Hold, and typing 
   expect(controls.targetingAttackMove).toBe(false);
   key('KeyH');
   expect(enqueueCommand).toHaveBeenLastCalledWith(expect.objectContaining({ type: 'HOLD', entityIds: [1, 2] }));
-  key('KeyA'); key('Escape');
+  key('KeyT'); key('Escape');
   expect(controls.targetingAttackMove).toBe(false);
-  key('KeyA'); controls.cancelAttackMoveTargeting();
+  key('KeyT'); controls.cancelAttackMoveTargeting();
   controls.moveSelectionTo(7500, 6500);
   expect(enqueueCommand).toHaveBeenLastCalledWith(expect.objectContaining({ type: 'MOVE' }));
   const input = new ElementStub(); input.tagName = 'INPUT';
