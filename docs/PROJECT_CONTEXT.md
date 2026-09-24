@@ -4,8 +4,8 @@
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v22`
-**Current replay format:** `ef-replay-v22`
+**Current authoritative gameplay ruleset:** `ef-standard-v23`
+**Current replay format:** `ef-replay-v23`
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE4_CLOSURE_REPORT.md`
 
@@ -69,8 +69,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v22`;
-- replay: `ef-replay-v22`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v23`;
+- replay: `ef-replay-v23`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -164,7 +164,7 @@ The completed formation slice intentionally does not yet include:
 - `Tab` subgroup cycling;
 - persistent `GUARD` escort/follow relationship;
 - drag-to-set formation facing;
-- advanced crowd steering / flow-field avoidance beyond the bounded v17 local separation pass;
+- advanced crowd steering / flow-field avoidance beyond hostile-contact separation;
 - Tactical spell targeting/preview UI;
 - Strategic spell relay/network visualization;
 - broad unit/economy/terrain/AI rebalance.
@@ -566,6 +566,15 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
 - `WASD` camera panning is restored alongside arrow keys; Attack Move moves from `A` to `T`, Stop uses `X`, and Hold remains `H`, removing camera/command key conflicts;
 - production 2.5D impostors are no longer intentionally dimmed to ~80% emissive color; source artwork now renders at full emissive brightness, while fallback player/enemy/neutral team colors use brighter, more saturated values for battlefield readability;
 - the shared-destination rule changes authoritative movement/contact outcomes and advances gameplay/replay identity to `ef-standard-v22` / `ef-replay-v22`; keyboard remapping and visual brightness are input/presentation changes; world generation remains `m02-standard-v1`.
+
+### Friendly phasing + middle-drag recovery — v23 — 2026-09-24
+
+- same-faction unit contact is now fully non-blocking: friendly units do not displace, sidestep, push, or reserve body space against one another while moving, idling, converging, or attacking;
+- formation destinations still provide army spacing/readability when the player moves a group, but runtime collision no longer rewrites friendly positions merely because silhouettes overlap;
+- hostile contact remains authoritative, full-body, terrain-bounded, and keeps the established melee defender/heavier-body anchoring behavior;
+- legacy friendly yield-return fields remain replay/state compatible but are no longer produced by unit contact;
+- middle-button camera drag is captured at the window capture phase when the pointer originates on the battlefield canvas, preventing later battlefield listeners from stealing the gesture; middle-button aux-click browser behavior is also suppressed;
+- authoritative friendly-contact semantics advance gameplay/replay identity to `ef-standard-v23` / `ef-replay-v23`; camera input handling is presentation/input-only; world generation remains `m02-standard-v1`.
 
 ### Low-health awareness / Army panel pass — 2026-09-22
 
