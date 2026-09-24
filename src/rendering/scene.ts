@@ -218,9 +218,9 @@ export function createSceneShell(
   };
 
   const unitMaterials = {
-    player: createMaterial(new pc.Color(0.18, 0.68, 0.61), new pc.Color(0.02, 0.2, 0.16)),
-    enemyMelee: createMaterial(new pc.Color(0.78, 0.18, 0.15), new pc.Color(0.24, 0.02, 0.01)),
-    enemyRanged: createMaterial(new pc.Color(0.82, 0.43, 0.12), new pc.Color(0.22, 0.08, 0.01)),
+    player: createMaterial(new pc.Color(0.24, 0.82, 0.72), new pc.Color(0.05, 0.3, 0.24)),
+    enemyMelee: createMaterial(new pc.Color(0.88, 0.24, 0.18), new pc.Color(0.32, 0.04, 0.02)),
+    enemyRanged: createMaterial(new pc.Color(0.94, 0.5, 0.14), new pc.Color(0.3, 0.1, 0.02)),
   };
   const selectionMaterial = createMaterial(new pc.Color(0.96, 0.78, 0.2), new pc.Color(0.55, 0.32, 0.03));
   const battleVfx = new BattleVfx(app, lowQuality ? 96 : 192);
