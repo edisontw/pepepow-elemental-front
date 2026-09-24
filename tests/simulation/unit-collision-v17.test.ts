@@ -305,7 +305,7 @@ describe('v22 authoritative unit contact and separation', () => {
 
   it('lets friendlies converge on one exact destination and settle without oscillation', () => {
     const simulation = new Simulation('unit-contact-shared-destination', openArena([
-      unit(0, 2_500, 5_500),
+      unit(0, 4_500, 5_500),
       unit(0, 8_500, 5_500),
     ]));
     for (const entityId of [1, 2]) {
