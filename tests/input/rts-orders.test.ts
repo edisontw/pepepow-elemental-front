@@ -37,7 +37,7 @@ it('T arms one destination, A/S stay free for camera, H emits Hold, and typing n
   controls.moveSelectionTo(7500, 6500);
   expect(enqueueCommand).toHaveBeenLastCalledWith(expect.objectContaining({ type: 'MOVE' }));
   const input = new ElementStub(); input.tagName = 'INPUT';
-  key('KeyA', input);
+  key('KeyT', input);
   expect(controls.targetingAttackMove).toBe(false);
   controls.destroy();
 });
