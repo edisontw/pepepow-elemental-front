@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { M01_ARENA, type ArenaDefinition } from '../../src/simulation/arena';
+import { acquireEncounterTargets } from '../../src/simulation/auto-aggro';
 import type { UnitSpawn } from '../../src/simulation/components';
 import { Simulation } from '../../src/simulation/simulation';
 import {
@@ -58,8 +59,8 @@ function friendlyContactDistance(
   return Math.round(((left.bodyRadius + right.bodyRadius) * permille) / 1000) + UNIT_CONTACT_PADDING;
 }
 
-describe('v20 authoritative unit contact and separation', () => {
-  it('separates overlapping idle units deterministically without leaving walkable terrain', () => {
+describe('v21 authoritative unit contact and separation', () => {
+  it('accepts overlapping stationary friendlies as a deterministic settled cluster', () => {
     const first = new Simulation('unit-contact-idle', openArena([
       unit(0, 5_000, 5_000),
       unit(0, 5_000, 5_000),
@@ -74,17 +75,15 @@ describe('v20 authoritative unit contact and separation', () => {
 
     const firstFrame = first.step();
     const secondFrame = second.step();
-    const [left, right] = firstFrame.entities;
-    const settledDistance = distance(left!, right!);
-    expect(settledDistance).toBeGreaterThanOrEqual(
-      friendlyContactDistance(left!, right!, FRIENDLY_SETTLED_CONTACT_PERMILLE),
-    );
-    expect(settledDistance).toBeLessThan(
-      left!.bodyRadius + right!.bodyRadius + UNIT_CONTACT_PADDING,
-    );
-    expect(first.navigation.isWalkable(first.navigation.worldToCell(left!.x, left!.z))).toBe(true);
-    expect(first.navigation.isWalkable(first.navigation.worldToCell(right!.x, right!.z))).toBe(true);
+    expect(firstFrame.entities.slice(0, 2).map((entity) => [entity.x, entity.z])).toEqual([
+      [5_000, 5_000],
+      [5_000, 5_000],
+    ]);
     expect(firstFrame.stateHash).toBe(secondFrame.stateHash);
+
+    const settledPositions = firstFrame.entities.slice(0, 2).map((entity) => [entity.x, entity.z]);
+    for (let tick = 0; tick < 8; tick += 1) first.step();
+    expect(first.snapshot().entities.slice(0, 2).map((entity) => [entity.x, entity.z])).toEqual(settledPositions);
   });
 
   it('lets melee close to contact range and deal damage without center overlap', () => {
@@ -245,6 +244,64 @@ describe('v20 authoritative unit contact and separation', () => {
     );
   });
 
+  it('discards a traffic yield-return when an idle unit auto-aggros, then settles where combat ends', () => {
+    const simulation = new Simulation('unit-contact-autoaggro-yield-settle', openArena([
+      unit(0, 4_000, 5_000),
+      unit(0, 5_000, 5_000),
+      unit(1, 15_000, 5_000),
+    ]));
+
+    simulation.enqueueCommand({
+      type: 'MOVE',
+      targetTick: 1,
+      playerId: 0,
+      entityIds: [1],
+      targetX: 8_000,
+      targetZ: 5_000,
+    });
+    simulation.step();
+
+    const yielded = simulation.entities.movements.get(2)!;
+    expect(yielded.yieldReturnX).not.toBeNull();
+    expect(yielded.yieldReturnZ).not.toBeNull();
+
+    const fighter = simulation.entities.positions.get(2)!;
+    simulation.entities.positions.set(3, { x: fighter.x + 1_000, z: fighter.z });
+    const enemyHealth = simulation.entities.health.get(3)!;
+    enemyHealth.current = 18;
+    enemyHealth.max = 18;
+    simulation.visibility.update(simulation.entities, simulation.navigation);
+
+    const acquired = acquireEncounterTargets(
+      simulation.entities,
+      simulation.navigation,
+      simulation.visibility,
+      simulation.terrain,
+      2,
+    );
+    expect(acquired).toBeGreaterThan(0);
+    expect(simulation.entities.combat.get(2)!.targetEntityId).toBe(3);
+    expect(simulation.entities.movements.get(2)).toMatchObject({
+      yieldReturnX: null,
+      yieldReturnZ: null,
+    });
+
+    simulation.enqueueCommand({ type: 'STOP', targetTick: 2, playerId: 0, entityIds: [1] });
+    const killed = simulation.step();
+    expect(killed.entities[2]!.alive).toBe(false);
+    expect(killed.entities[1]).toMatchObject({
+      attackTargetEntityId: null,
+      targetX: null,
+      targetZ: null,
+      yieldReturnX: null,
+      yieldReturnZ: null,
+    });
+
+    const settled = [killed.entities[0]!, killed.entities[1]!].map((entity) => [entity.x, entity.z]);
+    for (let tick = 0; tick < 8; tick += 1) simulation.step();
+    expect(simulation.snapshot().entities.slice(0, 2).map((entity) => [entity.x, entity.z])).toEqual(settled);
+  });
+
   it('keeps the melee defender anchored when accidental penetration is resolved', () => {
     const simulation = new Simulation('unit-contact-melee-anchor', openArena([
       unit(0, 5_500, 5_000),
@@ -326,14 +383,22 @@ describe('v20 authoritative unit contact and separation', () => {
     });
   });
 
-  it('lets the nominal anchor yield when terrain blocks the preferred correction', () => {
+  it('resolves active friendly overlap only onto walkable terrain', () => {
     const simulation = new Simulation('unit-contact-wall-fallback', openArena([
       unit(0, 4_500, 5_000),
       unit(0, 5_000, 5_000),
     ]));
     simulation.navigation.applyWalkabilityChanges([
-      { cell: { column: 4, row: 5 }, walkable: false },
+      { cell: { column: 4, row: 4 }, walkable: false },
     ]);
+    simulation.enqueueCommand({
+      type: 'MOVE',
+      targetTick: 1,
+      playerId: 0,
+      entityIds: [1],
+      targetX: 7_000,
+      targetZ: 5_000,
+    });
     simulation.enqueueCommand({
       type: 'HOLD',
       targetTick: 1,
@@ -341,14 +406,13 @@ describe('v20 authoritative unit contact and separation', () => {
       entityIds: [2],
     });
 
-    const beforeAnchor = simulation.snapshot().entities[1]!;
     const frame = simulation.step();
     const mover = frame.entities[0]!;
     const anchor = frame.entities[1]!;
-    expect(anchor.x !== beforeAnchor.x || anchor.z !== beforeAnchor.z).toBe(true);
     expect(distance(mover, anchor)).toBeGreaterThanOrEqual(
-      friendlyContactDistance(mover, anchor, FRIENDLY_SETTLED_CONTACT_PERMILLE),
+      friendlyContactDistance(mover, anchor, FRIENDLY_TRAFFIC_CONTACT_PERMILLE),
     );
+    expect(simulation.navigation.isWalkable(simulation.navigation.worldToCell(mover.x, mover.z))).toBe(true);
     expect(simulation.navigation.isWalkable(simulation.navigation.worldToCell(anchor.x, anchor.z))).toBe(true);
   });
 

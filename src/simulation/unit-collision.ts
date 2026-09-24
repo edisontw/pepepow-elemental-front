@@ -320,7 +320,14 @@ function resolvePair(
   const leftMoving = hasMovementIntent(leftId, entities);
   const rightMoving = hasMovementIntent(rightId, entities);
   const sharedTargetId = sameFaction ? sharedMeleeTargetIntent(leftId, rightId, entities) : null;
-  const friendlyContactPermille = sharedTargetId !== null || (!leftMoving && !rightMoving)
+
+  // A friendly cluster with no movement intent and no shared combat target is
+  // already settled. Do not continuously "improve" its spacing: dense RTS
+  // combat may legitimately leave units overlapped after a target dies, and
+  // pushing them apart here creates visible post-combat oscillation.
+  if (sameFaction && !leftMoving && !rightMoving && sharedTargetId === null) return;
+
+  const friendlyContactPermille = sharedTargetId !== null
     ? FRIENDLY_SETTLED_CONTACT_PERMILLE
     : FRIENDLY_TRAFFIC_CONTACT_PERMILLE;
   const bodyDistance = leftBody.radius + rightBody.radius;
@@ -492,7 +499,8 @@ function resolvePair(
 /**
  * Deterministic bounded local separation. A* remains route authority; this
  * pass prevents hostile body penetration while allowing controlled soft overlap
- * between friendlies so dense combat groups can visually settle without jitter.
+ * between moving/combat friendlies. Stationary non-combat friendly clusters are
+ * accepted as settled state and receive no corrective displacement.
  */
 export function resolveUnitSeparation(entities: EntityStore, navigation: NavigationGrid): void {
   const entityIds = entities.entityIds().filter((entityId) => entities.hasUnit(entityId));

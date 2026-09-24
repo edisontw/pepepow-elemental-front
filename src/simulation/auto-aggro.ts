@@ -98,6 +98,12 @@ export function acquireEncounterTargets(
     }
 
     if (!best) continue;
+
+    // A traffic-yield return point is only meaningful while the unit remains
+    // an uninvolved bystander. Once it joins combat, its old exact parking
+    // position becomes stale and must never wake up again after the fight.
+    movement.yieldReturnX = null;
+    movement.yieldReturnZ = null;
     combat.targetEntityId = best.entityId;
     combat.pursuitTargetCellKey = null;
     combat.nextAttackTick = Math.min(combat.nextAttackTick, tick);

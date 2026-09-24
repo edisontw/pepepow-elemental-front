@@ -4,8 +4,8 @@
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v20`
-**Current replay format:** `ef-replay-v20`
+**Current authoritative gameplay ruleset:** `ef-standard-v21`
+**Current replay format:** `ef-replay-v21`
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE4_CLOSURE_REPORT.md`
 
@@ -69,8 +69,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v20`;
-- replay: `ef-replay-v20`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v21`;
+- replay: `ef-replay-v21`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -547,6 +547,16 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
 - the v18/v19 deterministic combat-ring rule is retained only for excessive friendly penetration below the new soft-contact threshold, so ordinary tolerated overlap causes no tangential correction;
 - after combat, tolerated friendly overlap remains stable instead of triggering a second separation phase, eliminating the visible post-combat hopping caused by restoring full body separation;
 - this changes authoritative contact outcomes and advances gameplay/replay identity to `ef-standard-v20` / `ef-replay-v20`; world generation remains `m02-standard-v1`.
+
+### Post-combat settle / stale yield-return retirement — v21 — 2026-09-24
+
+- the remaining post-combat jitter was traced to legacy `yieldReturnX/Z` traffic state: an idle unit could sidestep for a friendly mover, auto-acquire a combat target, then revive its old exact parking point after the target died;
+- automatic target acquisition now discards any pending traffic yield-return as soon as the unit joins combat;
+- clearing an invalid/dead combat target also clears any stale yield-return before movement resumes;
+- same-faction pairs with **no movement intent and no shared melee target** are now treated as a final settled cluster: no separation pass attempts to improve their spacing, even when they overlap deeply;
+- active friendly traffic still uses the v20 soft-contact rule, shared-target melee combat still retains bounded deep-overlap correction, and hostile pairs remain hard-separated;
+- this guarantees that a packed group left behind after combat does not enter a return/push/return loop merely to restore pre-combat positions;
+- authoritative movement/contact semantics therefore advance to `ef-standard-v21` / `ef-replay-v21`; world generation remains `m02-standard-v1`.
 
 ### Low-health awareness / Army panel pass — 2026-09-22
 

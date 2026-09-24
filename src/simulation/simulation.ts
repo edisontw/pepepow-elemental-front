@@ -756,6 +756,13 @@ export class Simulation {
   private clearCombatTarget(entityId: EntityID): void {
     const combat = this.entities.combat.get(entityId);
     if (combat) { combat.targetEntityId = null; combat.pursuitTargetCellKey = null; }
+    const movement = this.entities.movements.get(entityId);
+    if (movement) {
+      // Never resurrect an exact pre-combat parking point after a target dies
+      // or becomes invalid. The unit should settle where combat ended.
+      movement.yieldReturnX = null;
+      movement.yieldReturnZ = null;
+    }
     this.clearMovement(entityId);
   }
   private clearOrders(entityId: EntityID): void {
