@@ -65,10 +65,10 @@ export class RtsCamera {
     const speed = 12 * deltaSeconds * (this.distance / DEFAULT_DISTANCE);
     let localX = 0;
     let localZ = 0;
-    if (this.isPressed('ArrowLeft')) localX -= speed;
-    if (this.isPressed('ArrowRight')) localX += speed;
-    if (this.isPressed('ArrowUp')) localZ -= speed;
-    if (this.isPressed('ArrowDown')) localZ += speed;
+    if (this.isPressed('ArrowLeft', 'KeyA')) localX -= speed;
+    if (this.isPressed('ArrowRight', 'KeyD')) localX += speed;
+    if (this.isPressed('ArrowUp', 'KeyW')) localZ -= speed;
+    if (this.isPressed('ArrowDown', 'KeyS')) localZ += speed;
 
     if (this.pointerInsideCanvas && !this.dragging) {
       const bounds = this.battlefieldViewportBounds();
@@ -101,12 +101,17 @@ export class RtsCamera {
   }
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
+    if (event.target instanceof HTMLElement && (event.target.isContentEditable
+      || ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName))) return;
     if (event.code === 'Home' && !event.repeat) {
       event.preventDefault();
       this.focusAt(this.homeX, this.homeZ);
       return;
     }
-    if (event.code === 'Space') event.preventDefault();
+    if (event.code === 'Space'
+      || ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(event.code)) {
+      event.preventDefault();
+    }
     this.pressedKeys.add(event.code);
   };
 
