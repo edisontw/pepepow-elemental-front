@@ -52,7 +52,8 @@ export class RtsCamera {
     window.addEventListener('keydown', this.onKeyDown);
     window.addEventListener('keyup', this.onKeyUp);
     canvas.addEventListener('wheel', this.onWheel, { passive: false });
-    canvas.addEventListener('pointerdown', this.onPointerDown);
+    window.addEventListener('pointerdown', this.onPointerDown, true);
+    canvas.addEventListener('auxclick', this.onAuxClick);
     canvas.addEventListener('pointermove', this.onCanvasPointerMove);
     canvas.addEventListener('pointerleave', this.onCanvasPointerLeave);
     window.addEventListener('pointermove', this.onPointerMove);
@@ -92,7 +93,8 @@ export class RtsCamera {
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup', this.onKeyUp);
     this.canvas.removeEventListener('wheel', this.onWheel);
-    this.canvas.removeEventListener('pointerdown', this.onPointerDown);
+    window.removeEventListener('pointerdown', this.onPointerDown, true);
+    this.canvas.removeEventListener('auxclick', this.onAuxClick);
     this.canvas.removeEventListener('pointermove', this.onCanvasPointerMove);
     this.canvas.removeEventListener('pointerleave', this.onCanvasPointerLeave);
     window.removeEventListener('pointermove', this.onPointerMove);
@@ -128,6 +130,7 @@ export class RtsCamera {
   private readonly onPointerDown = (event: PointerEvent): void => {
     const alternateLeftDrag = event.button === 0 && (event.altKey || this.isPressed('Space'));
     if (event.button !== 1 && !alternateLeftDrag) return;
+    if (event.target !== this.canvas) return;
     event.preventDefault();
     event.stopImmediatePropagation();
     this.dragging = true;
@@ -177,6 +180,10 @@ export class RtsCamera {
     this.dragging = false;
     this.canvas.classList.remove('camera-pan-active');
     if (this.canvas.hasPointerCapture?.(event.pointerId)) this.canvas.releasePointerCapture?.(event.pointerId);
+  };
+
+  private readonly onAuxClick = (event: MouseEvent): void => {
+    if (event.button === 1) event.preventDefault();
   };
 
   private readonly preventContextMenu = (event: MouseEvent): void => event.preventDefault();
