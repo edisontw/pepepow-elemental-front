@@ -474,15 +474,16 @@ Use it for:
 - proximity effects
 - collision/avoidance candidate gathering
 
-Active v20 unit contact uses deterministic 2 m spatial buckets and bounded local
+Active v21 unit contact uses deterministic 2 m spatial buckets and bounded local
 relaxation after authoritative movement. Unit body radii are gameplay state,
 independent from selection/UI radius. Hostile pairs keep full body separation.
-Friendly contact is deliberately soft: settled/same-target melee pairs use 70% of
-combined body radius plus padding, while active friendly traffic uses 85%. This
-permits stable partial overlap in dense combat and prevents post-combat re-separation
-jitter. The deterministic tangential combat-ring rule remains only for penetration
-deeper than the soft friendly threshold. Local correction stays on walkable terrain;
-A* remains route authority. Building footprints remain a separate follow-up.
+Active friendly traffic uses the v20 85% soft-contact distance; same-target melee
+may still use bounded deep-overlap correction. A same-faction pair with no movement
+intent and no shared melee target is now considered settled and receives no
+separation correction at all. Traffic yield-return points are retired on combat
+acquisition / combat-target termination so pre-combat parking positions cannot
+restart movement after a fight. Local correction stays on walkable terrain; A*
+remains route authority. Building footprints remain a separate follow-up.
 
 Avoid O(N²) unit scans.
 
@@ -728,9 +729,9 @@ If RPC is unavailable:
 
 # 29. Version separation
 
-Active gameplay/challenge: `ef-standard-v20`; replay: `ef-replay-v20`;
+Active gameplay/challenge: `ef-standard-v21`; replay: `ef-replay-v21`;
 world generation: `m02-standard-v1`. Forced-Move disengage, order modes, saved Attack Move destinations,
-authoritative unit body radii, deterministic contact/separation outcomes, and soft-friendly contact / melee contact outcomes are state-hashed; player
+authoritative unit body radii, deterministic contact/separation outcomes, and post-combat settle / soft-friendly contact outcomes are state-hashed; player
 replacements of Core orders execute at their target tick.
 
 Track independently:
