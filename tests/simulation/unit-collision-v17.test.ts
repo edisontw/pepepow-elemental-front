@@ -74,8 +74,8 @@ describe('v23 authoritative unit contact and separation', () => {
 
   it('lets an ordered friendly pass directly through an idle friendly without displacing it', () => {
     const simulation = new Simulation('unit-contact-friendly-phase-idle', openArena([
-      unit(0, 3_000, 5_000),
-      unit(0, 5_000, 5_000),
+      unit(0, 3_500, 5_500),
+      unit(0, 5_500, 5_500),
     ]));
     const idleBefore = { ...simulation.entities.positions.get(2)! };
 
@@ -90,7 +90,10 @@ describe('v23 authoritative unit contact and separation', () => {
 
     for (let tick = 0; tick < 12; tick += 1) simulation.step();
     const frame = simulation.snapshot();
-    expect(frame.entities[0]).toMatchObject({ x: 8_000, z: 5_000, targetX: null, targetZ: null });
+    const resolved = simulation.navigation.cellToWorld(
+      simulation.navigation.resolveWalkableTarget(simulation.navigation.worldToCell(8_000, 5_000))!,
+    );
+    expect(frame.entities[0]).toMatchObject({ ...resolved, targetX: null, targetZ: null });
     expect(simulation.entities.positions.get(2)).toEqual(idleBefore);
     expect(frame.entities[1]).toMatchObject({
       x: idleBefore.x,
@@ -102,8 +105,8 @@ describe('v23 authoritative unit contact and separation', () => {
 
   it('lets opposite-direction friendly traffic phase through without sidestep or push', () => {
     const simulation = new Simulation('unit-contact-friendly-cross', openArena([
-      unit(0, 3_000, 5_000),
-      unit(0, 7_000, 5_000),
+      unit(0, 3_500, 5_500),
+      unit(0, 7_500, 5_500),
     ]));
     simulation.enqueueCommand({
       type: 'MOVE',
@@ -124,8 +127,14 @@ describe('v23 authoritative unit contact and separation', () => {
 
     for (let tick = 0; tick < 10; tick += 1) simulation.step();
     const frame = simulation.snapshot();
-    expect(frame.entities[0]).toMatchObject({ x: 7_000, z: 5_000, targetX: null, targetZ: null });
-    expect(frame.entities[1]).toMatchObject({ x: 3_000, z: 5_000, targetX: null, targetZ: null });
+    const right = simulation.navigation.cellToWorld(
+      simulation.navigation.resolveWalkableTarget(simulation.navigation.worldToCell(7_000, 5_000))!,
+    );
+    const left = simulation.navigation.cellToWorld(
+      simulation.navigation.resolveWalkableTarget(simulation.navigation.worldToCell(3_000, 5_000))!,
+    );
+    expect(frame.entities[0]).toMatchObject({ ...right, targetX: null, targetZ: null });
+    expect(frame.entities[1]).toMatchObject({ ...left, targetX: null, targetZ: null });
   });
 
   it('does not let an arriving friendly melee attacker push an already engaged friendly', () => {
