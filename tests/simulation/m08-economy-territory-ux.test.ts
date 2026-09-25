@@ -37,7 +37,7 @@ function buildableCells(world: GeneratedWorld, regionId: number): Array<{ x: num
 
 describe('M08 economy and territory UX correction', () => {
   it('lets a completed Outpost claim adjacent neutral territory and extend supply', () => {
-    const { world, state } = harness(1_000_021);
+    const { world, entities, navigation, state } = harness(1_000_021);
     const start = playerRegion(world);
     const neighbors = [...(world.regions[start]?.neighbors ?? [])];
     expect(neighbors.length).toBeGreaterThan(0);
@@ -45,20 +45,28 @@ describe('M08 economy and territory UX correction', () => {
     let targetRegion: number | null = null;
     for (const regionId of neighbors) {
       if (state.ownerOfRegion(regionId) !== null) continue;
-      const cell = buildableCells(world, regionId)[0];
-      if (!cell) continue;
-      const position = worldCellToSimulationPosition(world, cell);
-      if (state.processCommand({
-        targetTick: 1,
-        playerId: 0,
-        type: 'BUILD',
-        buildingType: 'OUTPOST',
-        targetX: position.x,
-        targetZ: position.z,
-      }, 1)) {
+      const occupiedUnits = new Set(entities.entityIds().flatMap((entityId) => {
+        if (!entities.hasUnit(entityId)) return [];
+        const unitPosition = entities.positions.get(entityId);
+        return unitPosition ? [navigation.cellKey(navigation.worldToCell(unitPosition.x, unitPosition.z))] : [];
+      }));
+      for (const cell of buildableCells(world, regionId)) {
+        const footprint = buildingNavigationCells('OUTPOST', { column: cell.x, row: cell.z });
+        if (!footprint.every((part) => navigation.isWalkable(part))) continue;
+        if (footprint.some((part) => occupiedUnits.has(navigation.cellKey(part)))) continue;
+        const position = worldCellToSimulationPosition(world, cell);
+        if (!state.processCommand({
+          targetTick: 1,
+          playerId: 0,
+          type: 'BUILD',
+          buildingType: 'OUTPOST',
+          targetX: position.x,
+          targetZ: position.z,
+        }, 1)) continue;
         targetRegion = regionId;
         break;
       }
+      if (targetRegion !== null) break;
     }
 
     expect(targetRegion).not.toBeNull();
