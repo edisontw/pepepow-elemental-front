@@ -29,7 +29,7 @@ export class M05Simulation extends M04Simulation {
       options.faction,
       options.difficulty,
     );
-    this.enemyLogistics = new EnemyLogisticsState(generatedWorld, this.enemyWar.faction);
+    this.enemyLogistics = new EnemyLogisticsState(generatedWorld, this.enemyWar.faction, this.navigation);
   }
 
   override step(): M05SimulationSnapshot {
