@@ -4,7 +4,7 @@ import { M06Simulation } from '../../src/simulation/m06-simulation';
 import { generateWorld } from '../../src/world/generator';
 
 describe('post-roadmap current replay identity', () => {
-  it('binds replay state to starting Attunements and ef-standard-v23', () => {
+  it('binds replay state to starting Attunements and ef-standard-v24', () => {
     const world = generateWorld(4_950_628);
     const first = new M06Simulation(world, {
       pace: 'SMOKE',
@@ -20,7 +20,7 @@ describe('post-roadmap current replay identity', () => {
 
     for (let tick = 0; tick < 8; tick += 1) first.step();
     const packet = first.replayCheckpointPacket();
-    expect(packet.header.version).toBe('ef-replay-v23');
+    expect(packet.header.version).toBe('ef-replay-v24');
     expect(packet.header.rulesetVersion).toBe(CURRENT_CHALLENGE_RULESET_VERSION);
     expect(packet.header.startingAttunements).toEqual(['FIRE', 'ICE']);
 
