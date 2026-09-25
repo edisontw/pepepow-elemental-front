@@ -116,7 +116,8 @@ describe('M08 economy and territory UX correction', () => {
     if (spawnedId === undefined) return;
     const spawnedPosition = entities.positions.get(spawnedId)!;
     const movement = entities.movements.get(spawnedId)!;
-    expect(spawnedPosition).toEqual({ x: barracks.x, z: barracks.z });
+    expect(spawnedPosition).not.toEqual({ x: barracks.x, z: barracks.z });
+    expect(navigation.isWalkable(navigation.worldToCell(spawnedPosition.x, spawnedPosition.z))).toBe(true);
     expect(movement.targetX).not.toBeNull();
     expect(movement.targetZ).not.toBeNull();
     expect(movement.path.length).toBeGreaterThan(0);
