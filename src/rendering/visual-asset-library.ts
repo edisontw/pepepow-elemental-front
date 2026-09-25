@@ -11,6 +11,10 @@ import {
   type ImpostorAnimationSample,
 } from './impostor-animation';
 
+const UNIT_IMPOSTOR_VISUAL_SCALE = 1.03;
+const UNIT_IMPOSTOR_EMISSIVE_LIFT = 1.08;
+const UNIT_IMPOSTOR_SHADOW_OPACITY = 0.28;
+
 interface ImpostorConfig {
   id: string;
   label: string;
@@ -184,7 +188,7 @@ export class VisualAssetLibrary {
     this.impostorShadowMaterial.name = 'IMPOSTOR_SHADOW';
     this.impostorShadowMaterial.useLighting = false;
     this.impostorShadowMaterial.diffuse = new pc.Color(0.02, 0.025, 0.025);
-    this.impostorShadowMaterial.opacity = 0.24;
+    this.impostorShadowMaterial.opacity = UNIT_IMPOSTOR_SHADOW_OPACITY;
     this.impostorShadowMaterial.blendType = pc.BLEND_NORMAL;
     this.impostorShadowMaterial.depthWrite = false;
     this.impostorShadowMaterial.cull = pc.CULLFACE_NONE;
@@ -290,7 +294,11 @@ export class VisualAssetLibrary {
     // The uploaded pack already shares one scale factor and one foot baseline
     // across every direction/action. Do not reintroduce old per-view scale hacks.
     impostor.plane.setLocalPosition(0, impostor.baseHeight * 0.5, 0);
-    impostor.plane.setLocalScale(impostor.baseWidth, 1, impostor.baseHeight);
+    impostor.plane.setLocalScale(
+      impostor.baseWidth * UNIT_IMPOSTOR_VISUAL_SCALE,
+      1,
+      impostor.baseHeight * UNIT_IMPOSTOR_VISUAL_SCALE,
+    );
     impostor.viewFrame = viewFrame;
     impostor.animationFrame = animationFrame;
   }
@@ -350,7 +358,11 @@ export class VisualAssetLibrary {
       // Pin the sprite's bottom edge to the unit origin using the canonical
       // visual height; width is tuned to the normalized transparent frame.
       plane.setLocalPosition(0, config.height * 0.5, 0);
-      plane.setLocalScale(config.width, 1, config.height);
+      plane.setLocalScale(
+        config.width * UNIT_IMPOSTOR_VISUAL_SCALE,
+        1,
+        config.height * UNIT_IMPOSTOR_VISUAL_SCALE,
+      );
       billboard.addChild(plane);
       pivot.addChild(billboard);
       parent.addChild(pivot);
@@ -495,6 +507,7 @@ export class VisualAssetLibrary {
           material.name = `${config.id}.fallback.idle.${view}`;
           material.useLighting = false;
           material.emissive = new pc.Color(1, 1, 1);
+          material.emissiveIntensity = UNIT_IMPOSTOR_EMISSIVE_LIFT;
           material.emissiveMap = texture;
           material.opacityMap = texture;
           material.opacityMapChannel = 'a';
@@ -535,6 +548,7 @@ export class VisualAssetLibrary {
           material.name = `${config.id}.atlas.${action}.${index}`;
           material.useLighting = false;
           material.emissive = new pc.Color(1, 1, 1);
+          material.emissiveIntensity = UNIT_IMPOSTOR_EMISSIVE_LIFT;
           material.emissiveMap = texture;
           material.opacityMap = texture;
           material.emissiveMapTiling.set(rect.width, rect.height);
