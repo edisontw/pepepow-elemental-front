@@ -293,7 +293,7 @@ export class VisualAssetLibrary {
 
     // The uploaded pack already shares one scale factor and one foot baseline
     // across every direction/action. Do not reintroduce old per-view scale hacks.
-    impostor.plane.setLocalPosition(0, impostor.baseHeight * 0.5, 0);
+    impostor.plane.setLocalPosition(0, impostor.baseHeight * UNIT_IMPOSTOR_VISUAL_SCALE * 0.5, 0);
     impostor.plane.setLocalScale(
       impostor.baseWidth * UNIT_IMPOSTOR_VISUAL_SCALE,
       1,
@@ -357,7 +357,7 @@ export class VisualAssetLibrary {
 
       // Pin the sprite's bottom edge to the unit origin using the canonical
       // visual height; width is tuned to the normalized transparent frame.
-      plane.setLocalPosition(0, config.height * 0.5, 0);
+      plane.setLocalPosition(0, config.height * UNIT_IMPOSTOR_VISUAL_SCALE * 0.5, 0);
       plane.setLocalScale(
         config.width * UNIT_IMPOSTOR_VISUAL_SCALE,
         1,
