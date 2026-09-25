@@ -59,7 +59,7 @@ export class NavigationGrid {
   }
 
   isDynamicallyBlocked(cell: GridCell): boolean {
-    return this.inBounds(cell) && this.dynamicBlockCounts[this.index(cell)] > 0;
+    return this.inBounds(cell) && (this.dynamicBlockCounts[this.index(cell)] ?? 0) > 0;
   }
 
   isWalkable(cell: GridCell): boolean {
@@ -76,9 +76,12 @@ export class NavigationGrid {
     if (previous.length === next.length && previous.every((value, index) => value === next[index])) return false;
 
     for (const index of previous) {
-      if (this.dynamicBlockCounts[index] > 0) this.dynamicBlockCounts[index] -= 1;
+      const count = this.dynamicBlockCounts[index] ?? 0;
+      if (count > 0) this.dynamicBlockCounts[index] = count - 1;
     }
-    for (const index of next) this.dynamicBlockCounts[index] += 1;
+    for (const index of next) {
+      this.dynamicBlockCounts[index] = (this.dynamicBlockCounts[index] ?? 0) + 1;
+    }
 
     if (next.length === 0) this.dynamicBlockers.delete(sourceId);
     else this.dynamicBlockers.set(sourceId, next);
