@@ -474,16 +474,16 @@ Use it for:
 - proximity effects
 - collision/avoidance candidate gathering
 
-Active v23 unit contact uses deterministic 2 m spatial buckets only for hostile
-candidate gathering and bounded hostile separation after authoritative movement.
-Same-faction pairs are non-blocking and receive no contact displacement at all:
-friendly movers may phase through idle or moving friendlies, and friendly melee
-attackers may overlap while converging on a target. Formation destinations remain
-the mechanism for voluntary army spacing. Hostile pairs keep full body separation,
-including defender/heavier-body anchoring for established melee contact and
-walkable-terrain-bounded local corrections. Legacy yield-return fields remain
-state/replay compatible but are no longer produced by unit contact. A* remains
-route authority. Building footprints remain a separate follow-up.
+Active v24 contact keeps v23 same-faction phasing and hostile unit separation.
+Buildings add a separate authoritative static-obstacle layer in NavigationGrid:
+terrain walkability remains the base layer, while reference-counted dynamic blockers
+sit above it and advance navVersion when added or removed. Building footprints are
+discrete deterministic masks independent from rendered sprite/model dimensions:
+Core/Barracks/Workshop use SQUARE_3, Arcane Tower/Outpost use CROSS_3, and
+Extractor/Mana Well use CELL. Construction blocks immediately, destroyed resource
+structures release their blocker, and production spawns on the nearest legal cell
+outside the producer footprint. A* remains route authority and automatically
+replans when navVersion changes.
 
 Avoid O(N²) unit scans.
 
@@ -729,9 +729,9 @@ If RPC is unavailable:
 
 # 29. Version separation
 
-Active gameplay/challenge: `ef-standard-v23`; replay: `ef-replay-v23`;
+Active gameplay/challenge: `ef-standard-v24`; replay: `ef-replay-v24`;
 world generation: `m02-standard-v1`. Forced-Move disengage, order modes, saved Attack Move destinations,
-authoritative unit body radii, deterministic contact/separation outcomes, and hostile-contact / non-blocking-friendly outcomes are state-hashed; player
+authoritative unit body radii, deterministic contact/separation outcomes, and building-footprint / hostile-contact / non-blocking-friendly outcomes are deterministic; player
 replacements of Core orders execute at their target tick.
 
 Track independently:
