@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { buildingFootprintCells } from '../../src/simulation/building-footprint';
 import { EntityStore } from '../../src/simulation/entity-store';
 import { M03Simulation } from '../../src/simulation/m03-simulation';
 import { NavigationGrid } from '../../src/simulation/navigation';
 import { StrategicState } from '../../src/simulation/strategic-state';
+import type { BuildingType } from '../../src/simulation/m03-content';
 import { generateWorld } from '../../src/world/generator';
 import { WorldCellFlag, type GeneratedWorld } from '../../src/world/world-definition';
 import { generatedWorldToArena, worldCellToSimulationPosition } from '../../src/world/world-arena';
@@ -10,6 +12,7 @@ import { generatedWorldToArena, worldCellToSimulationPosition } from '../../src/
 function createStrategicHarness(blockHeight = 1_000_000): {
   world: GeneratedWorld;
   entities: EntityStore;
+  navigation: NavigationGrid;
   state: StrategicState;
   playerUnits: number[];
   enemyUnits: number[];
@@ -18,10 +21,11 @@ function createStrategicHarness(blockHeight = 1_000_000): {
   const arena = generatedWorldToArena(world);
   const entities = new EntityStore();
   for (const spawn of arena.units) entities.createUnit(spawn);
-  const state = new StrategicState(world, entities, new NavigationGrid(arena.traversal));
+  const navigation = new NavigationGrid(arena.traversal);
+  const state = new StrategicState(world, entities, navigation);
   const playerUnits = entities.entityIds().filter((entityId) => entities.factions.get(entityId)?.playerId === 0);
   const enemyUnits = entities.entityIds().filter((entityId) => entities.factions.get(entityId)?.playerId === 1);
-  return { world, entities, state, playerUnits, enemyUnits };
+  return { world, entities, navigation, state, playerUnits, enemyUnits };
 }
 
 function playerSpawnRegion(world: GeneratedWorld): number {
@@ -46,6 +50,31 @@ function buildableCell(world: GeneratedWorld, regionId: number, avoid: ReadonlyS
     }
   }
   throw new Error(`No buildable cell in region ${regionId}.`);
+}
+
+function footprintBuildableCell(
+  world: GeneratedWorld,
+  navigation: NavigationGrid,
+  regionId: number,
+  type: BuildingType,
+): { x: number; z: number } {
+  for (let z = 0; z < world.height; z += 1) {
+    for (let x = 0; x < world.width; x += 1) {
+      const index = z * world.width + x;
+      if (world.regionByCell[index] !== regionId) continue;
+      if (((world.flags[index] ?? 0) & WorldCellFlag.BUILDABLE) === 0) continue;
+      const footprint = buildingFootprintCells(type, { column: x, row: z });
+      if (footprint.some((cell) => (
+        cell.column < 0
+        || cell.row < 0
+        || cell.column >= world.width
+        || cell.row >= world.height
+        || navigation.isDynamicallyBlocked(cell)
+      ))) continue;
+      return { x, z };
+    }
+  }
+  throw new Error(`No footprint-clear ${type} cell in region ${regionId}.`);
 }
 
 function moveUnitsToRegion(world: GeneratedWorld, entities: EntityStore, entityIds: readonly number[], regionId: number): void {
@@ -131,9 +160,9 @@ describe('M03 economy and territory', () => {
   });
 
   it('deducts construction costs once, completes buildings, and trains units through a deterministic queue', () => {
-    const { world, state } = createStrategicHarness();
+    const { world, navigation, state } = createStrategicHarness();
     const regionId = playerSpawnRegion(world);
-    const cell = buildableCell(world, regionId);
+    const cell = footprintBuildableCell(world, navigation, regionId, 'BARRACKS');
     const position = worldCellToSimulationPosition(world, cell);
     expect(state.processCommand({ targetTick: 1, playerId: 0, type: 'BUILD', buildingType: 'BARRACKS', targetX: position.x, targetZ: position.z }, 1)).toBe(true);
     expect(state.processCommand({ targetTick: 1, playerId: 0, type: 'BUILD', buildingType: 'BARRACKS', targetX: position.x, targetZ: position.z }, 1)).toBe(false);
@@ -224,7 +253,7 @@ describe('M03 economy and territory', () => {
     const first = new M03Simulation(world);
     const second = new M03Simulation(world);
     const regionId = playerSpawnRegion(world);
-    const cell = buildableCell(world, regionId);
+    const cell = footprintBuildableCell(world, first.navigation, regionId, 'BARRACKS');
     const position = worldCellToSimulationPosition(world, cell);
     for (const simulation of [first, second]) {
       simulation.enqueueStrategicCommand({ targetTick: 1, playerId: 0, type: 'BUILD', buildingType: 'BARRACKS', targetX: position.x, targetZ: position.z });
