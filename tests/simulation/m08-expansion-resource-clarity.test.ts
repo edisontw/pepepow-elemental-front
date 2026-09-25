@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EntityStore } from '../../src/simulation/entity-store';
+import { buildingNavigationCells } from '../../src/simulation/m03-content';
 import { NavigationGrid } from '../../src/simulation/navigation';
 import { StrategicState } from '../../src/simulation/strategic-state';
 import { generateWorld } from '../../src/world/generator';
@@ -14,7 +15,7 @@ function harness(blockHeight = 1_000_000) {
   const navigation = new NavigationGrid(arena.traversal);
   const state = new StrategicState(world, entities, navigation);
   const playerUnits = entities.entityIds().filter((entityId) => entities.factions.get(entityId)?.playerId === 0);
-  return { world, entities, state, playerUnits };
+  return { world, entities, navigation, state, playerUnits };
 }
 
 function playerRegion(world: GeneratedWorld): number {
@@ -29,16 +30,29 @@ function enemyRegion(world: GeneratedWorld): number {
   return spawn.regionId;
 }
 
-function buildableCell(world: GeneratedWorld, regionId: number, avoid: ReadonlySet<string> = new Set()) {
+function outpostCell(
+  world: GeneratedWorld,
+  regionId: number,
+  navigation: NavigationGrid,
+  entities: EntityStore,
+): { x: number; z: number } {
+  const occupiedUnits = new Set(entities.entityIds().flatMap((entityId) => {
+    if (!entities.hasUnit(entityId)) return [];
+    const position = entities.positions.get(entityId);
+    return position ? [navigation.cellKey(navigation.worldToCell(position.x, position.z))] : [];
+  }));
   for (let z = 0; z < world.height; z += 1) {
     for (let x = 0; x < world.width; x += 1) {
       const index = z * world.width + x;
       if (world.regionByCell[index] !== regionId) continue;
       if (((world.flags[index] ?? 0) & WorldCellFlag.BUILDABLE) === 0) continue;
-      if (!avoid.has(`${x},${z}`)) return { x, z };
+      const footprint = buildingNavigationCells('OUTPOST', { column: x, row: z });
+      if (!footprint.every((cell) => navigation.isWalkable(cell))) continue;
+      if (footprint.some((cell) => occupiedUnits.has(navigation.cellKey(cell)))) continue;
+      return { x, z };
     }
   }
-  throw new Error(`No buildable cell in region ${regionId}.`);
+  throw new Error(`No footprint-safe Outpost cell in region ${regionId}.`);
 }
 
 function shortestPath(world: GeneratedWorld, start: number, target: number): number[] | null {
@@ -107,11 +121,11 @@ function captureRegion(
 
 describe('M08 expansion and resource clarity correction', () => {
   it('preserves Influence-gated chained Outpost expansion and resumes after a POI reward', () => {
-    const { world, entities, state, playerUnits } = harness();
+    const { world, entities, navigation, state, playerUnits } = harness();
     const path = safeTwoHopPath(world);
     const firstRegion = path[1]!;
     const secondRegion = path[2]!;
-    const firstCell = buildableCell(world, firstRegion);
+    const firstCell = outpostCell(world, firstRegion, navigation, entities);
     const firstPosition = worldCellToSimulationPosition(world, firstCell);
 
     expect(state.processCommand({
@@ -127,7 +141,7 @@ describe('M08 expansion and resource clarity correction', () => {
     expect(state.ownerOfRegion(firstRegion)).toBe(0);
     expect(state.isRegionSupplied(0, firstRegion)).toBe(true);
 
-    const secondCell = buildableCell(world, secondRegion);
+    const secondCell = outpostCell(world, secondRegion, navigation, entities);
     const secondPosition = worldCellToSimulationPosition(world, secondCell);
     expect(state.processCommand({
       targetTick: 302,
@@ -143,6 +157,7 @@ describe('M08 expansion and resource clarity correction', () => {
     moveUnitsToPoi(world, entities, playerUnits, poi.id);
     for (let tick = 0; tick < 60; tick += 1) state.advanceTerritory();
     expect(state.snapshot().resources[0]!.influenceMilli).toBe(10_000);
+    moveUnitsToRegion(world, entities, playerUnits, firstRegion);
 
     expect(state.processCommand({
       targetTick: 304,
