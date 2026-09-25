@@ -1,10 +1,11 @@
 import type { UnitArchetype } from './components';
+import { buildingFootprintCells } from './building-footprint';
 import { BUILDINGS, UNITS, type BuildingType } from './m03-content';
 import type { M03Command } from './m03-commands';
 import type { StrategicSnapshot } from './strategic-state';
 import type { EnemyFaction } from './m05-content';
 import { WorldCellFlag, type GeneratedWorld, type GridPoint } from '../world/world-definition';
-import { worldCellToSimulationPosition } from '../world/world-arena';
+import { simulationPositionToWorldCell, worldCellToSimulationPosition } from '../world/world-arena';
 
 const ENEMY_PLAYER_ID = 1;
 const PLAN_INTERVAL_TICKS = 50;
@@ -180,7 +181,14 @@ export class EnemyLogisticsState {
     if (!enemySpawn) return null;
     const region = this.world.regions[enemySpawn.regionId];
     if (!region) return null;
-    const occupied = new Set(strategic.buildings.map((building) => `${building.x}:${building.z}`));
+    const occupied = new Set<string>();
+    for (const building of strategic.buildings) {
+      if (building.destroyed) continue;
+      const center = simulationPositionToWorldCell(this.world, building);
+      for (const cell of buildingFootprintCells(building.type, { column: center.x, row: center.z })) {
+        occupied.add(`${cell.column},${cell.row}`);
+      }
+    }
     const candidates: GridPoint[] = [];
     for (let index = 0; index < this.world.flags.length; index += 1) {
       if (this.world.regionByCell[index] !== enemySpawn.regionId) continue;
@@ -188,8 +196,14 @@ export class EnemyLogisticsState {
       const x = index % this.world.width;
       const z = Math.floor(index / this.world.width);
       const cell = { x, z };
-      const position = worldCellToSimulationPosition(this.world, cell);
-      if (occupied.has(`${position.x}:${position.z}`)) continue;
+      const footprint = buildingFootprintCells(profile.producer, { column: x, row: z });
+      if (footprint.some((part) => (
+        part.column < 0
+        || part.row < 0
+        || part.column >= this.world.width
+        || part.row >= this.world.height
+        || occupied.has(`${part.column},${part.row}`)
+      ))) continue;
       candidates.push(cell);
     }
     candidates.sort((left, right) => {
