@@ -203,7 +203,7 @@ describe('M03 economy and territory', () => {
   });
 
   it('makes expansion valuable and supply cuts reduce population plus remote Extractor throughput', () => {
-    const { world, entities, state, playerUnits, enemyUnits } = createStrategicHarness();
+    const { world, entities, navigation, state, playerUnits, enemyUnits } = createStrategicHarness();
     const expansion = materialExpansionPath(world);
     const start = expansion.path[0]!;
     const intermediate = expansion.path[1]!;
