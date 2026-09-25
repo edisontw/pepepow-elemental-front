@@ -14,6 +14,7 @@ import type { NavigationGrid } from './navigation';
 import {
   BASE_POPULATION_CAP,
   BUILDINGS,
+  buildingNavigationCells,
   CAPTURE_BASE_TICKS,
   CAPTURE_POWER_CAP_TENTHS,
   OUTPOST_POPULATION_CAP,
@@ -428,11 +429,18 @@ export class StrategicState {
       if (owner !== command.playerId || !supplied) return false;
     }
     const position = worldCellToSimulationPosition(this.world, cell);
-    const occupied = this.sortedBuildings().some((building) => (
-      !building.destroyed
-      && this.navigation.cellKey(this.navigation.worldToCell(building.x, building.z)) === this.navigation.cellKey({ column: cell.x, row: cell.z })
-    ));
-    if (occupied) return false;
+    const footprint = buildingNavigationCells(command.buildingType, { column: cell.x, row: cell.z });
+    if (footprint.some((footprintCell) => (
+      !this.inWorld(footprintCell.column, footprintCell.row)
+      || !this.navigation.isWalkable(footprintCell)
+    ))) return false;
+    const footprintKeys = new Set(footprint.map((footprintCell) => this.navigation.cellKey(footprintCell)));
+    for (const entityId of this.entities.entityIds()) {
+      if (!this.entities.hasUnit(entityId)) continue;
+      const unitPosition = this.entities.positions.get(entityId);
+      if (!unitPosition) continue;
+      if (footprintKeys.has(this.navigation.cellKey(this.navigation.worldToCell(unitPosition.x, unitPosition.z)))) return false;
+    }
     const definition = BUILDINGS[command.buildingType];
     if (!this.spend(command.playerId, definition.cost)) return false;
     if (destroyedAtNode) this.buildings.delete(destroyedAtNode.id);
@@ -456,6 +464,7 @@ export class StrategicState {
       nextDefenseAttackTick: tick,
     };
     this.buildings.set(building.id, building);
+    this.registerBuildingBlocker(building);
     this.nextBuildingId += 1;
     return true;
   }
@@ -568,6 +577,7 @@ export class StrategicState {
       nextDefenseAttackTick: 0,
     };
     this.buildings.set(building.id, building);
+    this.registerBuildingBlocker(building);
     this.nextBuildingId += 1;
   }
 
@@ -598,19 +608,30 @@ export class StrategicState {
       const building = this.buildings.get(order.buildingId);
       if (!building || building.destroyed || !building.completed || building.playerId !== order.playerId) continue;
       const definition = UNITS[order.unitType];
+      const startCell = this.productionSpawnCell(building);
+      if (!startCell) continue;
+      const spawn = this.navigation.cellToWorld(startCell);
       const entityId = this.entities.createUnit({
         archetype: order.unitType,
         playerId: order.playerId,
-        x: building.x,
-        z: building.z,
+        x: spawn.x,
+        z: spawn.z,
         ...definition.spawn,
       });
-      this.assignProductionExit(entityId, building, order.id);
+      this.assignProductionExit(entityId, building, order.id, startCell);
     }
   }
 
-  private assignProductionExit(entityId: EntityID, building: StrategicBuilding, orderId: number): void {
-    const startCell = this.navigation.worldToCell(building.x, building.z);
+  private productionSpawnCell(building: StrategicBuilding): { column: number; row: number } | null {
+    return this.navigation.resolveWalkableTarget(this.navigation.worldToCell(building.x, building.z));
+  }
+
+  private assignProductionExit(
+    entityId: EntityID,
+    building: StrategicBuilding,
+    orderId: number,
+    startCell: { column: number; row: number },
+  ): void {
     if (building.rallyPointX !== null && building.rallyPointZ !== null) {
       const rallyCell = this.navigation.worldToCell(building.rallyPointX, building.rallyPointZ);
       const rallyPath = this.navigation.findPath(startCell, rallyCell);
@@ -657,6 +678,7 @@ export class StrategicState {
     building.currentHealth = 0;
     building.destroyed = true;
     building.nextDefenseAttackTick = 0;
+    this.navigation.removeDynamicBlocker(this.buildingBlockerId(building.id));
   }
 
   private killUnit(entityId: EntityID): void {
@@ -867,6 +889,19 @@ export class StrategicState {
 
   private playerIds(): PlayerID[] {
     return [...this.stocks.keys()].sort((a, b) => a - b);
+  }
+
+  private buildingBlockerId(buildingId: number): string {
+    return `building:${buildingId}`;
+  }
+
+  private registerBuildingBlocker(building: StrategicBuilding): void {
+    if (building.destroyed) return;
+    const center = this.navigation.worldToCell(building.x, building.z);
+    this.navigation.setDynamicBlocker(
+      this.buildingBlockerId(building.id),
+      buildingNavigationCells(building.type, center),
+    );
   }
 
   private sortedBuildings(): StrategicBuilding[] {
