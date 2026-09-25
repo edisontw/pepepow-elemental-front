@@ -265,6 +265,7 @@ Priority A/B implementation is complete; manual WebGL acceptance remains pending
 - Terrain/environment depth integration is in `main`: denser forest grouping and ground contact, richer river-bank wet/mud/grass transitions, and route-aligned shoulder/verge dressing. This remains presentation-only and does not change world generation or gameplay authority.
 - Canonical AI final-art prompts are available at `media/prompts/images/VISUAL_PRODUCTION_PRIORITY_A_B_PROMPTS.md`.
 - All eleven player-side unit visuals now use five-action directional atlases generated from the committed pack. Next gate: manual WebGL/FPS acceptance; no art regeneration required.
+- Unit readability micro-pass (2026-09-25): player-side impostors render at 1.08 emissive intensity, 1.03 presentation scale, and a slightly stronger 0.28 contact shadow. Foot baselines remain pinned; terrain/lighting/gameplay/replay identities are unchanged.
 
 ### Unit-production decision — 2026-09-17
 
