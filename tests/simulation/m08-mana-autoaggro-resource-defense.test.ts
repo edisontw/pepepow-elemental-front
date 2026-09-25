@@ -35,7 +35,7 @@ function resourceHarness(blockHeight = 1_000_031) {
   const state = new StrategicState(world, entities, navigation);
   const playerUnits = entities.entityIds().filter((entityId) => entities.factions.get(entityId)?.playerId === 0);
   const enemyUnits = entities.entityIds().filter((entityId) => entities.factions.get(entityId)?.playerId === 1);
-  return { world, entities, state, playerUnits, enemyUnits };
+  return { world, entities, navigation, state, playerUnits, enemyUnits };
 }
 
 function moveUnitsToRegion(
@@ -185,6 +185,8 @@ describe('M08 Mana, encounter combat, and resource defense correction', () => {
     expect(fortified.resourceDefenseLevel).toBe(1);
     expect(fortified.maxHealth).toBe(800);
     expect(fortified.currentHealth).toBe(800);
+    const wellCell = first.navigation.worldToCell(fortified.x, fortified.z);
+    expect(first.navigation.isWalkable(wellCell)).toBe(false);
 
     const enemyId = first.enemyUnits[0];
     if (!enemyId) throw new Error('Missing enemy unit.');
@@ -204,6 +206,7 @@ describe('M08 Mana, encounter combat, and resource defense correction', () => {
     const destroyed = first.state.snapshot().buildings.find((building) => building.id === first.wellId)!;
     expect(destroyed.destroyed).toBe(true);
     expect(destroyed.currentHealth).toBe(0);
+    expect(first.navigation.isWalkable(wellCell)).toBe(true);
 
     const hashAfterDestruction = first.state.snapshot().stateHash;
     const second = buildAndFortifyManaWell();
