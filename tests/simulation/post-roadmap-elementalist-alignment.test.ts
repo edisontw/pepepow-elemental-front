@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { M04Simulation } from '../../src/simulation/m04-simulation';
+import { buildingNavigationCells } from '../../src/simulation/m03-content';
 import { generateWorld } from '../../src/world/generator';
 import { WorldCellFlag, type GeneratedWorld } from '../../src/world/world-definition';
 import { worldCellToSimulationPosition } from '../../src/world/world-arena';
@@ -10,22 +11,35 @@ function playerSpawnRegion(world: GeneratedWorld): number {
   return spawn.regionId;
 }
 
-function buildableCell(world: GeneratedWorld, regionId: number): { x: number; z: number } {
+function buildableCell(
+  simulation: M04Simulation,
+  world: GeneratedWorld,
+  regionId: number,
+): { x: number; z: number } {
+  const occupiedUnits = new Set(simulation.entities.entityIds().flatMap((entityId) => {
+    if (!simulation.entities.hasUnit(entityId)) return [];
+    const position = simulation.entities.positions.get(entityId);
+    return position ? [simulation.navigation.cellKey(simulation.navigation.worldToCell(position.x, position.z))] : [];
+  }));
   for (let z = 0; z < world.height; z += 1) {
     for (let x = 0; x < world.width; x += 1) {
       const index = z * world.width + x;
       if (world.regionByCell[index] !== regionId) continue;
-      if (((world.flags[index] ?? 0) & WorldCellFlag.BUILDABLE) !== 0) return { x, z };
+      if (((world.flags[index] ?? 0) & WorldCellFlag.BUILDABLE) === 0) continue;
+      const footprint = buildingNavigationCells('ARCANE_TOWER', { column: x, row: z });
+      if (!footprint.every((cell) => simulation.navigation.isWalkable(cell))) continue;
+      if (footprint.some((cell) => occupiedUnits.has(simulation.navigation.cellKey(cell)))) continue;
+      return { x, z };
     }
   }
-  throw new Error('No buildable player-spawn cell.');
+  throw new Error('No footprint-safe Arcane Tower cell in player-spawn region.');
 }
 
 describe('post-roadmap Elementalist alignment', () => {
   it('rejects non-Attuned training and preserves immutable alignment on production completion', () => {
     const world = generateWorld(1_000_000);
     const simulation = new M04Simulation(world, { playerManaRules: true });
-    const cell = buildableCell(world, playerSpawnRegion(world));
+    const cell = buildableCell(simulation, world, playerSpawnRegion(world));
     const position = worldCellToSimulationPosition(world, cell);
 
     simulation.enqueueStrategicCommand({
