@@ -32,6 +32,16 @@ export function worldCellToSimulationPosition(world: GeneratedWorld, point: Grid
   };
 }
 
+export function simulationPositionToWorldCell(
+  world: GeneratedWorld,
+  position: { x: number; z: number },
+): GridPoint {
+  return {
+    x: Math.floor((position.x - originCoordinate(world.width)) / CELL_SIZE),
+    z: Math.floor((position.z - originCoordinate(world.height)) / CELL_SIZE),
+  };
+}
+
 function rowRunPatches(
   world: GeneratedWorld,
   idPrefix: string,

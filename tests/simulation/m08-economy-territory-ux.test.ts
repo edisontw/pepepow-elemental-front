@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { buildingFootprintCells } from '../../src/simulation/building-footprint';
 import { EntityStore } from '../../src/simulation/entity-store';
 import { productionDurationTicks } from '../../src/simulation/m03-content';
 import { NavigationGrid } from '../../src/simulation/navigation';
@@ -33,6 +34,20 @@ function buildableCells(world: GeneratedWorld, regionId: number): Array<{ x: num
     }
   }
   return result;
+}
+
+function barracksFootprintClear(
+  world: GeneratedWorld,
+  navigation: NavigationGrid,
+  cell: { x: number; z: number },
+): boolean {
+  return buildingFootprintCells('BARRACKS', { column: cell.x, row: cell.z }).every((part) => (
+    part.column >= 0
+    && part.row >= 0
+    && part.column < world.width
+    && part.row < world.height
+    && !navigation.isDynamicallyBlocked(part)
+  ));
 }
 
 describe('M08 economy and territory UX correction', () => {
@@ -75,15 +90,22 @@ describe('M08 economy and territory UX correction', () => {
     expect(productionDurationTicks(120, 4)).toBe(84);
     expect(productionDurationTicks(120, 8)).toBe(84);
 
-    const { world, state } = harness(1_000_022);
+    const { world, navigation, state } = harness(1_000_022);
     const regionId = playerRegion(world);
     const cells = buildableCells(world, regionId);
     expect(cells.length).toBeGreaterThan(2);
-    const first = worldCellToSimulationPosition(world, cells[0]!);
-    const second = worldCellToSimulationPosition(world, cells[1]!);
+    const firstCell = cells.find((cell) => barracksFootprintClear(world, navigation, cell));
+    expect(firstCell).toBeDefined();
+    if (!firstCell) return;
+    const first = worldCellToSimulationPosition(world, firstCell);
 
     expect(state.processCommand({ targetTick: 1, playerId: 0, type: 'BUILD', buildingType: 'BARRACKS', targetX: first.x, targetZ: first.z }, 1)).toBe(true);
     for (let tick = 1; tick <= 1_020; tick += 1) state.advanceEconomy(tick);
+
+    const secondCell = cells.find((cell) => barracksFootprintClear(world, navigation, cell));
+    expect(secondCell).toBeDefined();
+    if (!secondCell) return;
+    const second = worldCellToSimulationPosition(world, secondCell);
     expect(state.processCommand({ targetTick: 1_021, playerId: 0, type: 'BUILD', buildingType: 'BARRACKS', targetX: second.x, targetZ: second.z }, 1_021)).toBe(true);
     for (let tick = 1_021; tick <= 1_371; tick += 1) state.advanceEconomy(tick);
 
@@ -99,6 +121,7 @@ describe('M08 economy and territory UX correction', () => {
     const { world, entities, navigation, state } = harness(1_000_023);
     const regionId = playerRegion(world);
     const candidate = buildableCells(world, regionId).find((cell) => {
+      if (!barracksFootprintClear(world, navigation, cell)) return false;
       const offsets = [[0, 3], [3, 0], [0, -3], [-3, 0]] as const;
       return offsets.some(([dx, dz]) => navigation.isWalkable({ column: cell.x + dx, row: cell.z + dz }));
     });
@@ -116,7 +139,10 @@ describe('M08 economy and territory UX correction', () => {
     if (spawnedId === undefined) return;
     const spawnedPosition = entities.positions.get(spawnedId)!;
     const movement = entities.movements.get(spawnedId)!;
-    expect(spawnedPosition).toEqual({ x: barracks.x, z: barracks.z });
+    const spawnedCell = navigation.worldToCell(spawnedPosition.x, spawnedPosition.z);
+    const footprint = buildingFootprintCells('BARRACKS', navigation.worldToCell(barracks.x, barracks.z));
+    expect(navigation.isWalkable(spawnedCell)).toBe(true);
+    expect(footprint.some((cell) => navigation.cellKey(cell) === navigation.cellKey(spawnedCell))).toBe(false);
     expect(movement.targetX).not.toBeNull();
     expect(movement.targetZ).not.toBeNull();
     expect(movement.path.length).toBeGreaterThan(0);

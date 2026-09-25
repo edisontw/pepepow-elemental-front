@@ -8,6 +8,7 @@ import {
   type ProducerBuildingType,
 } from '../simulation/m03-content';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
+import { buildingFootprintCells } from '../simulation/building-footprint';
 import type { UnitArchetype } from '../simulation/components';
 import { WorldCellFlag } from '../world/world-definition';
 import { worldCellToSimulationPosition } from '../world/world-arena';
@@ -338,7 +339,9 @@ export class StrategicPanel {
 
     const resourceType = resourceTypeForBuilding(buildingType);
     if (resourceType !== null) {
-      const occupied = new Set(snapshot.buildings.flatMap((building) => building.resourceNodeId ? [building.resourceNodeId] : []));
+      const occupied = new Set(snapshot.buildings.flatMap((building) => (
+        !building.destroyed && building.resourceNodeId ? [building.resourceNodeId] : []
+      )));
       const candidates = world.resources
         .filter((resource) => resource.type === resourceType)
         .map((resource) => {
@@ -384,6 +387,16 @@ export class StrategicPanel {
         return {
           valid: false, regionId, resourceNodeId: chosen.resource.id, targetX, targetZ,
           reason: `That ${site} is in controlled but unsupplied territory. Restore supply before constructing a ${structure}.`,
+        };
+      }
+      const resourceFootprint = buildingFootprintCells(buildingType, {
+        column: chosen.resource.cell.x,
+        row: chosen.resource.cell.z,
+      });
+      if (resourceFootprint.some((part) => this.simulation.navigation.isDynamicallyBlocked(part))) {
+        return {
+          valid: false, regionId, resourceNodeId: chosen.resource.id, targetX, targetZ,
+          reason: 'That resource site overlaps the solid footprint of another building.',
         };
       }
       return {
@@ -433,11 +446,18 @@ export class StrategicPanel {
         return { valid: false, regionId, resourceNodeId: null, targetX, targetZ, reason: `Region ${regionId + 1} is controlled but not supplied.` };
       }
     }
-    const occupied = snapshot.buildings.some((building) => {
-      const buildingCell = this.simulation.navigation.worldToCell(building.x, building.z);
-      return buildingCell.column === cell.column && buildingCell.row === cell.row;
-    });
-    if (occupied) return { valid: false, regionId, resourceNodeId: null, targetX, targetZ, reason: 'Another building already occupies that cell.' };
+    const footprint = buildingFootprintCells(buildingType, cell);
+    if (footprint.some((part) => (
+      part.column < 0
+      || part.row < 0
+      || part.column >= world.width
+      || part.row >= world.height
+    ))) {
+      return { valid: false, regionId, resourceNodeId: null, targetX, targetZ, reason: 'The building footprint would extend outside the battlefield.' };
+    }
+    if (footprint.some((part) => this.simulation.navigation.isDynamicallyBlocked(part))) {
+      return { valid: false, regionId, resourceNodeId: null, targetX, targetZ, reason: 'That building footprint overlaps another solid structure.' };
+    }
     return { valid: true, regionId, resourceNodeId: null, targetX, targetZ, reason: '' };
   }
 
