@@ -43,6 +43,30 @@ describe('M01 deterministic static navigation', () => {
     expect(first).not.toEqual([{ column: 21, row: 20 }, { column: 22, row: 21 }]);
   });
 
+  it('layers dynamic blockers over terrain and restores the underlying terrain state on removal', () => {
+    const navigation = new NavigationGrid(M01_ARENA.traversal);
+    const cell = { column: 10, row: 30 };
+    const initialVersion = navigation.navVersion;
+    expect(navigation.isTerrainWalkable(cell)).toBe(true);
+    expect(navigation.isWalkable(cell)).toBe(true);
+
+    expect(navigation.setDynamicBlocker('building:1', [cell])).toBe(true);
+    expect(navigation.navVersion).toBe(initialVersion + 1);
+    expect(navigation.isTerrainWalkable(cell)).toBe(true);
+    expect(navigation.isWalkable(cell)).toBe(false);
+
+    navigation.applyWalkabilityChanges([{ cell, walkable: false }]);
+    expect(navigation.isTerrainWalkable(cell)).toBe(false);
+    expect(navigation.isWalkable(cell)).toBe(false);
+
+    expect(navigation.removeDynamicBlocker('building:1')).toBe(true);
+    expect(navigation.isWalkable(cell)).toBe(false);
+
+    navigation.applyWalkabilityChanges([{ cell, walkable: true }]);
+    expect(navigation.isTerrainWalkable(cell)).toBe(true);
+    expect(navigation.isWalkable(cell)).toBe(true);
+  });
+
   it('moves a unit through the crossing without ever occupying blocked cells', () => {
     const simulation = new Simulation('river-crossing');
     simulation.enqueueCommand({ targetTick: 1, playerId: 0, type: 'MOVE', entityIds: [1], targetX: 10_500, targetZ: -8_500 });
