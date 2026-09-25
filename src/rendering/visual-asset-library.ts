@@ -12,7 +12,7 @@ import {
 } from './impostor-animation';
 
 const UNIT_IMPOSTOR_VISUAL_SCALE = 1.03;
-const UNIT_IMPOSTOR_EMISSIVE_LIFT = 1.08;
+const UNIT_IMPOSTOR_EMISSIVE_LIFT = 1.19;
 const UNIT_IMPOSTOR_SHADOW_OPACITY = 0.28;
 
 interface ImpostorConfig {
