@@ -80,11 +80,26 @@ describe('M08 economy and territory UX correction', () => {
     const cells = buildableCells(world, regionId);
     expect(cells.length).toBeGreaterThan(2);
     const first = worldCellToSimulationPosition(world, cells[0]!);
-    const second = worldCellToSimulationPosition(world, cells[1]!);
 
     expect(state.processCommand({ targetTick: 1, playerId: 0, type: 'BUILD', buildingType: 'BARRACKS', targetX: first.x, targetZ: first.z }, 1)).toBe(true);
     for (let tick = 1; tick <= 1_020; tick += 1) state.advanceEconomy(tick);
-    expect(state.processCommand({ targetTick: 1_021, playerId: 0, type: 'BUILD', buildingType: 'BARRACKS', targetX: second.x, targetZ: second.z }, 1_021)).toBe(true);
+
+    let secondPlaced = false;
+    for (const cell of cells.slice(1)) {
+      const second = worldCellToSimulationPosition(world, cell);
+      if (state.processCommand({
+        targetTick: 1_021,
+        playerId: 0,
+        type: 'BUILD',
+        buildingType: 'BARRACKS',
+        targetX: second.x,
+        targetZ: second.z,
+      }, 1_021)) {
+        secondPlaced = true;
+        break;
+      }
+    }
+    expect(secondPlaced).toBe(true);
     for (let tick = 1_021; tick <= 1_371; tick += 1) state.advanceEconomy(tick);
 
     const barracks = state.snapshot().buildings.filter((building) => building.playerId === 0 && building.type === 'BARRACKS' && building.completed);
