@@ -13,12 +13,38 @@ export interface ResourceCost {
   influence: number;
 }
 
+export type BuildingNavigationFootprint = 'CELL' | 'CROSS_3' | 'SQUARE_3';
+
 export interface BuildingDefinition {
   type: BuildingType;
   cost: ResourceCost;
   buildTicks: number;
   maxHealth: number;
+  navigationFootprint: BuildingNavigationFootprint;
   tags: readonly StaticTargetTag[];
+}
+
+export function buildingNavigationCells(
+  type: BuildingType,
+  center: { column: number; row: number },
+): Array<{ column: number; row: number }> {
+  const shape = BUILDINGS[type].navigationFootprint;
+  if (shape === 'CELL') return [{ ...center }];
+  const cells = [
+    { column: center.column, row: center.row },
+    { column: center.column + 1, row: center.row },
+    { column: center.column - 1, row: center.row },
+    { column: center.column, row: center.row + 1 },
+    { column: center.column, row: center.row - 1 },
+  ];
+  if (shape === 'CROSS_3') return cells;
+  return [
+    ...cells,
+    { column: center.column + 1, row: center.row + 1 },
+    { column: center.column + 1, row: center.row - 1 },
+    { column: center.column - 1, row: center.row + 1 },
+    { column: center.column - 1, row: center.row - 1 },
+  ];
 }
 
 export interface UnitDefinition {
@@ -80,6 +106,7 @@ export const BUILDINGS: Readonly<Record<BuildingType, BuildingDefinition>> = {
     cost: { material: 0, mana: 0, influence: 0 },
     buildTicks: 0,
     maxHealth: 5000,
+    navigationFootprint: 'SQUARE_3',
     tags: ['BUILDING', 'FORTIFIED', 'ARCANE'],
   },
   BARRACKS: {
@@ -87,6 +114,7 @@ export const BUILDINGS: Readonly<Record<BuildingType, BuildingDefinition>> = {
     cost: { material: 250, mana: 0, influence: 0 },
     buildTicks: 350,
     maxHealth: 1200,
+    navigationFootprint: 'SQUARE_3',
     tags: ['BUILDING'],
   },
   ARCANE_TOWER: {
@@ -94,6 +122,7 @@ export const BUILDINGS: Readonly<Record<BuildingType, BuildingDefinition>> = {
     cost: { material: 220, mana: 40, influence: 0 },
     buildTicks: 350,
     maxHealth: 900,
+    navigationFootprint: 'CROSS_3',
     tags: ['BUILDING', 'ARCANE'],
   },
   WORKSHOP: {
@@ -101,6 +130,7 @@ export const BUILDINGS: Readonly<Record<BuildingType, BuildingDefinition>> = {
     cost: { material: 350, mana: 0, influence: 0 },
     buildTicks: 500,
     maxHealth: 1300,
+    navigationFootprint: 'SQUARE_3',
     tags: ['BUILDING'],
   },
   OUTPOST: {
@@ -108,6 +138,7 @@ export const BUILDINGS: Readonly<Record<BuildingType, BuildingDefinition>> = {
     cost: { material: 180, mana: 0, influence: 10 },
     buildTicks: 300,
     maxHealth: 1000,
+    navigationFootprint: 'CROSS_3',
     tags: ['BUILDING'],
   },
   EXTRACTOR: {
@@ -115,6 +146,7 @@ export const BUILDINGS: Readonly<Record<BuildingType, BuildingDefinition>> = {
     cost: { material: 100, mana: 0, influence: 0 },
     buildTicks: 180,
     maxHealth: 500,
+    navigationFootprint: 'CELL',
     tags: ['BUILDING'],
   },
   MANA_WELL: {
@@ -122,6 +154,7 @@ export const BUILDINGS: Readonly<Record<BuildingType, BuildingDefinition>> = {
     cost: { material: 100, mana: 0, influence: 0 },
     buildTicks: 180,
     maxHealth: 500,
+    navigationFootprint: 'CELL',
     tags: ['BUILDING', 'ARCANE'],
   },
 };
