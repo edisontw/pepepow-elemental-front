@@ -64,7 +64,7 @@ export class NavigationGrid {
   }
 
   isDynamicallyBlocked(cell: GridCell): boolean {
-    return this.inBounds(cell) && this.dynamicBlockers[this.index(cell)] > 0;
+    return this.inBounds(cell) && (this.dynamicBlockers[this.index(cell)] ?? 0) > 0;
   }
 
   canAddDynamicBlockers(cells: readonly GridCell[]): boolean {
@@ -80,8 +80,9 @@ export class NavigationGrid {
     for (const cell of cells) {
       if (!this.inBounds(cell)) continue;
       const index = this.index(cell);
-      if (this.dynamicBlockers[index] === 0) changed = true;
-      this.dynamicBlockers[index] += 1;
+      const count = this.dynamicBlockers[index] ?? 0;
+      if (count === 0) changed = true;
+      this.dynamicBlockers[index] = count + 1;
     }
     if (changed) this.navVersion += 1;
     return changed;
@@ -92,9 +93,10 @@ export class NavigationGrid {
     for (const cell of cells) {
       if (!this.inBounds(cell)) continue;
       const index = this.index(cell);
-      if (this.dynamicBlockers[index] === 0) continue;
-      this.dynamicBlockers[index] -= 1;
-      if (this.dynamicBlockers[index] === 0) changed = true;
+      const count = this.dynamicBlockers[index] ?? 0;
+      if (count === 0) continue;
+      this.dynamicBlockers[index] = count - 1;
+      if (count === 1) changed = true;
     }
     if (changed) this.navVersion += 1;
     return changed;
