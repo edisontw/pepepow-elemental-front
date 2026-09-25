@@ -474,16 +474,16 @@ Use it for:
 - proximity effects
 - collision/avoidance candidate gathering
 
-Active v23 unit contact uses deterministic 2 m spatial buckets only for hostile
-candidate gathering and bounded hostile separation after authoritative movement.
-Same-faction pairs are non-blocking and receive no contact displacement at all:
-friendly movers may phase through idle or moving friendlies, and friendly melee
-attackers may overlap while converging on a target. Formation destinations remain
-the mechanism for voluntary army spacing. Hostile pairs keep full body separation,
-including defender/heavier-body anchoring for established melee contact and
-walkable-terrain-bounded local corrections. Legacy yield-return fields remain
-state/replay compatible but are no longer produced by unit contact. A* remains
-route authority. Building footprints remain a separate follow-up.
+Active v24 movement keeps v23 same-faction phasing and hostile unit-body separation.
+Strategic structures now add a separate deterministic dynamic-blocker layer to
+NavigationGrid. Terrain walkability and structure occupancy are tracked separately:
+terrain/ice changes mutate the terrain layer, while building placement/destruction
+adds or removes source-keyed blocker cells and increments navVersion so active paths
+revalidate normally. The authoritative footprint is intentionally smaller than the
+visual building: Core = 3×3 solid cells; Barracks/Workshop = 5-cell cross; Arcane
+Tower/Outpost/Extractor/Mana Well = center cell. Production spawns are selected from
+deterministic exterior cells rather than the blocked producer anchor. A* remains
+route authority and visual building size is never gameplay collision truth.
 
 Avoid O(N²) unit scans.
 
@@ -729,7 +729,7 @@ If RPC is unavailable:
 
 # 29. Version separation
 
-Active gameplay/challenge: `ef-standard-v23`; replay: `ef-replay-v23`;
+Active gameplay/challenge: `ef-standard-v24`; replay: `ef-replay-v24`;
 world generation: `m02-standard-v1`. Forced-Move disengage, order modes, saved Attack Move destinations,
 authoritative unit body radii, deterministic contact/separation outcomes, and hostile-contact / non-blocking-friendly outcomes are state-hashed; player
 replacements of Core orders execute at their target tick.
