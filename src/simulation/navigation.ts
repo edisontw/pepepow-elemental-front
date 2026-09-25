@@ -29,6 +29,8 @@ export class NavigationGrid {
   navVersion: number;
   private readonly cells: TraversalCellKind[];
   private readonly walkable: Uint8Array;
+  private readonly blockerCounts: Uint16Array;
+  private readonly dynamicBlockers = new Map<string, readonly number[]>();
 
   constructor(readonly definition: ArenaTraversalDefinition) {
     this.navVersion = definition.initialNavVersion;
@@ -41,6 +43,7 @@ export class NavigationGrid {
       }
     }
     this.walkable = new Uint8Array(this.cells.length);
+    this.blockerCounts = new Uint16Array(this.cells.length);
     for (let index = 0; index < this.cells.length; index += 1) {
       const kind = this.cells[index];
       this.walkable[index] = kind === 'WALKABLE_GROUND' || kind === 'NATURAL_CROSSING' ? 1 : 0;
@@ -52,7 +55,40 @@ export class NavigationGrid {
   }
 
   isWalkable(cell: GridCell): boolean {
+    if (!this.inBounds(cell)) return false;
+    const index = this.index(cell);
+    return this.walkable[index] === 1 && this.blockerCounts[index] === 0;
+  }
+
+  isTerrainWalkable(cell: GridCell): boolean {
     return this.inBounds(cell) && this.walkable[this.index(cell)] === 1;
+  }
+
+  setDynamicBlocker(id: string, cells: readonly GridCell[]): boolean {
+    const next = [...new Set(cells.filter((cell) => this.inBounds(cell)).map((cell) => this.index(cell)))].sort((a, b) => a - b);
+    const previous = this.dynamicBlockers.get(id) ?? [];
+    if (previous.length === next.length && previous.every((value, index) => value === next[index])) return false;
+
+    for (const index of previous) {
+      if (this.blockerCounts[index] > 0) this.blockerCounts[index] -= 1;
+    }
+    for (const index of next) this.blockerCounts[index] += 1;
+
+    if (next.length > 0) this.dynamicBlockers.set(id, next);
+    else this.dynamicBlockers.delete(id);
+    this.navVersion += 1;
+    return true;
+  }
+
+  removeDynamicBlocker(id: string): boolean {
+    const previous = this.dynamicBlockers.get(id);
+    if (!previous) return false;
+    for (const index of previous) {
+      if (this.blockerCounts[index] > 0) this.blockerCounts[index] -= 1;
+    }
+    this.dynamicBlockers.delete(id);
+    this.navVersion += 1;
+    return true;
   }
 
   applyWalkabilityChanges(changes: readonly WalkabilityChange[]): boolean {
