@@ -8,6 +8,7 @@ import type {
   UpgradeResourceDefenseCommand,
 } from './commands';
 import { WORLD_UNITS_PER_METER } from './arena';
+import { buildingExitRadiusCells, buildingFootprintCells } from './building-footprint';
 import type { EntityID, PlayerID, UnitArchetype } from './components';
 import type { EntityStore } from './entity-store';
 import type { NavigationGrid } from './navigation';
@@ -428,11 +429,9 @@ export class StrategicState {
       if (owner !== command.playerId || !supplied) return false;
     }
     const position = worldCellToSimulationPosition(this.world, cell);
-    const occupied = this.sortedBuildings().some((building) => (
-      !building.destroyed
-      && this.navigation.cellKey(this.navigation.worldToCell(building.x, building.z)) === this.navigation.cellKey({ column: cell.x, row: cell.z })
-    ));
-    if (occupied) return false;
+    const footprint = buildingFootprintCells(command.buildingType, { column: cell.x, row: cell.z });
+    if (footprint.some((footprintCell) => !this.inWorld(footprintCell.column, footprintCell.row))) return false;
+    if (footprint.some((footprintCell) => this.navigation.isDynamicallyBlocked(footprintCell))) return false;
     const definition = BUILDINGS[command.buildingType];
     if (!this.spend(command.playerId, definition.cost)) return false;
     if (destroyedAtNode) this.buildings.delete(destroyedAtNode.id);
@@ -456,6 +455,7 @@ export class StrategicState {
       nextDefenseAttackTick: tick,
     };
     this.buildings.set(building.id, building);
+    this.registerBuildingBlocker(building);
     this.nextBuildingId += 1;
     return true;
   }
@@ -568,6 +568,7 @@ export class StrategicState {
       nextDefenseAttackTick: 0,
     };
     this.buildings.set(building.id, building);
+    this.registerBuildingBlocker(building);
     this.nextBuildingId += 1;
   }
 
@@ -598,11 +599,14 @@ export class StrategicState {
       const building = this.buildings.get(order.buildingId);
       if (!building || building.destroyed || !building.completed || building.playerId !== order.playerId) continue;
       const definition = UNITS[order.unitType];
+      const spawnCell = this.productionSpawnCell(building, order.id);
+      if (!spawnCell) continue;
+      const spawn = this.navigation.cellToWorld(spawnCell);
       const entityId = this.entities.createUnit({
         archetype: order.unitType,
         playerId: order.playerId,
-        x: building.x,
-        z: building.z,
+        x: spawn.x,
+        z: spawn.z,
         ...definition.spawn,
       });
       this.assignProductionExit(entityId, building, order.id);
@@ -610,7 +614,9 @@ export class StrategicState {
   }
 
   private assignProductionExit(entityId: EntityID, building: StrategicBuilding, orderId: number): void {
-    const startCell = this.navigation.worldToCell(building.x, building.z);
+    const unitPosition = this.entities.positions.get(entityId);
+    if (!unitPosition) return;
+    const startCell = this.navigation.worldToCell(unitPosition.x, unitPosition.z);
     if (building.rallyPointX !== null && building.rallyPointZ !== null) {
       const rallyCell = this.navigation.worldToCell(building.rallyPointX, building.rallyPointZ);
       const rallyPath = this.navigation.findPath(startCell, rallyCell);
@@ -653,10 +659,64 @@ export class StrategicState {
     movement.pathNavVersion = this.navigation.navVersion;
   }
 
+  private buildingBlockerKey(buildingId: number): string {
+    return `building:${buildingId}`;
+  }
+
+  private registerBuildingBlocker(building: StrategicBuilding): void {
+    if (building.destroyed) return;
+    const center = this.navigation.worldToCell(building.x, building.z);
+    const cells = buildingFootprintCells(building.type, center);
+    this.navigation.setDynamicBlockedCells(this.buildingBlockerKey(building.id), cells);
+
+    // A placement may complete under a unit that was standing on the future
+    // foundation. Move such units to the nearest legal cell deterministically
+    // rather than trapping them inside a newly solid structure.
+    for (const entityId of this.entities.entityIds()) {
+      if (!this.entities.hasUnit(entityId)) continue;
+      const position = this.entities.positions.get(entityId);
+      if (!position) continue;
+      const cell = this.navigation.worldToCell(position.x, position.z);
+      if (!this.navigation.isDynamicallyBlocked(cell)) continue;
+      const resolved = this.navigation.resolveWalkableTarget(cell);
+      if (!resolved) continue;
+      const world = this.navigation.cellToWorld(resolved);
+      position.x = world.x;
+      position.z = world.z;
+    }
+  }
+
+  private releaseBuildingBlocker(building: StrategicBuilding): void {
+    this.navigation.clearDynamicBlockedCells(this.buildingBlockerKey(building.id));
+  }
+
+  private productionSpawnCell(building: StrategicBuilding, orderId: number): { column: number; row: number } | null {
+    const center = this.navigation.worldToCell(building.x, building.z);
+    const radius = buildingExitRadiusCells(building.type);
+    const offsets = [
+      { column: 0, row: radius },
+      { column: radius, row: 0 },
+      { column: 0, row: -radius },
+      { column: -radius, row: 0 },
+      { column: radius, row: radius },
+      { column: radius, row: -radius },
+      { column: -radius, row: -radius },
+      { column: -radius, row: radius },
+    ] as const;
+    const rotation = (building.id + orderId) % offsets.length;
+    for (let step = 0; step < offsets.length; step += 1) {
+      const offset = offsets[(rotation + step) % offsets.length]!;
+      const candidate = { column: center.column + offset.column, row: center.row + offset.row };
+      if (this.navigation.isWalkable(candidate)) return candidate;
+    }
+    return this.navigation.resolveWalkableTarget(center);
+  }
+
   private destroyResourceBuilding(building: StrategicBuilding): void {
     building.currentHealth = 0;
     building.destroyed = true;
     building.nextDefenseAttackTick = 0;
+    this.releaseBuildingBlocker(building);
   }
 
   private killUnit(entityId: EntityID): void {
