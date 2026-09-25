@@ -181,6 +181,7 @@ export class EnemyLogisticsState {
     if (!enemySpawn) return null;
     const region = this.world.regions[enemySpawn.regionId];
     if (!region) return null;
+    const producerType = FACTION_PRODUCTION[this.faction].producer;
     const occupied = new Set<string>();
     for (const building of strategic.buildings) {
       if (building.destroyed) continue;
@@ -196,7 +197,7 @@ export class EnemyLogisticsState {
       const x = index % this.world.width;
       const z = Math.floor(index / this.world.width);
       const cell = { x, z };
-      const footprint = buildingFootprintCells(profile.producer, { column: x, row: z });
+      const footprint = buildingFootprintCells(producerType, { column: x, row: z });
       if (footprint.some((part) => (
         part.column < 0
         || part.row < 0
