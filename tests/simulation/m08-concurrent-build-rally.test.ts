@@ -102,7 +102,10 @@ describe('M08 parallel construction and producer Rally Points', () => {
     const barracks = state.snapshot().buildings.find((building) => building.playerId === 0 && building.type === 'BARRACKS');
     expect(barracks?.completed).toBe(true);
     if (!barracks) return;
-    const startCell = navigation.worldToCell(barracks.x, barracks.z);
+    const buildingCell = navigation.worldToCell(barracks.x, barracks.z);
+    const startCell = navigation.resolveWalkableTarget(buildingCell);
+    expect(startCell).not.toBeNull();
+    if (!startCell) return;
     let rallyCell: { column: number; row: number } | null = null;
     for (let row = 0; row < world.height && rallyCell === null; row += 1) {
       for (let column = 0; column < world.width; column += 1) {
