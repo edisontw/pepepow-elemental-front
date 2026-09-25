@@ -1,4 +1,7 @@
 import type { UnitArchetype } from './components';
+import type { EntityStore } from './entity-store';
+import type { NavigationGrid } from './navigation';
+import { buildingFootprintCells } from './building-footprint';
 import { BUILDINGS, UNITS, type BuildingType } from './m03-content';
 import type { M03Command } from './m03-commands';
 import type { StrategicSnapshot } from './strategic-state';
@@ -89,6 +92,8 @@ export class EnemyLogisticsState {
   constructor(
     private readonly world: GeneratedWorld,
     readonly faction: EnemyFaction,
+    private readonly navigation: NavigationGrid,
+    private readonly entities: EntityStore,
   ) {}
 
   advance(
@@ -113,7 +118,7 @@ export class EnemyLogisticsState {
     if (!producer) {
       const definition = BUILDINGS[profile.producer];
       if (!canAfford(enemyResources, definition.cost)) return;
-      const buildCell = this.chooseProducerCell(strategic);
+      const buildCell = this.chooseProducerCell(strategic, profile.producer);
       if (!buildCell) return;
       const position = worldCellToSimulationPosition(this.world, buildCell);
       enqueueStrategicCommand({
@@ -175,12 +180,20 @@ export class EnemyLogisticsState {
     return { stateHash: hash.toString(16).padStart(8, '0'), ...withoutHash };
   }
 
-  private chooseProducerCell(strategic: StrategicSnapshot): GridPoint | null {
+  private chooseProducerCell(strategic: StrategicSnapshot, buildingType: BuildingType): GridPoint | null {
     const enemySpawn = this.world.spawns.find((spawn) => spawn.id === 'ENEMY');
     if (!enemySpawn) return null;
     const region = this.world.regions[enemySpawn.regionId];
     if (!region) return null;
-    const occupied = new Set(strategic.buildings.map((building) => `${building.x}:${building.z}`));
+    const occupied = new Set(strategic.buildings
+      .filter((building) => !building.destroyed)
+      .map((building) => this.navigation.cellKey(this.navigation.worldToCell(building.x, building.z))));
+    const unitCells = new Set(this.entities.entityIds()
+      .filter((entityId) => this.entities.hasUnit(entityId))
+      .map((entityId) => {
+        const position = this.entities.positions.get(entityId)!;
+        return this.navigation.cellKey(this.navigation.worldToCell(position.x, position.z));
+      }));
     const candidates: GridPoint[] = [];
     for (let index = 0; index < this.world.flags.length; index += 1) {
       if (this.world.regionByCell[index] !== enemySpawn.regionId) continue;
@@ -188,8 +201,12 @@ export class EnemyLogisticsState {
       const x = index % this.world.width;
       const z = Math.floor(index / this.world.width);
       const cell = { x, z };
-      const position = worldCellToSimulationPosition(this.world, cell);
-      if (occupied.has(`${position.x}:${position.z}`)) continue;
+      const navCell = { column: x, row: z };
+      const key = this.navigation.cellKey(navCell);
+      if (occupied.has(key) || this.navigation.isDynamicallyBlocked(navCell)) continue;
+      const footprint = buildingFootprintCells(navCell, buildingType)
+        .filter((candidate) => this.navigation.isTerrainWalkable(candidate));
+      if (footprint.some((candidate) => unitCells.has(this.navigation.cellKey(candidate)))) continue;
       candidates.push(cell);
     }
     candidates.sort((left, right) => {
