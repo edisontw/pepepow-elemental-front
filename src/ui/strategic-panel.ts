@@ -3,6 +3,7 @@ import { M03Simulation } from '../simulation/m03-simulation';
 import {
   BUILDINGS,
   UNITS,
+  buildingNavigationCells,
   productionSpeedPercent,
   type BuildingType,
   type ProducerBuildingType,
@@ -338,7 +339,9 @@ export class StrategicPanel {
 
     const resourceType = resourceTypeForBuilding(buildingType);
     if (resourceType !== null) {
-      const occupied = new Set(snapshot.buildings.flatMap((building) => building.resourceNodeId ? [building.resourceNodeId] : []));
+      const occupied = new Set(snapshot.buildings.flatMap((building) => (
+        !building.destroyed && building.resourceNodeId ? [building.resourceNodeId] : []
+      )));
       const candidates = world.resources
         .filter((resource) => resource.type === resourceType)
         .map((resource) => {
@@ -384,6 +387,20 @@ export class StrategicPanel {
         return {
           valid: false, regionId, resourceNodeId: chosen.resource.id, targetX, targetZ,
           reason: `That ${site} is in controlled but unsupplied territory. Restore supply before constructing a ${structure}.`,
+        };
+      }
+      const obstruction = this.buildingFootprintObstruction(buildingType, {
+        column: chosen.resource.cell.x,
+        row: chosen.resource.cell.z,
+      });
+      if (obstruction !== null) {
+        return {
+          valid: false,
+          regionId,
+          resourceNodeId: chosen.resource.id,
+          targetX: chosen.position.x,
+          targetZ: chosen.position.z,
+          reason: obstruction,
         };
       }
       return {
@@ -433,12 +450,27 @@ export class StrategicPanel {
         return { valid: false, regionId, resourceNodeId: null, targetX, targetZ, reason: `Region ${regionId + 1} is controlled but not supplied.` };
       }
     }
-    const occupied = snapshot.buildings.some((building) => {
-      const buildingCell = this.simulation.navigation.worldToCell(building.x, building.z);
-      return buildingCell.column === cell.column && buildingCell.row === cell.row;
-    });
-    if (occupied) return { valid: false, regionId, resourceNodeId: null, targetX, targetZ, reason: 'Another building already occupies that cell.' };
+    const obstruction = this.buildingFootprintObstruction(buildingType, cell);
+    if (obstruction !== null) {
+      return { valid: false, regionId, resourceNodeId: null, targetX, targetZ, reason: obstruction };
+    }
     return { valid: true, regionId, resourceNodeId: null, targetX, targetZ, reason: '' };
+  }
+
+  private buildingFootprintObstruction(
+    buildingType: Exclude<BuildingType, 'ELEMENTAL_CORE'>,
+    center: { column: number; row: number },
+  ): string | null {
+    const footprint = buildingNavigationCells(buildingType, center);
+    if (footprint.some((cell) => !this.simulation.navigation.isWalkable(cell))) {
+      return 'The building footprint overlaps blocked terrain or another structure.';
+    }
+    const footprintKeys = new Set(footprint.map((cell) => this.simulation.navigation.cellKey(cell)));
+    const occupiedByUnit = this.simulation.snapshot().entities.some((unit) => (
+      unit.alive
+      && footprintKeys.has(this.simulation.navigation.cellKey(this.simulation.navigation.worldToCell(unit.x, unit.z)))
+    ));
+    return occupiedByUnit ? 'Move units clear of the building footprint before construction.' : null;
   }
 
   private selectProducer(buildingId: number): void {
