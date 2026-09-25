@@ -60,7 +60,17 @@ describe('M08 parallel construction and producer Rally Points', () => {
   it('runs separate construction sites concurrently instead of serializing them', () => {
     const { world, entities, navigation, state } = harness(1_000_031);
     const regionId = playerRegion(world);
-    const materialNode = world.resources.find((resource) => resource.type === 'MATERIAL' && resource.regionId === regionId);
+    const occupiedUnitCells = new Set(entities.entityIds().flatMap((entityId) => {
+      if (!entities.hasUnit(entityId)) return [];
+      const position = entities.positions.get(entityId);
+      return position ? [navigation.cellKey(navigation.worldToCell(position.x, position.z))] : [];
+    }));
+    const materialNode = world.resources.find((resource) => (
+      resource.type === 'MATERIAL'
+      && resource.regionId === regionId
+      && navigation.isWalkable({ column: resource.cell.x, row: resource.cell.z })
+      && !occupiedUnitCells.has(navigation.cellKey({ column: resource.cell.x, row: resource.cell.z }))
+    ));
     expect(materialNode).toBeDefined();
     if (!materialNode) return;
 
