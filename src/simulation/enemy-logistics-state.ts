@@ -1,5 +1,6 @@
 import type { UnitArchetype } from './components';
-import { BUILDINGS, UNITS, type BuildingType } from './m03-content';
+import { BUILDINGS, UNITS, buildingNavigationCells, type BuildingType } from './m03-content';
+import type { NavigationGrid } from './navigation';
 import type { M03Command } from './m03-commands';
 import type { StrategicSnapshot } from './strategic-state';
 import type { EnemyFaction } from './m05-content';
@@ -89,6 +90,7 @@ export class EnemyLogisticsState {
   constructor(
     private readonly world: GeneratedWorld,
     readonly faction: EnemyFaction,
+    private readonly navigation: NavigationGrid,
   ) {}
 
   advance(
@@ -188,6 +190,11 @@ export class EnemyLogisticsState {
       const x = index % this.world.width;
       const z = Math.floor(index / this.world.width);
       const cell = { x, z };
+      const footprint = buildingNavigationCells(
+        FACTION_PRODUCTION[this.faction].producer,
+        { column: x, row: z },
+      );
+      if (!footprint.every((footprintCell) => this.navigation.isWalkable(footprintCell))) continue;
       const position = worldCellToSimulationPosition(this.world, cell);
       if (occupied.has(`${position.x}:${position.z}`)) continue;
       candidates.push(cell);
