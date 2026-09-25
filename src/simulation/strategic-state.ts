@@ -667,17 +667,18 @@ export class StrategicState {
     if (building.destroyed) return;
     const center = this.navigation.worldToCell(building.x, building.z);
     const cells = buildingFootprintCells(building.type, center);
+    const footprintKeys = new Set(cells.map((cell) => this.navigation.cellKey(cell)));
     this.navigation.setDynamicBlockedCells(this.buildingBlockerKey(building.id), cells);
 
-    // A placement may complete under a unit that was standing on the future
-    // foundation. Move such units to the nearest legal cell deterministically
-    // rather than trapping them inside a newly solid structure.
+    // A placement may occur under a unit that was standing on the future
+    // foundation. Move only units inside this structure's own footprint to the
+    // nearest legal cell rather than trapping them in the newly solid mass.
     for (const entityId of this.entities.entityIds()) {
       if (!this.entities.hasUnit(entityId)) continue;
       const position = this.entities.positions.get(entityId);
       if (!position) continue;
       const cell = this.navigation.worldToCell(position.x, position.z);
-      if (!this.navigation.isDynamicallyBlocked(cell)) continue;
+      if (!footprintKeys.has(this.navigation.cellKey(cell))) continue;
       const resolved = this.navigation.resolveWalkableTarget(cell);
       if (!resolved) continue;
       const world = this.navigation.cellToWorld(resolved);
