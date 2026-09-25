@@ -429,8 +429,15 @@ export class StrategicState {
       if (owner !== command.playerId || !supplied) return false;
     }
     const position = worldCellToSimulationPosition(this.world, cell);
-    const footprint = buildingFootprintCells({ column: cell.x, row: cell.z }, command.buildingType);
-    if (!this.navigation.canAddDynamicBlockers(footprint)) return false;
+    const centerCell = { column: cell.x, row: cell.z };
+    if (this.navigation.isDynamicallyBlocked(centerCell)) return false;
+    const occupiedCenter = this.sortedBuildings().some((building) => (
+      !building.destroyed
+      && this.navigation.cellKey(this.navigation.worldToCell(building.x, building.z)) === this.navigation.cellKey(centerCell)
+    ));
+    if (occupiedCenter) return false;
+    const footprint = buildingFootprintCells(centerCell, command.buildingType)
+      .filter((candidate) => this.navigation.isTerrainWalkable(candidate));
     const footprintKeys = new Set(footprint.map((candidate) => this.navigation.cellKey(candidate)));
     for (const entityId of this.entities.entityIds()) {
       if (!this.entities.hasUnit(entityId)) continue;
