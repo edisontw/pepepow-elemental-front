@@ -4,8 +4,8 @@
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v23`
-**Current replay format:** `ef-replay-v23`
+**Current authoritative gameplay ruleset:** `ef-standard-v24`
+**Current replay format:** `ef-replay-v24`
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE4_CLOSURE_REPORT.md`
 
@@ -69,8 +69,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v23`;
-- replay: `ef-replay-v23`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v24`;
+- replay: `ef-replay-v24`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -265,7 +265,7 @@ Priority A/B implementation is complete; manual WebGL acceptance remains pending
 - Terrain/environment depth integration is in `main`: denser forest grouping and ground contact, richer river-bank wet/mud/grass transitions, and route-aligned shoulder/verge dressing. This remains presentation-only and does not change world generation or gameplay authority.
 - Canonical AI final-art prompts are available at `media/prompts/images/VISUAL_PRODUCTION_PRIORITY_A_B_PROMPTS.md`.
 - All eleven player-side unit visuals now use five-action directional atlases generated from the committed pack. Next gate: manual WebGL/FPS acceptance; no art regeneration required.
-- Unit readability micro-pass (2026-09-25): player-side impostors render at 1.08 emissive intensity, 1.03 presentation scale, and a slightly stronger 0.28 contact shadow. Foot baselines remain pinned; terrain/lighting/gameplay/replay identities are unchanged.
+- Unit readability micro-pass (2026-09-25): player-side impostors render at 1.19 emissive intensity, 1.03 presentation scale, and a slightly stronger 0.28 contact shadow. Foot baselines remain pinned; terrain/lighting/gameplay/replay identities are unchanged.
 
 ### Unit-production decision — 2026-09-17
 
@@ -576,6 +576,17 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
 - legacy friendly yield-return fields remain replay/state compatible but are no longer produced by unit contact;
 - middle-button camera drag is captured at the window capture phase when the pointer originates on the battlefield canvas, preventing later battlefield listeners from stealing the gesture; middle-button aux-click browser behavior is also suppressed;
 - authoritative friendly-contact semantics advance gameplay/replay identity to `ef-standard-v23` / `ef-replay-v23`; camera input handling is presentation/input-only; world generation remains `m02-standard-v1`.
+
+### Physical building footprints + readability lift — v24 — 2026-09-25
+
+- strategic buildings now own authoritative navigation footprints from the moment construction starts; units route around the blocked core instead of walking through the structure;
+- footprint shapes are intentionally smaller than the full rendered silhouette: Elemental Core / Barracks / Workshop use a 3×3 square, Arcane Tower / Outpost use a 3×3 cross, and Extractor / Mana Well block only their center cell;
+- the blocker layer is separate from terrain walkability, so terrain changes and building destruction do not overwrite each other; destroying a resource structure releases its blocker and rebuilding restores it;
+- construction placement rejects footprint overlap with blocked terrain, other structures, or living units;
+- trained units spawn on a deterministic nearest legal cell outside their producer footprint before following Rally Point / exit movement;
+- same-faction unit phasing from v23 remains unchanged; buildings are the intentional static obstacle layer;
+- player-side 2.5D unit impostor brightness increases from 1.08 to 1.19 emissive intensity (~10% additional lift) with no further size increase;
+- physical building footprints change authoritative movement/path outcomes and advance gameplay/replay identity to `ef-standard-v24` / `ef-replay-v24`; brightness is presentation-only; world generation remains `m02-standard-v1`.
 
 ### Low-health awareness / Army panel pass — 2026-09-22
 
