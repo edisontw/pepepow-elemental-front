@@ -29,6 +29,7 @@ export class NavigationGrid {
   navVersion: number;
   private readonly cells: TraversalCellKind[];
   private readonly walkable: Uint8Array;
+  private readonly dynamicBlockers: Uint16Array;
 
   constructor(readonly definition: ArenaTraversalDefinition) {
     this.navVersion = definition.initialNavVersion;
@@ -41,6 +42,7 @@ export class NavigationGrid {
       }
     }
     this.walkable = new Uint8Array(this.cells.length);
+    this.dynamicBlockers = new Uint16Array(this.cells.length);
     for (let index = 0; index < this.cells.length; index += 1) {
       const kind = this.cells[index];
       this.walkable[index] = kind === 'WALKABLE_GROUND' || kind === 'NATURAL_CROSSING' ? 1 : 0;
@@ -52,7 +54,52 @@ export class NavigationGrid {
   }
 
   isWalkable(cell: GridCell): boolean {
+    return this.inBounds(cell)
+      && this.walkable[this.index(cell)] === 1
+      && this.dynamicBlockers[this.index(cell)] === 0;
+  }
+
+  isTerrainWalkable(cell: GridCell): boolean {
     return this.inBounds(cell) && this.walkable[this.index(cell)] === 1;
+  }
+
+  isDynamicallyBlocked(cell: GridCell): boolean {
+    return this.inBounds(cell) && (this.dynamicBlockers[this.index(cell)] ?? 0) > 0;
+  }
+
+  canAddDynamicBlockers(cells: readonly GridCell[]): boolean {
+    return cells.every((cell) => (
+      this.inBounds(cell)
+      && this.walkable[this.index(cell)] === 1
+      && this.dynamicBlockers[this.index(cell)] === 0
+    ));
+  }
+
+  addDynamicBlockers(cells: readonly GridCell[]): boolean {
+    let changed = false;
+    for (const cell of cells) {
+      if (!this.inBounds(cell)) continue;
+      const index = this.index(cell);
+      const count = this.dynamicBlockers[index] ?? 0;
+      if (count === 0) changed = true;
+      this.dynamicBlockers[index] = count + 1;
+    }
+    if (changed) this.navVersion += 1;
+    return changed;
+  }
+
+  removeDynamicBlockers(cells: readonly GridCell[]): boolean {
+    let changed = false;
+    for (const cell of cells) {
+      if (!this.inBounds(cell)) continue;
+      const index = this.index(cell);
+      const count = this.dynamicBlockers[index] ?? 0;
+      if (count === 0) continue;
+      this.dynamicBlockers[index] = count - 1;
+      if (count === 1) changed = true;
+    }
+    if (changed) this.navVersion += 1;
+    return changed;
   }
 
   applyWalkabilityChanges(changes: readonly WalkabilityChange[]): boolean {

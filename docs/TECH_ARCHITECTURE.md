@@ -483,7 +483,15 @@ the mechanism for voluntary army spacing. Hostile pairs keep full body separatio
 including defender/heavier-body anchoring for established melee contact and
 walkable-terrain-bounded local corrections. Legacy yield-return fields remain
 state/replay compatible but are no longer produced by unit contact. A* remains
-route authority. Building footprints remain a separate follow-up.
+route authority.
+
+Active v24 building navigation uses a counted dynamic blocker layer independent
+from terrain walkability. Core foundations block a 3x3 cell core; Barracks and
+Workshop use a five-cell cross; Arcane Tower, Outpost, Extractor, and Mana Well
+block only their center cell. BUILD activates blockers immediately, destroyed
+resource buildings release them, and trained units spawn on deterministic legal
+cells outside producer footprints. Dynamic blockers increment navigation version
+so active paths repair against new structures without mutating terrain state.
 
 Avoid O(N²) unit scans.
 
@@ -729,9 +737,9 @@ If RPC is unavailable:
 
 # 29. Version separation
 
-Active gameplay/challenge: `ef-standard-v23`; replay: `ef-replay-v23`;
+Active gameplay/challenge: `ef-standard-v24`; replay: `ef-replay-v24`;
 world generation: `m02-standard-v1`. Forced-Move disengage, order modes, saved Attack Move destinations,
-authoritative unit body radii, deterministic contact/separation outcomes, and hostile-contact / non-blocking-friendly outcomes are state-hashed; player
+authoritative unit body radii, deterministic contact/separation outcomes, and hostile-contact / building-footprint navigation outcomes are state-hashed; player
 replacements of Core orders execute at their target tick.
 
 Track independently:
