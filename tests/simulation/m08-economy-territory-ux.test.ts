@@ -75,12 +75,20 @@ describe('M08 economy and territory UX correction', () => {
     expect(productionDurationTicks(120, 4)).toBe(84);
     expect(productionDurationTicks(120, 8)).toBe(84);
 
-    const { world, navigation, state } = harness(1_000_022);
+    const { world, entities, navigation, state } = harness(1_000_022);
     const regionId = playerRegion(world);
     const cells = buildableCells(world, regionId);
     expect(cells.length).toBeGreaterThan(2);
-    const firstCell = cells.find((cell) => buildingNavigationCells('BARRACKS', { column: cell.x, row: cell.z })
-      .every((footprintCell) => navigation.isWalkable(footprintCell)));
+    const occupiedUnitCells = new Set(entities.entityIds().flatMap((entityId) => {
+      if (!entities.hasUnit(entityId)) return [];
+      const position = entities.positions.get(entityId);
+      return position ? [navigation.cellKey(navigation.worldToCell(position.x, position.z))] : [];
+    }));
+    const firstCell = cells.find((cell) => {
+      const footprint = buildingNavigationCells('BARRACKS', { column: cell.x, row: cell.z });
+      return footprint.every((footprintCell) => navigation.isWalkable(footprintCell))
+        && footprint.every((footprintCell) => !occupiedUnitCells.has(navigation.cellKey(footprintCell)));
+    });
     expect(firstCell).toBeDefined();
     if (!firstCell) return;
     const first = worldCellToSimulationPosition(world, firstCell);
@@ -91,6 +99,8 @@ describe('M08 economy and territory UX correction', () => {
       (cell.x !== firstCell.x || cell.z !== firstCell.z)
       && buildingNavigationCells('BARRACKS', { column: cell.x, row: cell.z })
         .every((footprintCell) => navigation.isWalkable(footprintCell))
+      && buildingNavigationCells('BARRACKS', { column: cell.x, row: cell.z })
+        .every((footprintCell) => !occupiedUnitCells.has(navigation.cellKey(footprintCell)))
     ));
     expect(secondCell).toBeDefined();
     if (!secondCell) return;
@@ -109,9 +119,15 @@ describe('M08 economy and territory UX correction', () => {
   it('spawns completed units at their producer and gives them a deterministic exit path', () => {
     const { world, entities, navigation, state } = harness(1_000_023);
     const regionId = playerRegion(world);
+    const initialUnitCells = new Set(entities.entityIds().flatMap((entityId) => {
+      if (!entities.hasUnit(entityId)) return [];
+      const unitPosition = entities.positions.get(entityId);
+      return unitPosition ? [navigation.cellKey(navigation.worldToCell(unitPosition.x, unitPosition.z))] : [];
+    }));
     const candidate = buildableCells(world, regionId).find((cell) => {
       const footprint = buildingNavigationCells('BARRACKS', { column: cell.x, row: cell.z });
       if (!footprint.every((footprintCell) => navigation.isWalkable(footprintCell))) return false;
+      if (footprint.some((footprintCell) => initialUnitCells.has(navigation.cellKey(footprintCell)))) return false;
       const offsets = [[0, 3], [3, 0], [0, -3], [-3, 0]] as const;
       return offsets.some(([dx, dz]) => navigation.isWalkable({ column: cell.x + dx, row: cell.z + dz }));
     });
