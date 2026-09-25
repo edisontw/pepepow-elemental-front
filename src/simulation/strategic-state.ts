@@ -632,6 +632,7 @@ export class StrategicState {
     orderId: number,
     startCell: { column: number; row: number },
   ): void {
+    const centerCell = this.navigation.worldToCell(building.x, building.z);
     if (building.rallyPointX !== null && building.rallyPointZ !== null) {
       const rallyCell = this.navigation.worldToCell(building.rallyPointX, building.rallyPointZ);
       const rallyPath = this.navigation.findPath(startCell, rallyCell);
@@ -654,7 +655,7 @@ export class StrategicState {
     const rotation = (building.id + orderId) % offsets.length;
     for (let step = 0; step < offsets.length; step += 1) {
       const offset = offsets[(rotation + step) % offsets.length]!;
-      const targetCell = { column: startCell.column + offset.column, row: startCell.row + offset.row };
+      const targetCell = { column: centerCell.column + offset.column, row: centerCell.row + offset.row };
       if (!this.navigation.isWalkable(targetCell)) continue;
       const path = this.navigation.findPath(startCell, targetCell);
       if (!path || path.length === 0) continue;
