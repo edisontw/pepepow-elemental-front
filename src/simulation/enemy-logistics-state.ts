@@ -1,4 +1,5 @@
 import type { UnitArchetype } from './components';
+import type { EntityStore } from './entity-store';
 import { BUILDINGS, UNITS, buildingNavigationCells, type BuildingType } from './m03-content';
 import type { NavigationGrid } from './navigation';
 import type { M03Command } from './m03-commands';
@@ -91,6 +92,7 @@ export class EnemyLogisticsState {
     private readonly world: GeneratedWorld,
     readonly faction: EnemyFaction,
     private readonly navigation: NavigationGrid,
+    private readonly entities: EntityStore,
   ) {}
 
   advance(
@@ -183,6 +185,11 @@ export class EnemyLogisticsState {
     const region = this.world.regions[enemySpawn.regionId];
     if (!region) return null;
     const occupied = new Set(strategic.buildings.map((building) => `${building.x}:${building.z}`));
+    const occupiedUnitCells = new Set(this.entities.entityIds().flatMap((entityId) => {
+      if (!this.entities.hasUnit(entityId)) return [];
+      const position = this.entities.positions.get(entityId);
+      return position ? [this.navigation.cellKey(this.navigation.worldToCell(position.x, position.z))] : [];
+    }));
     const candidates: GridPoint[] = [];
     for (let index = 0; index < this.world.flags.length; index += 1) {
       if (this.world.regionByCell[index] !== enemySpawn.regionId) continue;
@@ -195,6 +202,7 @@ export class EnemyLogisticsState {
         { column: x, row: z },
       );
       if (!footprint.every((footprintCell) => this.navigation.isWalkable(footprintCell))) continue;
+      if (footprint.some((footprintCell) => occupiedUnitCells.has(this.navigation.cellKey(footprintCell)))) continue;
       const position = worldCellToSimulationPosition(this.world, cell);
       if (occupied.has(`${position.x}:${position.z}`)) continue;
       candidates.push(cell);
