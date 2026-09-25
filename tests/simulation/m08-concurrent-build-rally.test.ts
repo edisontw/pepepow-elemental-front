@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EntityStore } from '../../src/simulation/entity-store';
+import { buildingNavigationCells, type BuildingType } from '../../src/simulation/m03-content';
 import { NavigationGrid } from '../../src/simulation/navigation';
 import { StrategicState } from '../../src/simulation/strategic-state';
 import { generateWorld } from '../../src/world/generator';
@@ -34,15 +35,43 @@ function buildableCells(world: GeneratedWorld, regionId: number): Array<{ x: num
   return result;
 }
 
+function footprintSafeCell(
+  world: GeneratedWorld,
+  regionId: number,
+  navigation: NavigationGrid,
+  entities: EntityStore,
+  buildingType: BuildingType,
+  reject: (cell: { x: number; z: number }) => boolean = () => false,
+): { x: number; z: number } | undefined {
+  const occupiedUnits = new Set(entities.entityIds().flatMap((entityId) => {
+    if (!entities.hasUnit(entityId)) return [];
+    const position = entities.positions.get(entityId);
+    return position ? [navigation.cellKey(navigation.worldToCell(position.x, position.z))] : [];
+  }));
+  return buildableCells(world, regionId).find((cell) => {
+    if (reject(cell)) return false;
+    const footprint = buildingNavigationCells(buildingType, { column: cell.x, row: cell.z });
+    return footprint.every((part) => navigation.isWalkable(part))
+      && footprint.every((part) => !occupiedUnits.has(navigation.cellKey(part)));
+  });
+}
+
 describe('M08 parallel construction and producer Rally Points', () => {
   it('runs separate construction sites concurrently instead of serializing them', () => {
-    const { world, state } = harness(1_000_031);
+    const { world, entities, navigation, state } = harness(1_000_031);
     const regionId = playerRegion(world);
     const materialNode = world.resources.find((resource) => resource.type === 'MATERIAL' && resource.regionId === regionId);
     expect(materialNode).toBeDefined();
     if (!materialNode) return;
 
-    const barracksCell = buildableCells(world, regionId).find((cell) => cell.x !== materialNode.cell.x || cell.z !== materialNode.cell.z);
+    const barracksCell = footprintSafeCell(
+      world,
+      regionId,
+      navigation,
+      entities,
+      'BARRACKS',
+      (cell) => Math.abs(cell.x - materialNode.cell.x) <= 1 && Math.abs(cell.z - materialNode.cell.z) <= 1,
+    );
     expect(barracksCell).toBeDefined();
     if (!barracksCell) return;
     const barracksPosition = worldCellToSimulationPosition(world, barracksCell);
@@ -85,7 +114,7 @@ describe('M08 parallel construction and producer Rally Points', () => {
   it('stores a deterministic producer Rally Point and sends newly trained units toward it', () => {
     const { world, entities, navigation, state } = harness(1_000_032);
     const regionId = playerRegion(world);
-    const barracksCell = buildableCells(world, regionId)[0];
+    const barracksCell = footprintSafeCell(world, regionId, navigation, entities, 'BARRACKS');
     expect(barracksCell).toBeDefined();
     if (!barracksCell) return;
     const barracksPosition = worldCellToSimulationPosition(world, barracksCell);
@@ -102,7 +131,10 @@ describe('M08 parallel construction and producer Rally Points', () => {
     const barracks = state.snapshot().buildings.find((building) => building.playerId === 0 && building.type === 'BARRACKS');
     expect(barracks?.completed).toBe(true);
     if (!barracks) return;
-    const startCell = navigation.worldToCell(barracks.x, barracks.z);
+    const buildingCell = navigation.worldToCell(barracks.x, barracks.z);
+    const startCell = navigation.resolveWalkableTarget(buildingCell);
+    expect(startCell).not.toBeNull();
+    if (!startCell) return;
     let rallyCell: { column: number; row: number } | null = null;
     for (let row = 0; row < world.height && rallyCell === null; row += 1) {
       for (let column = 0; column < world.width; column += 1) {
