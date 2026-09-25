@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { WORLD_UNITS_PER_METER } from '../../src/simulation/arena';
 import { UNITS } from '../../src/simulation/m03-content';
 import { NEUTRAL_CAMP_AGGRO_RADIUS } from '../../src/simulation/neutral-encounter-state';
-import { finaleUnlockTick, phaseForTick } from '../../src/simulation/m06-content';
+import { STRUCTURE_BODY_RADIUS, finaleUnlockTick, phaseForTick } from '../../src/simulation/m06-content';
 import { M06Simulation, isM06ReplayPacket } from '../../src/simulation/m06-simulation';
 import { generateWorld } from '../../src/world/generator';
 
@@ -181,6 +181,66 @@ describe('M06 full run', () => {
     expect(final.run.boss.currentHealth).toBe(0);
     expect(final.run.result?.reason).toBe('BOSS_DEFEATED');
   }, 15_000);
+
+  it('lets Tower Defense melee damage the Core from outside its blocked footprint', () => {
+    const simulation = new M06Simulation(generateWorld(1_000_012), {
+      mode: 'TOWER_DEFENSE',
+      pace: 'SMOKE',
+      difficulty: 'CASUAL',
+    });
+
+    for (const entityId of livingIds(simulation, 0)) {
+      const health = simulation.entities.health.get(entityId);
+      if (health) health.alive = false;
+    }
+
+    const core = simulation.run.snapshot().playerCore;
+    const coreCell = simulation.navigation.worldToCell(core.x, core.z);
+    expect(simulation.navigation.isWalkable(coreCell)).toBe(false);
+
+    const startCandidates = [
+      { column: coreCell.column + 6, row: coreCell.row },
+      { column: coreCell.column - 6, row: coreCell.row },
+      { column: coreCell.column, row: coreCell.row + 6 },
+      { column: coreCell.column, row: coreCell.row - 6 },
+    ];
+    const startCell = startCandidates.find((cell) => simulation.navigation.isWalkable(cell));
+    expect(startCell).toBeDefined();
+    if (!startCell) return;
+
+    const start = simulation.navigation.cellToWorld(startCell);
+    const enemyId = simulation.entities.createUnit({
+      archetype: 'VANGUARD',
+      playerId: 1,
+      x: start.x,
+      z: start.z,
+      ...UNITS.VANGUARD.spawn,
+    });
+    const combat = simulation.entities.combat.get(enemyId)!;
+    combat.attackDamage = 500;
+    combat.attackIntervalTicks = 1;
+    combat.nextAttackTick = 0;
+
+    const beforeHealth = core.currentHealth;
+    simulation.enqueueObjectiveAttack([enemyId], 'PLAYER_CORE');
+
+    let damaged = false;
+    for (let tick = 0; tick < 40; tick += 1) {
+      const frame = simulation.step();
+      if (frame.run.playerCore.currentHealth < beforeHealth) {
+        damaged = true;
+        break;
+      }
+    }
+    expect(damaged).toBe(true);
+
+    const finalPosition = simulation.entities.positions.get(enemyId)!;
+    const finalCell = simulation.navigation.worldToCell(finalPosition.x, finalPosition.z);
+    expect(simulation.navigation.isWalkable(finalCell)).toBe(true);
+    const dx = finalPosition.x - core.x;
+    const dz = finalPosition.z - core.z;
+    expect(Math.hypot(dx, dz)).toBeLessThanOrEqual(STRUCTURE_BODY_RADIUS + combat.attackRange);
+  });
 
   it('keeps Tower Defense waves neutral-safe, reactive, and resumable', () => {
     const simulation = new M06Simulation(generateWorld(1_000_011), {
