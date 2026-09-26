@@ -1,9 +1,10 @@
 # PEPEPOW Elemental Front — Post-Roadmap Phase 5 Autonomous Front Redesign Plan
 
-**Status:** DESIGN APPROVED — implementation not started  
+**Status:** ACTIVE — P5-A1 IMPLEMENTED / playtest gate; P5-A2 not started  
 **Date:** 2026-09-26  
 **Baseline gameplay identity:** `ef-standard-v24`  
 **Baseline replay identity:** `ef-replay-v24`  
+**Current implemented identity after P5-A1:** `ef-standard-v25` / `ef-replay-v25`  
 **World generation:** `m02-standard-v1` remains unchanged  
 **Primary mode working name:** `COMMAND` / **Command Mode**  
 **Existing direct-control mode working name:** `CLASSIC` / **Classic Mode**
@@ -521,17 +522,17 @@ Any squad mission, automatic caster selection, resource-site activation, or rein
 
 ### 16.3 Versioning
 
-Documentation-only adoption of this plan does **not** change gameplay/replay identity.
-
-The baseline remains:
+Documentation-only adoption of this plan did **not** change gameplay/replay identity. The pre-implementation baseline was:
 
 - `ef-standard-v24`;
 - `ef-replay-v24`;
 - `m02-standard-v1`.
 
-The first merged authoritative Phase 5 gameplay slice must advance gameplay/replay identity coherently.
+P5-A1 is now the first merged authoritative Phase 5 slice and advances gameplay/replay identity to:
 
-Do not pre-assign a version number in design documentation unless implementation sequencing requires it.
+- `ef-standard-v25`;
+- `ef-replay-v25`;
+- world generation remains `m02-standard-v1`.
 
 ### 16.4 World generation
 
@@ -543,7 +544,9 @@ Existing regions, routes, POIs, resource sites, camps, Shrines, objectives, and 
 
 ## 17. Recommended implementation sequence
 
-### P5-A1 — Squad order foundation
+### P5-A1 — Squad order foundation — IMPLEMENTED / PLAYTEST GATE
+
+Implemented under `ef-standard-v25` / `ef-replay-v25`; P5-A2 remains intentionally unstarted until playtest.
 
 - persistent squad state;
 - squad creation from existing starting army;

@@ -317,7 +317,7 @@ Do not automatically reopen M00–M08 implementation history. Start future work 
 
 # 14. Post-Roadmap Phase 5 — Autonomous Front Redesign
 
-**Status:** DESIGN APPROVED — P5-A NOT YET IMPLEMENTED  
+**Status:** ACTIVE — P5-A1 IMPLEMENTED / PLAYTEST GATE; P5-A2 NOT STARTED  
 **Plan:** `docs/POST_ROADMAP_PHASE5_AUTONOMOUS_FRONT_REDESIGN_PLAN.md`
 
 ## Goal
@@ -342,7 +342,7 @@ Routine execution such as pathing, local target acquisition, and Tactical caster
 
 Only four coherent changes are approved before the next playtest gate:
 
-### P5-A1 — Front Orders
+### P5-A1 — Front Orders — IMPLEMENTED / PLAYTEST GATE
 
 Introduce persistent squads with three baseline missions:
 
@@ -429,14 +429,14 @@ During the prototype:
 
 ## Versioning
 
-Design-document adoption does not change runtime identity.
+P5-A1 is the first authoritative Phase 5 gameplay merge.
 
-Current runtime remains:
+Current runtime:
 
-- gameplay: `ef-standard-v24`;
-- replay: `ef-replay-v24`;
+- gameplay: `ef-standard-v25`;
+- replay: `ef-replay-v25`;
 - world generation: `m02-standard-v1`.
 
-The first authoritative Phase 5 gameplay merge must advance gameplay/replay identity coherently.
+P5-A1 persistent squads and Front Orders are implemented. P5-A2 remains blocked on the P5-A1 playtest gate.
 
 World generation remains `m02-standard-v1` for P5-A.

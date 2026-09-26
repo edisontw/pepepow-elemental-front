@@ -4,7 +4,8 @@
 #app #world-debug,
 #app #run-panel,
 #app #roguelite-panel,
-#app #elemental-jobs {
+#app #elemental-jobs,
+#app #squad-panel {
   position: fixed;
 }
 
@@ -643,4 +644,61 @@
     left: 13.85rem;
     right: 11.85rem;
   }
+}
+
+
+/* Phase 5 P5-A1 compact Front Order test surface. */
+#app #squad-panel {
+  top: 34.15rem;
+  right: .55rem;
+  width: 13.35rem;
+  max-width: calc(100vw - 1.1rem);
+  padding: .58rem;
+  border: 1px solid rgba(83, 96, 95, .9);
+  border-top: 2px solid var(--ef-brass, #b79859);
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(34, 43, 46, .96), rgba(11, 22, 27, .96));
+  box-shadow: inset 0 0 0 3px rgba(8, 16, 19, .82), 0 .65rem 1.55rem rgba(0,0,0,.38);
+  color: #dfe6df;
+  z-index: 7;
+}
+#app .squad-title {
+  padding: .08rem .12rem .36rem;
+  border-bottom: 1px solid rgba(183, 152, 89, .28);
+  color: #dcc58e;
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+#app .squad-list { display: grid; gap: .25rem; margin-top: .4rem; }
+#app .squad-list button {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .08rem .35rem;
+  padding: .38rem .42rem;
+  border: 1px solid #475351;
+  border-radius: 2px;
+  background: #142025;
+  color: #e2e8e2;
+  text-align: left;
+  cursor: pointer;
+}
+#app .squad-list button[aria-pressed="true"] { border-color: var(--ef-brass, #b79859); background: #242a28; }
+#app .squad-list small { grid-column: 1 / -1; color: #9caeaa; font-size: .55rem; }
+#app .squad-orders { display: grid; grid-template-columns: repeat(3, 1fr); gap: .25rem; margin-top: .35rem; }
+#app .squad-orders button {
+  min-height: 2rem;
+  border: 1px solid #56625d;
+  border-radius: 2px;
+  background: linear-gradient(#303b3b, #182428);
+  color: #e5e7dc;
+  font-size: .58rem;
+  cursor: pointer;
+}
+#app .squad-orders button:hover { border-color: var(--ef-brass-bright, #d6ba76); }
+#app .squad-message { display: block; margin-top: .35rem; color: #b7c3bc; font-size: .53rem; line-height: 1.3; }
+#game-canvas.front-order-targeting { cursor: crosshair !important; }
+
+@media (max-height: 760px) {
+  #app #squad-panel { top: auto; right: 14.4rem; bottom: 3.1rem; }
 }

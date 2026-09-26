@@ -37,6 +37,7 @@ import { ResourceDefensePanel } from './ui/resource-defense-panel';
 import { RoguelitePanel } from './ui/roguelite-panel';
 import { M06_REPLAY_STORAGE_KEY, RunPanel } from './ui/run-panel';
 import { StrategicPanel } from './ui/strategic-panel';
+import { SquadPanel } from './ui/squad-panel';
 import { renderWorldDebug, worldDebugSummary } from './world/debug-view';
 import { generateWorld } from './world/generator';
 
@@ -110,6 +111,7 @@ async function boot(): Promise<void> {
     const worldCanvas = requiredElement<HTMLCanvasElement>('world-debug-canvas');
     const worldSummary = requiredElement<HTMLElement>('world-debug-summary');
     const strategyElement = requiredElement<HTMLElement>('strategy-panel');
+    const squadElement = requiredElement<HTMLElement>('squad-panel');
     const rogueliteElement = requiredElement<HTMLElement>('roguelite-panel');
     const runElement = requiredElement<HTMLElement>('run-panel');
     const replay = requestedReplay();
@@ -194,6 +196,13 @@ async function boot(): Promise<void> {
     );
     const manaSystemHud = new ManaSystemHud(strategyElement, simulation, () => scene.selectedUnits.map((unit) => unit.id));
     const resourceDefensePanel = new ResourceDefensePanel(strategyElement, simulation);
+    const squadPanel = new SquadPanel(
+      squadElement,
+      simulation,
+      canvas,
+      (clientX, clientY) => scene.screenToSimulationPosition(clientX, clientY),
+      (entityIds, focusCamera) => scene.selectUnits(entityIds, focusCamera),
+    );
     const roguelitePanel = new RoguelitePanel(rogueliteElement, simulation);
     const runPanel = new RunPanel(runElement, simulation, blockResolution);
     let territoryDebugElapsed = 0;
@@ -207,6 +216,7 @@ async function boot(): Promise<void> {
       contextInspector.update(deltaSeconds);
       manaSystemHud.update(deltaSeconds);
       resourceDefensePanel.update(deltaSeconds);
+      squadPanel.update(deltaSeconds);
       roguelitePanel.update(deltaSeconds);
       runPanel.update(deltaSeconds);
       territoryDebugElapsed += deltaSeconds;
@@ -230,6 +240,7 @@ async function boot(): Promise<void> {
     window.addEventListener('pagehide', () => {
       runPanel.destroy();
       roguelitePanel.destroy();
+      squadPanel.destroy();
       resourceDefensePanel.destroy();
       manaSystemHud.destroy();
       contextInspector.destroy();

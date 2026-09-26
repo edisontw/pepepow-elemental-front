@@ -3,7 +3,7 @@
 **Canonical gameplay specification**  
 **Spec baseline:** V0.3 consolidated  
 **Status:** IMPLEMENTATION BASELINE  
-**Active post-roadmap direction:** Phase 5 Autonomous Front Redesign; sections 65–71 supersede older player-interaction assumptions where they conflict. The implemented runtime remains `ef-standard-v24` / `ef-replay-v24` until Phase 5 gameplay ships.
+**Active post-roadmap direction:** Phase 5 Autonomous Front Redesign; sections 65–71 supersede older player-interaction assumptions where they conflict. The implemented P5-A1 runtime is `ef-standard-v25` / `ef-replay-v25`; later Phase 5 slices remain gated by playtest.
 
 ---
 
@@ -1570,7 +1570,7 @@ Design rationale:
 - v22 adds shared-destination convergence: same-faction units intentionally completing one exact destination may merge inside the final 2 m arrival zone, including around a friendly already stopped on that point. This prevents endpoint collision oscillation without disabling normal traffic separation.
 - v23 removes friendly body blocking entirely. Same-faction units may pass through and overlap one another during movement, idle, and combat without pushing or sidestepping; formation destinations remain the intentional spacing mechanism. Hostile unit contact remains full-body and authoritative.
 - v24 gives strategic buildings partial authoritative navigation footprints. The Elemental Core blocks a 3×3 inner mass, Barracks/Workshop block a 5-cell cross, and smaller structures block their center cell. Units route around these cells; trained units emerge at deterministic exterior cells; destroyed resource structures release their blocker. Visual building extents remain presentation-only.
-- Active gameplay/replay identity is `ef-standard-v24` / `ef-replay-v24`; world generation remains `m02-standard-v1`.
+- Active gameplay/replay identity is `ef-standard-v25` / `ef-replay-v25`; world generation remains `m02-standard-v1`. P5-A1 adds state-hashed persistent squad Front Orders without changing world generation.
 
 ---
 
@@ -1632,6 +1632,21 @@ Do not add additional mission types until playtest demonstrates a decision that 
 A squad is an orchestration layer over existing authoritative entities, not a parallel combat simulation.
 
 ---
+
+## 66.1 P5-A1 implemented baseline
+
+The first playable Command Mode boundary is implemented as a thin authoritative orchestration layer over the existing unit simulation:
+
+- the existing starting army forms stable Squad 1;
+- squad state owns member IDs, Front Order target, Guard engagement target, and Regroup destination/state;
+- Advance delegates routine execution to existing Attack Move / combat / navigation;
+- Guard uses a bounded 12 m defense envelope and 18 m pursuit leash, then returns to the assigned point;
+- Regroup is player-issued only and uses forced Move toward a deterministic reachable position inside the active friendly Core recovery radius;
+- low HP never creates a Regroup order;
+- a later direct Classic unit command cancels overlapping Front Order authority when that command becomes authoritative;
+- replay records player Front Orders separately while all routine squad execution remains deterministically derived.
+
+P5-A2 Doctrine work is intentionally not part of this baseline.
 
 # 67. Elemental intervention without caster-selection micro
 

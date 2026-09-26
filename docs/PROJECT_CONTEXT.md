@@ -1,11 +1,11 @@
 # PEPEPOW Elemental Front — PROJECT_CONTEXT
 
-**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Phase 4 Hero-Lite Progression CLOSED → **Phase 5 Autonomous Front Redesign DESIGN APPROVED / P5-A next**; Visual Production supporting  
+**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Phase 4 Hero-Lite Progression CLOSED → **Phase 5 Autonomous Front Redesign ACTIVE — P5-A1 IMPLEMENTED / playtest gate**; Visual Production supporting  
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v24`
-**Current replay format:** `ef-replay-v24`
+**Current authoritative gameplay ruleset:** `ef-standard-v25`
+**Current replay format:** `ef-replay-v25`
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE4_CLOSURE_REPORT.md`
 
@@ -199,7 +199,7 @@ Approved P5-A prototype scope:
 
 Important constraints:
 
-- current `ef-standard-v24` / `ef-replay-v24` remain active until authoritative Phase 5 gameplay actually merges;
+- P5-A1 is the first authoritative Phase 5 merge and advances runtime identity to `ef-standard-v25` / `ef-replay-v25`; P5-A2 and later slices remain unimplemented;
 - `m02-standard-v1` world generation remains unchanged for P5-A;
 - Material / Mana / Influence remain separate in the prototype;
 - Elementalist authority, alignment, position, range, cooldown, and survival remain meaningful;
@@ -218,7 +218,20 @@ See `docs/POST_ROADMAP_PHASE5_AUTONOMOUS_FRONT_REDESIGN_PLAN.md` for the full co
 
 ## 6. Current formal work point — Phase 4 + Visual Production
 
-Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A–P4-E originally closed under `ef-standard-v7` / `ef-replay-v7`; later post-closure gameplay changes continued through the current `ef-standard-v24` / `ef-replay-v24` baseline. Visual Production remains supporting work, but the active product-design work point is now Phase 5 Autonomous Front Redesign.
+Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A–P4-E originally closed under `ef-standard-v7` / `ef-replay-v7`; later post-closure gameplay changes continued through the `ef-standard-v24` / `ef-replay-v24` pre-Phase-5 baseline. Visual Production remains supporting work, while the active product-design work point is Phase 5 Autonomous Front Redesign under `ef-standard-v25` / `ef-replay-v25`.
+
+### Phase 5 P5-A1 Squad / Front Order foundation — v25 — 2026-09-26
+
+- one deterministic starting player squad is created from the existing starting army; squad membership is stable and authoritative without creating a second combat simulation;
+- authoritative Front Orders are `ADVANCE`, `GUARD`, and explicit `REGROUP`;
+- `ADVANCE` reuses Attack Move semantics, resumes movement after local combat, and settles at its objective;
+- `GUARD` owns a bounded 12 m defense envelope and 18 m pursuit leash, returns members to the guard point, and excludes neutral camps from automatic threat acquisition;
+- `REGROUP` uses forced-Move disengage semantics and deterministically selects a reachable point inside the active friendly Core's existing 8 m recovery radius; low HP alone never issues Regroup;
+- later direct unit orders or explicit Core objective orders cancel overlapping squad Front Order authority at the command's authoritative tick, preserving Classic direct control as an immediate override;
+- squad/order/regroup/guard-target state is state-hashed; player squad commands are replay-recorded on the `SQUAD` channel;
+- minimum UI is a compact Command Mode panel for squad selection and Advance / Guard / Regroup assignment;
+- gameplay/replay identity is `ef-standard-v25` / `ef-replay-v25`; world generation remains `m02-standard-v1`;
+- **P5-A2 is not started.** P5-A1 now requires gameplay playtesting before the next Phase 5 slice.
 
 ### Tower Defense vertical slice
 
