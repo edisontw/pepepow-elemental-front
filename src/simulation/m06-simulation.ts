@@ -24,7 +24,7 @@ import {
 import { UNITS } from './m03-content';
 import type { EntityID, UnitArchetype } from './components';
 import { forestAllowsDetection } from './elemental-battlefield-rules';
-import { SquadState, type FrontOrder, type SquadSnapshot, type SquadStateSnapshot } from './squad-state';
+import { COMMAND_SQUAD_CAPACITY, SquadState, type FrontOrder, type SquadSnapshot, type SquadStateSnapshot } from './squad-state';
 import {
   RunState,
   type BossAbilityIntent,
@@ -66,7 +66,7 @@ export type M06ReplayEntry =
   | { channel: 'SQUAD'; command: M06SquadCommand };
 
 export interface M06ReplayHeader {
-  version: 'ef-replay-v25';
+  version: 'ef-replay-v26';
   blockHeight: number;
   rulesetVersion: string;
   worldGameplayHash: string;
@@ -167,7 +167,7 @@ export function isM06ReplayPacket(value: unknown): value is M06ReplayPacket {
   if (typeof value !== 'object' || value === null) return false;
   const packet = value as Partial<M06ReplayPacket>;
   const header = packet.header as Partial<M06ReplayHeader> | undefined;
-  if (!header || header.version !== 'ef-replay-v25') return false;
+  if (!header || header.version !== 'ef-replay-v26') return false;
   if (!Number.isSafeInteger(header.blockHeight) || !Number.isSafeInteger(header.generationAttempt)) return false;
   if (typeof header.rulesetVersion !== 'string' || typeof header.worldGameplayHash !== 'string') return false;
   if (!validStartingAttunements(header.startingAttunements)) return false;
@@ -305,6 +305,7 @@ export class M06Simulation extends M05Simulation {
       this.prepareObjectiveAttackers(nextTick);
       this.neutralEncounters.prepareLeashes(nextTick, (command) => super.enqueueCommand(command));
       const frame = super.step();
+      this.syncPlayerSquads();
       this.neutralEncounters.advance(frame.tick);
       const wave = this.run.consumeTowerDefenseWave(frame.tick);
       if (wave) this.spawnTowerDefenseWave(wave);
@@ -388,7 +389,7 @@ export class M06Simulation extends M05Simulation {
   private buildReplayPacket(snapshot: M06SimulationSnapshot): M06ReplayPacket {
     return {
       header: {
-        version: 'ef-replay-v25',
+        version: 'ef-replay-v26',
         blockHeight: this.generatedWorld.identity.blockHeight,
         rulesetVersion: CURRENT_CHALLENGE_RULESET_VERSION,
         worldGameplayHash: this.generatedWorld.gameplayHash,
@@ -592,6 +593,61 @@ export class M06Simulation extends M05Simulation {
       else this.ensureMove(entityId, squad.playerId, squad.regroupDestinationX, squad.regroupDestinationZ, targetTick);
     }
     this.squads.setRegroupState(squad.id, allSettled ? (allFullHealth ? 'READY' : 'RECOVERING') : 'RETURNING');
+  }
+
+  private syncPlayerSquads(): void {
+    const playerId = 0;
+    const current = this.squads.snapshot().squads
+      .filter((squad) => squad.playerId === playerId)
+      .sort((left, right) => left.id - right.id);
+
+    for (const squad of current) {
+      if (squad.rosterLocked) continue;
+      const allOriginalMembersAlive = squad.memberEntityIds.every((entityId) => (
+        this.entities.hasUnit(entityId)
+        && this.entities.factions.get(entityId)?.playerId === playerId
+        && this.entities.health.get(entityId)?.alive === true
+      ));
+      if (!allOriginalMembersAlive) this.squads.lockRoster(squad.id, playerId);
+    }
+
+    const refreshed = this.squads.snapshot().squads
+      .filter((squad) => squad.playerId === playerId)
+      .sort((left, right) => left.id - right.id);
+    const assigned = new Set(refreshed.flatMap((squad) => squad.memberEntityIds));
+    const unassigned = this.entities.entityIds()
+      .filter((entityId) => (
+        !assigned.has(entityId)
+        && this.entities.hasUnit(entityId)
+        && this.entities.factions.get(entityId)?.playerId === playerId
+        && this.entities.health.get(entityId)?.alive === true
+      ))
+      .sort((left, right) => left - right);
+
+    if (unassigned.length === 0) return;
+
+    let forming = [...refreshed]
+      .reverse()
+      .find((squad) => !squad.rosterLocked && squad.memberEntityIds.length < COMMAND_SQUAD_CAPACITY)
+      ?? null;
+
+    for (const entityId of unassigned) {
+      if (forming !== null && forming.memberEntityIds.length < COMMAND_SQUAD_CAPACITY) {
+        const added = this.squads.appendMembers(forming.id, playerId, [entityId]);
+        if (added > 0) forming = this.squads.get(forming.id);
+        if (forming?.memberEntityIds.length === COMMAND_SQUAD_CAPACITY) {
+          this.squads.lockRoster(forming.id, playerId);
+          forming = null;
+        }
+        continue;
+      }
+
+      forming = this.squads.createSquad(playerId, [entityId], false);
+      if (forming?.memberEntityIds.length === COMMAND_SQUAD_CAPACITY) {
+        this.squads.lockRoster(forming.id, playerId);
+        forming = null;
+      }
+    }
   }
 
   private livingSquadMemberIds(squad: SquadSnapshot): EntityID[] {
