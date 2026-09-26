@@ -1,5 +1,5 @@
 import { M06Simulation, type M06SquadCommand } from '../simulation/m06-simulation';
-import type { FrontOrder, SquadSnapshot } from '../simulation/squad-state';
+import { COMMAND_SQUAD_CAPACITY, type FrontOrder, type SquadSnapshot } from '../simulation/squad-state';
 
 const PLAYER_ID = 0;
 
@@ -124,6 +124,7 @@ export class SquadPanel {
   }
 
   private orderText(squad: SquadSnapshot): string {
+    if (!squad.rosterLocked) return `Forming · ${squad.memberEntityIds.length}/${COMMAND_SQUAD_CAPACITY}`;
     if (squad.currentOrder === null) return 'No Front Order';
     if (squad.currentOrder === 'REGROUP') return `Regroup · ${squad.regroupState.toLowerCase()}`;
     return `${this.label(squad.currentOrder)} · ${Math.round((squad.targetX ?? 0) / 1000)}, ${Math.round((squad.targetZ ?? 0) / 1000)} m`;
@@ -137,8 +138,9 @@ export class SquadPanel {
       <div class="squad-list">
         ${squads.map((squad) => {
           const alive = squad.memberEntityIds.filter((id) => this.simulation.entities.hasUnit(id)).length;
+          const rosterTotal = squad.rosterLocked ? squad.memberEntityIds.length : COMMAND_SQUAD_CAPACITY;
           return `<button data-action="select-squad" data-squad-id="${squad.id}" aria-pressed="${squad.id === active?.id}">
-            <strong>Squad ${squad.id}</strong><span>${alive}/${squad.memberEntityIds.length}</span><small>${this.orderText(squad)}</small>
+            <strong>Squad ${squad.id}</strong><span>${alive}/${rosterTotal}</span><small>${this.orderText(squad)}</small>
           </button>`;
         }).join('')}
       </div>
