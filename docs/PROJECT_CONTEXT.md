@@ -199,7 +199,7 @@ Approved P5-A prototype scope:
 
 Important constraints:
 
-- P5-A1 is the first authoritative Phase 5 merge and advances runtime identity to `ef-standard-v25` / `ef-replay-v25`; P5-A2 and later slices remain unimplemented;
+- P5-A1 first merged under `ef-standard-v25` / `ef-replay-v25`; the multi-squad roster refinement advances the current runtime to `ef-standard-v26` / `ef-replay-v26`; P5-A2 and later slices remain unimplemented;
 - `m02-standard-v1` world generation remains unchanged for P5-A;
 - Material / Mana / Influence remain separate in the prototype;
 - Elementalist authority, alignment, position, range, cooldown, and survival remain meaningful;
