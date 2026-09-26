@@ -1,6 +1,6 @@
 # PEPEPOW Elemental Front — PROJECT_CONTEXT
 
-**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Phase 4 Hero-Lite Progression CLOSED → Visual Production ongoing  
+**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Phase 4 Hero-Lite Progression CLOSED → **Phase 5 Autonomous Front Redesign DESIGN APPROVED / P5-A next**; Visual Production supporting  
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
@@ -19,9 +19,13 @@ Always read this file first.
 
 For the active gameplay redesign, read next:
 
+- `docs/POST_ROADMAP_PHASE5_AUTONOMOUS_FRONT_REDESIGN_PLAN.md`
+
+Phase 4 is closed historical context:
+
 - `docs/POST_ROADMAP_PHASE4_HERO_LITE_PROGRESSION_PLAN.md`
 
-For the current visual-production pass, also read:
+For the current visual-production/supporting pass, also read:
 
 - `docs/VISUAL_IMPLEMENTATION_BRIEF.md`
 
@@ -42,7 +46,8 @@ Post-roadmap authoritative supplements:
 - `docs/POST_ROADMAP_PHASE1_IMPLEMENTATION_CONTRACT.md` — frozen element-authority contract adopted by Phase 2;
 - `docs/POST_ROADMAP_PHASE2_CLOSURE_REPORT.md` — Phase 2 implementation record;
 - `docs/POST_ROADMAP_PHASE3_ARMY_CONTROL_CONTRACT.md` — frozen Phase 3 formation/control contract;
-- `docs/POST_ROADMAP_PHASE3_CLOSURE_REPORT.md` — Phase 3 formation-slice implementation record.
+- `docs/POST_ROADMAP_PHASE3_CLOSURE_REPORT.md` — Phase 3 formation-slice implementation record;
+- `docs/POST_ROADMAP_PHASE5_AUTONOMOUS_FRONT_REDESIGN_PLAN.md` — active post-roadmap product redesign; P5-A is the approved next implementation experiment.
 
 For formations and army control, the post-roadmap redesign + Phase 3 contract supersede the historical percentage-bonus formation wording in `GAME_DESIGN_SPEC.md` section 14. Active formations use spatial behavior, not hidden formation stat buffs.
 
@@ -175,9 +180,45 @@ During the current visual-production pass, keep these gameplay items deferred un
 
 ---
 
+## 5A. Current formal work point — Phase 5 Autonomous Front Redesign
+
+Phase 5 is the active product-design direction as of 2026-09-26.
+
+The redesign does **not** discard the current deterministic RTS simulation. It changes the player-facing command model from high-frequency entity micro toward low-friction squad intent and direct elemental intervention.
+
+Primary design rule:
+
+> **Automate execution, never automate the interesting decision.**
+
+Approved P5-A prototype scope:
+
+1. persistent squads using only **Advance / Guard / Regroup** as the baseline Front Orders;
+2. Tactical elemental casting from a global element control without manually selecting the aligned Elementalist; the simulation still requires and deterministically resolves a legal aligned caster;
+3. Command Mode automatic baseline activation of controlled Material / Mana resource sites without manual Extractor / Mana Well placement;
+4. an Event Navigator that reports important fronts/events and focuses the camera on explicit player request.
+
+Important constraints:
+
+- current `ef-standard-v24` / `ef-replay-v24` remain active until authoritative Phase 5 gameplay actually merges;
+- `m02-standard-v1` world generation remains unchanged for P5-A;
+- Material / Mana / Influence remain separate in the prototype;
+- Elementalist authority, alignment, position, range, cooldown, and survival remain meaningful;
+- Classic direct-control RTS behavior is retained during the prototype;
+- existing formations remain available but are not intended as mandatory baseline Command Mode interaction;
+- Regroup is a player decision; low health must not silently make the AI retreat;
+- automatic reinforcement must not erase veteran-loss consequences;
+- no Doctrine editor, Outpost module system, new economy, new units, or broad balance rewrite belongs in P5-A;
+- P5-A must stop for real playtest evaluation before any P5-B expansion.
+
+The acceptance question is not whether more automation exists. It is whether the player spends less effort on selection/camera/busywork while still making frequent, understandable strategic and elemental decisions.
+
+See `docs/POST_ROADMAP_PHASE5_AUTONOMOUS_FRONT_REDESIGN_PLAN.md` for the full contract.
+
+---
+
 ## 6. Current formal work point — Phase 4 + Visual Production
 
-Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A–P4-E originally closed under `ef-standard-v7` / `ef-replay-v7`; post-closure pacing shipped as v8, automatic POI securing as v9, RTS control/automation shipped as v10, forced-Move disengage shipped as v11, and Scout vision advances the active identity to `ef-standard-v12` / `ef-replay-v12`. The active work point remains visual production and bounded gameplay/control follow-up.
+Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A–P4-E originally closed under `ef-standard-v7` / `ef-replay-v7`; later post-closure gameplay changes continued through the current `ef-standard-v24` / `ef-replay-v24` baseline. Visual Production remains supporting work, but the active product-design work point is now Phase 5 Autonomous Front Redesign.
 
 ### Tower Defense vertical slice
 
