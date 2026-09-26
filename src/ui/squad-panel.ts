@@ -8,6 +8,7 @@ export class SquadPanel {
   private activeSquadId: number | null = null;
   private armedOrder: Extract<FrontOrder, 'ADVANCE' | 'GUARD'> | null = null;
   private message = 'Select a squad, then assign its front objective.';
+  private lastMarkup = '';
 
   constructor(
     private readonly element: HTMLElement,
@@ -131,7 +132,7 @@ export class SquadPanel {
   private render(): void {
     const squads = this.playerSquads();
     const active = this.activeSquad();
-    this.element.innerHTML = `
+    const markup = `
       <div class="squad-title">COMMAND MODE · P5-A1</div>
       <div class="squad-list">
         ${squads.map((squad) => {
@@ -148,5 +149,8 @@ export class SquadPanel {
       </div>
       <small class="squad-message">${this.message}</small>
     `;
+    if (markup === this.lastMarkup) return;
+    this.lastMarkup = markup;
+    this.element.innerHTML = markup;
   }
 }
