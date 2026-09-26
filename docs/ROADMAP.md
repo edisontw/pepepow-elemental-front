@@ -352,6 +352,8 @@ Introduce persistent squads with three baseline missions:
 
 Reuse existing movement, navigation, combat, recovery, and unit AI rather than building a second combat engine.
 
+P5-A1 playtest refinement in v26: newly trained player units deterministically form additional persistent squads. A forming squad accepts up to six members; first Front Order, direct Classic control, full capacity, or a casualty locks that roster. Locked squads are not auto-replenished.
+
 ### P5-A2 — Element access simplification
 
 Expose Tactical elemental actions without requiring manual selection of an aligned Elementalist.
@@ -431,12 +433,12 @@ During the prototype:
 
 P5-A1 is the first authoritative Phase 5 gameplay merge.
 
-Current runtime:
+P5-A1 first merged under v25. The current runtime after the multi-squad roster refinement is:
 
-- gameplay: `ef-standard-v25`;
-- replay: `ef-replay-v25`;
+- gameplay: `ef-standard-v26`;
+- replay: `ef-replay-v26`;
 - world generation: `m02-standard-v1`.
 
-P5-A1 persistent squads and Front Orders are implemented. P5-A2 remains blocked on the P5-A1 playtest gate.
+P5-A1 persistent squads, Front Orders, and deterministic additional-squad formation are implemented. P5-A2 remains blocked on the P5-A1 playtest gate.
 
 World generation remains `m02-standard-v1` for P5-A.
