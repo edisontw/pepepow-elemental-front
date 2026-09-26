@@ -679,7 +679,14 @@ export class M06Simulation extends M05Simulation {
     const centroidX = centroid.count > 0 ? Math.round(centroid.x / centroid.count) : firstPosition.x;
     const centroidZ = centroid.count > 0 ? Math.round(centroid.z / centroid.count) : firstPosition.z;
     const radiusSquared = CORE_UNIT_HEAL_RADIUS * CORE_UNIT_HEAL_RADIUS;
-    const candidates: Array<{ x: number; z: number; distanceSquared: number; coreDistanceSquared: number; row: number; column: number }> = [];
+    const candidates: Array<{
+      x: number;
+      z: number;
+      distanceSquared: number;
+      coreDistanceSquared: number;
+      row: number;
+      column: number;
+    }> = [];
 
     for (let radius = 1; radius <= 12; radius += 1) {
       for (let rowOffset = -radius; rowOffset <= radius; rowOffset += 1) {
@@ -692,7 +699,6 @@ export class M06Simulation extends M05Simulation {
           const coreDz = point.z - core.z;
           const coreDistanceSquared = coreDx * coreDx + coreDz * coreDz;
           if (coreDistanceSquared > radiusSquared) continue;
-          if (!this.navigation.findPath(startCell, cell)) continue;
           const dx = point.x - centroidX;
           const dz = point.z - centroidZ;
           candidates.push({
@@ -706,14 +712,19 @@ export class M06Simulation extends M05Simulation {
         }
       }
     }
+
     candidates.sort((left, right) => (
       left.distanceSquared - right.distanceSquared
       || left.coreDistanceSquared - right.coreDistanceSquared
       || left.row - right.row
       || left.column - right.column
     ));
-    const selected = candidates[0];
-    return selected ? { x: selected.x, z: selected.z } : null;
+
+    for (const candidate of candidates) {
+      const cell = { column: candidate.column, row: candidate.row };
+      if (this.navigation.findPath(startCell, cell)) return { x: candidate.x, z: candidate.z };
+    }
+    return null;
   }
 
   private clearSquadOrdersForCommand(command: M04GameCommand): void {
