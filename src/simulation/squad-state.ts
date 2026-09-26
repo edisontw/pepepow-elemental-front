@@ -3,10 +3,13 @@ import type { EntityID, PlayerID } from './components';
 export type FrontOrder = 'ADVANCE' | 'GUARD' | 'REGROUP';
 export type RegroupState = 'NONE' | 'RETURNING' | 'RECOVERING' | 'READY';
 
+export const COMMAND_SQUAD_CAPACITY = 6;
+
 export interface SquadSnapshot {
   id: number;
   playerId: PlayerID;
   memberEntityIds: readonly EntityID[];
+  rosterLocked: boolean;
   currentOrder: FrontOrder | null;
   targetX: number | null;
   targetZ: number | null;
@@ -25,6 +28,7 @@ interface SquadRecord {
   id: number;
   playerId: PlayerID;
   memberEntityIds: EntityID[];
+  rosterLocked: boolean;
   currentOrder: FrontOrder | null;
   targetX: number | null;
   targetZ: number | null;
@@ -38,6 +42,7 @@ export interface SquadSeed {
   id: number;
   playerId: PlayerID;
   memberEntityIds: readonly EntityID[];
+  rosterLocked?: boolean;
 }
 
 function stableMembers(ids: readonly EntityID[]): EntityID[] {
@@ -71,6 +76,7 @@ export class SquadState {
         id: seed.id,
         playerId: seed.playerId,
         memberEntityIds,
+        rosterLocked: seed.rosterLocked ?? true,
         currentOrder: null,
         targetX: null,
         targetZ: null,
@@ -87,6 +93,58 @@ export class SquadState {
     return record ? this.clone(record) : null;
   }
 
+  createSquad(
+    playerId: PlayerID,
+    memberEntityIds: readonly EntityID[],
+    rosterLocked = false,
+  ): SquadSnapshot | null {
+    if (!Number.isSafeInteger(playerId) || playerId < 0) return null;
+    const members = stableMembers(memberEntityIds)
+      .filter((id) => !this.isAssigned(playerId, id))
+      .slice(0, COMMAND_SQUAD_CAPACITY);
+    if (members.length === 0) return null;
+    const id = Math.max(0, ...this.records.keys()) + 1;
+    const record: SquadRecord = {
+      id,
+      playerId,
+      memberEntityIds: members,
+      rosterLocked,
+      currentOrder: null,
+      targetX: null,
+      targetZ: null,
+      regroupDestinationX: null,
+      regroupDestinationZ: null,
+      regroupState: 'NONE',
+      guardTargetEntityId: null,
+    };
+    this.records.set(id, record);
+    return this.clone(record);
+  }
+
+  appendMembers(
+    squadId: number,
+    playerId: PlayerID,
+    memberEntityIds: readonly EntityID[],
+  ): number {
+    const record = this.records.get(squadId);
+    if (!record || record.playerId !== playerId || record.rosterLocked) return 0;
+    const room = Math.max(0, COMMAND_SQUAD_CAPACITY - record.memberEntityIds.length);
+    if (room === 0) return 0;
+    const additions = stableMembers(memberEntityIds)
+      .filter((id) => !this.isAssigned(playerId, id))
+      .slice(0, room);
+    if (additions.length === 0) return 0;
+    record.memberEntityIds = stableMembers([...record.memberEntityIds, ...additions]);
+    return additions.length;
+  }
+
+  lockRoster(squadId: number, playerId: PlayerID): boolean {
+    const record = this.records.get(squadId);
+    if (!record || record.playerId !== playerId) return false;
+    record.rosterLocked = true;
+    return true;
+  }
+
   assignOrder(
     squadId: number,
     playerId: PlayerID,
@@ -97,6 +155,7 @@ export class SquadState {
     const record = this.records.get(squadId);
     if (!record || record.playerId !== playerId) return false;
     if ((order === 'ADVANCE' || order === 'GUARD') && target === null) return false;
+    record.rosterLocked = true;
     record.currentOrder = order;
     record.targetX = target?.x ?? regroupDestination?.x ?? null;
     record.targetZ = target?.z ?? regroupDestination?.z ?? null;
@@ -112,6 +171,7 @@ export class SquadState {
     if (ids.size === 0) return;
     for (const record of this.records.values()) {
       if (record.playerId !== playerId || !record.memberEntityIds.some((id) => ids.has(id))) continue;
+      record.rosterLocked = true;
       this.clearRecord(record);
     }
   }
@@ -134,6 +194,7 @@ export class SquadState {
       squad.id,
       squad.playerId,
       squad.memberEntityIds.join(','),
+      squad.rosterLocked ? 1 : 0,
       squad.currentOrder ?? '-',
       squad.targetX ?? '-',
       squad.targetZ ?? '-',
@@ -145,11 +206,19 @@ export class SquadState {
     return { squads, stateHash: fnv1a(canonical) };
   }
 
+  private isAssigned(playerId: PlayerID, entityId: EntityID): boolean {
+    for (const record of this.records.values()) {
+      if (record.playerId === playerId && record.memberEntityIds.includes(entityId)) return true;
+    }
+    return false;
+  }
+
   private clone(record: SquadRecord): SquadSnapshot {
     return {
       id: record.id,
       playerId: record.playerId,
       memberEntityIds: [...record.memberEntityIds],
+      rosterLocked: record.rosterLocked,
       currentOrder: record.currentOrder,
       targetX: record.targetX,
       targetZ: record.targetZ,
