@@ -24,7 +24,7 @@ function submission(score: number, finalTick: number, finalStateHash: string): C
   const challenge = {
     version: BLOCK_CHALLENGE_VERSION,
     blockHeight: 1_000_000,
-    rulesetVersion: 'ef-standard-v25',
+    rulesetVersion: 'ef-standard-v26',
     worldGameplayHash: 'world-hash',
     generationAttempt: 0,
     mode: 'DESTROY' as const,
@@ -38,7 +38,7 @@ function submission(score: number, finalTick: number, finalStateHash: string): C
     challengeCode: 'BC1-TEST0001',
     replay: {
       header: {
-        version: 'ef-replay-v25',
+        version: 'ef-replay-v26',
         blockHeight: challenge.blockHeight,
         rulesetVersion: challenge.rulesetVersion,
         worldGameplayHash: challenge.worldGameplayHash,
