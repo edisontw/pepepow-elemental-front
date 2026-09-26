@@ -27,7 +27,7 @@ function order(sim: M06Simulation, frontOrder: 'ADVANCE' | 'GUARD' | 'REGROUP', 
     type: 'SET_FRONT_ORDER',
     squadId: 1,
     order: frontOrder,
-    ...(target ?? {}),
+    ...(target ? { targetX: target.x, targetZ: target.z } : {}),
   });
 }
 
