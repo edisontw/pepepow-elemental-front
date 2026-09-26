@@ -1,7 +1,8 @@
 # PEPEPOW Elemental Front — ROADMAP
 
 **Canonical milestone roadmap**  
-**Current status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 CLOSED → M04 CLOSED → M05 CLOSED → M06 CLOSED → M07 CLOSED → M08 CLOSED
+**Current status:** M00 CLOSED → M01 CLOSED → M02 CLOSED → M03 CLOSED → M04 CLOSED → M05 CLOSED → M06 CLOSED → M07 CLOSED → M08 CLOSED  
+**Active post-roadmap work:** Phase 5 — Autonomous Front Redesign, design approved; P5-A is the next implementation experiment
 
 ---
 
@@ -39,7 +40,7 @@ Status vocabulary:
 - BLOCKED
 - CLOSED
 
-The M00–M08 roadmap is now complete. Future work is post-roadmap product/design development unless a new milestone plan is explicitly approved.
+The M00–M08 roadmap is complete and remains historical. Post-roadmap Phase 5 Autonomous Front Redesign is now the approved active product-design direction; it does not reopen the original milestone sequence.
 
 ---
 
@@ -311,3 +312,131 @@ Known product/design areas for later deliberate work include:
 - client bundle code-splitting / size optimization
 
 Do not automatically reopen M00–M08 implementation history. Start future work from current `main`, define the intended product/design goal first, and bump gameplay ruleset identity whenever authoritative semantics change.
+
+---
+
+# 14. Post-Roadmap Phase 5 — Autonomous Front Redesign
+
+**Status:** DESIGN APPROVED — P5-A NOT YET IMPLEMENTED  
+**Plan:** `docs/POST_ROADMAP_PHASE5_AUTONOMOUS_FRONT_REDESIGN_PLAN.md`
+
+## Goal
+
+Move the primary experimental player experience away from high-frequency traditional RTS micro toward low-friction autonomous strategy while preserving direct player agency.
+
+Design rule:
+
+> **Automate execution, never automate the interesting decision.**
+
+The intended player decisions are:
+
+- where squads act;
+- how armies are composed;
+- when to regroup and preserve veterans;
+- when and where elemental intervention changes the battlefield;
+- later, how controlled territory is developed.
+
+Routine execution such as pathing, local target acquisition, and Tactical caster lookup may be automated.
+
+## P5-A — first playable experiment
+
+Only four coherent changes are approved before the next playtest gate:
+
+### P5-A1 — Front Orders
+
+Introduce persistent squads with three baseline missions:
+
+- Advance;
+- Guard;
+- Regroup.
+
+Reuse existing movement, navigation, combat, recovery, and unit AI rather than building a second combat engine.
+
+### P5-A2 — Element access simplification
+
+Expose Tactical elemental actions without requiring manual selection of an aligned Elementalist.
+
+The authoritative simulation still requires a legal aligned caster and deterministically resolves one based on eligibility/range/cooldown with stable tie-breaking.
+
+Preserve:
+
+- Attunements;
+- Elementalist alignment;
+- Mana;
+- caster-local cooldowns;
+- Tactical legality;
+- Strategic spell network authority.
+
+### P5-A3 — Automatic baseline resource sites
+
+In Command Mode, controlling an eligible Material / Mana resource site automatically activates its baseline production.
+
+Do not require manual Extractor / Mana Well placement merely to turn on income.
+
+Preserve Material, Mana, Influence, territory, supply, and Classic Mode compatibility.
+
+### P5-A4 — Event Navigator
+
+Surface important battle/objective events in a compact navigator.
+
+Selecting an event focuses the camera smoothly.
+
+Do not force automatic camera jumps.
+
+## P5-A5 — mandatory playtest gate
+
+Do not automatically proceed to P5-B.
+
+Evaluate whether:
+
+- routine selection/camera burden is substantially reduced;
+- Fire / Water / Ice / Lightning are easier to use;
+- the player still makes frequent meaningful decisions;
+- veteran preservation creates a reason to Regroup;
+- autonomous squad behavior is understandable;
+- player redirection remains immediate;
+- the experience feels like commanding a battle rather than watching AI play.
+
+Outcome must be one of:
+
+- **CONTINUE**
+- **REVISE**
+- **STOP**
+
+## Deferred P5-B candidates
+
+Only after P5-A passes:
+
+- preset Doctrines;
+- automatic/balanced formation selection;
+- Outpost development slots;
+- squad templates;
+- safe-zone Auto Reinforce;
+- Resource Site Exploit / Fortify choices;
+- Pause / 1× / 2×;
+- Command Mode pacing/finale rebalance.
+
+An Advanced Doctrine editor is not a baseline requirement.
+
+## Mode policy
+
+During the prototype:
+
+- **Command Mode** is the new product experiment;
+- **Classic Mode** retains the existing direct-control RTS interaction;
+- Tower Defense remains a separate existing run mode;
+- shared authoritative simulation should be reused wherever possible rather than forking into two unrelated games.
+
+## Versioning
+
+Design-document adoption does not change runtime identity.
+
+Current runtime remains:
+
+- gameplay: `ef-standard-v24`;
+- replay: `ef-replay-v24`;
+- world generation: `m02-standard-v1`.
+
+The first authoritative Phase 5 gameplay merge must advance gameplay/replay identity coherently.
+
+World generation remains `m02-standard-v1` for P5-A.
