@@ -729,8 +729,8 @@ If RPC is unavailable:
 
 # 29. Version separation
 
-Active gameplay/challenge: `ef-standard-v25`; replay: `ef-replay-v25`;
-world generation: `m02-standard-v1`. P5-A1 persistent squad membership, Front Order target/state, Guard target, and Regroup destination/state are authoritative and state-hashed; player Front Orders are replay-recorded on the `SQUAD` channel and routine execution is deterministically derived. Forced-Move disengage, order modes, saved Attack Move destinations,
+Active gameplay/challenge: `ef-standard-v26`; replay: `ef-replay-v26`;
+world generation: `m02-standard-v1`. P5-A1 persistent squad membership, roster-lock state, Front Order target/state, Guard target, and Regroup destination/state are authoritative and state-hashed. Newly trained player units are deterministically folded into forming squads up to six members; locked or casualty-affected squads are never silently replenished. Player Front Orders are replay-recorded on the `SQUAD` channel and routine execution, including deterministic squad formation from the authoritative unit roster, is deterministically derived. Forced-Move disengage, order modes, saved Attack Move destinations,
 authoritative unit body radii, deterministic contact/separation outcomes, and hostile-contact / non-blocking-friendly outcomes are state-hashed; player
 replacements of Core orders execute at their target tick.
 
