@@ -50,6 +50,7 @@ describe('SquadPanel refresh stability', () => {
       id: 1,
       playerId: 0,
       memberEntityIds: [1, 2, 3],
+      rosterLocked: true,
       currentOrder: null,
       targetX: null,
       targetZ: null,
