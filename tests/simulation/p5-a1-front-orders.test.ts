@@ -6,6 +6,7 @@ import {
   M06Simulation,
 } from '../../src/simulation/m06-simulation';
 import { CORE_UNIT_HEAL_RADIUS } from '../../src/simulation/m06-content';
+import { UNITS } from '../../src/simulation/m03-content';
 import { generateWorld } from '../../src/world/generator';
 
 function simulation(seed = 4_950_628): M06Simulation {
@@ -20,12 +21,17 @@ function firstEnemyId(sim: M06Simulation): number {
   return sim.snapshot().entities.find((entity) => entity.playerId === 1 && entity.alive)!.id;
 }
 
-function order(sim: M06Simulation, frontOrder: 'ADVANCE' | 'GUARD' | 'REGROUP', target?: { x: number; z: number }): void {
+function order(
+  sim: M06Simulation,
+  frontOrder: 'ADVANCE' | 'GUARD' | 'REGROUP',
+  target?: { x: number; z: number },
+  squadId = 1,
+): void {
   sim.enqueueSquadOrder({
     targetTick: sim.snapshot().tick + 1,
     playerId: 0,
     type: 'SET_FRONT_ORDER',
-    squadId: 1,
+    squadId,
     order: frontOrder,
     ...(target ? { targetX: target.x, targetZ: target.z } : {}),
   });
@@ -155,6 +161,88 @@ describe('Phase 5 P5-A1 persistent Squad Front Orders', () => {
     expect(sim.snapshot().squads.squads[0]?.regroupState).toBe('NONE');
   });
 
+  it('forms new deterministic command squads from later player units without refilling locked rosters', () => {
+    const sim = simulation(4_950_635);
+    const core = sim.run.snapshot().playerCore;
+    const spawn = (offset: number): number => sim.entities.createUnit({
+      archetype: 'VANGUARD',
+      playerId: 0,
+      x: core.x + 10_000 + offset * 500,
+      z: core.z + 10_000,
+      ...UNITS.VANGUARD.spawn,
+    });
+
+    const first = spawn(0);
+    const second = spawn(1);
+    sim.step();
+
+    let squads = sim.snapshot().squads.squads;
+    expect(squads).toHaveLength(2);
+    expect(squads[1]).toMatchObject({
+      id: 2,
+      playerId: 0,
+      memberEntityIds: [first, second],
+      rosterLocked: false,
+      currentOrder: null,
+    });
+
+    const target = reachableTarget(sim, first, 4);
+    order(sim, 'GUARD', target, 2);
+    sim.step();
+    expect(sim.snapshot().squads.squads[1]).toMatchObject({
+      id: 2,
+      rosterLocked: true,
+      currentOrder: 'GUARD',
+      memberEntityIds: [first, second],
+    });
+
+    const third = spawn(2);
+    sim.step();
+    squads = sim.snapshot().squads.squads;
+    expect(squads).toHaveLength(3);
+    expect(squads[1]?.memberEntityIds).toEqual([first, second]);
+    expect(squads[2]).toMatchObject({
+      id: 3,
+      memberEntityIds: [third],
+      rosterLocked: false,
+      currentOrder: null,
+    });
+  });
+
+  it('locks a forming roster after casualties so later recruits do not silently replace losses', () => {
+    const sim = simulation(4_950_636);
+    const core = sim.run.snapshot().playerCore;
+    const spawn = (offset: number): number => sim.entities.createUnit({
+      archetype: 'RANGER',
+      playerId: 0,
+      x: core.x + 12_000 + offset * 500,
+      z: core.z + 12_000,
+      ...UNITS.RANGER.spawn,
+    });
+
+    const first = spawn(0);
+    const second = spawn(1);
+    sim.step();
+    expect(sim.snapshot().squads.squads[1]).toMatchObject({
+      memberEntityIds: [first, second],
+      rosterLocked: false,
+    });
+
+    sim.entities.health.get(first)!.alive = false;
+    const third = spawn(2);
+    sim.step();
+
+    const squads = sim.snapshot().squads.squads;
+    expect(squads[1]).toMatchObject({
+      memberEntityIds: [first, second],
+      rosterLocked: true,
+    });
+    expect(squads[2]).toMatchObject({
+      memberEntityIds: [third],
+      rosterLocked: false,
+    });
+  });
+
   it('records Front Orders and reproduces identical state hashes in replay', () => {
     const world = generateWorld(4_950_633);
     const source = new M06Simulation(world, { pace: 'SMOKE', difficulty: 'CASUAL' });
@@ -164,7 +252,7 @@ describe('Phase 5 P5-A1 persistent Squad Front Orders', () => {
     const hashes: string[] = [];
     for (let tick = 0; tick < 20; tick += 1) hashes.push(source.step().stateHash);
     const packet = source.replayCheckpointPacket();
-    expect(packet.header.version).toBe('ef-replay-v25');
+    expect(packet.header.version).toBe('ef-replay-v26');
     expect(packet.header.rulesetVersion).toBe(CURRENT_CHALLENGE_RULESET_VERSION);
     expect(packet.commands.some((entry) => entry.channel === 'SQUAD')).toBe(true);
 
