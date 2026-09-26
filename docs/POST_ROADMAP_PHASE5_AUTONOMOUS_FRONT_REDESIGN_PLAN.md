@@ -4,7 +4,7 @@
 **Date:** 2026-09-26  
 **Baseline gameplay identity:** `ef-standard-v24`  
 **Baseline replay identity:** `ef-replay-v24`  
-**Current implemented identity after P5-A1:** `ef-standard-v25` / `ef-replay-v25`  
+**Current implemented identity after P5-A1 refinement:** `ef-standard-v26` / `ef-replay-v26`  
 **World generation:** `m02-standard-v1` remains unchanged  
 **Primary mode working name:** `COMMAND` / **Command Mode**  
 **Existing direct-control mode working name:** `CLASSIC` / **Classic Mode**
