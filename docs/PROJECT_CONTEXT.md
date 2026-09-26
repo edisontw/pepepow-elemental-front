@@ -4,8 +4,8 @@
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v25`
-**Current replay format:** `ef-replay-v25`
+**Current authoritative gameplay ruleset:** `ef-standard-v26`
+**Current replay format:** `ef-replay-v26`
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE4_CLOSURE_REPORT.md`
 
@@ -74,8 +74,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v24`;
-- replay: `ef-replay-v24`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v26`;
+- replay: `ef-replay-v26`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -218,7 +218,7 @@ See `docs/POST_ROADMAP_PHASE5_AUTONOMOUS_FRONT_REDESIGN_PLAN.md` for the full co
 
 ## 6. Current formal work point — Phase 4 + Visual Production
 
-Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A–P4-E originally closed under `ef-standard-v7` / `ef-replay-v7`; later post-closure gameplay changes continued through the `ef-standard-v24` / `ef-replay-v24` pre-Phase-5 baseline. Visual Production remains supporting work, while the active product-design work point is Phase 5 Autonomous Front Redesign under `ef-standard-v25` / `ef-replay-v25`.
+Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A–P4-E originally closed under `ef-standard-v7` / `ef-replay-v7`; later post-closure gameplay changes continued through the `ef-standard-v24` / `ef-replay-v24` pre-Phase-5 baseline. Visual Production remains supporting work, while the active product-design work point is Phase 5 Autonomous Front Redesign under `ef-standard-v26` / `ef-replay-v26`.
 
 ### Phase 5 P5-A1 Squad / Front Order foundation — v25 — 2026-09-26
 
@@ -232,6 +232,21 @@ Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A�
 - minimum UI is a compact Command Mode panel for squad selection and Advance / Guard / Regroup assignment;
 - gameplay/replay identity is `ef-standard-v25` / `ef-replay-v25`; world generation remains `m02-standard-v1`;
 - **P5-A2 is not started.** P5-A1 now requires gameplay playtesting before the next Phase 5 slice.
+
+### Phase 5 P5-A1 multi-squad roster refinement — v26 — 2026-09-26
+
+- Command Mode no longer stops at the six-unit starting Squad 1;
+- later completed player combat units are deterministically assigned to additional persistent squads in EntityID order;
+- a forming squad accepts recruits up to six members, then locks automatically;
+- the first Front Order or direct Classic control locks that squad roster permanently;
+- a casualty in a still-forming squad also locks the roster, so later recruits do not silently replace losses;
+- after a roster locks, later recruits create the next Squad rather than replenishing the old one;
+- the compact Command Mode panel lists multiple squads and marks unlocked rosters as `Forming`;
+- squad roster-lock state is authoritative and state-hashed; replay remains deterministic from the same production and command stream;
+- gameplay/replay identity advances to `ef-standard-v26` / `ef-replay-v26`; world generation remains `m02-standard-v1`;
+- this is a P5-A1 playtest refinement, not the deferred squad-template editor or Auto Reinforce system;
+- **P5-A2 remains not started.**
+
 
 ### Tower Defense vertical slice
 
