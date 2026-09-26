@@ -2,7 +2,8 @@
 
 **Canonical gameplay specification**  
 **Spec baseline:** V0.3 consolidated  
-**Status:** IMPLEMENTATION BASELINE
+**Status:** IMPLEMENTATION BASELINE  
+**Active post-roadmap direction:** Phase 5 Autonomous Front Redesign; sections 65–71 supersede older player-interaction assumptions where they conflict. The implemented runtime remains `ef-standard-v24` / `ef-replay-v24` until Phase 5 gameplay ships.
 
 ---
 
@@ -1570,3 +1571,221 @@ Design rationale:
 - v23 removes friendly body blocking entirely. Same-faction units may pass through and overlap one another during movement, idle, and combat without pushing or sidestepping; formation destinations remain the intentional spacing mechanism. Hostile unit contact remains full-body and authoritative.
 - v24 gives strategic buildings partial authoritative navigation footprints. The Elemental Core blocks a 3×3 inner mass, Barracks/Workshop block a 5-cell cross, and smaller structures block their center cell. Units route around these cells; trained units emerge at deterministic exterior cells; destroyed resource structures release their blocker. Visual building extents remain presentation-only.
 - Active gameplay/replay identity is `ef-standard-v24` / `ef-replay-v24`; world generation remains `m02-standard-v1`.
+
+---
+
+# 65. Phase 5 — Autonomous Front product direction
+
+The active post-roadmap product direction reduces traditional RTS input burden while preserving strategic agency.
+
+Primary rule:
+
+> **Automate execution, never automate the interesting decision.**
+
+Command Mode targets a player who decides:
+
+- **Where** a squad should act;
+- **Who** belongs in the squad;
+- **How** the army is configured through later preset doctrines;
+- **When and where** decisive elemental intervention occurs.
+
+Routine pathing, target acquisition, local spacing, caster lookup, and other mechanical execution may be automated when doing so does not remove a meaningful player decision.
+
+Command Mode must not become a passive auto-battler.
+
+The existing direct-control RTS remains available as Classic Mode during the redesign.
+
+Initial run-length target for Command Mode is 15–25 minutes, subject to playtest.
+
+---
+
+# 66. Front Orders
+
+The baseline Command Mode order vocabulary is intentionally small.
+
+## Advance
+
+- assign a squad to a region, POI, objective, or battlefield destination;
+- squad travels autonomously;
+- squad engages relevant local threats;
+- squad resumes the mission after local combat;
+- repeated manual MOVE / ATTACK_MOVE commands should not be required.
+
+## Guard
+
+- assign a squad to defend a location or bounded area;
+- squad engages threats entering the defense envelope;
+- pursuit uses a bounded leash;
+- squad returns to its guard area after combat.
+
+## Regroup
+
+- explicitly ordered by the player;
+- squad disengages from ordinary local combat where legal;
+- returns to a safe supplied Core / Outpost recovery point;
+- recovery, reorganization, and later reinforcement may occur there.
+
+Do not make low HP automatically issue Regroup in the baseline design.
+
+Do not add additional mission types until playtest demonstrates a decision that cannot be represented clearly by Advance / Guard / Regroup.
+
+A squad is an orchestration layer over existing authoritative entities, not a parallel combat simulation.
+
+---
+
+# 67. Elemental intervention without caster-selection micro
+
+The player should not need to select an aligned Elementalist entity before requesting a Tactical spell.
+
+Command Mode exposes available attuned Tactical spells through a persistent global element control.
+
+Interaction target:
+
+```text
+choose spell
+→ choose target
+→ deterministic simulation resolves a legal aligned caster
+→ cast or return clear failure feedback
+```
+
+Elementalist authority remains intact:
+
+- required alignment remains required;
+- caster must be alive and eligible;
+- caster range remains meaningful;
+- caster-local cooldown remains meaningful;
+- Mana cost remains meaningful;
+- invalid casts consume neither Mana nor cooldown.
+
+Caster resolution must be deterministic and independent of UI selection order. Stable legality/range ordering plus EntityID tie-break is preferred.
+
+Routine elemental basic attacks/status application may remain automatic.
+
+The timing and location of major elemental intervention remain player decisions.
+
+Strategic spell network/anchor authority remains distinct from Tactical caster authority.
+
+---
+
+# 68. Command Mode resource sites
+
+Material, Mana, and Influence remain separate resources in the first Phase 5 prototype.
+
+For Command Mode baseline resource flow:
+
+- securing an eligible Material resource site automatically enables baseline Material production;
+- securing an eligible Mana resource site automatically enables baseline Mana production;
+- the player does not need to place an Extractor or Mana Well solely to activate baseline site income.
+
+This changes the resource decision from construction busywork toward territorial control.
+
+Classic Mode may retain the existing Extractor / Mana Well construction loop.
+
+Extractor / Mana Well implementation must not be deleted merely because Command Mode bypasses manual placement.
+
+A later validated slice may add a simple site development choice such as:
+
+- **Exploit** — greater throughput at greater exposure/risk;
+- **Fortify** — reduced throughput with stronger local defense/support.
+
+Those later policies are not part of the first prototype.
+
+---
+
+# 69. Veteran preservation and reinforcement
+
+Existing individual Level 1–5 progression remains part of the Command Mode strategic layer.
+
+Combat losses must remain legible.
+
+Rules/direction:
+
+- a damaged squad may continue operating below full strength;
+- active combat should not silently replace casualties;
+- reinforcement should normally occur only in a safe/supplied regroup state;
+- replacement units remain baseline recruits unless a later upgrade explicitly changes that;
+- optional Auto Reinforce may exist later, but only for safely regrouped squads.
+
+The intended decision is:
+
+> continue the push with damaged veterans, or Regroup and preserve them?
+
+---
+
+# 70. Camera, formations, and time controls
+
+## Event Navigator
+
+Command Mode should surface important events such as:
+
+- battle started;
+- guarded front under attack;
+- Outpost threatened;
+- Shrine secured;
+- neutral camp cleared;
+- veteran critical;
+- major objective exposed.
+
+Selecting an event smoothly focuses the camera.
+
+The game must not steal the camera during normal play.
+
+Optional Cinematic Follow may be added only as an explicit player-enabled presentation mode.
+
+## Formations
+
+Line / Column / Spread remain valid existing systems.
+
+They are not required baseline Command Mode interactions.
+
+Long-term Command Mode may default to automatic/balanced spatial behavior while keeping explicit formation selection as an advanced override.
+
+## Time controls
+
+Single-player Command Mode is intended to support:
+
+- Pause;
+- 1×;
+- 2×.
+
+Time-control implementation must preserve deterministic simulation semantics and must not make real-world input speed a scoring advantage.
+
+---
+
+# 71. Phase 5 first playable prototype
+
+Only the following are approved for the first Phase 5 playable experiment:
+
+1. persistent squads using Advance / Guard / Regroup;
+2. global Tactical element controls with deterministic legal-caster resolution and no manual Elementalist selection requirement;
+3. Command Mode automatic baseline activation of controlled Material / Mana resource sites;
+4. Event Navigator camera-focus entries for important fronts/events.
+
+Explicitly deferred until after playtest:
+
+- Doctrine editor;
+- complex Doctrine presets;
+- automatic formation selection;
+- Outpost development slots;
+- full squad-template editor;
+- advanced Auto Reinforce;
+- Exploit / Fortify resource-site policy;
+- broad economy redesign;
+- new units/elements;
+- world-generation changes;
+- multiplayer.
+
+The first prototype must be judged by player experience rather than feature count.
+
+Success requires:
+
+- lower selection/camera/busywork burden;
+- easier access to Fire / Water / Ice / Lightning;
+- frequent understandable player decisions;
+- visible veteran-preservation choices;
+- autonomous squads whose actions are understandable;
+- rapid player redirection when the current plan is wrong.
+
+If playtest primarily feels like watching AI play, increase player-facing decisions before adding more automation.
+
+Documentation adoption alone does not alter gameplay/replay identity. The first merged authoritative Phase 5 slice must advance `ef-standard` / `ef-replay` coherently while preserving `m02-standard-v1`.
