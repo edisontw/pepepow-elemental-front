@@ -100,6 +100,7 @@ export interface SceneShell {
   get selectedCount(): number;
   get selectedUnits(): readonly EntitySnapshot[];
   selectUnit(entityId: number, focusCamera?: boolean): boolean;
+  selectUnits(entityIds: readonly number[], focusCamera?: boolean): boolean;
   screenToSimulationPosition(clientX: number, clientY: number): { x: number; z: number } | null;
   sync(frame: TickFrame): void;
   destroy(): void;
@@ -283,6 +284,20 @@ export function createSceneShell(
       if (!selected || !focusCamera) return selected;
       const unit = simulation.snapshot().entities.find((entity) => entity.id === entityId && entity.alive && entity.playerId === 0);
       if (unit) camera.focusAt(metres(unit.x), metres(unit.z));
+      return selected;
+    },
+    selectUnits(entityIds: readonly number[], focusCamera = false): boolean {
+      const selected = controls.selectUnits(entityIds);
+      if (!selected || !focusCamera) return selected;
+      const wanted = new Set(entityIds);
+      const units = simulation.snapshot().entities.filter((entity) => (
+        wanted.has(entity.id) && entity.alive && entity.playerId === 0
+      ));
+      if (units.length > 0) {
+        const centerX = units.reduce((sum, unit) => sum + unit.x, 0) / units.length;
+        const centerZ = units.reduce((sum, unit) => sum + unit.z, 0) / units.length;
+        camera.focusAt(metres(centerX), metres(centerZ));
+      }
       return selected;
     },
     screenToSimulationPosition,

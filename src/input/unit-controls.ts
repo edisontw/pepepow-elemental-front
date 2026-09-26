@@ -81,10 +81,17 @@ export class UnitControls {
   }
 
   selectUnit(entityId: number): boolean {
-    if (!this.bridge.isControllable(entityId)) return false;
+    return this.selectUnits([entityId]);
+  }
+
+  selectUnits(entityIds: readonly number[]): boolean {
+    const controllable = [...new Set(entityIds)]
+      .filter((entityId) => this.bridge.isControllable(entityId))
+      .sort((left, right) => left - right);
+    if (controllable.length === 0) return false;
     this.setAttackMoveArmed(false);
     this.disableFacingQa();
-    this.selection.select([entityId], 'REPLACE');
+    this.selection.select(controllable, 'REPLACE');
     this.lastClickEntityId = null;
     this.lastClickTimeMs = Number.NEGATIVE_INFINITY;
     this.renderSelected();
