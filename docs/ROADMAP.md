@@ -317,7 +317,7 @@ Do not automatically reopen M00–M08 implementation history. Start future work 
 
 # 14. Post-Roadmap Phase 5 — Autonomous Front Redesign
 
-**Status:** ACTIVE — P5-A1 IMPLEMENTED / PLAYTEST GATE; P5-A2 NOT STARTED  
+**Status:** ACTIVE — P5-A1 ACCEPTED; P5-A2 IMPLEMENTED / PLAYTEST; P5-A3 NOT STARTED  
 **Plan:** `docs/POST_ROADMAP_PHASE5_AUTONOMOUS_FRONT_REDESIGN_PLAN.md`
 
 ## Goal
@@ -354,7 +354,7 @@ Reuse existing movement, navigation, combat, recovery, and unit AI rather than b
 
 P5-A1 playtest refinement in v26: newly trained player units deterministically form additional persistent squads. A forming squad accepts up to six members; first Front Order, direct Classic control, full capacity, or a casualty locks that roster. Locked squads are not auto-replenished.
 
-### P5-A2 — Element access simplification
+### P5-A2 — Element access simplification — IMPLEMENTED / PLAYTEST
 
 Expose Tactical elemental actions without requiring manual selection of an aligned Elementalist.
 
@@ -433,12 +433,12 @@ During the prototype:
 
 P5-A1 is the first authoritative Phase 5 gameplay merge.
 
-P5-A1 first merged under v25, gained multi-squad roster formation in v26, and received the Advance local-threat acquisition / killing-blow presentation correction in v27. Current runtime:
+P5-A1 first merged under v25 and was refined through v27. P5-A2 Global Tactical element access is implemented in v28. Current runtime:
 
-- gameplay: `ef-standard-v27`;
-- replay: `ef-replay-v27`;
+- gameplay: `ef-standard-v28`;
+- replay: `ef-replay-v28`;
 - world generation: `m02-standard-v1`.
 
-P5-A1 persistent squads, Front Orders, and deterministic additional-squad formation are implemented. P5-A2 remains blocked on the P5-A1 playtest gate.
+P5-A1 persistent squads and Front Orders are accepted. P5-A2 removes manual Elementalist selection from Tactical casting while preserving deterministic legal caster authority. P5-A3 is the next planned slice after P5-A2 playtest.
 
 World generation remains `m02-standard-v1` for P5-A.
