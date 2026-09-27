@@ -4,8 +4,8 @@
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v26`
-**Current replay format:** `ef-replay-v26`
+**Current authoritative gameplay ruleset:** `ef-standard-v27`
+**Current replay format:** `ef-replay-v27`
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE4_CLOSURE_REPORT.md`
 
@@ -74,8 +74,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v26`;
-- replay: `ef-replay-v26`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v27`;
+- replay: `ef-replay-v27`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -199,7 +199,7 @@ Approved P5-A prototype scope:
 
 Important constraints:
 
-- P5-A1 first merged under `ef-standard-v25` / `ef-replay-v25`; the multi-squad roster refinement advances the current runtime to `ef-standard-v26` / `ef-replay-v26`; P5-A2 and later slices remain unimplemented;
+- P5-A1 first merged under `ef-standard-v25` / `ef-replay-v25`; the multi-squad roster refinement advanced to `ef-standard-v26` / `ef-replay-v26`; the current combat-acquisition correction advances runtime to `ef-standard-v27` / `ef-replay-v27`; P5-A2 and later slices remain unimplemented;
 - `m02-standard-v1` world generation remains unchanged for P5-A;
 - Material / Mana / Influence remain separate in the prototype;
 - Elementalist authority, alignment, position, range, cooldown, and survival remain meaningful;
@@ -218,7 +218,7 @@ See `docs/POST_ROADMAP_PHASE5_AUTONOMOUS_FRONT_REDESIGN_PLAN.md` for the full co
 
 ## 6. Current formal work point — Phase 4 + Visual Production
 
-Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A–P4-E originally closed under `ef-standard-v7` / `ef-replay-v7`; later post-closure gameplay changes continued through the `ef-standard-v24` / `ef-replay-v24` pre-Phase-5 baseline. Visual Production remains supporting work, while the active product-design work point is Phase 5 Autonomous Front Redesign under `ef-standard-v26` / `ef-replay-v26`.
+Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A–P4-E originally closed under `ef-standard-v7` / `ef-replay-v7`; later post-closure gameplay changes continued through the `ef-standard-v24` / `ef-replay-v24` pre-Phase-5 baseline. Visual Production remains supporting work, while the active product-design work point is Phase 5 Autonomous Front Redesign under `ef-standard-v27` / `ef-replay-v27`.
 
 ### Phase 5 P5-A1 Squad / Front Order foundation — v25 — 2026-09-26
 
@@ -245,6 +245,16 @@ Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A�
 - squad roster-lock state is authoritative and state-hashed; replay remains deterministic from the same production and command stream;
 - gameplay/replay identity advances to `ef-standard-v26` / `ef-replay-v26`; world generation remains `m02-standard-v1`;
 - this is a P5-A1 playtest refinement, not the deferred squad-template editor or Auto Reinforce system;
+- **P5-A2 remains not started.**
+
+### Phase 5 P5-A1 combat acquisition / attack-presentation correction — v27 — 2026-09-27
+
+- Advance continues to reuse authoritative Attack Move, but Attack Move now uses a 12 m local-threat acquisition envelope rather than the smaller ordinary-idle aggro radius;
+- ordinary idle auto-aggro remains unchanged, Hold remains attack-range-only, and forced normal Move still suppresses acquisition while its destination is active;
+- this makes visible nearby enemies more reliably trigger combat during Advance without turning squads into unlimited pursuit;
+- authoritative damage cadence and attack range are unchanged;
+- presentation now recognizes a completed attack even when the killing blow clears `attackTargetEntityId` during same-tick death cleanup, so WebP Attack animation, GLB fallback Attack clips, combat VFX, and attack audio are not lost on the final melee strike;
+- gameplay/replay identity is `ef-standard-v27` / `ef-replay-v27`; world generation remains `m02-standard-v1`;
 - **P5-A2 remains not started.**
 
 
