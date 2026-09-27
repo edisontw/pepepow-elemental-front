@@ -20,6 +20,8 @@ export interface RtsCameraOptions {
 
 export class RtsCamera {
   private readonly target = new pc.Vec3(0, 0, 0);
+  private readonly smoothFocusTarget = new pc.Vec3(0, 0, 0);
+  private smoothFocusActive = false;
   private readonly pressedKeys = new Set<string>();
   private readonly halfWidth: number;
   private readonly halfDepth: number;
@@ -80,13 +82,24 @@ export class RtsCamera {
       else if (this.pointerY <= bounds.bottom && this.pointerY >= bounds.bottom - EDGE_SCROLL_MARGIN_PX) localZ += edgeSpeed;
     }
 
-    if (localX !== 0 || localZ !== 0) this.pan(localX, localZ);
+    if (localX !== 0 || localZ !== 0) {
+      this.pan(localX, localZ);
+      return;
+    }
+    this.advanceSmoothFocus(deltaSeconds);
   }
 
   focusAt(worldXMetres: number, worldZMetres: number): void {
+    this.smoothFocusActive = false;
     this.target.x = pc.math.clamp(worldXMetres, -this.halfWidth, this.halfWidth);
     this.target.z = pc.math.clamp(worldZMetres, -this.halfDepth, this.halfDepth);
     this.applyTransform();
+  }
+
+  focusSmoothlyAt(worldXMetres: number, worldZMetres: number): void {
+    this.smoothFocusTarget.x = pc.math.clamp(worldXMetres, -this.halfWidth, this.halfWidth);
+    this.smoothFocusTarget.z = pc.math.clamp(worldZMetres, -this.halfDepth, this.halfDepth);
+    this.smoothFocusActive = true;
   }
 
   destroy(): void {
@@ -232,7 +245,25 @@ export class RtsCamera {
     };
   }
 
+  private advanceSmoothFocus(deltaSeconds: number): void {
+    if (!this.smoothFocusActive) return;
+    const dx = this.smoothFocusTarget.x - this.target.x;
+    const dz = this.smoothFocusTarget.z - this.target.z;
+    if (dx * dx + dz * dz <= 0.0004) {
+      this.target.x = this.smoothFocusTarget.x;
+      this.target.z = this.smoothFocusTarget.z;
+      this.smoothFocusActive = false;
+      this.applyTransform();
+      return;
+    }
+    const blend = 1 - Math.exp(-8 * Math.max(0, deltaSeconds));
+    this.target.x += dx * blend;
+    this.target.z += dz * blend;
+    this.applyTransform();
+  }
+
   private pan(localX: number, localZ: number): void {
+    this.smoothFocusActive = false;
     const yawRadians = this.yaw * pc.math.DEG_TO_RAD;
     this.target.x += localX * Math.cos(yawRadians) + localZ * Math.sin(yawRadians);
     this.target.z += -localX * Math.sin(yawRadians) + localZ * Math.cos(yawRadians);
