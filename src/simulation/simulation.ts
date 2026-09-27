@@ -119,10 +119,16 @@ export class Simulation {
 
   enqueueCommand(command: GameCommand): void { this.commandQueue.enqueue(command); }
 
+  protected prepareAutonomousCombat(_tick: number): void {
+    // Higher-level simulations may add deterministic local target/support
+    // automation after this tick's explicit commands have been applied.
+  }
+
   step(): SimulationSnapshot {
     this.tick += 1;
     this.advanceTimedStatuses();
     this.processCommands();
+    this.prepareAutonomousCombat(this.tick);
     this.updateMovementAndNavigation();
     this.updateIceStress();
     this.updateCombat();
