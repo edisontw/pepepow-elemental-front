@@ -3,7 +3,7 @@
 **Canonical gameplay specification**  
 **Spec baseline:** V0.3 consolidated  
 **Status:** IMPLEMENTATION BASELINE  
-**Active post-roadmap direction:** Phase 5 Autonomous Front Redesign; sections 65–71 supersede older player-interaction assumptions where they conflict. The current runtime after P5-A2 is `ef-standard-v28` / `ef-replay-v28`; later Phase 5 slices remain gated by playtest.
+**Active post-roadmap direction:** Phase 5 Autonomous Front Redesign; sections 65–71 supersede older player-interaction assumptions where they conflict. The current runtime after P5-A3 is `ef-standard-v29` / `ef-replay-v29`; later Phase 5 slices remain gated by playtest.
 
 ---
 
@@ -1570,7 +1570,7 @@ Design rationale:
 - v22 adds shared-destination convergence: same-faction units intentionally completing one exact destination may merge inside the final 2 m arrival zone, including around a friendly already stopped on that point. This prevents endpoint collision oscillation without disabling normal traffic separation.
 - v23 removes friendly body blocking entirely. Same-faction units may pass through and overlap one another during movement, idle, and combat without pushing or sidestepping; formation destinations remain the intentional spacing mechanism. Hostile unit contact remains full-body and authoritative.
 - v24 gives strategic buildings partial authoritative navigation footprints. The Elemental Core blocks a 3×3 inner mass, Barracks/Workshop block a 5-cell cross, and smaller structures block their center cell. Units route around these cells; trained units emerge at deterministic exterior cells; destroyed resource structures release their blocker. Visual building extents remain presentation-only.
-- Active gameplay/replay identity is `ef-standard-v28` / `ef-replay-v28`; world generation remains `m02-standard-v1`. P5-A1 provides persistent Front Orders and multi-squad Command Mode; P5-A2 removes caster-selection micro from Tactical spell access while preserving authoritative caster range/cooldown/alignment/Mana semantics.
+- Active gameplay/replay identity is `ef-standard-v29` / `ef-replay-v29`; world generation remains `m02-standard-v1`. P5-A1 provides persistent Front Orders and multi-squad Command Mode; P5-A2 removes caster-selection micro from Tactical access; P5-A3 activates controlled player resource nodes automatically while preserving historical supply throughput rules.
 
 ---
 
@@ -1709,6 +1709,16 @@ This changes the resource decision from construction busywork toward territorial
 Classic Mode may retain the existing Extractor / Mana Well construction loop.
 
 Extractor / Mana Well implementation must not be deleted merely because Command Mode bypasses manual placement.
+
+P5-A3 implemented baseline:
+
+- current M06 full runs opt player 0 into automatic resource sites;
+- every controlled Material Deposit / Mana Spring contributes baseline income directly;
+- supplied sites use full historical throughput;
+- controlled disconnected sites use the existing 40% Material / 50% Mana throughput;
+- legacy manually built player harvesters do not add a second copy of income when that player is on automatic-site rules;
+- current Command Mode UI removes Extractor / Mana Well from the normal construction cards;
+- AI and lower-level legacy strategic simulations remain building-driven unless automatic sites are explicitly enabled.
 
 A later validated slice may add a simple site development choice such as:
 
