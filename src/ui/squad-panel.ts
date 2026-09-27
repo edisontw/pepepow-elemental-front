@@ -134,7 +134,7 @@ export class SquadPanel {
     const squads = this.playerSquads();
     const active = this.activeSquad();
     const markup = `
-      <div class="squad-title">COMMAND MODE · P5-A1</div>
+      <div class="squad-title">COMMAND MODE</div>
       <div class="squad-list">
         ${squads.map((squad) => {
           const alive = squad.memberEntityIds.filter((id) => this.simulation.entities.hasUnit(id)).length;
