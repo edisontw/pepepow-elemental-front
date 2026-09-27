@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { M01_ARENA, type ArenaDefinition } from '../../src/simulation/arena';
-import { acquireEncounterTargets } from '../../src/simulation/auto-aggro';
+import { ATTACK_MOVE_AGGRO_RANGE, acquireEncounterTargets } from '../../src/simulation/auto-aggro';
 import { NavigationGrid } from '../../src/simulation/navigation';
 import { Simulation } from '../../src/simulation/simulation';
 import { M06Simulation } from '../../src/simulation/m06-simulation';
@@ -79,6 +79,31 @@ describe('v12 navigation and RTS orders', () => {
     expect(sim.entities.hasUnit(tied)).toBe(false);
     expect(sim.entities.positions.get(1)).toEqual(destination);
     expect(sim.entities.movements.get(1)!.orderMode).toBe('NORMAL');
+  });
+
+  it('gives Attack Move a wider local-threat envelope than ordinary idle auto-aggro', () => {
+    const sim = new Simulation('attack-move-local-threat-envelope', arena());
+    const enemy = hostile(sim, 10_000, 2_500);
+    const distance = Math.hypot(
+      sim.entities.positions.get(1)!.x - sim.entities.positions.get(enemy)!.x,
+      sim.entities.positions.get(1)!.z - sim.entities.positions.get(enemy)!.z,
+    );
+    expect(distance).toBeLessThan(ATTACK_MOVE_AGGRO_RANGE);
+
+    acquireEncounterTargets(sim.entities, sim.navigation, sim.visibility, sim.terrain, 1);
+    expect(sim.entities.combat.get(1)!.targetEntityId).toBeNull();
+
+    sim.enqueueCommand({
+      type: 'ATTACK_MOVE',
+      targetTick: 1,
+      playerId: 0,
+      entityIds: [1],
+      targetX: 15_500,
+      targetZ: 15_500,
+    });
+    sim.step();
+    acquireEncounterTargets(sim.entities, sim.navigation, sim.visibility, sim.terrain, 2);
+    expect(sim.entities.combat.get(1)!.targetEntityId).toBe(enemy);
   });
 
   it('normal Move forcibly disengages and suppresses auto-aggro until cancelled or complete', () => {
@@ -179,7 +204,7 @@ describe('v12 navigation and RTS orders', () => {
     const hashes: string[] = [];
     for (let i = 0; i < 30; i++) hashes.push(source.step().stateHash);
     const packet = source.replayCheckpointPacket();
-    expect(packet.header.version).toBe('ef-replay-v26');
+    expect(packet.header.version).toBe('ef-replay-v27');
     const replay = new M06Simulation(world, { pace: 'SMOKE', difficulty: 'CASUAL' });
     replay.loadReplay(packet);
     for (const hash of hashes) expect(replay.step().stateHash).toBe(hash);

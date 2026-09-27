@@ -1,6 +1,7 @@
 import type { EntityID } from '../simulation/components';
 import type { M06SimulationSnapshot } from '../simulation/m06-simulation';
 import type { EntitySnapshot, SimulationSnapshot } from '../simulation/simulation';
+import { presentationAttackTargetId } from '../rendering/combat-event-resolution';
 
 export type AudioCueId =
   | 'sfx.combat.attack'
@@ -63,7 +64,7 @@ export function deriveAudioCues(
     if (!prior || !prior.visibleToPlayer) continue;
     if (
       entity.alive
-      && (entity.attackTargetEntityId !== null || objectiveAttackIds.has(entity.id))
+      && (presentationAttackTargetId(prior, entity) !== null || objectiveAttackIds.has(entity.id))
       && entity.nextAttackTick > prior.nextAttackTick
     ) visibleAttacks += 1;
     if (prior.alive && !entity.alive) visibleDeaths += 1;

@@ -8,6 +8,7 @@ import { BattleVfx } from './battle-vfx';
 import { UnitAnimationController } from './unit-animation-controller';
 import { UnitRenderBridge } from './unit-render-bridge';
 import { VisualAssetLibrary } from './visual-asset-library';
+import { presentationAttackTargetId } from './combat-event-resolution';
 
 function snapshotMap(snapshot: SimulationSnapshot): Map<EntityID, EntitySnapshot> {
   return new Map(snapshot.entities.map((entity) => [entity.id, entity]));
@@ -118,14 +119,14 @@ export class AnimatedUnitRenderBridge extends UnitRenderBridge {
 
       const prior = previousById.get(unit.id) ?? unit;
       const moving = unit.frozenTicks === 0 && (unit.x !== prior.x || unit.z !== prior.z);
-      const unitTarget = unit.attackTargetEntityId === null
+      const attackTargetId = presentationAttackTargetId(prior, unit);
+      const unitTarget = attackTargetId === null
         ? undefined
-        : currentById.get(unit.attackTargetEntityId);
+        : currentById.get(attackTargetId);
       const attacked = unit.alive
-        && unit.nextAttackTick > prior.nextAttackTick
         && (
-          objectiveAttackIds.has(unit.id)
-          || (unit.attackTargetEntityId !== null && targetWithinAttackRange(unit, unitTarget))
+          objectiveAttackIds.has(unit.id) && unit.nextAttackTick > prior.nextAttackTick
+          || (attackTargetId !== null && targetWithinAttackRange(unit, unitTarget))
         );
       const casted = unit.alive
         && cast?.status === 'CAST'

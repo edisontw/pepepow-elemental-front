@@ -8,6 +8,7 @@ import type { EntitySnapshot, SimulationSnapshot } from '../simulation/simulatio
 import { BattleVfx, ELEMENT_TINTS } from './battle-vfx';
 import { buildingVisualProfile } from './building-visual-profile';
 import { unitVisualProfile, type UnitProjectileStyle } from './unit-visual-profile';
+import { presentationAttackTargetId } from './combat-event-resolution';
 
 type Tint = readonly [number, number, number];
 type ElementKey = keyof typeof ELEMENT_TINTS;
@@ -226,7 +227,8 @@ export class CombatPresentationPass {
 
       if (!unit.alive || !unit.visibleToPlayer || unit.nextAttackTick <= prior.nextAttackTick) continue;
 
-      const target = unit.attackTargetEntityId === null ? null : currentById.get(unit.attackTargetEntityId);
+      const attackTargetId = presentationAttackTargetId(prior, unit);
+      const target = attackTargetId === null ? null : currentById.get(attackTargetId);
       if (target && !target.visibleToPlayer && target.playerId !== 0) continue;
       const objective = objectiveOrders.get(unit.id);
       const objectiveTarget = objective === 'ENEMY_CORE'

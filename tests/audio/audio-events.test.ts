@@ -62,6 +62,38 @@ describe('M08 audio event derivation', () => {
   });
 
 
+  it('keeps the attack cue when the killing blow clears the current target in the same tick', () => {
+    const [previous, current] = snapshots();
+    const attacker = current.entities[0]!;
+    const target = current.entities[1]!;
+    const priorAttacker = previous.entities.find((entity) => entity.id === attacker.id)!;
+    const previousWithTarget = {
+      ...previous,
+      entities: previous.entities.map((entity) => entity.id === attacker.id
+        ? { ...entity, attackTargetEntityId: target.id }
+        : entity),
+    };
+    const killingBlow = {
+      ...current,
+      entities: current.entities.map((entity) => {
+        if (entity.id === attacker.id) {
+          return {
+            ...entity,
+            attackTargetEntityId: null,
+            nextAttackTick: priorAttacker.nextAttackTick + 10,
+          };
+        }
+        if (entity.id === target.id) return { ...entity, currentHealth: 0, alive: false };
+        return entity;
+      }),
+    };
+
+    expect(deriveAudioCues(previousWithTarget, killingBlow)).toContainEqual({
+      id: 'sfx.combat.attack',
+      intensity: 1,
+    });
+  });
+
   it('derives attack and structure-hit cues from objective attacks against a Core', () => {
     const [previous, current] = snapshots();
     const attacker = current.entities[0]!;

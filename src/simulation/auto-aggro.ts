@@ -6,6 +6,7 @@ import type { NavigationGrid } from './navigation';
 import type { VisibilityState } from './visibility-state';
 
 const IDLE_MIN_AGGRO_RANGE = 6 * WORLD_UNITS_PER_METER;
+export const ATTACK_MOVE_AGGRO_RANGE = 12 * WORLD_UNITS_PER_METER;
 const IDLE_RANGE_PADDING = 2 * WORLD_UNITS_PER_METER;
 
 interface TargetCandidate {
@@ -72,10 +73,11 @@ export function acquireEncounterTargets(
       combat.pursuitTargetCellKey = null;
     }
 
-    const range = movement.orderMode === 'HOLD' ? combat.attackRange : Math.max(
-      combat.attackRange + IDLE_RANGE_PADDING,
-      IDLE_MIN_AGGRO_RANGE,
-    );
+    const range = movement.orderMode === 'HOLD'
+      ? combat.attackRange
+      : movement.orderMode === 'ATTACK_MOVE'
+        ? Math.max(combat.attackRange + IDLE_RANGE_PADDING, ATTACK_MOVE_AGGRO_RANGE)
+        : Math.max(combat.attackRange + IDLE_RANGE_PADDING, IDLE_MIN_AGGRO_RANGE);
     const rangeSquared = range * range;
     let best: TargetCandidate | null = null;
 

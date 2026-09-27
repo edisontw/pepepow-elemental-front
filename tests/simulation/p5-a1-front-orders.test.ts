@@ -98,6 +98,27 @@ describe('Phase 5 P5-A1 persistent Squad Front Orders', () => {
     expect(sim.snapshot().squads.squads[0]?.currentOrder).toBe('ADVANCE');
   });
 
+  it('Advance acquires a visible local threat beyond the old idle aggro radius', () => {
+    const sim = simulation(4_950_637);
+    const ids = playerIds(sim);
+    const unit = ids[0]!;
+    for (const id of ids.slice(1)) sim.entities.health.get(id)!.alive = false;
+
+    const start = { ...sim.entities.positions.get(unit)! };
+    const target = reachableTarget(sim, unit, 16);
+    const enemy = firstEnemyId(sim);
+    sim.entities.positions.set(enemy, { x: start.x + 9_000, z: start.z });
+    sim.entities.combat.get(enemy)!.attackDamage = 0;
+    sim.visibility.update(sim.entities, sim.navigation);
+
+    order(sim, 'ADVANCE', target);
+    sim.step();
+    sim.step();
+
+    expect(sim.snapshot().squads.squads[0]?.currentOrder).toBe('ADVANCE');
+    expect(sim.entities.combat.get(unit)!.targetEntityId).toBe(enemy);
+  });
+
   it('Guard enforces a bounded pursuit leash and returns to its guard point', () => {
     const sim = simulation(4_950_629);
     const ids = playerIds(sim);
@@ -252,7 +273,7 @@ describe('Phase 5 P5-A1 persistent Squad Front Orders', () => {
     const hashes: string[] = [];
     for (let tick = 0; tick < 20; tick += 1) hashes.push(source.step().stateHash);
     const packet = source.replayCheckpointPacket();
-    expect(packet.header.version).toBe('ef-replay-v26');
+    expect(packet.header.version).toBe('ef-replay-v27');
     expect(packet.header.rulesetVersion).toBe(CURRENT_CHALLENGE_RULESET_VERSION);
     expect(packet.commands.some((entry) => entry.channel === 'SQUAD')).toBe(true);
 
