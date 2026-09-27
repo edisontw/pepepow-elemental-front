@@ -1,10 +1,10 @@
 # PEPEPOW Elemental Front — Post-Roadmap Phase 5 Autonomous Front Redesign Plan
 
-**Status:** ACTIVE — P5-A1 ACCEPTED; P5-A2 IMPLEMENTED / playtest; P5-A3 not started  
+**Status:** ACTIVE — P5-A1/P5-A2 ACCEPTED; P5-A3 IMPLEMENTED / playtest; P5-A4 not started  
 **Date:** 2026-09-26  
 **Baseline gameplay identity:** `ef-standard-v24`  
 **Baseline replay identity:** `ef-replay-v24`  
-**Current implemented identity after P5-A2:** `ef-standard-v28` / `ef-replay-v28`  
+**Current implemented identity after P5-A3:** `ef-standard-v29` / `ef-replay-v29`  
 **World generation:** `m02-standard-v1` remains unchanged  
 **Primary mode working name:** `COMMAND` / **Command Mode**  
 **Existing direct-control mode working name:** `CLASSIC` / **Classic Mode**
@@ -528,10 +528,10 @@ Documentation-only adoption of this plan did **not** change gameplay/replay iden
 - `ef-replay-v24`;
 - `m02-standard-v1`.
 
-P5-A1 first merged under `ef-standard-v25` / `ef-replay-v25`, then refined through v27. P5-A2 Global Tactical controls advance gameplay/replay identity to:
+P5-A1 first merged under v25 and was refined through v27. P5-A2 Global Tactical controls landed in v28. P5-A3 automatic baseline resource sites advance gameplay/replay identity to:
 
-- `ef-standard-v28`;
-- `ef-replay-v28`;
+- `ef-standard-v29`;
+- `ef-replay-v29`;
 - world generation remains `m02-standard-v1`.
 
 ### 16.4 World generation
@@ -558,7 +558,7 @@ Implemented initially under `ef-standard-v25` / `ef-replay-v25`, refined for mul
 - compact squad status UI;
 - replay/hash coverage.
 
-### P5-A2 — Element access simplification — IMPLEMENTED / PLAYTEST
+### P5-A2 — Element access simplification — ACCEPTED
 
 - persistent Global Element Bar in the right-side Element Tactics HUD;
 - click spell → click target interaction, plus R / Q / F / L quick-cast at cursor;
@@ -569,12 +569,15 @@ Implemented initially under `ef-standard-v25` / `ef-replay-v25`, refined for mul
 - Mana and caster-local cooldown semantics remain unchanged;
 - Strategic spell network authority remains unchanged.
 
-### P5-A3 — Resource-site activation
+### P5-A3 — Resource-site activation — IMPLEMENTED / PLAYTEST
 
-- Command Mode site ownership drives baseline income;
-- manual resource-building placement bypassed in Command Mode;
-- supply/disconnection semantics adapted coherently;
-- Classic behavior preserved.
+- current M06 Command Mode enables automatic baseline sites for player 0 only;
+- controlled Material / Mana resource nodes produce without manual Extractor / Mana Well placement;
+- supplied nodes use historical full throughput; disconnected controlled nodes retain historical reduced throughput;
+- AI and lower-level legacy StrategicState keep the old building-driven path unless explicitly opted into automatic sites;
+- legacy resource buildings remain valid for compatibility but do not double-count income on an automatically active site;
+- Command Mode construction UI hides Extractor / Mana Well cards and shows automatic-site status;
+- no Exploit / Fortify development choice is introduced in P5-A3.
 
 ### P5-A4 — Event Navigator
 
