@@ -317,7 +317,7 @@ Do not automatically reopen M00–M08 implementation history. Start future work 
 
 # 14. Post-Roadmap Phase 5 — Autonomous Front Redesign
 
-**Status:** ACTIVE — P5-A1 ACCEPTED; P5-A2 IMPLEMENTED / PLAYTEST; P5-A3 NOT STARTED  
+**Status:** ACTIVE — P5-A1/P5-A2 ACCEPTED; P5-A3 IMPLEMENTED / PLAYTEST; P5-A4 NOT STARTED  
 **Plan:** `docs/POST_ROADMAP_PHASE5_AUTONOMOUS_FRONT_REDESIGN_PLAN.md`
 
 ## Goal
@@ -354,7 +354,7 @@ Reuse existing movement, navigation, combat, recovery, and unit AI rather than b
 
 P5-A1 playtest refinement in v26: newly trained player units deterministically form additional persistent squads. A forming squad accepts up to six members; first Front Order, direct Classic control, full capacity, or a casualty locks that roster. Locked squads are not auto-replenished.
 
-### P5-A2 — Element access simplification — IMPLEMENTED / PLAYTEST
+### P5-A2 — Element access simplification — ACCEPTED
 
 Expose Tactical elemental actions without requiring manual selection of an aligned Elementalist.
 
@@ -369,7 +369,7 @@ Preserve:
 - Tactical legality;
 - Strategic spell network authority.
 
-### P5-A3 — Automatic baseline resource sites
+### P5-A3 — Automatic baseline resource sites — IMPLEMENTED / PLAYTEST
 
 In Command Mode, controlling an eligible Material / Mana resource site automatically activates its baseline production.
 
@@ -433,12 +433,12 @@ During the prototype:
 
 P5-A1 is the first authoritative Phase 5 gameplay merge.
 
-P5-A1 first merged under v25 and was refined through v27. P5-A2 Global Tactical element access is implemented in v28. Current runtime:
+P5-A1 first merged under v25 and was refined through v27. P5-A2 Global Tactical element access landed in v28. P5-A3 automatic baseline resource sites are implemented in v29. Current runtime:
 
-- gameplay: `ef-standard-v28`;
-- replay: `ef-replay-v28`;
+- gameplay: `ef-standard-v29`;
+- replay: `ef-replay-v29`;
 - world generation: `m02-standard-v1`.
 
-P5-A1 persistent squads and Front Orders are accepted. P5-A2 removes manual Elementalist selection from Tactical casting while preserving deterministic legal caster authority. P5-A3 is the next planned slice after P5-A2 playtest.
+P5-A1/P5-A2 are accepted. P5-A3 removes Extractor / Mana Well activation busywork from the current Command Mode while preserving Material/Mana separation and supply penalties. P5-A4 Event Navigator is the next planned slice after P5-A3 playtest.
 
 World generation remains `m02-standard-v1` for P5-A.
