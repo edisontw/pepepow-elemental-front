@@ -529,11 +529,6 @@ export class UnitControls {
     return true;
   }
 
-  private hoverWorldPoint(): { x: number; z: number } | null {
-    if (this.hoverClientX === null || this.hoverClientY === null) return null;
-    return this.worldPointFromClient(this.hoverClientX, this.hoverClientY);
-  }
-
   private worldPointFromClient(clientX: number, clientY: number): { x: number; z: number } | null {
     const screen = this.toCanvasCoordinates(clientX, clientY);
     const near = this.camera.screenToWorld(screen.x, screen.y, this.camera.nearClip);
