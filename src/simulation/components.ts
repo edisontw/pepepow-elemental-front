@@ -27,6 +27,13 @@ export interface MovementComponent {
   /** Low-priority return point after temporarily yielding to a friendly mover. */
   yieldReturnX: number | null;
   yieldReturnZ: number | null;
+  /** Original NORMAL MOVE destination preserved while autonomous local combat temporarily interrupts transit. */
+  resumeMoveX: number | null;
+  resumeMoveZ: number | null;
+  /** True only when this unit joined combat because a nearby ally needed local support. */
+  localSupportActive: boolean;
+  /** Explicit combat-disengage MOVE suppresses autonomous support until that MOVE completes. */
+  autoSupportSuppressed: boolean;
   path: readonly NavigationPoint[];
   pathIndex: number;
   pathNavVersion: number;
