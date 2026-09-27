@@ -273,7 +273,7 @@ describe('Phase 5 P5-A1 persistent Squad Front Orders', () => {
     const hashes: string[] = [];
     for (let tick = 0; tick < 20; tick += 1) hashes.push(source.step().stateHash);
     const packet = source.replayCheckpointPacket();
-    expect(packet.header.version).toBe('ef-replay-v28');
+    expect(packet.header.version).toBe('ef-replay-v29');
     expect(packet.header.rulesetVersion).toBe(CURRENT_CHALLENGE_RULESET_VERSION);
     expect(packet.commands.some((entry) => entry.channel === 'SQUAD')).toBe(true);
 
