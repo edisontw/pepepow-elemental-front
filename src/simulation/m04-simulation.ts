@@ -66,7 +66,7 @@ export interface V2SpellCastResult {
   playerId: number;
   layer: 'TACTICAL' | 'STRATEGIC';
   spellId: TacticalSpellId | StrategicSpellId;
-  status: 'CAST' | 'INVALID' | 'NO_MANA' | 'COOLDOWN';
+  status: 'CAST' | 'INVALID' | 'NO_MANA' | 'COOLDOWN' | 'NO_CASTER';
   casterEntityId: number | null;
   anchorBuildingId: number | null;
 }
@@ -299,10 +299,36 @@ export class M04Simulation extends M03Simulation {
 
   private processTacticalSpell(command: CastTacticalSpellCommand, tick: number): void {
     const spell = TACTICAL_SPELLS[command.spellId];
+    const alignedCandidates = [...new Set(command.candidateCasterIds)]
+      .filter((entityId) => (
+        this.entities.hasUnit(entityId)
+        && this.entities.factions.get(entityId)?.playerId === command.playerId
+        && this.entities.archetypes.get(entityId) === 'ELEMENTALIST'
+        && this.entities.health.get(entityId)?.alive === true
+        && this.entities.elementalAlignments.get(entityId)?.element === spell.element
+      ))
+      .sort((left, right) => left - right);
+    if (!this.attunements.has(command.playerId, spell.element) || alignedCandidates.length === 0) {
+      this.lastV2CastResult = {
+        tick, playerId: command.playerId, layer: 'TACTICAL', spellId: command.spellId,
+        status: 'NO_CASTER', casterEntityId: null, anchorBuildingId: null,
+      };
+      return;
+    }
+    const readyCandidates = alignedCandidates.filter((entityId) => (
+      this.spellAuthority.tacticalReady(entityId, command.spellId, tick)
+    ));
+    if (readyCandidates.length === 0) {
+      this.lastV2CastResult = {
+        tick, playerId: command.playerId, layer: 'TACTICAL', spellId: command.spellId,
+        status: 'COOLDOWN', casterEntityId: null, anchorBuildingId: null,
+      };
+      return;
+    }
     const caster = this.spellAuthority.selectTacticalCaster(
       command.playerId,
       command.spellId,
-      command.candidateCasterIds,
+      readyCandidates,
       command.target,
       tick,
       this.entities,
