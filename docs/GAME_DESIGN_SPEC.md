@@ -3,7 +3,7 @@
 **Canonical gameplay specification**  
 **Spec baseline:** V0.3 consolidated  
 **Status:** IMPLEMENTATION BASELINE  
-**Active post-roadmap direction:** Phase 5 Autonomous Front Redesign; sections 65–71 supersede older player-interaction assumptions where they conflict. The current runtime after P5-A4 remains `ef-standard-v29` / `ef-replay-v29`; later Phase 5 slices remain gated by playtest.
+**Active post-roadmap direction:** Phase 5 Autonomous Front Redesign; sections 65–71 supersede older player-interaction assumptions where they conflict. The current runtime after the P5-A5 local-support revision is `ef-standard-v30` / `ef-replay-v30`; later Phase 5 slices remain gated by playtest.
 
 ---
 
@@ -1522,10 +1522,12 @@ Design rationale:
 
 # 62. Forced Move disengage — v11
 
-- A normal right-click MOVE is a forced movement order while its destination remains active.
-- Issuing MOVE clears the unit's current combat target and pursuit state.
-- Units following a normal MOVE do not automatically acquire nearby hostiles, even when
-  struck or in melee contact; this allows the player to pull units out of combat.
+- Historical v11 baseline: a normal right-click MOVE was a forced movement order while its destination remained active.
+- Current v30 behavior distinguishes **transit** from **explicit disengage**:
+  - MOVE issued while the unit is already engaged clears combat and suppresses autonomous support until arrival;
+  - MOVE issued while not engaged may pause for a newly encountered local hostile or nearby allied fight;
+  - temporary autonomous combat stores the resolved MOVE destination and resumes it after local combat.
+- This keeps deliberate retreat responsive without making ordinary moving units ignore a fight beside them.
 - ATTACK_MOVE remains the command for moving while automatically engaging hostiles.
 - H Hold remains stationary in-range engagement without pursuit.
 - X Stop cancels movement and returns the unit to ordinary idle auto-aggro; acquisition
@@ -1570,7 +1572,7 @@ Design rationale:
 - v22 adds shared-destination convergence: same-faction units intentionally completing one exact destination may merge inside the final 2 m arrival zone, including around a friendly already stopped on that point. This prevents endpoint collision oscillation without disabling normal traffic separation.
 - v23 removes friendly body blocking entirely. Same-faction units may pass through and overlap one another during movement, idle, and combat without pushing or sidestepping; formation destinations remain the intentional spacing mechanism. Hostile unit contact remains full-body and authoritative.
 - v24 gives strategic buildings partial authoritative navigation footprints. The Elemental Core blocks a 3×3 inner mass, Barracks/Workshop block a 5-cell cross, and smaller structures block their center cell. Units route around these cells; trained units emerge at deterministic exterior cells; destroyed resource structures release their blocker. Visual building extents remain presentation-only.
-- Active gameplay/replay identity is `ef-standard-v29` / `ef-replay-v29`; world generation remains `m02-standard-v1`. P5-A1 provides persistent Front Orders and multi-squad Command Mode; P5-A2 removes caster-selection micro from Tactical access; P5-A3 activates controlled player resource nodes automatically while preserving historical supply throughput rules.
+- Active gameplay/replay identity is `ef-standard-v30` / `ef-replay-v30`; world generation remains `m02-standard-v1`. P5-A1 provides persistent Front Orders and multi-squad Command Mode; P5-A2 removes caster-selection micro from Tactical access; P5-A3 activates controlled player resource nodes automatically; P5-A5 v30 adds bounded local combat support with deterministic post-combat movement resumption.
 
 ---
 
@@ -1746,6 +1748,18 @@ Rules/direction:
 The intended decision is:
 
 > continue the push with damaged veterans, or Regroup and preserve them?
+
+### P5-A5 local support refinement
+
+- a directly engaged player unit creates a local support opportunity;
+- hostile aggression against a player unit also creates a distress signal;
+- eligible nearby player units within 12 m may assist a visible target up to 18 m away;
+- support target choice is deterministic by target distance, then target EntityID, then anchor EntityID;
+- a unit that joined only as support cannot propagate support farther outward;
+- HOLD never leaves position to support;
+- ordinary non-engaged NORMAL MOVE may be temporarily interrupted and later resumed;
+- MOVE issued while already in combat remains the explicit forced-disengage escape path;
+- Regroup remains a player-directed retreat and its MOVE orchestration retains disengage priority.
 
 ---
 

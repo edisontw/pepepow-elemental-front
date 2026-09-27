@@ -1,11 +1,11 @@
 # PEPEPOW Elemental Front — PROJECT_CONTEXT
 
-**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Phase 4 Hero-Lite Progression CLOSED → **Phase 5 Autonomous Front Redesign ACTIVE — P5-A1/P5-A2/P5-A3 ACCEPTED; P5-A4 IMPLEMENTED / playtest gate**; Visual Production supporting  
+**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Phase 4 Hero-Lite Progression CLOSED → **Phase 5 Autonomous Front Redesign ACTIVE — P5-A1–P5-A4 IMPLEMENTED; P5-A5 PLAYTEST = REVISE (local support)**; Visual Production supporting  
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v29`
-**Current replay format:** `ef-replay-v29`
+**Current authoritative gameplay ruleset:** `ef-standard-v30`
+**Current replay format:** `ef-replay-v30`
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE4_CLOSURE_REPORT.md`
 
@@ -74,8 +74,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v29`;
-- replay: `ef-replay-v29`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v30`;
+- replay: `ef-replay-v30`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -199,7 +199,7 @@ Approved P5-A prototype scope:
 
 Important constraints:
 
-- P5-A1 first merged under v25 and was refined through v27; P5-A2 landed in v28; P5-A3 landed in v29; **P5-A4 Event Navigator is now implemented as presentation-only work while runtime identity remains `ef-standard-v29` / `ef-replay-v29`**; P5-A5 is the mandatory playtest gate;
+- P5-A1 first merged under v25 and was refined through v27; P5-A2 landed in v28; P5-A3 landed in v29; P5-A4 was presentation-only on v29; **P5-A5 playtest identified insufficient nearby-unit support, corrected in `ef-standard-v30` / `ef-replay-v30`**; P5-B remains blocked pending renewed playtest;
 - `m02-standard-v1` world generation remains unchanged for P5-A;
 - Material / Mana / Influence remain separate in the prototype;
 - Elementalist authority, alignment, position, range, cooldown, and survival remain meaningful;
@@ -218,7 +218,7 @@ See `docs/POST_ROADMAP_PHASE5_AUTONOMOUS_FRONT_REDESIGN_PLAN.md` for the full co
 
 ## 6. Current formal work point — Phase 4 + Visual Production
 
-Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A–P4-E originally closed under `ef-standard-v7` / `ef-replay-v7`; later post-closure gameplay changes continued through the `ef-standard-v24` / `ef-replay-v24` pre-Phase-5 baseline. Visual Production remains supporting work, while the active product-design work point is Phase 5 Autonomous Front Redesign under `ef-standard-v29` / `ef-replay-v29`.
+Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A–P4-E originally closed under `ef-standard-v7` / `ef-replay-v7`; later post-closure gameplay changes continued through the `ef-standard-v24` / `ef-replay-v24` pre-Phase-5 baseline. Visual Production remains supporting work, while the active product-design work point is Phase 5 Autonomous Front Redesign P5-A5 revision under `ef-standard-v30` / `ef-replay-v30`.
 
 ### Phase 5 P5-A1 Squad / Front Order foundation — v25 — 2026-09-26
 
@@ -297,8 +297,21 @@ Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A�
 - selecting an event is the only action that focuses the camera; normal play never auto-jumps the view;
 - event focus uses a short smooth camera interpolation and manual camera input immediately cancels the smooth focus;
 - completed runs clear the navigator;
-- gameplay/replay identity remains `ef-standard-v29` / `ef-replay-v29`; world generation remains `m02-standard-v1`;
-- **P5-A5 mandatory playtest gate is next.**
+- gameplay/replay identity remains `ef-standard-v29` / `ef-replay-v29`; world generation remains `m02-standard-v1`.
+
+### Phase 5 P5-A5 local combat-support revision — v30 — 2026-09-27
+
+- playtest outcome is **REVISE**, not CONTINUE: nearby friendly units were too passive when one unit encountered an enemy;
+- current player automation now allows ordinary non-engaged NORMAL MOVE to pause for a newly encountered local hostile, preserving the original destination;
+- an established local fight emits a deterministic support signal: eligible nearby player units within 12 m may assist a visible hostile up to 18 m away;
+- support-only helpers never propagate another support call, preventing chain recruitment across the entire army;
+- HOLD remains stationary/in-range only and is never overridden by support;
+- MOVE issued while a unit is already engaged remains an explicit forced-disengage command; that unit suppresses autonomous support until the MOVE destination is reached;
+- NORMAL MOVE destinations interrupted by autonomous combat are state-hashed and deterministically replanned/resumed after combat;
+- ATTACK_MOVE / Advance still retain their existing saved destination behavior;
+- Regroup continues to preserve disengage intent through its repeated forced-MOVE orchestration;
+- gameplay/replay identity advances to `ef-standard-v30` / `ef-replay-v30`; world generation remains `m02-standard-v1`;
+- **P5-B remains blocked pending renewed P5-A5 playtest.**
 
 
 ### Tower Defense vertical slice
@@ -510,9 +523,10 @@ The following frame-loader baseline was superseded by the atlas runtime below; c
 
 ### Forced Move disengage — v11
 
-- Normal MOVE now has explicit forced-disengage behavior while a destination is active.
-- MOVE clears combat pursuit and suppresses automatic encounter target acquisition until
+- Normal MOVE originally gained explicit forced-disengage behavior while a destination is active.
+- v11 MOVE clears combat pursuit and suppresses automatic encounter target acquisition until
   arrival or cancellation, so melee units can be pulled away from enemies.
+- **Current v30 refinement:** MOVE issued while already engaged keeps this forced-disengage behavior; ordinary non-engaged transit may temporarily fight/support locally and resume its saved destination afterward.
 - ATTACK_MOVE, HOLD, and explicit ATTACK retain their existing combat semantics.
 - S/X Stop cancels travel and restores ordinary idle auto-aggro on the following tick.
 - This authoritative gameplay correction advances challenge/replay identity to

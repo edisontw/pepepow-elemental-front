@@ -77,6 +77,10 @@ function hashEntity(hash: number, entityId: EntityID, entities: EntityStore): nu
   result = hashInteger(result, movement.targetZ ?? NULL_TARGET);
   result = hashInteger(result, movement.yieldReturnX ?? NULL_TARGET);
   result = hashInteger(result, movement.yieldReturnZ ?? NULL_TARGET);
+  result = hashInteger(result, movement.resumeMoveX ?? NULL_TARGET);
+  result = hashInteger(result, movement.resumeMoveZ ?? NULL_TARGET);
+  result = hashInteger(result, movement.localSupportActive ? 1 : 0);
+  result = hashInteger(result, movement.autoSupportSuppressed ? 1 : 0);
   result = hashInteger(result, movement.pathIndex);
   result = hashInteger(result, movement.pathNavVersion);
   result = hashInteger(result, movement.path.length);
