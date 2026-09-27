@@ -204,7 +204,7 @@ describe('v12 navigation and RTS orders', () => {
     const hashes: string[] = [];
     for (let i = 0; i < 30; i++) hashes.push(source.step().stateHash);
     const packet = source.replayCheckpointPacket();
-    expect(packet.header.version).toBe('ef-replay-v26');
+    expect(packet.header.version).toBe('ef-replay-v27');
     const replay = new M06Simulation(world, { pace: 'SMOKE', difficulty: 'CASUAL' });
     replay.loadReplay(packet);
     for (const hash of hashes) expect(replay.step().stateHash).toBe(hash);
