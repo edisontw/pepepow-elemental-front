@@ -57,12 +57,11 @@ function guardedSquadThreats(snapshot: M06SimulationSnapshot): Map<number, { x: 
     if (squad.playerId !== 0 || squad.currentOrder !== 'GUARD') continue;
     const engaged = squad.memberEntityIds
       .map((entityId) => entities.get(entityId))
-      .filter((entity): entity is NonNullable<typeof entity> => (
-        entity !== undefined
-        && entity.alive
-        && entity.attackTargetEntityId !== null
-        && entities.get(entity.attackTargetEntityId)?.playerId !== 0
-      ));
+      .filter((entity): entity is NonNullable<typeof entity> => {
+        if (entity === undefined || !entity.alive || entity.attackTargetEntityId === null) return false;
+        const target = entities.get(entity.attackTargetEntityId);
+        return target?.alive === true && target.playerId !== 0;
+      });
     if (engaged.length === 0) continue;
     const center = centroid(engaged) ?? {
       x: squad.targetX ?? engaged[0]!.x,
