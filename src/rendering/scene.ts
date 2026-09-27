@@ -103,6 +103,7 @@ export interface SceneShell {
   selectUnit(entityId: number, focusCamera?: boolean): boolean;
   selectUnits(entityIds: readonly number[], focusCamera?: boolean): boolean;
   armTacticalSpell(spellId: TacticalSpellId): void;
+  focusWorld(x: number, z: number, smooth?: boolean): void;
   screenToSimulationPosition(clientX: number, clientY: number): { x: number; z: number } | null;
   sync(frame: TickFrame): void;
   destroy(): void;
@@ -304,6 +305,10 @@ export function createSceneShell(
     },
     armTacticalSpell(spellId: TacticalSpellId): void {
       controls.armTacticalSpell(spellId);
+    },
+    focusWorld(x: number, z: number, smooth = true): void {
+      if (smooth) camera.focusSmoothlyAt(metres(x), metres(z));
+      else camera.focusAt(metres(x), metres(z));
     },
     screenToSimulationPosition,
     sync(frame: TickFrame): void {

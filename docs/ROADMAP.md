@@ -317,7 +317,7 @@ Do not automatically reopen M00–M08 implementation history. Start future work 
 
 # 14. Post-Roadmap Phase 5 — Autonomous Front Redesign
 
-**Status:** ACTIVE — P5-A1/P5-A2 ACCEPTED; P5-A3 IMPLEMENTED / PLAYTEST; P5-A4 NOT STARTED  
+**Status:** ACTIVE — P5-A1/P5-A2/P5-A3 ACCEPTED; P5-A4 IMPLEMENTED / PLAYTEST; P5-A5 GATE NEXT  
 **Plan:** `docs/POST_ROADMAP_PHASE5_AUTONOMOUS_FRONT_REDESIGN_PLAN.md`
 
 ## Goal
@@ -369,7 +369,7 @@ Preserve:
 - Tactical legality;
 - Strategic spell network authority.
 
-### P5-A3 — Automatic baseline resource sites — IMPLEMENTED / PLAYTEST
+### P5-A3 — Automatic baseline resource sites — ACCEPTED
 
 In Command Mode, controlling an eligible Material / Mana resource site automatically activates its baseline production.
 
@@ -377,13 +377,11 @@ Do not require manual Extractor / Mana Well placement merely to turn on income.
 
 Preserve Material, Mana, Influence, territory, supply, and Classic Mode compatibility.
 
-### P5-A4 — Event Navigator
+### P5-A4 — Event Navigator — IMPLEMENTED / PLAYTEST
 
 Surface important battle/objective events in a compact navigator.
 
-Selecting an event focuses the camera smoothly.
-
-Do not force automatic camera jumps.
+Implemented as presentation-only snapshot-derived notifications with a five-item / 30-second recent-event window. Selecting an event smoothly focuses the camera; manual camera input cancels focus. No automatic camera jumps are issued.
 
 ## P5-A5 — mandatory playtest gate
 
@@ -439,6 +437,6 @@ P5-A1 first merged under v25 and was refined through v27. P5-A2 Global Tactical 
 - replay: `ef-replay-v29`;
 - world generation: `m02-standard-v1`.
 
-P5-A1/P5-A2 are accepted. P5-A3 removes Extractor / Mana Well activation busywork from the current Command Mode while preserving Material/Mana separation and supply penalties. P5-A4 Event Navigator is the next planned slice after P5-A3 playtest.
+P5-A1/P5-A2/P5-A3 are accepted. P5-A4 adds player-invoked event-to-camera navigation without changing gameplay authority or v29 identity. P5-A5 is now the mandatory real-playtest decision gate before any P5-B work.
 
 World generation remains `m02-standard-v1` for P5-A.

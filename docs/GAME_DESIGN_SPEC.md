@@ -3,7 +3,7 @@
 **Canonical gameplay specification**  
 **Spec baseline:** V0.3 consolidated  
 **Status:** IMPLEMENTATION BASELINE  
-**Active post-roadmap direction:** Phase 5 Autonomous Front Redesign; sections 65–71 supersede older player-interaction assumptions where they conflict. The current runtime after P5-A3 is `ef-standard-v29` / `ef-replay-v29`; later Phase 5 slices remain gated by playtest.
+**Active post-roadmap direction:** Phase 5 Autonomous Front Redesign; sections 65–71 supersede older player-interaction assumptions where they conflict. The current runtime after P5-A4 remains `ef-standard-v29` / `ef-replay-v29`; later Phase 5 slices remain gated by playtest.
 
 ---
 
@@ -1766,6 +1766,15 @@ Command Mode should surface important events such as:
 Selecting an event smoothly focuses the camera.
 
 The game must not steal the camera during normal play.
+
+P5-A4 implemented behavior:
+
+- the navigator is presentation-only and derives events from authoritative snapshots;
+- recent events include battle start, guarded-front pressure, Outpost threat, Shrine secured, neutral camp cleared, veteran critical, and finale objective exposure;
+- the list holds at most five items for up to 30 simulation seconds;
+- clicking an item smoothly focuses its world location and consumes that notification;
+- manual camera input cancels an in-progress smooth focus;
+- run completion clears the list.
 
 Optional Cinematic Follow may be added only as an explicit player-enabled presentation mode.
 

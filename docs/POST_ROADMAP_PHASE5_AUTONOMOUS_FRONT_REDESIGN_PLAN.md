@@ -1,6 +1,6 @@
 # PEPEPOW Elemental Front — Post-Roadmap Phase 5 Autonomous Front Redesign Plan
 
-**Status:** ACTIVE — P5-A1/P5-A2 ACCEPTED; P5-A3 IMPLEMENTED / playtest; P5-A4 not started  
+**Status:** ACTIVE — P5-A1/P5-A2/P5-A3 ACCEPTED; P5-A4 IMPLEMENTED / playtest; P5-A5 gate next  
 **Date:** 2026-09-26  
 **Baseline gameplay identity:** `ef-standard-v24`  
 **Baseline replay identity:** `ef-replay-v24`  
@@ -569,7 +569,7 @@ Implemented initially under `ef-standard-v25` / `ef-replay-v25`, refined for mul
 - Mana and caster-local cooldown semantics remain unchanged;
 - Strategic spell network authority remains unchanged.
 
-### P5-A3 — Resource-site activation — IMPLEMENTED / PLAYTEST
+### P5-A3 — Resource-site activation — ACCEPTED
 
 - current M06 Command Mode enables automatic baseline sites for player 0 only;
 - controlled Material / Mana resource nodes produce without manual Extractor / Mana Well placement;
@@ -579,12 +579,15 @@ Implemented initially under `ef-standard-v25` / `ef-replay-v25`, refined for mul
 - Command Mode construction UI hides Extractor / Mana Well cards and shows automatic-site status;
 - no Exploit / Fortify development choice is introduced in P5-A3.
 
-### P5-A4 — Event Navigator
+### P5-A4 — Event Navigator — IMPLEMENTED / PLAYTEST
 
-- battle/front/objective event feed;
-- click/tap to smooth camera focus;
-- no forced camera stealing;
-- presentation-only where possible.
+- compact recent-event list derived from authoritative snapshots only;
+- battle start, Guard pressure, Outpost threat, Shrine secured, neutral camp cleared, veteran critical, and finale exposure are surfaced;
+- events expire after 30 simulation seconds and the list is capped at five;
+- click-to-focus uses smooth camera interpolation;
+- manual pan/input cancels smooth focus;
+- no automatic camera theft;
+- presentation-only: gameplay/replay identity remains v29.
 
 ### P5-A5 — Playtest and decision gate
 

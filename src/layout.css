@@ -5,7 +5,8 @@
 #app #run-panel,
 #app #roguelite-panel,
 #app #elemental-jobs,
-#app #squad-panel {
+#app #squad-panel,
+#app #event-navigator {
   position: fixed;
 }
 
@@ -907,6 +908,145 @@
 #app .squad-orders button:hover { border-color: var(--ef-brass-bright, #d6ba76); }
 #app .squad-message { display: block; margin-top: .3rem; color: #b7c3bc; font-size: .48rem; line-height: 1.3; }
 #game-canvas.front-order-targeting { cursor: crosshair !important; }
+
+/* P5-A4 Event Navigator: compact, opt-in camera focus only. */
+#app #event-navigator {
+  left: 50%;
+  right: auto;
+  bottom: .55rem;
+  width: min(24rem, calc(100vw - 27rem));
+  min-width: 18rem;
+  max-height: 8.2rem;
+  padding: .4rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  transform: translateX(-50%);
+  border: 1px solid rgba(83, 96, 95, .9);
+  border-top: 2px solid var(--ef-brass, #b79859);
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(34, 43, 46, .96), rgba(11, 22, 27, .96));
+  box-shadow: inset 0 0 0 3px rgba(8, 16, 19, .82), 0 .65rem 1.55rem rgba(0,0,0,.38);
+  color: #dfe6df;
+  z-index: 8;
+}
+
+#app #event-navigator[hidden] { display: none; }
+
+#app .event-navigator-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .6rem;
+  padding: .04rem .06rem .26rem;
+  border-bottom: 1px solid rgba(183, 152, 89, .24);
+}
+
+#app .event-navigator-title b {
+  color: #dcc58e;
+  font-size: .52rem;
+  letter-spacing: .12em;
+}
+
+#app .event-navigator-title small {
+  color: #789198;
+  font-size: .42rem;
+}
+
+#app .event-navigator-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .2rem;
+  margin-top: .26rem;
+}
+
+#app .event-navigator-list button {
+  --event-accent: #86b8bb;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: .24rem;
+  align-items: center;
+  min-width: 0;
+  min-height: 2.05rem;
+  padding: .3rem .34rem;
+  border: 1px solid #475351;
+  border-left: 3px solid var(--event-accent);
+  border-radius: 2px;
+  background: #142025;
+  color: #e2e8e2;
+  text-align: left;
+  cursor: pointer;
+}
+
+#app .event-navigator-list button:hover {
+  border-color: var(--ef-brass-bright, #d6ba76);
+  background: #202c2f;
+}
+
+#app .event-navigator-list button[data-kind="GUARD"],
+#app .event-navigator-list button[data-kind="OUTPOST"] { --event-accent: #e0ad65; }
+#app .event-navigator-list button[data-kind="VETERAN"] { --event-accent: #d97f62; }
+#app .event-navigator-list button[data-kind="OBJECTIVE"] { --event-accent: #d6ba76; }
+#app .event-navigator-list button[data-kind="SHRINE"] { --event-accent: #c7a1ef; }
+#app .event-navigator-list button[data-kind="CAMP"] { --event-accent: #82b986; }
+
+#app .event-navigator-list button span,
+#app .event-navigator-list button strong,
+#app .event-navigator-list button small {
+  min-width: 0;
+}
+
+#app .event-navigator-list button strong,
+#app .event-navigator-list button small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#app .event-navigator-list button strong {
+  font-size: .52rem;
+  line-height: 1.15;
+}
+
+#app .event-navigator-list button small {
+  margin-top: .08rem;
+  color: #8ea39e;
+  font-size: .42rem;
+}
+
+#app .event-navigator-list button em {
+  color: #789198;
+  font-size: .4rem;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  #app #event-navigator {
+    width: min(20rem, calc(100vw - 25rem));
+    min-width: 15rem;
+  }
+
+  #app .event-navigator-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 800px) {
+  #app #event-navigator {
+    top: .5rem;
+    bottom: auto;
+    width: min(19rem, calc(100vw - 22rem));
+    min-width: 14rem;
+    max-height: 7rem;
+  }
+}
+
+@media (max-width: 560px) {
+  #app #event-navigator {
+    display: none !important;
+  }
+}
 
 @media (max-width: 800px) {
   #app #squad-panel {

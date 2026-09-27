@@ -1,6 +1,6 @@
 # PEPEPOW Elemental Front — PROJECT_CONTEXT
 
-**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Phase 4 Hero-Lite Progression CLOSED → **Phase 5 Autonomous Front Redesign ACTIVE — P5-A1/P5-A2 ACCEPTED; P5-A3 IMPLEMENTED / playtest**; Visual Production supporting  
+**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Phase 4 Hero-Lite Progression CLOSED → **Phase 5 Autonomous Front Redesign ACTIVE — P5-A1/P5-A2/P5-A3 ACCEPTED; P5-A4 IMPLEMENTED / playtest gate**; Visual Production supporting  
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
@@ -199,7 +199,7 @@ Approved P5-A prototype scope:
 
 Important constraints:
 
-- P5-A1 first merged under v25 and was refined through v27; P5-A2 Global Tactical controls landed in v28; **P5-A3 automatic baseline resource sites are now implemented under `ef-standard-v29` / `ef-replay-v29`**; P5-A4 remains unimplemented;
+- P5-A1 first merged under v25 and was refined through v27; P5-A2 landed in v28; P5-A3 landed in v29; **P5-A4 Event Navigator is now implemented as presentation-only work while runtime identity remains `ef-standard-v29` / `ef-replay-v29`**; P5-A5 is the mandatory playtest gate;
 - `m02-standard-v1` world generation remains unchanged for P5-A;
 - Material / Mana / Influence remain separate in the prototype;
 - Elementalist authority, alignment, position, range, cooldown, and survival remain meaningful;
@@ -287,8 +287,18 @@ Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A�
 - a legacy Extractor / Mana Well built on an automatically active player site does not double-count baseline income;
 - the Command Mode construction UI hides Extractor / Mana Well cards and shows compact automatic-site counts instead;
 - the transient purple Progression/Shrine panel is presentation-only polished to the same 10.75rem right-side HUD rail so it no longer protrudes left of the minimap/tactics/Command stack;
-- gameplay/replay identity advances to `ef-standard-v29` / `ef-replay-v29`; world generation remains `m02-standard-v1`;
-- **P5-A4 Event Navigator is not started.**
+- gameplay/replay identity advances to `ef-standard-v29` / `ef-replay-v29`; world generation remains `m02-standard-v1`.
+
+### Phase 5 P5-A4 Event Navigator — presentation-only — 2026-09-27
+
+- a compact recent-event navigator is derived only from authoritative snapshots; it does not write gameplay state or enter replay/state hashes;
+- surfaced transitions include battle start, guarded squad under attack, visible enemy pressure near an Outpost, Shrine secured, neutral camp cleared, Level 2+ veteran entering critical health, and finale objective exposure;
+- events persist for up to 30 simulation seconds, are priority ordered, and are limited to five recent items;
+- selecting an event is the only action that focuses the camera; normal play never auto-jumps the view;
+- event focus uses a short smooth camera interpolation and manual camera input immediately cancels the smooth focus;
+- completed runs clear the navigator;
+- gameplay/replay identity remains `ef-standard-v29` / `ef-replay-v29`; world generation remains `m02-standard-v1`;
+- **P5-A5 mandatory playtest gate is next.**
 
 
 ### Tower Defense vertical slice
