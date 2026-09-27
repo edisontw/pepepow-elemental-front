@@ -111,6 +111,8 @@ async function boot(): Promise<void> {
     const worldCanvas = requiredElement<HTMLCanvasElement>('world-debug-canvas');
     const worldSummary = requiredElement<HTMLElement>('world-debug-summary');
     const strategyElement = requiredElement<HTMLElement>('strategy-panel');
+    const tacticalElement = requiredElement<HTMLElement>('tactical-spells');
+    const tacticalHint = requiredElement<HTMLElement>('tactical-cast-hint');
     const squadElement = requiredElement<HTMLElement>('squad-panel');
     const rogueliteElement = requiredElement<HTMLElement>('roguelite-panel');
     const runElement = requiredElement<HTMLElement>('run-panel');
@@ -194,7 +196,13 @@ async function boot(): Promise<void> {
       strategyElement,
       (clientX, clientY) => scene.screenToSimulationPosition(clientX, clientY),
     );
-    const manaSystemHud = new ManaSystemHud(strategyElement, simulation, () => scene.selectedUnits.map((unit) => unit.id));
+    const manaSystemHud = new ManaSystemHud(
+      strategyElement,
+      tacticalElement,
+      tacticalHint,
+      simulation,
+      (spellId) => scene.armTacticalSpell(spellId),
+    );
     const resourceDefensePanel = new ResourceDefensePanel(strategyElement, simulation);
     const squadPanel = new SquadPanel(
       squadElement,
