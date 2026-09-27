@@ -1,10 +1,10 @@
 # PEPEPOW Elemental Front — Post-Roadmap Phase 5 Autonomous Front Redesign Plan
 
-**Status:** ACTIVE — P5-A1/P5-A2/P5-A3 ACCEPTED; P5-A4 IMPLEMENTED / playtest; P5-A5 gate next  
+**Status:** ACTIVE — P5-A1–P5-A4 IMPLEMENTED; P5-A5 PLAYTEST = REVISE / local-support correction  
 **Date:** 2026-09-26  
 **Baseline gameplay identity:** `ef-standard-v24`  
 **Baseline replay identity:** `ef-replay-v24`  
-**Current implemented identity after P5-A3:** `ef-standard-v29` / `ef-replay-v29`  
+**Current implemented identity after P5-A5 local-support revision:** `ef-standard-v30` / `ef-replay-v30`  
 **World generation:** `m02-standard-v1` remains unchanged  
 **Primary mode working name:** `COMMAND` / **Command Mode**  
 **Existing direct-control mode working name:** `CLASSIC` / **Classic Mode**
@@ -528,10 +528,10 @@ Documentation-only adoption of this plan did **not** change gameplay/replay iden
 - `ef-replay-v24`;
 - `m02-standard-v1`.
 
-P5-A1 first merged under v25 and was refined through v27. P5-A2 Global Tactical controls landed in v28. P5-A3 automatic baseline resource sites advance gameplay/replay identity to:
+P5-A1 first merged under v25 and was refined through v27. P5-A2 landed in v28, P5-A3 in v29, and P5-A4 remained presentation-only on v29. P5-A5 playtest revision advances gameplay/replay identity to:
 
-- `ef-standard-v29`;
-- `ef-replay-v29`;
+- `ef-standard-v30`;
+- `ef-replay-v30`;
 - world generation remains `m02-standard-v1`.
 
 ### 16.4 World generation
@@ -589,17 +589,25 @@ Implemented initially under `ef-standard-v25` / `ef-replay-v25`, refined for mul
 - no automatic camera theft;
 - presentation-only: gameplay/replay identity remains v29.
 
-### P5-A5 — Playtest and decision gate
+### P5-A5 — Playtest and decision gate — ACTIVE / REVISE
 
 Do not automatically continue into P5-B.
 
-Run a real playable evaluation first.
+Current observed issue:
 
-Decision:
+- nearby friendly units were too passive when a unit encountered a hostile;
+- moving units could ignore a nearby fight because historical NORMAL MOVE suppressed acquisition completely.
 
-- **CONTINUE** — autonomous execution feels better and still leaves meaningful decisions;
-- **REVISE** — too passive or unclear; adjust Front Orders / element access / resource loop;
-- **STOP** — retain useful simplifications but do not convert the primary mode.
+v30 revision:
+
+- ordinary non-engaged NORMAL MOVE may temporarily engage a newly encountered local threat and saves its original destination;
+- nearby eligible player units within 12 m of an established fight may support a visible hostile up to 18 m away;
+- support-only units cannot recursively recruit another support ring;
+- HOLD never joins support;
+- MOVE issued while already engaged remains forced disengage until arrival;
+- after temporary combat, saved NORMAL MOVE destinations are deterministically replanned and resumed.
+
+Decision remains **REVISE** until renewed playtest confirms the behavior. P5-B stays blocked.
 
 ---
 
