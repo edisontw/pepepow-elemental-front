@@ -1,6 +1,6 @@
 # PEPEPOW Elemental Front — Post-Roadmap Phase 5 Autonomous Front Redesign Plan
 
-**Status:** ACTIVE — P5-A1/P5-A2 ACCEPTED; P5-A3 IMPLEMENTED / playtest; P5-A4 not started  
+**Status:** ACTIVE — P5-A1/P5-A2/P5-A3 ACCEPTED; P5-A4 IMPLEMENTED / playtest; P5-A5 gate next  
 **Date:** 2026-09-26  
 **Baseline gameplay identity:** `ef-standard-v24`  
 **Baseline replay identity:** `ef-replay-v24`  
@@ -569,7 +569,7 @@ Implemented initially under `ef-standard-v25` / `ef-replay-v25`, refined for mul
 - Mana and caster-local cooldown semantics remain unchanged;
 - Strategic spell network authority remains unchanged.
 
-### P5-A3 — Resource-site activation — IMPLEMENTED / PLAYTEST
+### P5-A3 — Resource-site activation — ACCEPTED
 
 - current M06 Command Mode enables automatic baseline sites for player 0 only;
 - controlled Material / Mana resource nodes produce without manual Extractor / Mana Well placement;
