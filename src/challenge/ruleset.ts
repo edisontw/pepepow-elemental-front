@@ -8,7 +8,7 @@ import { M02_STANDARD_RULES, type WorldGenerationRules } from '../world/world-de
  * the two explicit prevents gameplay redesigns from silently changing established M02
  * battlefield generation or Golden Block world hashes.
  */
-export const CURRENT_CHALLENGE_RULESET_VERSION = 'ef-standard-v29' as const;
+export const CURRENT_CHALLENGE_RULESET_VERSION = 'ef-standard-v30' as const;
 
 export interface ChallengeRulesetDefinition {
   version: string;
@@ -26,8 +26,10 @@ export function isSupportedChallengeRuleset(version: string): boolean {
   // v26 extends Command Mode with deterministic multi-squad roster formation for newly trained player units;
   // v27 widens Attack Move / Advance local threat acquisition while preserving idle/Hold semantics;
   // v28 adds P5-A2 Global Tactical controls without changing spell authority or world generation;
-  // v29 adds player-side automatic baseline Material / Mana resource sites for Command Mode.
+  // v29 adds player-side automatic baseline Material / Mana resource sites for Command Mode;
+  // v30 adds deterministic local combat support and post-combat NORMAL MOVE resumption.
   return version === CURRENT_CHALLENGE_RULESET_VERSION
+    || version === 'ef-standard-v29'
     || version === 'ef-standard-v28'
     || version === 'ef-standard-v27'
     || version === 'ef-standard-v26'
