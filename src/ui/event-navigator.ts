@@ -30,6 +30,13 @@ export class EventNavigator {
     this.elapsed = 0;
 
     const current = this.simulation.snapshot();
+    if (current.run.outcome !== 'IN_PROGRESS') {
+      this.previous = current;
+      this.events = [];
+      this.render();
+      return;
+    }
+
     const candidates = deriveEventNavigatorCandidates(this.previous, current, this.simulation.generatedWorld);
     this.previous = current;
 
