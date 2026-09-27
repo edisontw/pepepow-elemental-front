@@ -32,6 +32,7 @@ import type { RunMode, RunPace } from './simulation/m06-content';
 import { addMissingVisualQaUnits, visualQaRequested } from './simulation/visual-qa-roster';
 import { ContextInspector } from './ui/context-inspector';
 import { DebugOverlay } from './ui/debug-overlay';
+import { EventNavigator } from './ui/event-navigator';
 import { ManaSystemHud } from './ui/mana-system-hud';
 import { ResourceDefensePanel } from './ui/resource-defense-panel';
 import { RoguelitePanel } from './ui/roguelite-panel';
@@ -114,6 +115,7 @@ async function boot(): Promise<void> {
     const tacticalElement = requiredElement<HTMLElement>('tactical-spells');
     const tacticalHint = requiredElement<HTMLElement>('tactical-cast-hint');
     const squadElement = requiredElement<HTMLElement>('squad-panel');
+    const eventNavigatorElement = requiredElement<HTMLElement>('event-navigator');
     const rogueliteElement = requiredElement<HTMLElement>('roguelite-panel');
     const runElement = requiredElement<HTMLElement>('run-panel');
     const replay = requestedReplay();
@@ -211,6 +213,11 @@ async function boot(): Promise<void> {
       (clientX, clientY) => scene.screenToSimulationPosition(clientX, clientY),
       (entityIds, focusCamera) => scene.selectUnits(entityIds, focusCamera),
     );
+    const eventNavigator = new EventNavigator(
+      eventNavigatorElement,
+      simulation,
+      (x, z) => scene.focusWorld(x, z, true),
+    );
     const roguelitePanel = new RoguelitePanel(rogueliteElement, simulation);
     const runPanel = new RunPanel(runElement, simulation, blockResolution);
     let territoryDebugElapsed = 0;
@@ -225,6 +232,7 @@ async function boot(): Promise<void> {
       manaSystemHud.update(deltaSeconds);
       resourceDefensePanel.update(deltaSeconds);
       squadPanel.update(deltaSeconds);
+      eventNavigator.update(deltaSeconds);
       roguelitePanel.update(deltaSeconds);
       runPanel.update(deltaSeconds);
       territoryDebugElapsed += deltaSeconds;
@@ -248,6 +256,7 @@ async function boot(): Promise<void> {
     window.addEventListener('pagehide', () => {
       runPanel.destroy();
       roguelitePanel.destroy();
+      eventNavigator.destroy();
       squadPanel.destroy();
       resourceDefensePanel.destroy();
       manaSystemHud.destroy();
