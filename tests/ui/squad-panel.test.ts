@@ -70,6 +70,8 @@ describe('SquadPanel refresh stability', () => {
     );
 
     expect(element.writes).toBe(1);
+    expect(element.innerHTML).toContain('COMMAND MODE');
+    expect(element.innerHTML).not.toContain('P5-A1');
 
     panel.update(0.13);
     panel.update(0.13);
