@@ -55,6 +55,23 @@ describe('post-roadmap Tactical spell authority', () => {
     expect(frame.elementalAuthority.lastCastResult?.casterEntityId).toBe(casters[1]);
   });
 
+  it('reports caster-local cooldown when every matching global candidate is cooling down', () => {
+    const { simulation, casters, target } = createHarness();
+    simulation.entities.health.get(casters[1])!.alive = false;
+    simulation.enqueueCommand({
+      type: 'CAST_TACTICAL', targetTick: 1, playerId: 0, spellId: 'FIREBOLT',
+      candidateCasterIds: casters, target: { kind: 'POINT', ...target },
+    });
+    simulation.step();
+    simulation.enqueueCommand({
+      type: 'CAST_TACTICAL', targetTick: 2, playerId: 0, spellId: 'FIREBOLT',
+      candidateCasterIds: casters, target: { kind: 'POINT', ...target },
+    });
+    const frame = simulation.step();
+    expect(frame.elementalAuthority.lastCastResult?.status).toBe('COOLDOWN');
+    expect(frame.elementalAuthority.lastCastResult?.casterEntityId).toBeNull();
+  });
+
   it('rejects an Attuned spell when no candidate has the matching alignment and spends no Mana', () => {
     const { simulation, casters, target } = createHarness();
     const before = simulation.strategy.snapshot().resources[0]!.manaMilli;
@@ -63,7 +80,7 @@ describe('post-roadmap Tactical spell authority', () => {
       candidateCasterIds: casters, target: { kind: 'POINT', ...target },
     });
     const frame = simulation.step();
-    expect(frame.elementalAuthority.lastCastResult?.status).toBe('INVALID');
+    expect(frame.elementalAuthority.lastCastResult?.status).toBe('NO_CASTER');
     expect(frame.strategic.resources[0]!.manaMilli).toBe(before + 50);
     expect(frame.elementalAuthority.spells.tacticalCooldowns).toHaveLength(0);
   });
