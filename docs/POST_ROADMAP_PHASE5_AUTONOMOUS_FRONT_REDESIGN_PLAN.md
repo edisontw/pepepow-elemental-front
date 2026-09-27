@@ -1,10 +1,10 @@
 # PEPEPOW Elemental Front — Post-Roadmap Phase 5 Autonomous Front Redesign Plan
 
-**Status:** ACTIVE — P5-A1 IMPLEMENTED / playtest gate; P5-A2 not started  
+**Status:** ACTIVE — P5-A1 ACCEPTED; P5-A2 IMPLEMENTED / playtest; P5-A3 not started  
 **Date:** 2026-09-26  
 **Baseline gameplay identity:** `ef-standard-v24`  
 **Baseline replay identity:** `ef-replay-v24`  
-**Current implemented identity after P5-A1 refinement:** `ef-standard-v27` / `ef-replay-v27`  
+**Current implemented identity after P5-A2:** `ef-standard-v28` / `ef-replay-v28`  
 **World generation:** `m02-standard-v1` remains unchanged  
 **Primary mode working name:** `COMMAND` / **Command Mode**  
 **Existing direct-control mode working name:** `CLASSIC` / **Classic Mode**
@@ -18,7 +18,7 @@ Elemental Front is approaching a playable visual and systemic baseline, but the 
 The main problems are not missing features. They are friction and diluted focus:
 
 - the player must repeatedly select units, move the camera, issue movement/combat orders, manage production, and inspect multiple fronts;
-- elemental spells are the game's strongest identity, yet Tactical casting currently requires the player to select an aligned Elementalist before casting;
+- elemental spells are the game's strongest identity; before P5-A2, Tactical casting required the player to select an aligned Elementalist before casting;
 - Extractor and Mana Well construction mostly converts a captured resource location into passive income and creates little additional decision value;
 - formation and control-group systems are useful for expert RTS play but raise the baseline mechanical burden;
 - veteran progression, procedural terrain, elemental simulation, POIs, neutral camps, Enemy War AI, and deterministic replay already create enough strategic depth that the game does not need high APM as its primary difficulty source.
@@ -528,10 +528,10 @@ Documentation-only adoption of this plan did **not** change gameplay/replay iden
 - `ef-replay-v24`;
 - `m02-standard-v1`.
 
-P5-A1 first merged under `ef-standard-v25` / `ef-replay-v25`, then refined for multi-squad rosters under v26. The current combat-acquisition correction advances gameplay/replay identity to:
+P5-A1 first merged under `ef-standard-v25` / `ef-replay-v25`, then refined through v27. P5-A2 Global Tactical controls advance gameplay/replay identity to:
 
-- `ef-standard-v27`;
-- `ef-replay-v27`;
+- `ef-standard-v28`;
+- `ef-replay-v28`;
 - world generation remains `m02-standard-v1`.
 
 ### 16.4 World generation
@@ -546,7 +546,7 @@ Existing regions, routes, POIs, resource sites, camps, Shrines, objectives, and 
 
 ### P5-A1 — Squad order foundation — IMPLEMENTED / PLAYTEST GATE
 
-Implemented initially under `ef-standard-v25` / `ef-replay-v25`, refined for multi-squad rosters under v26, and corrected for Advance local-threat acquisition / killing-blow presentation under `ef-standard-v27` / `ef-replay-v27`; P5-A2 remains intentionally unstarted until playtest.
+Implemented initially under `ef-standard-v25` / `ef-replay-v25`, refined for multi-squad rosters under v26, and corrected for Advance local-threat acquisition / killing-blow presentation under v27. The user playtest accepted this direction, enabling P5-A2.
 
 - persistent squad state;
 - squad creation from existing starting army;
@@ -558,13 +558,16 @@ Implemented initially under `ef-standard-v25` / `ef-replay-v25`, refined for mul
 - compact squad status UI;
 - replay/hash coverage.
 
-### P5-A2 — Element access simplification
+### P5-A2 — Element access simplification — IMPLEMENTED / PLAYTEST
 
-- persistent global Tactical element controls;
-- deterministic eligible-caster search;
-- clear range/cooldown/no-caster feedback;
+- persistent Global Element Bar in the right-side Element Tactics HUD;
+- click spell → click target interaction, plus R / Q / F / L quick-cast at cursor;
 - no manual Elementalist selection requirement;
-- preserve Mana and caster-local cooldown semantics.
+- candidate pool is every living player Elementalist; simulation retains alignment / range / cooldown / target legality filters and nearest-distance then EntityID selection;
+- aggregate HUD readiness shows no-caster / cooldown / low-Mana / ready states;
+- authoritative cast result distinguishes no aligned caster and all-casters-on-cooldown from invalid target / out-of-range failure;
+- Mana and caster-local cooldown semantics remain unchanged;
+- Strategic spell network authority remains unchanged.
 
 ### P5-A3 — Resource-site activation
 

@@ -3,7 +3,7 @@
 **Canonical gameplay specification**  
 **Spec baseline:** V0.3 consolidated  
 **Status:** IMPLEMENTATION BASELINE  
-**Active post-roadmap direction:** Phase 5 Autonomous Front Redesign; sections 65–71 supersede older player-interaction assumptions where they conflict. The current P5-A1 runtime is `ef-standard-v27` / `ef-replay-v27`; later Phase 5 slices remain gated by playtest.
+**Active post-roadmap direction:** Phase 5 Autonomous Front Redesign; sections 65–71 supersede older player-interaction assumptions where they conflict. The current runtime after P5-A2 is `ef-standard-v28` / `ef-replay-v28`; later Phase 5 slices remain gated by playtest.
 
 ---
 
@@ -1570,7 +1570,7 @@ Design rationale:
 - v22 adds shared-destination convergence: same-faction units intentionally completing one exact destination may merge inside the final 2 m arrival zone, including around a friendly already stopped on that point. This prevents endpoint collision oscillation without disabling normal traffic separation.
 - v23 removes friendly body blocking entirely. Same-faction units may pass through and overlap one another during movement, idle, and combat without pushing or sidestepping; formation destinations remain the intentional spacing mechanism. Hostile unit contact remains full-body and authoritative.
 - v24 gives strategic buildings partial authoritative navigation footprints. The Elemental Core blocks a 3×3 inner mass, Barracks/Workshop block a 5-cell cross, and smaller structures block their center cell. Units route around these cells; trained units emerge at deterministic exterior cells; destroyed resource structures release their blocker. Visual building extents remain presentation-only.
-- Active gameplay/replay identity is `ef-standard-v27` / `ef-replay-v27`; world generation remains `m02-standard-v1`. P5-A1 adds state-hashed persistent squad Front Orders, deterministic multi-squad roster formation, and a bounded 12 m Attack Move / Advance local-threat acquisition envelope without changing world generation.
+- Active gameplay/replay identity is `ef-standard-v28` / `ef-replay-v28`; world generation remains `m02-standard-v1`. P5-A1 provides persistent Front Orders and multi-squad Command Mode; P5-A2 removes caster-selection micro from Tactical spell access while preserving authoritative caster range/cooldown/alignment/Mana semantics.
 
 ---
 
@@ -1649,7 +1649,7 @@ The first playable Command Mode boundary is implemented as a thin authoritative 
 - a later direct Classic unit command cancels overlapping Front Order authority when that command becomes authoritative;
 - replay records player Front Orders separately while all routine squad execution remains deterministically derived.
 
-P5-A2 Doctrine work is intentionally not part of this baseline.
+P5-B Doctrine work is intentionally not part of this baseline.
 
 # 67. Elemental intervention without caster-selection micro
 
@@ -1665,6 +1665,15 @@ choose spell
 → deterministic simulation resolves a legal aligned caster
 → cast or return clear failure feedback
 ```
+
+P5-A2 implemented interaction:
+
+- the right-side Global Element Bar shows Attuned Tactical spells;
+- clicking a spell arms battlefield targeting, while R / Q / F / L quick-cast at the current cursor;
+- current RTS selection is irrelevant to Tactical caster lookup;
+- every living player Elementalist is supplied as a candidate, then simulation applies legal alignment / cooldown / visibility / target / range filtering and deterministic nearest-distance + EntityID selection;
+- HUD readiness aggregates all aligned casters and reports no caster, cooldown, low Mana, or ready state;
+- failed casts distinguish no aligned caster and all-casters-on-cooldown from invalid target / out-of-range failure.
 
 Elementalist authority remains intact:
 

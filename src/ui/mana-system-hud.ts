@@ -2,6 +2,7 @@ import type { ElementId, TacticalSpellId } from '../simulation/element-types';
 import { UNITS } from '../simulation/m03-content';
 import type { M04Simulation } from '../simulation/m04-simulation';
 import { TACTICAL_SPELLS } from '../simulation/spell-content';
+import { tacticalSpellReadiness } from '../input/tactical-caster-candidates';
 
 const PLAYER_ID = 0;
 const SPELL_ORDER: readonly TacticalSpellId[] = ['FIREBOLT', 'WATER_BURST', 'FREEZE', 'CHAIN_LIGHTNING'];
@@ -36,14 +37,17 @@ export class ManaSystemHud {
 
   constructor(
     private readonly strategyElement: HTMLElement,
+    private readonly tacticalElement: HTMLElement,
+    private readonly tacticalHint: HTMLElement,
     private readonly simulation: M04Simulation,
-    private readonly selectedIds: () => readonly number[],
+    private readonly requestTacticalSpell: (spellId: TacticalSpellId) => void,
   ) {
     this.observer = new MutationObserver(() => {
       if (!this.rendering) this.render();
     });
     this.observer.observe(strategyElement, { childList: true });
     strategyElement.addEventListener('click', this.onClick, true);
+    tacticalElement.addEventListener('click', this.onTacticalClick);
     this.render();
   }
 
@@ -58,8 +62,24 @@ export class ManaSystemHud {
   destroy(): void {
     this.observer.disconnect();
     this.strategyElement.removeEventListener('click', this.onClick, true);
+    this.tacticalElement.removeEventListener('click', this.onTacticalClick);
     this.strategyElement.querySelector('.mana-system-hint')?.remove();
   }
+
+  private readonly onTacticalClick = (event: MouseEvent): void => {
+    const button = event.target instanceof Element
+      ? event.target.closest<HTMLButtonElement>('button[data-tactical-spell]')
+      : null;
+    if (!button || button.disabled) return;
+    const spellId = button.dataset.tacticalSpell as TacticalSpellId | undefined;
+    if (!spellId || !TACTICAL_SPELLS[spellId]) return;
+    event.preventDefault();
+    this.requestTacticalSpell(spellId);
+    const spell = TACTICAL_SPELLS[spellId];
+    this.tacticalHint.textContent = spell.targetMode === 'HOSTILE_ENTITY'
+      ? `${SPELL_LABELS[spellId]} armed · click a visible enemy · Esc cancel.`
+      : `${SPELL_LABELS[spellId]} armed · click a visible battlefield point · Esc cancel.`;
+  };
 
   private readonly onClick = (event: MouseEvent): void => {
     const target = event.target instanceof Element
@@ -135,23 +155,22 @@ export class ManaSystemHud {
 
       const attuned = new Set(authority.attunements.players[PLAYER_ID]?.unlocked ?? []);
       this.renderElementalistTrainingControls(attuned);
-      const playerEntityIds = new Set(snapshot.entities.filter((entity) => entity.playerId === PLAYER_ID && entity.alive).map((entity) => entity.id));
-      const selectedIds = new Set(this.selectedIds());
-      const aligned = authority.alignedElementalists.filter((entry) => playerEntityIds.has(entry.entityId) && selectedIds.has(entry.entityId));
-      const cooldownByCasterSpell = new Map(
-        authority.spells.tacticalCooldowns.map((cooldown) => [`${cooldown.casterEntityId}:${cooldown.spellId}`, cooldown.readyTick]),
-      );
-
       const spells = SPELL_ORDER.filter((spellId) => attuned.has(TACTICAL_SPELLS[spellId].element)).map((spellId) => {
         const spell = TACTICAL_SPELLS[spellId];
-        const casters = aligned.filter((entry) => entry.element === spell.element);
-        const remaining = casters.length === 0
-          ? null
-          : Math.min(...casters.map((caster) => Math.max(0, (cooldownByCasterSpell.get(`${caster.entityId}:${spellId}`) ?? 0) - snapshot.tick)));
-        const lowMana = mana.currentManaMilli < spell.manaCostMilli;
-        const state = remaining === null ? 'Select caster' : remaining > 0 ? `${(remaining / 10).toFixed(1)}s` : lowMana ? 'Low Mana' : 'Check target';
+        const readiness = tacticalSpellReadiness(snapshot, PLAYER_ID, spellId);
+        const remaining = readiness.cooldownTicks;
+        const available = readiness.alignedCasterCount > 0
+          && readiness.readyCasterCount > 0
+          && readiness.enoughMana;
+        const state = readiness.alignedCasterCount === 0
+          ? 'No caster'
+          : readiness.readyCasterCount === 0 && remaining !== null
+            ? `${(remaining / 10).toFixed(1)}s`
+            : !readiness.enoughMana
+              ? 'Low Mana'
+              : 'Ready';
         const fill = remaining === null ? 0 : Math.round(100 * (1 - Math.min(1, remaining / spell.cooldownTicks)));
-        return `<span class="spell-card" data-element="${spell.element}" data-available="${remaining === 0 && !lowMana}" title="Select an aligned caster, hover a valid target in range, then press ${KEY_BY_SPELL[spellId]}. Readiness does not guarantee target legality."><kbd>${KEY_BY_SPELL[spellId]}</kbd><b>${SPELL_LABELS[spellId]}</b><small>${value(spell.manaCostMilli)} Mana · ${state}</small><i style="--ready:${fill}%"></i></span>`;
+        return `<button class="tactical-spell-button" data-tactical-spell="${spellId}" data-element="${spell.element}" data-available="${available}" ${available ? '' : 'disabled'} title="Global Tactical control. A legal aligned Elementalist is resolved automatically by range, cooldown, distance, then EntityID."><kbd>${KEY_BY_SPELL[spellId]}</kbd><b>${SPELL_LABELS[spellId]}</b><small>${value(spell.manaCostMilli)} Mana · ${state}</small><i style="--ready:${fill}%"></i></button>`;
       }).join('');
 
       const result = authority.lastCastResult;
@@ -168,13 +187,31 @@ export class ManaSystemHud {
           ? `Not enough Mana for ${resultLabel}.`
           : result.status === 'COOLDOWN'
             ? `${resultLabel} is cooling down.`
-            : `No valid caster, target, or spell-network path for ${resultLabel}.`}</strong>`
+            : result.status === 'NO_CASTER'
+              ? `No living aligned caster for ${resultLabel}.`
+              : `No valid caster in range or valid target for ${resultLabel}.`}</strong>`
         : '';
       const attunementLabel = [...attuned].map(elementLabel).join(' + ');
 
-      hint.innerHTML = snapshot.elementalMana.enabled
-        ? `<small class="spell-heading">TACTICAL <b>${attunementLabel || 'None'}</b></small><div>${spells || '<span>Train an aligned Elementalist to use Tactical spells.</span>'}</div><small>Select caster · hover target · press key. Readiness is per selected caster; range and target rules still apply.</small>${feedback}`
-        : '<small>Mana economy active. Full spell authority activates in Enemy War / full runs.</small>';
+      if (snapshot.elementalMana.enabled) {
+        this.tacticalElement.innerHTML = spells || '<small class="tactical-empty">Train an aligned Elementalist to unlock Tactical controls.</small>';
+        if (this.feedbackSeconds > 0 && result) {
+          this.tacticalHint.textContent = result.status === 'NO_MANA'
+            ? `Not enough Mana for ${resultLabel}.`
+            : result.status === 'COOLDOWN'
+              ? `${resultLabel}: all aligned casters are cooling down.`
+              : result.status === 'NO_CASTER'
+                ? `No living aligned caster is available for ${resultLabel}.`
+                : `${resultLabel}: target unavailable or outside every ready caster's range.`;
+        } else {
+          this.tacticalHint.textContent = `${attunementLabel || 'No attunements'} · click spell then target, or quick-cast with R / Q / F / L.`;
+        }
+        hint.innerHTML = `<small>Global Tactical controls use any legal aligned Elementalist automatically.</small>${feedback}`;
+      } else {
+        this.tacticalElement.innerHTML = '<small class="tactical-empty">Tactical authority activates in Enemy War / full runs.</small>';
+        this.tacticalHint.textContent = 'Mana economy active.';
+        hint.innerHTML = '<small>Mana economy active. Full spell authority activates in Enemy War / full runs.</small>';
+      }
     } finally {
       this.rendering = false;
     }

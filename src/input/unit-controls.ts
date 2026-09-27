@@ -5,6 +5,8 @@ import type { UnitRenderBridge } from '../rendering/unit-render-bridge';
 import { unitVisualProfile } from '../rendering/unit-visual-profile';
 import { WORLD_UNITS_PER_METER } from '../simulation/arena';
 import type { TacticalSpellId } from '../simulation/element-types';
+import { TACTICAL_SPELLS } from '../simulation/spell-content';
+import { globalTacticalCasterIds } from './tactical-caster-candidates';
 import type { FormationId } from '../simulation/formation';
 import type { M04Simulation } from '../simulation/m04-simulation';
 import type { EntitySnapshot } from '../simulation/simulation';
@@ -41,6 +43,7 @@ export class UnitControls {
   private hoverClientX: number | null = null;
   private hoverClientY: number | null = null;
   private attackMoveArmed = false;
+  private tacticalSpellArmed: TacticalSpellId | null = null;
   private formation: FormationId = 'LINE';
   private facingQaIndex: number | null = null;
   private lastClickEntityId: number | null = null;
@@ -76,6 +79,22 @@ export class UnitControls {
 
   cancelAttackMoveTargeting(): void { this.setAttackMoveArmed(false); }
 
+  armTacticalSpell(spellId: TacticalSpellId): void {
+    this.setAttackMoveArmed(false);
+    this.tacticalSpellArmed = spellId;
+    this.canvas.classList.add('tactical-spell-targeting');
+    this.canvas.style.cursor = 'crosshair';
+    this.renderFormationMode();
+  }
+
+  cancelTacticalSpellTargeting(): void {
+    if (this.tacticalSpellArmed === null) return;
+    this.tacticalSpellArmed = null;
+    this.canvas.classList.remove('tactical-spell-targeting');
+    this.canvas.style.cursor = this.attackMoveArmed ? 'crosshair' : '';
+    this.renderFormationMode();
+  }
+
   get activeFormation(): FormationId {
     return this.formation;
   }
@@ -90,6 +109,7 @@ export class UnitControls {
       .sort((left, right) => left - right);
     if (controllable.length === 0) return false;
     this.setAttackMoveArmed(false);
+    this.cancelTacticalSpellTargeting();
     this.disableFacingQa();
     this.selection.select(controllable, 'REPLACE');
     this.lastClickEntityId = null;
@@ -124,6 +144,7 @@ export class UnitControls {
   }
 
   destroy(): void {
+    this.cancelTacticalSpellTargeting();
     this.disableFacingQa();
     this.canvas.removeEventListener('pointerdown', this.onPointerDown);
     this.canvas.removeEventListener('contextmenu', this.onContextMenu);
@@ -135,6 +156,12 @@ export class UnitControls {
   private readonly onPointerDown = (event: PointerEvent): void => {
     this.hoverClientX = event.clientX;
     this.hoverClientY = event.clientY;
+    if (event.button === 0 && this.tacticalSpellArmed !== null) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (this.castArmedTacticalSpell(event.clientX, event.clientY)) this.cancelTacticalSpellTargeting();
+      return;
+    }
     if (event.button === 0 && this.attackMoveArmed) {
       event.preventDefault();
       const target = this.worldPointFromClient(event.clientX, event.clientY);
@@ -143,6 +170,7 @@ export class UnitControls {
     }
     if (event.button === 2) {
       this.setAttackMoveArmed(false);
+      this.cancelTacticalSpellTargeting();
       event.preventDefault();
       this.enqueueContextOrder(event.clientX, event.clientY);
       return;
@@ -218,7 +246,7 @@ export class UnitControls {
   private readonly onKeyDown = (event: KeyboardEvent): void => {
     if (event.target instanceof HTMLElement && (event.target.isContentEditable
       || ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName))) return;
-    if (event.code === 'Escape') { this.setAttackMoveArmed(false); return; }
+    if (event.code === 'Escape') { this.setAttackMoveArmed(false); this.cancelTacticalSpellTargeting(); return; }
     if (!event.repeat && !event.ctrlKey && !event.altKey && !event.metaKey && event.code === 'KeyT') {
       if (this.selection.ids.length > 0) { event.preventDefault(); this.setAttackMoveArmed(true); }
       return;
@@ -278,21 +306,8 @@ export class UnitControls {
       this.castTacticalAtHover('FREEZE');
       return;
     }
-
-    if (event.code === 'KeyL' && !event.repeat) {
-      if (this.hoverClientX === null || this.hoverClientY === null) return;
-      const screen = this.toCanvasCoordinates(this.hoverClientX, this.hoverClientY);
-      const targetId = this.bridge.pickSingle(this.camera, screen.x, screen.y, UNIT_PICK_RADIUS);
-      if (targetId === null || !this.bridge.isEnemy(targetId)) return;
-      this.disableFacingQa();
-      this.simulation.enqueueCommand({
-        targetTick: this.simulation.snapshot().tick + 1,
-        playerId: 0,
-        type: 'CAST_TACTICAL',
-        spellId: 'CHAIN_LIGHTNING',
-        candidateCasterIds: this.selection.ids,
-        target: { kind: 'ENTITY', entityId: targetId },
-      });
+    if (!event.repeat && event.code === 'KeyL') {
+      this.castTacticalAtHover('CHAIN_LIGHTNING');
       return;
     }
 
@@ -312,7 +327,8 @@ export class UnitControls {
 
   private setAttackMoveArmed(armed: boolean): void {
     this.attackMoveArmed = armed;
-    this.canvas.style.cursor = armed ? 'crosshair' : '';
+    if (armed) this.cancelTacticalSpellTargeting();
+    this.canvas.style.cursor = armed || this.tacticalSpellArmed !== null ? 'crosshair' : '';
     this.renderFormationMode();
   }
 
@@ -325,7 +341,12 @@ export class UnitControls {
     const element = document.getElementById('formation-mode');
     if (!element) return;
     const label = this.formation === 'LINE' ? 'Line' : this.formation === 'COLUMN' ? 'Column' : 'Spread';
-    element.textContent = this.attackMoveArmed ? 'Attack Move: click destination · Esc cancel' : `Formation: ${label} · T Attack Move · H Hold`;
+    const tactical = this.tacticalSpellArmed === null ? null : TACTICAL_SPELLS[this.tacticalSpellArmed];
+    element.textContent = tactical
+      ? `${tactical.element}: click a valid Tactical target · Esc cancel`
+      : this.attackMoveArmed
+        ? 'Attack Move: click destination · Esc cancel'
+        : `Formation: ${label} · T Attack Move · H Hold`;
     element.dataset.formation = this.formation;
   }
 
@@ -409,18 +430,44 @@ export class UnitControls {
     return bestId;
   }
 
-  private castTacticalAtHover(spellId: Exclude<TacticalSpellId, 'CHAIN_LIGHTNING'>): void {
-    const target = this.hoverWorldPoint();
-    if (!target) return;
+  private castTacticalAtHover(spellId: TacticalSpellId): void {
+    if (this.hoverClientX === null || this.hoverClientY === null) return;
+    this.cancelTacticalSpellTargeting();
+    this.castTacticalSpellAtClient(spellId, this.hoverClientX, this.hoverClientY);
+  }
+
+  private castArmedTacticalSpell(clientX: number, clientY: number): boolean {
+    const spellId = this.tacticalSpellArmed;
+    return spellId !== null && this.castTacticalSpellAtClient(spellId, clientX, clientY);
+  }
+
+  private castTacticalSpellAtClient(spellId: TacticalSpellId, clientX: number, clientY: number): boolean {
+    const snapshot = this.simulation.snapshot();
+    const candidateCasterIds = globalTacticalCasterIds(snapshot, 0);
+    if (candidateCasterIds.length === 0) return false;
+
+    let target: { kind: 'POINT'; x: number; z: number } | { kind: 'ENTITY'; entityId: number };
+    if (spellId === 'CHAIN_LIGHTNING') {
+      const screen = this.toCanvasCoordinates(clientX, clientY);
+      const targetId = this.bridge.pickSingle(this.camera, screen.x, screen.y, UNIT_PICK_RADIUS);
+      if (targetId === null || !this.bridge.isEnemy(targetId)) return false;
+      target = { kind: 'ENTITY', entityId: targetId };
+    } else {
+      const point = this.worldPointFromClient(clientX, clientY);
+      if (!point) return false;
+      target = { kind: 'POINT', x: point.x, z: point.z };
+    }
+
     this.disableFacingQa();
     this.simulation.enqueueCommand({
-      targetTick: this.simulation.snapshot().tick + 1,
+      targetTick: snapshot.tick + 1,
       playerId: 0,
       type: 'CAST_TACTICAL',
       spellId,
-      candidateCasterIds: this.selection.ids,
-      target: { kind: 'POINT', x: target.x, z: target.z },
+      candidateCasterIds,
+      target,
     });
+    return true;
   }
 
   private renderSelected(): void {
@@ -480,11 +527,6 @@ export class UnitControls {
     objectiveSimulation.enqueueObjectiveAttack(this.selection.ids, 'ENEMY_CORE');
     this.onCommandFeedback('ATTACK');
     return true;
-  }
-
-  private hoverWorldPoint(): { x: number; z: number } | null {
-    if (this.hoverClientX === null || this.hoverClientY === null) return null;
-    return this.worldPointFromClient(this.hoverClientX, this.hoverClientY);
   }
 
   private worldPointFromClient(clientX: number, clientY: number): { x: number; z: number } | null {
