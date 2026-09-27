@@ -1,4 +1,4 @@
-import { acquireEncounterTargets } from './auto-aggro';
+import { acquireEncounterTargets, acquireLocalSupportTargets } from './auto-aggro';
 import { EnemyLogisticsState, type EnemyLogisticsSnapshot } from './enemy-logistics-state';
 import { EnemyWarState, type EnemyWarSnapshot } from './enemy-war-state';
 import type { EnemyDifficulty, EnemyFaction } from './m05-content';
@@ -35,7 +35,8 @@ export class M05Simulation extends M04Simulation {
   override step(): M05SimulationSnapshot {
     const nextTick = super.snapshot().tick + 1;
     this.stopIllegalHiddenPursuit(nextTick);
-    acquireEncounterTargets(this.entities, this.navigation, this.visibility, this.terrain, nextTick);
+    acquireEncounterTargets(this.entities, this.navigation, this.visibility, this.terrain, nextTick, [0]);
+    acquireLocalSupportTargets(this.entities, this.navigation, this.visibility, this.terrain, nextTick, [0]);
     const frame = super.step();
     const strategic = this.strategy.snapshot();
     this.enemyWar.advance(frame.tick, strategic, {
