@@ -342,7 +342,7 @@ Routine execution such as pathing, local target acquisition, and Tactical caster
 
 Only four coherent changes are approved before the next playtest gate:
 
-### P5-A1 — Front Orders — IMPLEMENTED / PLAYTEST GATE
+### P5-A1 — Front Orders — ACCEPTED
 
 Introduce persistent squads with three baseline missions:
 
