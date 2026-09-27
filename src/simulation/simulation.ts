@@ -264,7 +264,10 @@ export class Simulation {
         }
         for (const entityId of validIds) {
           const movement = this.entities.movements.get(entityId)!;
-          movement.autoSupportSuppressed = command.type === 'MOVE' && forcedDisengageIds.has(entityId);
+          movement.autoSupportSuppressed = command.type === 'MOVE'
+            && forcedDisengageIds.has(entityId)
+            && movement.targetX !== null
+            && movement.targetZ !== null;
         }
         if (command.type === 'ATTACK_MOVE') {
           for (const entityId of validIds) {
@@ -345,6 +348,16 @@ export class Simulation {
         movement.orderMode = 'NORMAL';
         movement.attackMoveX = null;
         movement.attackMoveZ = null;
+      }
+      if (
+        movement.orderMode === 'NORMAL'
+        && combat.targetEntityId === null
+        && movement.targetX === null
+        && movement.targetZ === null
+        && movement.resumeMoveX === null
+        && movement.resumeMoveZ === null
+      ) {
+        movement.autoSupportSuppressed = false;
       }
     }
   }
