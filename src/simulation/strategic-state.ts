@@ -98,6 +98,19 @@ export interface StrategicResourcesSnapshot {
   influenceMilli: number;
 }
 
+export interface AutomaticResourceSiteSnapshot {
+  playerId: PlayerID;
+  resourceNodeId: string;
+  type: ResourceNode['type'];
+  regionId: number;
+  rich: boolean;
+  connected: boolean;
+}
+
+export interface StrategicStateOptions {
+  automaticResourceSitePlayerIds?: readonly PlayerID[];
+}
+
 export interface StrategicSnapshot {
   stateHash: string;
   resources: Readonly<Record<number, StrategicResourcesSnapshot>>;
@@ -107,6 +120,7 @@ export interface StrategicSnapshot {
   contestedRegions: readonly number[];
   suppliedRegions: Readonly<Record<number, readonly number[]>>;
   poiOwners: Readonly<Record<string, number>>;
+  automaticResourceSites: readonly AutomaticResourceSiteSnapshot[];
   buildings: readonly StrategicBuilding[];
   productionQueue: readonly {
     id: number;
@@ -183,6 +197,7 @@ export class StrategicState {
   private contestedRegions = new Uint8Array(0);
   private readonly suppliedByPlayer = new Map<PlayerID, Set<number>>();
   private readonly poiOwners = new Map<string, PlayerID>();
+  private readonly automaticResourceSitePlayers: ReadonlySet<PlayerID>;
   private nextBuildingId = 1;
   private nextProductionOrderId = 1;
 
@@ -190,7 +205,13 @@ export class StrategicState {
     readonly world: GeneratedWorld,
     private readonly entities: EntityStore,
     private readonly navigation: NavigationGrid,
+    options: StrategicStateOptions = {},
   ) {
+    this.automaticResourceSitePlayers = new Set(
+      [...new Set(options.automaticResourceSitePlayerIds ?? [])]
+        .filter((playerId) => Number.isSafeInteger(playerId) && playerId >= 0)
+        .sort((left, right) => left - right),
+    );
     this.regionOwners = new Uint8Array(world.regions.length);
     this.regionOwners.fill(NEUTRAL_OWNER);
     this.contestedRegions = new Uint8Array(world.regions.length);
@@ -239,21 +260,25 @@ export class StrategicState {
       stock.materialMilli += CORE_MATERIAL_MILLI_PER_TICK;
       stock.manaMilli += CORE_MANA_MILLI_PER_TICK;
     }
+
+    for (const site of this.automaticResourceSiteSnapshot()) {
+      const node = this.world.resources.find((candidate) => candidate.id === site.resourceNodeId);
+      if (!node) continue;
+      this.applyResourceNodeIncome(site.playerId, node, site.connected);
+    }
+
     for (const building of this.sortedBuildings()) {
       const expectedResourceType = resourceTypeForBuilding(building.type);
       if (!building.completed || building.destroyed || expectedResourceType === null || building.resourceNodeId === null) continue;
+      if (this.automaticResourceSitePlayers.has(building.playerId)) continue;
       if (this.ownerOfRegion(building.regionId) !== building.playerId) continue;
       const node = this.world.resources.find((candidate) => candidate.id === building.resourceNodeId);
       if (!node || node.type !== expectedResourceType) continue;
-      const connected = this.isRegionSupplied(building.playerId, building.regionId);
-      const stock = this.ensurePlayer(building.playerId);
-      if (building.type === 'EXTRACTOR') {
-        const base = node.rich ? MATERIAL_RICH_MILLI_PER_TICK : MATERIAL_NORMAL_MILLI_PER_TICK;
-        stock.materialMilli += connected ? base : Math.floor((base * DISCONNECTED_MATERIAL_PERMILLE) / 1000);
-      } else {
-        const base = node.rich ? MANA_RICH_MILLI_PER_TICK : MANA_NORMAL_MILLI_PER_TICK;
-        stock.manaMilli += connected ? base : Math.floor((base * DISCONNECTED_MANA_PERMILLE) / 1000);
-      }
+      this.applyResourceNodeIncome(
+        building.playerId,
+        node,
+        this.isRegionSupplied(building.playerId, building.regionId),
+      );
     }
   }
 
@@ -372,6 +397,7 @@ export class StrategicState {
       contestedRegions: [...this.contestedRegions].flatMap((value, index) => value === 1 ? [index] : []),
       suppliedRegions,
       poiOwners,
+      automaticResourceSites: this.automaticResourceSiteSnapshot(),
       buildings: this.sortedBuildings().map((building) => ({ ...building })),
       productionQueue: [...this.productionOrders]
         .sort((left, right) => left.completeTick - right.completeTick || left.id - right.id)
@@ -388,6 +414,38 @@ export class StrategicState {
 
   isRegionSupplied(playerId: PlayerID, regionId: number): boolean {
     return this.suppliedByPlayer.get(playerId)?.has(regionId) === true;
+  }
+
+  automaticResourceSitesEnabled(playerId: PlayerID): boolean {
+    return this.automaticResourceSitePlayers.has(playerId);
+  }
+
+  private automaticResourceSiteSnapshot(): AutomaticResourceSiteSnapshot[] {
+    const sites: AutomaticResourceSiteSnapshot[] = [];
+    for (const node of [...this.world.resources].sort((left, right) => left.id.localeCompare(right.id))) {
+      const playerId = this.ownerOfRegion(node.regionId);
+      if (playerId === null || !this.automaticResourceSitePlayers.has(playerId)) continue;
+      sites.push({
+        playerId,
+        resourceNodeId: node.id,
+        type: node.type,
+        regionId: node.regionId,
+        rich: node.rich,
+        connected: this.isRegionSupplied(playerId, node.regionId),
+      });
+    }
+    return sites;
+  }
+
+  private applyResourceNodeIncome(playerId: PlayerID, node: ResourceNode, connected: boolean): void {
+    const stock = this.ensurePlayer(playerId);
+    if (node.type === 'MATERIAL') {
+      const base = node.rich ? MATERIAL_RICH_MILLI_PER_TICK : MATERIAL_NORMAL_MILLI_PER_TICK;
+      stock.materialMilli += connected ? base : Math.floor((base * DISCONNECTED_MATERIAL_PERMILLE) / 1000);
+      return;
+    }
+    const base = node.rich ? MANA_RICH_MILLI_PER_TICK : MANA_NORMAL_MILLI_PER_TICK;
+    stock.manaMilli += connected ? base : Math.floor((base * DISCONNECTED_MANA_PERMILLE) / 1000);
   }
 
   private processBuild(command: BuildCommand, tick: number): boolean {
@@ -964,6 +1022,14 @@ export class StrategicState {
     for (const [poiId, owner] of Object.entries(snapshot.poiOwners).sort(([a], [b]) => a.localeCompare(b))) {
       hash = hashString(hash, poiId);
       hash = hashInteger(hash, owner);
+    }
+    for (const site of snapshot.automaticResourceSites) {
+      hash = hashInteger(hash, site.playerId);
+      hash = hashString(hash, site.resourceNodeId);
+      hash = hashString(hash, site.type);
+      hash = hashInteger(hash, site.regionId);
+      hash = hashInteger(hash, site.rich ? 1 : 0);
+      hash = hashInteger(hash, site.connected ? 1 : 0);
     }
     for (const building of snapshot.buildings) {
       hash = hashInteger(hash, building.id);
