@@ -11,6 +11,7 @@ import { M03Simulation } from '../simulation/m03-simulation';
 import type { M04Simulation } from '../simulation/m04-simulation';
 import { M06Simulation } from '../simulation/m06-simulation';
 import type { EntitySnapshot } from '../simulation/simulation';
+import type { TacticalSpellId } from '../simulation/element-types';
 import { AnimatedUnitRenderBridge } from './animated-unit-render-bridge';
 import { CameraFeedback } from './camera-feedback';
 import { CombatPresentationPass } from './combat-presentation-pass';
@@ -101,6 +102,7 @@ export interface SceneShell {
   get selectedUnits(): readonly EntitySnapshot[];
   selectUnit(entityId: number, focusCamera?: boolean): boolean;
   selectUnits(entityIds: readonly number[], focusCamera?: boolean): boolean;
+  armTacticalSpell(spellId: TacticalSpellId): void;
   screenToSimulationPosition(clientX: number, clientY: number): { x: number; z: number } | null;
   sync(frame: TickFrame): void;
   destroy(): void;
@@ -299,6 +301,9 @@ export function createSceneShell(
         camera.focusAt(metres(centerX), metres(centerZ));
       }
       return selected;
+    },
+    armTacticalSpell(spellId: TacticalSpellId): void {
+      controls.armTacticalSpell(spellId);
     },
     screenToSimulationPosition,
     sync(frame: TickFrame): void {
