@@ -1,5 +1,6 @@
 import type { M06SimulationSnapshot } from '../simulation/m06-simulation';
 import type { GeneratedWorld } from '../world/world-definition';
+import { worldCellToSimulationPosition } from '../world/world-arena';
 
 export type EventNavigatorKind =
   | 'BATTLE'
@@ -175,15 +176,14 @@ export function deriveEventNavigatorCandidates(
   const previousOwners = previous.strategic.poiOwners;
   for (const poi of world.pois.filter((candidate) => candidate.type === 'SHRINE')) {
     if (previousOwners[poi.id] === 0 || current.strategic.poiOwners[poi.id] !== 0) continue;
-    const x = Math.round((poi.cell.x + 0.5) * 1_000 - world.width * 500);
-    const z = Math.round((poi.cell.z + 0.5) * 1_000 - world.height * 500);
+    const position = worldCellToSimulationPosition(world, poi.cell);
     events.push({
       key: `shrine:${poi.id}`,
       kind: 'SHRINE',
       label: 'Shrine secured',
       detail: 'Upgrade choice available',
-      x,
-      z,
+      x: position.x,
+      z: position.z,
       priority: 55,
     });
   }
