@@ -18,7 +18,7 @@ Elemental Front is approaching a playable visual and systemic baseline, but the 
 The main problems are not missing features. They are friction and diluted focus:
 
 - the player must repeatedly select units, move the camera, issue movement/combat orders, manage production, and inspect multiple fronts;
-- elemental spells are the game's strongest identity, yet Tactical casting currently requires the player to select an aligned Elementalist before casting;
+- elemental spells are the game's strongest identity; before P5-A2, Tactical casting required the player to select an aligned Elementalist before casting;
 - Extractor and Mana Well construction mostly converts a captured resource location into passive income and creates little additional decision value;
 - formation and control-group systems are useful for expert RTS play but raise the baseline mechanical burden;
 - veteran progression, procedural terrain, elemental simulation, POIs, neutral camps, Enemy War AI, and deterministic replay already create enough strategic depth that the game does not need high APM as its primary difficulty source.
