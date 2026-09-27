@@ -9,7 +9,9 @@
     "typecheck": "tsc --noEmit --pretty false",
     "test": "npm run art:atlases && vitest run",
     "test:watch": "vitest",
-    "art:atlases": "python3 scripts/art/build_unit_atlases.py"
+    "art:atlases": "python3 scripts/art/build_unit_atlases.py",
+    "test:ui": "vitest run tests/ui",
+    "qa:ui": "npm run test:ui && npm run typecheck"
   },
   "dependencies": {
     "playcanvas": "^2.9.3"

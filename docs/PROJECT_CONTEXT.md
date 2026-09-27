@@ -257,6 +257,16 @@ Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A�
 - gameplay/replay identity is `ef-standard-v27` / `ef-replay-v27`; world generation remains `m02-standard-v1`;
 - **P5-A2 remains not started.**
 
+### Phase 5 P5-A1 Command Mode HUD placement polish — presentation-only — 2026-09-27
+
+- the Command Mode panel now shares the compact right-side HUD rail directly below Element Tactics on desktop instead of floating at a fixed lower-right coordinate;
+- desktop width is aligned with the compact minimap / tactics rail, while the squad list remains scrollable and the panel height is viewport-bounded;
+- narrow layouts move Command Mode to the free upper-left area while the strategy panel remains bottom-docked;
+- the player-facing title is simply `COMMAND MODE`; internal milestone text such as `P5-A1` is not shown in normal UI;
+- `npm run test:ui` and `npm run qa:ui` provide a fast UI-focused validation path before full CI;
+- this is presentation/tooling only: gameplay remains `ef-standard-v27`, replay remains `ef-replay-v27`, and world generation remains `m02-standard-v1`;
+- **P5-A2 remains not started.**
+
 
 ### Tower Defense vertical slice
 
