@@ -144,6 +144,7 @@ export class UnitControls {
   }
 
   destroy(): void {
+    this.cancelTacticalSpellTargeting();
     this.disableFacingQa();
     this.canvas.removeEventListener('pointerdown', this.onPointerDown);
     this.canvas.removeEventListener('contextmenu', this.onContextMenu);
@@ -169,6 +170,7 @@ export class UnitControls {
     }
     if (event.button === 2) {
       this.setAttackMoveArmed(false);
+      this.cancelTacticalSpellTargeting();
       event.preventDefault();
       this.enqueueContextOrder(event.clientX, event.clientY);
       return;
@@ -430,6 +432,7 @@ export class UnitControls {
 
   private castTacticalAtHover(spellId: TacticalSpellId): void {
     if (this.hoverClientX === null || this.hoverClientY === null) return;
+    this.cancelTacticalSpellTargeting();
     this.castTacticalSpellAtClient(spellId, this.hoverClientX, this.hoverClientY);
   }
 
