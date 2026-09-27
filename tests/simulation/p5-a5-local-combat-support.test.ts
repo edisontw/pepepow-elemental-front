@@ -7,6 +7,13 @@ import {
 } from '../../src/simulation/auto-aggro';
 import { Simulation } from '../../src/simulation/simulation';
 
+class SupportSimulation extends Simulation {
+  protected override prepareAutonomousCombat(tick: number): void {
+    acquireEncounterTargets(this.entities, this.navigation, this.visibility, this.terrain, tick, [0]);
+    acquireLocalSupportTargets(this.entities, this.navigation, this.visibility, this.terrain, tick, [0]);
+  }
+}
+
 function supportArena(): ArenaDefinition {
   const base = M01_ARENA.units[0]!;
   return {
@@ -31,7 +38,7 @@ function supportArena(): ArenaDefinition {
   };
 }
 
-function hostile(sim: Simulation, x: number, z: number, maxHealth = 100): number {
+function hostile(sim: SupportSimulation, x: number, z: number, maxHealth = 100): number {
   const base = M01_ARENA.units[0]!;
   return sim.entities.createUnit({
     ...base,
@@ -45,16 +52,13 @@ function hostile(sim: Simulation, x: number, z: number, maxHealth = 100): number
   });
 }
 
-function automationTick(sim: Simulation): void {
-  const nextTick = sim.snapshot().tick + 1;
-  acquireEncounterTargets(sim.entities, sim.navigation, sim.visibility, sim.terrain, nextTick, [0]);
-  acquireLocalSupportTargets(sim.entities, sim.navigation, sim.visibility, sim.terrain, nextTick, [0]);
+function automationTick(sim: SupportSimulation): void {
   sim.step();
 }
 
 describe('P5-A5 local combat support refinement', () => {
   it('pulls a nearby moving unit into an allied fight, then resumes its original MOVE destination', () => {
-    const sim = new Simulation('support-resume', supportArena());
+    const sim = new SupportSimulation('support-resume', supportArena());
     const enemy = hostile(sim, 3500, 2500);
     const destination = { x: 21_500, z: 2500 };
 
@@ -105,7 +109,7 @@ describe('P5-A5 local combat support refinement', () => {
   });
 
   it('lets ordinary transit engage a newly encountered local enemy and resume afterward', () => {
-    const sim = new Simulation('transit-encounter', {
+    const sim = new SupportSimulation('transit-encounter', {
       ...supportArena(),
       units: [supportArena().units[0]!],
     });
@@ -138,19 +142,19 @@ describe('P5-A5 local combat support refinement', () => {
   });
 
   it('keeps MOVE issued during combat as a forced disengage until the destination is reached', () => {
-    const sim = new Simulation('forced-disengage-still-works', {
+    const sim = new SupportSimulation('forced-disengage-still-works', {
       ...supportArena(),
       units: [supportArena().units[0]!],
     });
     const enemy = hostile(sim, 3200, 2500, 500);
     sim.entities.combat.get(1)!.attackDamage = 1;
 
-    acquireEncounterTargets(sim.entities, sim.navigation, sim.visibility, sim.terrain, 1, [0]);
+    automationTick(sim);
     expect(sim.entities.combat.get(1)!.targetEntityId).toBe(enemy);
 
     sim.enqueueCommand({
       type: 'MOVE',
-      targetTick: 1,
+      targetTick: sim.snapshot().tick + 1,
       playerId: 0,
       entityIds: [1],
       targetX: 15_500,
@@ -168,7 +172,7 @@ describe('P5-A5 local combat support refinement', () => {
   });
 
   it('does not chain local-support calls outward through units that only joined as helpers', () => {
-    const sim = new Simulation('no-support-chain', supportArena());
+    const sim = new SupportSimulation('no-support-chain', supportArena());
     const enemy = hostile(sim, 3500, 2500, 500);
     sim.entities.combat.get(1)!.attackDamage = 1;
 
@@ -191,7 +195,7 @@ describe('P5-A5 local combat support refinement', () => {
   });
 
   it('does not override HOLD with local support', () => {
-    const sim = new Simulation('hold-does-not-support', supportArena());
+    const sim = new SupportSimulation('hold-does-not-support', supportArena());
     const enemy = hostile(sim, 3500, 2500, 500);
     sim.entities.combat.get(1)!.attackDamage = 1;
 
