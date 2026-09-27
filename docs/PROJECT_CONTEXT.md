@@ -1,6 +1,6 @@
 # PEPEPOW Elemental Front — PROJECT_CONTEXT
 
-**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Phase 4 Hero-Lite Progression CLOSED → **Phase 5 Autonomous Front Redesign ACTIVE — P5-A1 IMPLEMENTED / playtest gate**; Visual Production supporting  
+**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Phase 4 Hero-Lite Progression CLOSED → **Phase 5 Autonomous Front Redesign ACTIVE — P5-A1 ACCEPTED; P5-A2 IMPLEMENTED / playtest**; Visual Production supporting  
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
