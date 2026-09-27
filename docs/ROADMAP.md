@@ -433,10 +433,10 @@ During the prototype:
 
 P5-A1 is the first authoritative Phase 5 gameplay merge.
 
-P5-A1 first merged under v25. The current runtime after the multi-squad roster refinement is:
+P5-A1 first merged under v25, gained multi-squad roster formation in v26, and received the Advance local-threat acquisition / killing-blow presentation correction in v27. Current runtime:
 
-- gameplay: `ef-standard-v26`;
-- replay: `ef-replay-v26`;
+- gameplay: `ef-standard-v27`;
+- replay: `ef-replay-v27`;
 - world generation: `m02-standard-v1`.
 
 P5-A1 persistent squads, Front Orders, and deterministic additional-squad formation are implemented. P5-A2 remains blocked on the P5-A1 playtest gate.
