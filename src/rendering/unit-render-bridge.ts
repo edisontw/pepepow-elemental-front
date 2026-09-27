@@ -9,6 +9,7 @@ import type { EntitySnapshot, SimulationSnapshot } from '../simulation/simulatio
 import { unitVisualProfile, type UnitProjectileStyle } from './unit-visual-profile';
 import { resolvePresentationFacing } from './unit-facing';
 import { pointToSegmentDistanceSquared } from './screen-space-pick';
+import { presentationAttackTargetId } from './combat-event-resolution';
 import {
   impostorAnimationDurationSeconds,
   impostorMoveElapsedSeconds,
@@ -116,9 +117,9 @@ function impactDirection(
 ): { x: number; z: number } {
   const attacker = current.entities
     .filter((candidate) => {
-      if (!candidate.alive || candidate.playerId === target.playerId || candidate.attackTargetEntityId !== target.id) return false;
       const prior = previousById.get(candidate.id);
-      return prior !== undefined && candidate.nextAttackTick > prior.nextAttackTick;
+      if (!prior || !candidate.alive || candidate.playerId === target.playerId) return false;
+      return presentationAttackTargetId(prior, candidate) === target.id;
     })
     .sort((left, right) => left.id - right.id)[0];
   if (!attacker) return fallbackImpactDirection(target.id);
@@ -713,11 +714,11 @@ export class UnitRenderBridge {
           : objectiveOrder?.objective === 'BOSS'
             ? run?.boss
             : null;
-      const unitTarget = unit.attackTargetEntityId === null
+      const attackTargetId = presentationAttackTargetId(prior, unit);
+      const unitTarget = attackTargetId === null
         ? undefined
-        : currentById.get(unit.attackTargetEntityId);
-      const unitAttackEvent = unit.attackTargetEntityId !== null
-        && unit.nextAttackTick > prior.nextAttackTick
+        : currentById.get(attackTargetId);
+      const unitAttackEvent = attackTargetId !== null
         && targetWithinAttackRange(unit, unitTarget);
       const objectiveAttackEvent = objectiveTarget !== null
         && objectiveTarget !== undefined
@@ -742,8 +743,8 @@ export class UnitRenderBridge {
         presentation.facingOverrideYaw = facingYawDegrees(unit.x, unit.z, facing.x, facing.z);
         presentation.facingOverrideUntilTick = current.tick + 1;
       }
-      if (profile.projectile === 'NONE' || unit.attackTargetEntityId === null) continue;
-      const target = currentById.get(unit.attackTargetEntityId);
+      if (profile.projectile === 'NONE' || attackTargetId === null) continue;
+      const target = currentById.get(attackTargetId);
       if (!target || (!target.visibleToPlayer && target.playerId !== 0)) continue;
       this.spawnProjectile(unit, target, profile.projectile, current.tick);
     }
