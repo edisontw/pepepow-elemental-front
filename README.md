@@ -38,7 +38,7 @@ The current game includes:
 Ruleset separation:
 
 - world generation: `m02-standard-v1`
-- current gameplay/challenge: `ef-standard-v26`; replay: `ef-replay-v26`
+- current gameplay/challenge: `ef-standard-v27`; replay: `ef-replay-v27`
 
 ## Development
 
