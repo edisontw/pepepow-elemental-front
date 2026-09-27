@@ -22,6 +22,7 @@ describe('post-roadmap competitive ruleset identity', () => {
     expect(replay.header.version).toBe('ef-replay-v30');
     expect(replay.header.startingAttunements).toEqual(['FIRE', 'WATER']);
     expect(isSupportedChallengeRuleset(CURRENT_CHALLENGE_RULESET_VERSION)).toBe(true);
+    expect(isSupportedChallengeRuleset('ef-standard-v29')).toBe(true);
     expect(isSupportedChallengeRuleset('ef-standard-v2')).toBe(false);
     expect(isSupportedChallengeRuleset('m08-standard-v1')).toBe(false);
     expect(isSupportedChallengeRuleset(world.identity.rulesetVersion)).toBe(false);
