@@ -317,7 +317,7 @@ Do not automatically reopen M00–M08 implementation history. Start future work 
 
 # 14. Post-Roadmap Phase 5 — Autonomous Front Redesign
 
-**Status:** ACTIVE — P5-A1/P5-A2/P5-A3 ACCEPTED; P5-A4 IMPLEMENTED / PLAYTEST; P5-A5 GATE NEXT  
+**Status:** ACTIVE — P5-A1–P5-A4 IMPLEMENTED; P5-A5 PLAYTEST = REVISE / LOCAL SUPPORT  
 **Plan:** `docs/POST_ROADMAP_PHASE5_AUTONOMOUS_FRONT_REDESIGN_PLAN.md`
 
 ## Goal
@@ -383,7 +383,9 @@ Surface important battle/objective events in a compact navigator.
 
 Implemented as presentation-only snapshot-derived notifications with a five-item / 30-second recent-event window. Selecting an event smoothly focuses the camera; manual camera input cancels focus. No automatic camera jumps are issued.
 
-## P5-A5 — mandatory playtest gate
+## P5-A5 — mandatory playtest gate — ACTIVE / REVISE
+
+Current playtest finding: nearby units did not reliably support a newly encountered fight, especially while moving. v30 introduces bounded local support and NORMAL MOVE destination resumption while preserving explicit combat-disengage MOVE.
 
 Do not automatically proceed to P5-B.
 
@@ -431,12 +433,12 @@ During the prototype:
 
 P5-A1 is the first authoritative Phase 5 gameplay merge.
 
-P5-A1 first merged under v25 and was refined through v27. P5-A2 Global Tactical element access landed in v28. P5-A3 automatic baseline resource sites are implemented in v29. Current runtime:
+P5-A1 first merged under v25 and was refined through v27. P5-A2 landed in v28, P5-A3 in v29, and P5-A4 was presentation-only on v29. P5-A5 local-support revision advances the current runtime to:
 
-- gameplay: `ef-standard-v29`;
-- replay: `ef-replay-v29`;
+- gameplay: `ef-standard-v30`;
+- replay: `ef-replay-v30`;
 - world generation: `m02-standard-v1`.
 
-P5-A1/P5-A2/P5-A3 are accepted. P5-A4 adds player-invoked event-to-camera navigation without changing gameplay authority or v29 identity. P5-A5 is now the mandatory real-playtest decision gate before any P5-B work.
+P5-A5 remains **REVISE** pending renewed playtest of local support, moving-unit interruption/resumption, and explicit disengage responsiveness. P5-B remains blocked.
 
 World generation remains `m02-standard-v1` for P5-A.
