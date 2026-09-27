@@ -4,7 +4,7 @@
 **Date:** 2026-09-26  
 **Baseline gameplay identity:** `ef-standard-v24`  
 **Baseline replay identity:** `ef-replay-v24`  
-**Current implemented identity after P5-A1 refinement:** `ef-standard-v26` / `ef-replay-v26`  
+**Current implemented identity after P5-A1 refinement:** `ef-standard-v27` / `ef-replay-v27`  
 **World generation:** `m02-standard-v1` remains unchanged  
 **Primary mode working name:** `COMMAND` / **Command Mode**  
 **Existing direct-control mode working name:** `CLASSIC` / **Classic Mode**
@@ -528,10 +528,10 @@ Documentation-only adoption of this plan did **not** change gameplay/replay iden
 - `ef-replay-v24`;
 - `m02-standard-v1`.
 
-P5-A1 first merged under `ef-standard-v25` / `ef-replay-v25`. The multi-squad roster refinement advances the current gameplay/replay identity to:
+P5-A1 first merged under `ef-standard-v25` / `ef-replay-v25`, then refined for multi-squad rosters under v26. The current combat-acquisition correction advances gameplay/replay identity to:
 
-- `ef-standard-v26`;
-- `ef-replay-v26`;
+- `ef-standard-v27`;
+- `ef-replay-v27`;
 - world generation remains `m02-standard-v1`.
 
 ### 16.4 World generation
@@ -546,13 +546,13 @@ Existing regions, routes, POIs, resource sites, camps, Shrines, objectives, and 
 
 ### P5-A1 — Squad order foundation — IMPLEMENTED / PLAYTEST GATE
 
-Implemented initially under `ef-standard-v25` / `ef-replay-v25` and refined under `ef-standard-v26` / `ef-replay-v26`; P5-A2 remains intentionally unstarted until playtest.
+Implemented initially under `ef-standard-v25` / `ef-replay-v25`, refined for multi-squad rosters under v26, and corrected for Advance local-threat acquisition / killing-blow presentation under `ef-standard-v27` / `ef-replay-v27`; P5-A2 remains intentionally unstarted until playtest.
 
 - persistent squad state;
 - squad creation from existing starting army;
 - deterministic additional squads for later trained player units, with six-member forming rosters that lock on first Front Order, direct Classic control, full capacity, or casualty;
 - no casualty replacement into locked squads; later recruits create the next squad instead;
-- Advance;
+- Advance, with a bounded 12 m Attack Move local-threat acquisition envelope so visible nearby threats are engaged consistently;
 - Guard;
 - Regroup;
 - compact squad status UI;
