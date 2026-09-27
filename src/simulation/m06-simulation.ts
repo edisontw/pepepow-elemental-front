@@ -214,7 +214,10 @@ export class M06Simulation extends M05Simulation {
   private replayVerification: ReplayVerification = 'NONE';
 
   constructor(generatedWorld: GeneratedWorld, options: M06SimulationOptions = {}) {
-    super(generatedWorld, options);
+    super(generatedWorld, {
+      ...options,
+      automaticResourceSitePlayerIds: options.automaticResourceSitePlayerIds ?? [0],
+    });
     this.neutralEncounters = new NeutralEncounterState(generatedWorld, this.entities, this.navigation);
     this.run = new RunState(generatedWorld, options.mode ?? 'DESTROY', options.pace ?? 'STANDARD');
     this.squads = new SquadState([{
