@@ -579,12 +579,15 @@ Implemented initially under `ef-standard-v25` / `ef-replay-v25`, refined for mul
 - Command Mode construction UI hides Extractor / Mana Well cards and shows automatic-site status;
 - no Exploit / Fortify development choice is introduced in P5-A3.
 
-### P5-A4 — Event Navigator
+### P5-A4 — Event Navigator — IMPLEMENTED / PLAYTEST
 
-- battle/front/objective event feed;
-- click/tap to smooth camera focus;
-- no forced camera stealing;
-- presentation-only where possible.
+- compact recent-event list derived from authoritative snapshots only;
+- battle start, Guard pressure, Outpost threat, Shrine secured, neutral camp cleared, veteran critical, and finale exposure are surfaced;
+- events expire after 30 simulation seconds and the list is capped at five;
+- click-to-focus uses smooth camera interpolation;
+- manual pan/input cancels smooth focus;
+- no automatic camera theft;
+- presentation-only: gameplay/replay identity remains v29.
 
 ### P5-A5 — Playtest and decision gate
 
