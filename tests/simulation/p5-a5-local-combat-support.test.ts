@@ -152,23 +152,28 @@ describe('P5-A5 local combat support refinement', () => {
     automationTick(sim);
     expect(sim.entities.combat.get(1)!.targetEntityId).toBe(enemy);
 
+    const destination = { x: 500, z: 2500 };
     sim.enqueueCommand({
       type: 'MOVE',
       targetTick: sim.snapshot().tick + 1,
       playerId: 0,
       entityIds: [1],
-      targetX: 15_500,
-      targetZ: 2500,
+      targetX: destination.x,
+      targetZ: destination.z,
     });
     automationTick(sim);
     expect(sim.entities.movements.get(1)!.autoSupportSuppressed).toBe(true);
     expect(sim.entities.combat.get(1)!.targetEntityId).toBeNull();
 
-    for (let index = 0; index < 8; index += 1) {
+    for (let index = 0; index < 20; index += 1) {
+      const position = sim.entities.positions.get(1)!;
+      if (position.x === destination.x && position.z === destination.z) break;
+      expect(sim.entities.movements.get(1)!.autoSupportSuppressed).toBe(true);
       automationTick(sim);
       expect(sim.entities.combat.get(1)!.targetEntityId).toBeNull();
     }
-    expect(sim.entities.positions.get(1)!.x).toBeGreaterThan(2500);
+    expect(sim.entities.positions.get(1)).toEqual(destination);
+    expect(sim.entities.movements.get(1)!.autoSupportSuppressed).toBe(false);
   });
 
   it('does not chain local-support calls outward through units that only joined as helpers', () => {
