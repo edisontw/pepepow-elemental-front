@@ -83,7 +83,7 @@ describe('v12 navigation and RTS orders', () => {
 
   it('gives Attack Move a wider local-threat envelope than ordinary idle auto-aggro', () => {
     const sim = new Simulation('attack-move-local-threat-envelope', arena());
-    const enemy = hostile(sim, 12_000, 2_500);
+    const enemy = hostile(sim, 10_000, 2_500);
     const distance = Math.hypot(
       sim.entities.positions.get(1)!.x - sim.entities.positions.get(enemy)!.x,
       sim.entities.positions.get(1)!.z - sim.entities.positions.get(enemy)!.z,
