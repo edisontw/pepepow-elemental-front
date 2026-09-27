@@ -4,8 +4,8 @@
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v27`
-**Current replay format:** `ef-replay-v27`
+**Current authoritative gameplay ruleset:** `ef-standard-v28`
+**Current replay format:** `ef-replay-v28`
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE4_CLOSURE_REPORT.md`
 
@@ -74,8 +74,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v27`;
-- replay: `ef-replay-v27`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v28`;
+- replay: `ef-replay-v28`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -199,7 +199,7 @@ Approved P5-A prototype scope:
 
 Important constraints:
 
-- P5-A1 first merged under `ef-standard-v25` / `ef-replay-v25`; the multi-squad roster refinement advanced to `ef-standard-v26` / `ef-replay-v26`; the current combat-acquisition correction advances runtime to `ef-standard-v27` / `ef-replay-v27`; P5-A2 and later slices remain unimplemented;
+- P5-A1 first merged under `ef-standard-v25` / `ef-replay-v25`; multi-squad refinement advanced to v26; combat-acquisition correction advanced to v27; **P5-A2 Global Tactical controls are now implemented under `ef-standard-v28` / `ef-replay-v28`**; P5-A3 and later slices remain unimplemented;
 - `m02-standard-v1` world generation remains unchanged for P5-A;
 - Material / Mana / Influence remain separate in the prototype;
 - Elementalist authority, alignment, position, range, cooldown, and survival remain meaningful;
@@ -218,7 +218,7 @@ See `docs/POST_ROADMAP_PHASE5_AUTONOMOUS_FRONT_REDESIGN_PLAN.md` for the full co
 
 ## 6. Current formal work point — Phase 4 + Visual Production
 
-Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A–P4-E originally closed under `ef-standard-v7` / `ef-replay-v7`; later post-closure gameplay changes continued through the `ef-standard-v24` / `ef-replay-v24` pre-Phase-5 baseline. Visual Production remains supporting work, while the active product-design work point is Phase 5 Autonomous Front Redesign under `ef-standard-v27` / `ef-replay-v27`.
+Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A–P4-E originally closed under `ef-standard-v7` / `ef-replay-v7`; later post-closure gameplay changes continued through the `ef-standard-v24` / `ef-replay-v24` pre-Phase-5 baseline. Visual Production remains supporting work, while the active product-design work point is Phase 5 Autonomous Front Redesign under `ef-standard-v28` / `ef-replay-v28`.
 
 ### Phase 5 P5-A1 Squad / Front Order foundation — v25 — 2026-09-26
 
@@ -264,8 +264,19 @@ Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A�
 - narrow layouts move Command Mode to the free upper-left area while the strategy panel remains bottom-docked;
 - the player-facing title is simply `COMMAND MODE`; internal milestone text such as `P5-A1` is not shown in normal UI;
 - `npm run test:ui` and `npm run qa:ui` provide a fast UI-focused validation path before full CI;
-- this is presentation/tooling only: gameplay remains `ef-standard-v27`, replay remains `ef-replay-v27`, and world generation remains `m02-standard-v1`;
-- **P5-A2 remains not started.**
+- this is presentation/tooling only: gameplay remains `ef-standard-v27`, replay remains `ef-replay-v27`, and world generation remains `m02-standard-v1`.
+
+### Phase 5 P5-A2 Global Tactical element access — v28 — 2026-09-27
+
+- Tactical casting no longer depends on current unit selection;
+- the Global Element Bar exposes only currently Attuned Tactical spells and shows aggregate caster readiness across all living aligned player Elementalists;
+- clicking a Tactical spell arms battlefield targeting; R / Q / F / L remain quick-cast shortcuts at the current battlefield cursor;
+- Tactical commands carry all living player Elementalist candidates; authoritative simulation still filters alignment, cooldown, target legality, visibility, and cast range, then chooses nearest squared distance with EntityID tie-breaking;
+- caster-local cooldowns, Elementalist survival, alignment, Mana cost, cast range, visibility, and target-mode legality remain authoritative;
+- explicit `NO_CASTER`, `COOLDOWN`, `NO_MANA`, and invalid-target/range feedback improve failure readability without turning Tactical spells into global-range magic;
+- Strategic spell network authority is unchanged;
+- gameplay/replay identity advances to `ef-standard-v28` / `ef-replay-v28`; world generation remains `m02-standard-v1`;
+- **P5-A3 is not started.**
 
 
 ### Tower Defense vertical slice
