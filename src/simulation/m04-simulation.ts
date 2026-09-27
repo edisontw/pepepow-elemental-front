@@ -13,7 +13,7 @@ import type { M03Command } from './m03-commands';
 import { M03CommandQueue } from './m03-commands';
 import type { M04Command } from './m04-commands';
 import { M04CommandQueue } from './m04-commands';
-import { M03Simulation, type M03SimulationSnapshot } from './m03-simulation';
+import { M03Simulation, type M03SimulationOptions, type M03SimulationSnapshot } from './m03-simulation';
 import { RogueliteState, type RogueliteSnapshot } from './roguelite-state';
 import {
   ELEMENTAL_SPELLS,
@@ -25,7 +25,7 @@ import { applyThunderstormPulse, applyV2TerrainPulse } from './spell-resolution'
 import { SpellAuthorityState, type SpellAuthoritySnapshot } from './spell-state';
 import type { GeneratedWorld } from '../world/world-definition';
 
-export interface M04SimulationOptions {
+export interface M04SimulationOptions extends M03SimulationOptions {
   /** M04 historical tests remain compatible; M05/M06 enable the player Mana rules by default. */
   playerManaRules?: boolean;
   startingAttunementsByPlayer?: Partial<Record<number, StartingAttunements>>;
@@ -139,7 +139,7 @@ export class M04Simulation extends M03Simulation {
   private lastV2CastResult: V2SpellCastResult | null = null;
 
   constructor(generatedWorld: GeneratedWorld, options: M04SimulationOptions = {}) {
-    super(generatedWorld);
+    super(generatedWorld, options);
     this.playerManaRules = options.playerManaRules ?? false;
     const initial: Record<number, StartingAttunements> = {
       0: options.startingAttunementsByPlayer?.[0] ?? DEFAULT_STARTING_ATTUNEMENTS[0]!,

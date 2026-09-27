@@ -1,11 +1,11 @@
 # PEPEPOW Elemental Front — PROJECT_CONTEXT
 
-**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Phase 4 Hero-Lite Progression CLOSED → **Phase 5 Autonomous Front Redesign ACTIVE — P5-A1 ACCEPTED; P5-A2 IMPLEMENTED / playtest**; Visual Production supporting  
+**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Phase 4 Hero-Lite Progression CLOSED → **Phase 5 Autonomous Front Redesign ACTIVE — P5-A1/P5-A2 ACCEPTED; P5-A3 IMPLEMENTED / playtest**; Visual Production supporting  
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
-**Current authoritative gameplay ruleset:** `ef-standard-v28`
-**Current replay format:** `ef-replay-v28`
+**Current authoritative gameplay ruleset:** `ef-standard-v29`
+**Current replay format:** `ef-replay-v29`
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE4_CLOSURE_REPORT.md`
 
@@ -74,8 +74,8 @@ Preserve unless a demonstrated requirement explicitly changes it:
 Current version separation:
 
 - world generation: `m02-standard-v1`;
-- gameplay / Block Challenge / score-proof: `ef-standard-v28`;
-- replay: `ef-replay-v28`.
+- gameplay / Block Challenge / score-proof: `ef-standard-v29`;
+- replay: `ef-replay-v29`.
 
 M02 Golden Blocks, world-generation identity, and the 2,048-seed regression remain unchanged by post-roadmap gameplay redesign.
 
@@ -199,7 +199,7 @@ Approved P5-A prototype scope:
 
 Important constraints:
 
-- P5-A1 first merged under `ef-standard-v25` / `ef-replay-v25`; multi-squad refinement advanced to v26; combat-acquisition correction advanced to v27; **P5-A2 Global Tactical controls are now implemented under `ef-standard-v28` / `ef-replay-v28`**; P5-A3 and later slices remain unimplemented;
+- P5-A1 first merged under v25 and was refined through v27; P5-A2 Global Tactical controls landed in v28; **P5-A3 automatic baseline resource sites are now implemented under `ef-standard-v29` / `ef-replay-v29`**; P5-A4 remains unimplemented;
 - `m02-standard-v1` world generation remains unchanged for P5-A;
 - Material / Mana / Influence remain separate in the prototype;
 - Elementalist authority, alignment, position, range, cooldown, and survival remain meaningful;
@@ -218,7 +218,7 @@ See `docs/POST_ROADMAP_PHASE5_AUTONOMOUS_FRONT_REDESIGN_PLAN.md` for the full co
 
 ## 6. Current formal work point — Phase 4 + Visual Production
 
-Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A–P4-E originally closed under `ef-standard-v7` / `ef-replay-v7`; later post-closure gameplay changes continued through the `ef-standard-v24` / `ef-replay-v24` pre-Phase-5 baseline. Visual Production remains supporting work, while the active product-design work point is Phase 5 Autonomous Front Redesign under `ef-standard-v28` / `ef-replay-v28`.
+Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A–P4-E originally closed under `ef-standard-v7` / `ef-replay-v7`; later post-closure gameplay changes continued through the `ef-standard-v24` / `ef-replay-v24` pre-Phase-5 baseline. Visual Production remains supporting work, while the active product-design work point is Phase 5 Autonomous Front Redesign under `ef-standard-v29` / `ef-replay-v29`.
 
 ### Phase 5 P5-A1 Squad / Front Order foundation — v25 — 2026-09-26
 
@@ -275,8 +275,20 @@ Phase 4 hero-lite gameplay redesign is **CLOSED** as a feature milestone. P4-A�
 - caster-local cooldowns, Elementalist survival, alignment, Mana cost, cast range, visibility, and target-mode legality remain authoritative;
 - explicit `NO_CASTER`, `COOLDOWN`, `NO_MANA`, and invalid-target/range feedback improve failure readability without turning Tactical spells into global-range magic;
 - Strategic spell network authority is unchanged;
-- gameplay/replay identity advances to `ef-standard-v28` / `ef-replay-v28`; world generation remains `m02-standard-v1`;
-- **P5-A3 is not started.**
+- gameplay/replay identity advances to `ef-standard-v28` / `ef-replay-v28`; world generation remains `m02-standard-v1`.
+
+### Phase 5 P5-A3 automatic baseline resource sites — v29 — 2026-09-27
+
+- the current full-run Command Mode enables automatic baseline income for player-controlled Material Deposits and Mana Springs;
+- a resource node becomes active as soon as its strategic region is controlled by the Command Mode player; no Extractor / Mana Well placement is required for baseline throughput;
+- connected sites use the existing full throughput, while controlled-but-disconnected sites preserve the historical reduced-throughput rules;
+- automatic site ownership/connection state is exposed in the strategic snapshot and included in the strategic state hash;
+- AI and lower-level legacy StrategicState remain on the historical resource-building path unless automatic sites are explicitly enabled;
+- a legacy Extractor / Mana Well built on an automatically active player site does not double-count baseline income;
+- the Command Mode construction UI hides Extractor / Mana Well cards and shows compact automatic-site counts instead;
+- the transient purple Progression/Shrine panel is presentation-only polished to the same 10.75rem right-side HUD rail so it no longer protrudes left of the minimap/tactics/Command stack;
+- gameplay/replay identity advances to `ef-standard-v29` / `ef-replay-v29`; world generation remains `m02-standard-v1`;
+- **P5-A4 Event Navigator is not started.**
 
 
 ### Tower Defense vertical slice

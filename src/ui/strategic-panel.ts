@@ -624,6 +624,15 @@ export class StrategicPanel {
     return `<div class="producer-select"><strong>Preferred production building</strong><div>${buttons}</div><small>Recruit cards auto-route to a matching supplied producer; the selected building is preferred when compatible.</small></div>`;
   }
 
+  private automaticResourceSiteMarkup(snapshot: ReturnType<M03Simulation['strategy']['snapshot']>): string {
+    if (!this.simulation.strategy.automaticResourceSitesEnabled(PLAYER_ID)) return '';
+    const sites = snapshot.automaticResourceSites.filter((site) => site.playerId === PLAYER_ID);
+    const material = sites.filter((site) => site.type === 'MATERIAL');
+    const mana = sites.filter((site) => site.type === 'MANA');
+    const supplied = sites.filter((site) => site.connected).length;
+    return `<div class="auto-resource-sites" aria-label="Automatic resource sites"><strong>Auto resource sites</strong><div><span><b>${material.length}</b> Material</span><span><b>${mana.length}</b> Mana</span><span><b>${supplied}/${sites.length}</b> supplied</span></div><small>Controlled sites produce automatically. Disconnected sites keep reduced baseline throughput.</small></div>`;
+  }
+
   private queueMarkup(
     tick: number,
     snapshot: ReturnType<M03Simulation['strategy']['snapshot']>,
@@ -664,7 +673,10 @@ export class StrategicPanel {
     const stock = snapshot.resources[PLAYER_ID];
     if (!stock) return;
     this.ensureSelectedProducer(snapshot);
-    const buildingButtons = BUILD_ORDER.map((buildingType) => {
+    const commandModeResources = this.simulation.strategy.automaticResourceSitesEnabled(PLAYER_ID);
+    const buildingButtons = BUILD_ORDER
+      .filter((buildingType) => !commandModeResources || (buildingType !== 'EXTRACTOR' && buildingType !== 'MANA_WELL'))
+      .map((buildingType) => {
       const cost = BUILDINGS[buildingType].cost;
       const active = this.pendingBuildType === buildingType ? ' active' : '';
       const title = buildingType === 'EXTRACTOR'
@@ -717,8 +729,8 @@ export class StrategicPanel {
       </div>
       ${selectedMarkup}
       <nav class="command-tabs" aria-label="Command category"><button data-action="command-view" data-value="build" aria-pressed="${this.commandView === 'build'}">Construction</button><button data-action="command-view" data-value="army" aria-pressed="${this.commandView === 'army'}">Army</button></nav>
-      <div class="build-view">${this.queueMarkup(simulationSnapshot.tick, snapshot, 'build')}</div>
-      <div class="strategy-section build-view"><strong>Construct</strong><div class="strategy-buttons construction-grid">${buildingButtons}</div><div class="command-hint">Click a card, then place on the battlefield · Shift-place repeats · Esc/right-click cancels</div></div>
+      <div class="build-view">${this.queueMarkup(simulationSnapshot.tick, snapshot, 'build')}${this.automaticResourceSiteMarkup(snapshot)}</div>
+      <div class="strategy-section build-view"><strong>Construct</strong><div class="strategy-buttons construction-grid">${buildingButtons}</div><div class="command-hint">${commandModeResources ? 'Material and Mana sites activate automatically when their region is controlled · other structures still use battlefield placement' : 'Click a card, then place on the battlefield · Shift-place repeats · Esc/right-click cancels'}</div></div>
       <div class="strategy-section army-view army-recruit-section"><strong>Recruit</strong><div class="strategy-buttons compact recruit-grid">${trainButtons}</div><div class="command-hint">Click = queue 1 · Shift-click = queue up to 5 · matching producer is chosen automatically</div></div>
       <div class="strategy-section army-view army-producer-section">${this.producerMarkup(snapshot)}<div class="strategy-buttons secondary-actions"><button class="${rallyActive.trim()}" data-action="set-rally" ${this.selectedProducerId !== null ? '' : 'disabled'}>Set Rally for Preferred</button></div></div>
       <div class="army-view army-lower-priority">${this.queueMarkup(simulationSnapshot.tick, snapshot, 'army')}${this.lowHealthMarkup(simulationSnapshot)}${this.armyMarkup(simulationSnapshot)}</div>

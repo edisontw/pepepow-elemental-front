@@ -2,10 +2,12 @@ import { applyBurningUnitDamage } from './elemental-battlefield-rules';
 import type { M03Command } from './m03-commands';
 import { M03CommandQueue } from './m03-commands';
 import { Simulation, type SimulationSnapshot } from './simulation';
-import { StrategicState, type StrategicSnapshot } from './strategic-state';
+import { StrategicState, type StrategicSnapshot, type StrategicStateOptions } from './strategic-state';
 import type { AdditionalVisionSource } from './visibility-state';
 import type { GeneratedWorld } from '../world/world-definition';
 import { generatedWorldToArena } from '../world/world-arena';
+
+export interface M03SimulationOptions extends StrategicStateOptions {}
 
 export interface M03SimulationSnapshot extends SimulationSnapshot {
   strategic: StrategicSnapshot;
@@ -15,12 +17,12 @@ export class M03Simulation extends Simulation {
   readonly strategy: StrategicState;
   private readonly strategicCommands = new M03CommandQueue();
 
-  constructor(readonly generatedWorld: GeneratedWorld) {
+  constructor(readonly generatedWorld: GeneratedWorld, options: M03SimulationOptions = {}) {
     super(
       `pepepow:${generatedWorld.identity.rulesetVersion}:${generatedWorld.identity.blockHeight}:${generatedWorld.generationAttempt}`,
       generatedWorldToArena(generatedWorld),
     );
-    this.strategy = new StrategicState(generatedWorld, this.entities, this.navigation);
+    this.strategy = new StrategicState(generatedWorld, this.entities, this.navigation, options);
     this.visibility.update(this.entities, this.navigation, this.buildingVisionSources());
   }
 
