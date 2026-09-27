@@ -68,6 +68,10 @@ export interface EntitySnapshot {
   targetZ: number | null;
   yieldReturnX: number | null;
   yieldReturnZ: number | null;
+  resumeMoveX: number | null;
+  resumeMoveZ: number | null;
+  localSupportActive: boolean;
+  autoSupportSuppressed: boolean;
   path: readonly { x: number; z: number }[];
   pathIndex: number;
   pathNavVersion: number;
@@ -176,6 +180,9 @@ export class Simulation {
       id: entityId, archetype, x: position.x, z: position.z, playerId: faction.playerId,
       selectionRadius: selectable.radius, bodyRadius: body.radius, targetX: movement.targetX, targetZ: movement.targetZ,
       yieldReturnX: movement.yieldReturnX, yieldReturnZ: movement.yieldReturnZ,
+      resumeMoveX: movement.resumeMoveX, resumeMoveZ: movement.resumeMoveZ,
+      localSupportActive: movement.localSupportActive,
+      autoSupportSuppressed: movement.autoSupportSuppressed,
       path: movement.path.map((point) => ({ ...point })), pathIndex: movement.pathIndex,
       pathNavVersion: movement.pathNavVersion, currentHealth: health.current, maxHealth: health.max,
       alive: health.alive, attackDamage: combat.attackDamage,
@@ -219,6 +226,11 @@ export class Simulation {
           this.entities.movements.get(entityId)!.orderMode = command.type === 'HOLD' ? 'HOLD' : 'NORMAL';
         }
       } else if (command.type === 'MOVE' || command.type === 'ATTACK_MOVE') {
+        const forcedDisengageIds = new Set(
+          command.type === 'MOVE'
+            ? validIds.filter((entityId) => this.entities.combat.get(entityId)?.targetEntityId !== null)
+            : [],
+        );
         for (const entityId of validIds) this.clearOrders(entityId);
         if (command.formation !== undefined) {
           const planned = formationDestinations(
@@ -250,12 +262,17 @@ export class Simulation {
             this.assignPath(entityId, command.targetX + offset.x, command.targetZ + offset.z);
           });
         }
+        for (const entityId of validIds) {
+          const movement = this.entities.movements.get(entityId)!;
+          movement.autoSupportSuppressed = command.type === 'MOVE' && forcedDisengageIds.has(entityId);
+        }
         if (command.type === 'ATTACK_MOVE') {
           for (const entityId of validIds) {
             const movement = this.entities.movements.get(entityId)!;
             movement.orderMode = 'ATTACK_MOVE';
             movement.attackMoveX = movement.targetX;
             movement.attackMoveZ = movement.targetZ;
+            movement.autoSupportSuppressed = false;
           }
         }
       } else if (command.type === 'ATTACK' && this.isValidAttackTarget(command.targetEntityId, command.playerId)) {
@@ -303,6 +320,11 @@ export class Simulation {
         && (movement.targetX !== movement.attackMoveX || movement.targetZ !== movement.attackMoveZ)) {
         this.assignPath(entityId, movement.attackMoveX, movement.attackMoveZ);
       }
+      if (movement.orderMode === 'NORMAL' && combat.targetEntityId === null
+        && movement.resumeMoveX !== null && movement.resumeMoveZ !== null
+        && (movement.targetX !== movement.resumeMoveX || movement.targetZ !== movement.resumeMoveZ)) {
+        this.assignResumeMovePath(entityId, movement.resumeMoveX, movement.resumeMoveZ);
+      }
       if (combat.targetEntityId !== null) this.updatePursuit(entityId, combat.targetEntityId);
       else this.validateMovementPath(entityId);
       this.moveAlongPath(entityId);
@@ -336,12 +358,18 @@ export class Simulation {
       const targetX = movement.targetX;
       const targetZ = movement.targetZ;
       const completingYieldReturn = movement.yieldReturnX === targetX && movement.yieldReturnZ === targetZ;
+      const completingResumeMove = movement.resumeMoveX === targetX && movement.resumeMoveZ === targetZ;
       if (position.x === targetX && position.z === targetZ) {
         this.clearMovement(entityId);
         if (completingYieldReturn) {
           movement.yieldReturnX = null;
           movement.yieldReturnZ = null;
         }
+        if (completingResumeMove) {
+          movement.resumeMoveX = null;
+          movement.resumeMoveZ = null;
+        }
+        if (movement.orderMode === 'NORMAL') movement.autoSupportSuppressed = false;
         continue;
       }
       if (completingYieldReturn) this.assignYieldReturnPath(entityId, targetX, targetZ);
@@ -377,6 +405,22 @@ export class Simulation {
     }
     movement.targetX = targetX;
     movement.targetZ = targetZ;
+    return true;
+  }
+
+  private assignResumeMovePath(entityId: EntityID, targetX: number, targetZ: number): boolean {
+    const movement = this.entities.movements.get(entityId);
+    if (!movement) return false;
+    if (!this.navigation.isWalkable(this.navigation.worldToCell(targetX, targetZ))) {
+      movement.resumeMoveX = null;
+      movement.resumeMoveZ = null;
+      return false;
+    }
+    if (!this.assignPath(entityId, targetX, targetZ)) {
+      movement.resumeMoveX = null;
+      movement.resumeMoveZ = null;
+      return false;
+    }
     return true;
   }
 
@@ -758,10 +802,12 @@ export class Simulation {
     if (combat) { combat.targetEntityId = null; combat.pursuitTargetCellKey = null; }
     const movement = this.entities.movements.get(entityId);
     if (movement) {
-      // Never resurrect an exact pre-combat parking point after a target dies
-      // or becomes invalid. The unit should settle where combat ended.
+      // Traffic-yield parking points are stale after combat, but a deliberate
+      // NORMAL MOVE destination survives temporary autonomous combat and is
+      // resumed on the next navigation update.
       movement.yieldReturnX = null;
       movement.yieldReturnZ = null;
+      movement.localSupportActive = false;
     }
     this.clearMovement(entityId);
   }
@@ -775,6 +821,10 @@ export class Simulation {
       movement.attackMoveZ = null;
       movement.yieldReturnX = null;
       movement.yieldReturnZ = null;
+      movement.resumeMoveX = null;
+      movement.resumeMoveZ = null;
+      movement.localSupportActive = false;
+      movement.autoSupportSuppressed = false;
     }
     this.clearMovement(entityId);
   }
