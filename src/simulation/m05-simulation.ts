@@ -35,8 +35,6 @@ export class M05Simulation extends M04Simulation {
   override step(): M05SimulationSnapshot {
     const nextTick = super.snapshot().tick + 1;
     this.stopIllegalHiddenPursuit(nextTick);
-    acquireEncounterTargets(this.entities, this.navigation, this.visibility, this.terrain, nextTick, [0]);
-    acquireLocalSupportTargets(this.entities, this.navigation, this.visibility, this.terrain, nextTick, [0]);
     const frame = super.step();
     const strategic = this.strategy.snapshot();
     this.enemyWar.advance(frame.tick, strategic, {
@@ -49,6 +47,11 @@ export class M05Simulation extends M04Simulation {
       (command) => this.enqueueStrategicCommand(command),
     );
     return this.snapshot();
+  }
+
+  protected override prepareAutonomousCombat(tick: number): void {
+    acquireEncounterTargets(this.entities, this.navigation, this.visibility, this.terrain, tick, [0]);
+    acquireLocalSupportTargets(this.entities, this.navigation, this.visibility, this.terrain, tick, [0]);
   }
 
   override snapshot(): M05SimulationSnapshot {
