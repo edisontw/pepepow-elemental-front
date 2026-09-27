@@ -203,7 +203,7 @@ export class ManaSystemHud {
               : result.status === 'NO_CASTER'
                 ? `No living aligned caster is available for ${resultLabel}.`
                 : `${resultLabel}: target unavailable or outside every ready caster's range.`;
-        } else if (!this.tacticalHint.textContent?.includes('armed')) {
+        } else {
           this.tacticalHint.textContent = `${attunementLabel || 'No attunements'} · click spell then target, or quick-cast with R / Q / F / L.`;
         }
         hint.innerHTML = `<small>Global Tactical controls use any legal aligned Elementalist automatically.</small>${feedback}`;
