@@ -354,6 +354,7 @@ export function createSceneShell(
           }
         }
       }
+      generatedWorldBridge?.animateWater((frame.snapshot.tick + frame.interpolationAlpha) * 0.1);
       battleVfx.sync(frame.snapshot.tick, frame.interpolationAlpha);
       if (tickAdvanced) {
         const visibility = simulation.visibility.cellsForPlayer(0);

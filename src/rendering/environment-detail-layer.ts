@@ -63,8 +63,8 @@ export class EnvironmentDetailLayer {
         any ||= visible;
         if (batch.visible[i] === visible) continue;
         batch.visible[i] = visible; dirty = true;
-        const count = batch.shadow ? 17 : 4;
-        for (let v = 0; v < count; v++) batch.colors[(i * count + v) * 4 + 3] = visible ? (batch.shadow ? (v === 0 ? 82 : 0) : 255) : 0;
+        const count = batch.shadow ? 33 : 4;
+        for (let v = 0; v < count; v++) batch.colors[(i * count + v) * 4 + 3] = visible ? (batch.shadow ? (v === 0 ? 92 : v <= 16 ? 48 : 0) : 255) : 0;
       }
       batch.entity.enabled = any;
       if (dirty) { batch.mesh.setColors32(batch.colors); batch.mesh.update(pc.PRIMITIVE_TRIANGLES); }
@@ -88,13 +88,20 @@ export class EnvironmentDetailLayer {
     for (const p of placements) {
       const base = positions.length / 3;
       if (shadow) {
-        positions.push(p.x, 0.019, p.z);
+        // Two feathered rings anchor the canopy without a visible hard disc.
+        const cx = p.x + p.height * 0.10, cz = p.z + p.height * 0.07;
+        positions.push(cx, 0.019, cz);
         normals.push(0, 1, 0); colors.push(255, 255, 255, 0); uv.push(0.5, 0.5);
-        for (let v = 0; v < 16; v++) {
-          const a = v / 16 * Math.PI * 2;
-          positions.push(p.x + Math.cos(a) * p.width * 0.31, 0.019, p.z + Math.sin(a) * p.width * 0.23);
+        for (let ring = 0; ring < 2; ring++) for (let v = 0; v < 16; v++) {
+          const a = v / 16 * Math.PI * 2, scale = ring === 0 ? 0.46 : 1;
+          const width = p.width * 0.44 + p.height * 0.08;
+          positions.push(cx + Math.cos(a) * width * scale, 0.019, cz + Math.sin(a) * width * 0.72 * scale);
           normals.push(0, 1, 0); colors.push(255, 255, 255, 0); uv.push(0, 0);
-          indices.push(base, base + 1 + v, base + 1 + (v + 1) % 16);
+          if (ring === 0) indices.push(base, base + 1 + v, base + 1 + (v + 1) % 16);
+          else {
+            const inner = base + 1 + v, next = base + 1 + (v + 1) % 16;
+            indices.push(inner, inner + 16, next, next, inner + 16, next + 16);
+          }
         }
       } else {
         const columns = p.sheet === 'trees' ? 3 : 4, rows = p.sheet === 'trees' ? 2 : 3;
@@ -105,7 +112,12 @@ export class EnvironmentDetailLayer {
           normals.push(0.65, 0.39, 0.65);
           const u = p.flip ? 0.5 - sx! : sx! + 0.5;
           uv.push(...environmentAtlasUv(p.frame, columns, rows, u, 1 - sy!));
-          colors.push(255, 255, 255, 0);
+          // Baked lighting stays intact; muted per-instance/height variation
+          // breaks identical tree copies while keeping trunks darker than crowns.
+          const variation = Math.sin(p.x * 12.9898 + p.z * 78.233) * 43758.5453;
+          const tint = variation - Math.floor(variation);
+          const lift = p.sheet === 'trees' ? 0.86 + sy! * 0.12 : 0.98;
+          colors.push(Math.round((239 + tint * 16) * lift), Math.round((246 + tint * 9) * lift), Math.round((231 + tint * 20) * lift), 0);
         }
         indices.push(base, base + 1, base + 2, base + 2, base + 1, base + 3);
       }

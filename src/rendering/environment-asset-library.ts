@@ -28,6 +28,7 @@ export class EnvironmentAssetLibrary {
         material.useLighting = false;
         material.emissive = new pc.Color(0.80, 0.82, 0.75);
         material.emissiveMap = texture;
+        material.emissiveVertexColor = true;
         material.opacityMap = texture;
         material.opacityMapChannel = 'a';
         material.opacityVertexColor = true;

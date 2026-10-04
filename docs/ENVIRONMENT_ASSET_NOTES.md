@@ -75,3 +75,24 @@ flipY=false and top-left atlas coordinates, including terrain shader sampling.
 Targeted frame tests cover road/grass separation, flower/marker rows, and upright
 fir apex/base ordering. This corrects mapping; manual appearance/FPS acceptance
 remains pending and the screenshots are not recorded as a visual PASS.
+
+
+## Material cohesion update — 2026-10-04
+
+Terrain material control now includes feathered canopy footprints from full-density
+presentation placements, so expanded macro forests also have forest floors. Quality
+thinning does not move those material regions. New shading keeps all committed atlas
+frames and top-left UV conventions unchanged: normal quality blends offset/rotated
+samples, adds restrained ground normal relief, and uses irregular world-space color
+patches; low quality retains single-sample surfaces.
+
+Environment cards use modest instance tint and darker roots, with two-ring feathered
+contact shadows. Normal-quality water animates continuous wave normals and shallow/deep
+color on the existing river mesh; low quality keeps static vertex-color water. Ice
+remains a separate overlay. No new texture downloads, per-frame mesh rebuilds, gameplay
+RNG draws, or simulation changes are introduced.
+
+Validation: targeted atlas, placement and material-control tests; TypeScript/build;
+offline Mesa GLSL compile/link. The cloud browser still reports `WebGL not supported`.
+Normal/low visual and target-device FPS acceptance remain pending; this pass does not
+claim final-art acceptance or a completed replacement of character/building artwork.

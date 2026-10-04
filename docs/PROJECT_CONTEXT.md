@@ -758,6 +758,16 @@ After the visual-production pass reaches a satisfactory baseline, resume the def
 - Hard gate 4: cloud browser reports `WebGL not supported`; manual screen/FPS
   acceptance must precede declaring reference-quality completion.
 
+### Battlefield material cohesion pass — 2026-10-04
+
+- macro forest groves now stamp soft forest-floor material weights beneath the actual tree placements; this is visual data only, not new gameplay cover;
+- normal-quality ground uses rotated/offset atlas blending, irregular macro patches, restrained surface-normal relief, and cool woodland versus warm dry-earth grading;
+- tree/prop batches retain original art but add restrained instance tint and root/crown value separation; two feathered shadow rings improve contact without hard discs;
+- normal-quality rivers gain continuous world-space flow, small wave normals, and shallow/deep color separation; existing shore opacity, fog, crossing and ice geometry remain;
+- low quality keeps single-sample ground and static water; forest-floor composition is stable across quality tiers;
+- current gameplay/replay identity (`ef-standard-v30` / `ef-replay-v30`) and `m02-standard-v1` remain unchanged;
+- targeted rendering tests and offline GLSL compile/link are the technical checks; actual browser visual/FPS acceptance remains pending because the cloud browser reports `WebGL not supported`.
+
 ### Environment art cleanup pass — 2026-09-22
 
 - Removed the presentation-only box-heavy resource dressing: stacked mana

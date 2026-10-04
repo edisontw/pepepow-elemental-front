@@ -625,6 +625,7 @@ export class GeneratedWorldRenderBridge {
   private readonly iceMaterial = createMaterial(new pc.Color(0.53, 0.79, 0.86), 0.8, 0.48);
 
   private readonly terrainMaterials: TerrainMaterialSet;
+  private readonly detailedWater = new URLSearchParams(window.location.search).get('quality')?.trim().toLowerCase() !== 'low';
   private lastIceCount = -1;
   private lastNavVersion = -1;
 
@@ -638,7 +639,20 @@ export class GeneratedWorldRenderBridge {
       [this.settlementApronMaterial, 2], [this.roadShoulderMaterial, 2],
       [this.roadCoreMaterial, 4], [this.roadRutMaterial, 5],
     ]);
+    if (this.detailedWater) {
+      this.waterMaterial.specular = new pc.Color(0.16, 0.21, 0.23);
+      this.waterMaterial.gloss = 0.68;
+      this.waterMaterial.setParameter('riverTime', 0);
+      this.waterMaterial.getShaderChunks('glsl').set('normalMapPS', RIVER_NORMAL);
+      this.waterMaterial.getShaderChunks('glsl').set('diffusePS', RIVER_DIFFUSE);
+      this.waterMaterial.update();
+    }
     this.renderTerrainArt();
+  }
+
+  // Render time only. Existing ice overlays remain above this water surface.
+  animateWater(timeSeconds: number): void {
+    if (this.detailedWater) this.waterMaterial.setParameter('riverTime', timeSeconds);
   }
 
   sync(navVersion: number, iceCount: number, visibility?: Uint8Array): void {
@@ -807,3 +821,30 @@ export class GeneratedWorldRenderBridge {
     }
   }
 }
+
+// Continuous world-space waves never re-tile at mesh-cell boundaries. Vertex
+// alpha retains the original river/shore footprint and the fog overlay stays authoritative.
+const RIVER_NORMAL = `
+void getNormal() {
+    vec2 p = vPositionW.xz;
+    float a = p.x * 1.7 + p.y * 0.9 - riverTime * 0.65;
+    float b = p.x * -0.7 + p.y * 2.3 + riverTime * 0.43;
+    dNormalW = normalize(vec3(cos(a) * 0.06 - cos(b) * 0.025, 1.0,
+                              cos(a) * 0.035 + cos(b) * 0.055));
+}
+`;
+const RIVER_DIFFUSE = `
+uniform float riverTime;
+void getAlbedo() {
+    vec2 p = vPositionW.xz;
+    float a = sin(p.x * 1.7 + p.y * 0.9 - riverTime * 0.65);
+    float b = sin(p.x * -0.7 + p.y * 2.3 + riverTime * 0.43);
+    float ripples = a * b * 0.5 + 0.5;
+    float depth = smoothstep(0.2, 0.85, vVertexColor.a);
+    vec3 shallows = vec3(0.085, 0.20, 0.18);
+    vec3 deep = vec3(0.025, 0.085, 0.12);
+    dAlbedo = mix(shallows, deep, depth) * (0.88 + ripples * 0.24);
+    float crest = smoothstep(0.92, 1.0, ripples);
+    dAlbedo += vec3(0.08, 0.12, 0.13) * crest * 0.28;
+}
+`;
