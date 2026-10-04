@@ -254,7 +254,8 @@ export class StrategicRenderBridge {
       presentation.beacon.enabled = false;
 
       const profile = buildingVisualProfile(building.type);
-      const showIdentityMarker = building.playerId === 0 && building.completed && !building.destroyed;
+      const bakedIdentityVisible = Boolean(presentation.impostor?.entity && presentation.impostor.embedsIdentity);
+      const showIdentityMarker = building.playerId === 0 && building.completed && !building.destroyed && !bakedIdentityVisible;
       presentation.identityMarker.enabled = showIdentityMarker;
       if (showIdentityMarker) {
         const attachedHeight = Math.max(0.62, profile.height * 0.78);

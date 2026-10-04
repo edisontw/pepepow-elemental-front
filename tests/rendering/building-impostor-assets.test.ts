@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   BUILDING_IMPOSTOR_ASSET_REVISION,
@@ -24,8 +25,9 @@ describe('building impostor assets', () => {
     for (const config of BUILDING_IMPOSTOR_CONFIGS) {
       expect(buildingImpostorConfig(config.assetId)).toBe(config);
       expect(buildingImpostorFile(config)).toBe(
-        `assets/buildings/${config.slug}/building.webp?v=${encodeURIComponent(BUILDING_IMPOSTOR_ASSET_REVISION)}`,
+        `assets/buildings/${config.slug}/${config.fileName ?? 'building.webp'}?v=${encodeURIComponent(BUILDING_IMPOSTOR_ASSET_REVISION)}`,
       );
+      expect(existsSync(`public/${buildingImpostorFile(config).split('?')[0]}`)).toBe(true);
       expect(config.planeSize).toBeGreaterThan(0);
       expect(config.shadowX).toBeGreaterThan(0);
       expect(config.shadowZ).toBeGreaterThan(0);

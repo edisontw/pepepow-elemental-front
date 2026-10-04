@@ -3,6 +3,10 @@ export interface BuildingImpostorConfig {
   slug: string;
   label: string;
   planeSize: number;
+  fileName?: string;
+  /** Normalized alpha foot baseline, in a 512px canvas. */
+  footBaseline?: number;
+  embedsIdentity?: boolean;
   shadowX: number;
   shadowZ: number;
 }
@@ -11,12 +15,15 @@ export interface BuildingImpostorConfig {
  * Bump whenever approved building WebP binaries change in-place. Public paths
  * stay stable, so the query revision prevents stale browser/CDN art.
  */
-export const BUILDING_IMPOSTOR_ASSET_REVISION = '20260913-building-impostor-v2';
+export const BUILDING_IMPOSTOR_ASSET_REVISION = '20261004-building-frontier-v3';
 
 const CONFIGS = [
   {
     assetId: 'building.elemental-core.debug',
     slug: 'elemental-core',
+    fileName: 'building-frontier-v3.webp',
+    footBaseline: 492,
+    embedsIdentity: true,
     label: 'Elemental Core',
     planeSize: 5.0,
     shadowX: 3.3,
@@ -25,6 +32,9 @@ const CONFIGS = [
   {
     assetId: 'building.barracks',
     slug: 'barracks',
+    fileName: 'building-frontier-v3.webp',
+    footBaseline: 492,
+    embedsIdentity: true,
     label: 'Barracks',
     planeSize: 4.05,
     shadowX: 2.7,
@@ -41,6 +51,9 @@ const CONFIGS = [
   {
     assetId: 'building.workshop',
     slug: 'workshop',
+    fileName: 'building-frontier-v3.webp',
+    footBaseline: 492,
+    embedsIdentity: true,
     label: 'Workshop',
     planeSize: 4.35,
     shadowX: 3.05,
@@ -83,5 +96,5 @@ export function buildingImpostorConfig(assetId: string): BuildingImpostorConfig 
 }
 
 export function buildingImpostorFile(config: BuildingImpostorConfig): string {
-  return `assets/buildings/${config.slug}/building.webp?v=${encodeURIComponent(BUILDING_IMPOSTOR_ASSET_REVISION)}`;
+  return `assets/buildings/${config.slug}/${config.fileName ?? 'building.webp'}?v=${encodeURIComponent(BUILDING_IMPOSTOR_ASSET_REVISION)}`;
 }

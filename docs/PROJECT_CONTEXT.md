@@ -758,6 +758,15 @@ After the visual-production pass reaches a satisfactory baseline, resume the def
 - Hard gate 4: cloud browser reports `WebGL not supported`; manual screen/FPS
   acceptance must precede declaring reference-quality completion.
 
+### Building art silhouette pass — 2026-10-04
+
+- completed player Elemental Core, Barracks and Workshop now use original ImageGen-produced `building-frontier-v3.webp` sprites, retaining the previous art for reference;
+- Core emphasizes pale stone, teal ownership panels and one cyan reactor; Barracks is a low terracotta-roofed drill hall with shield/weapon racks; Workshop has a slate roof, gantry hook, side gear and amber forge;
+- all three use normalized 512×512 transparent images and a 492px foot baseline, anchored to ground in the renderer; texture mipmaps improve zoomed-out sampling;
+- their baked identity features suppress legacy 3D identity ornaments only once the new sprite loads; GLB failure fallback retains its identity marker;
+- construction, damage, destruction, ownership, production and building navigation authority are unchanged; active gameplay/replay/world identities remain unchanged;
+- source prompts and runtime paths: `docs/BUILDING_ART_FRONTIER_V3.md`; browser visual/FPS acceptance remains pending.
+
 ### Battlefield material cohesion pass — 2026-10-04
 
 - macro forest groves now stamp soft forest-floor material weights beneath the actual tree placements; this is visual data only, not new gameplay cover;

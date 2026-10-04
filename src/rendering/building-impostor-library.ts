@@ -17,6 +17,7 @@ export interface BuildingImpostorHandle {
   shadow: pc.Entity | null;
   footprint: pc.Entity | null;
   released: boolean;
+  embedsIdentity: boolean;
 }
 
 /** Static one-view WebP presentation for completed player buildings. */
@@ -48,12 +49,15 @@ export class BuildingImpostorLibrary {
       shadow: null,
       footprint: null,
       released: false,
+      embedsIdentity: false,
     };
     const config = buildingImpostorConfig(assetId);
     if (!config) {
       onUnavailable();
       return handle;
     }
+
+    handle.embedsIdentity = config.embedsIdentity ?? false;
 
     // Completed player buildings should not briefly expose their primitive
     // construction fallback while the final WebP is decoding.
@@ -77,7 +81,8 @@ export class BuildingImpostorLibrary {
         receiveShadows: false,
       });
       plane.setLocalEulerAngles(90, 0, 0);
-      plane.setLocalPosition(0, config.planeSize * 0.5, 0);
+      const footPadding = config.footBaseline === undefined ? 0 : (512 - config.footBaseline) / 512;
+      plane.setLocalPosition(0, config.planeSize * (0.5 - footPadding), 0);
       plane.setLocalScale(config.planeSize, 1, config.planeSize);
       billboard.setLocalEulerAngles(0, RTS_CAMERA_YAW_DEGREES, 0);
       billboard.addChild(plane);
@@ -149,9 +154,9 @@ export class BuildingImpostorLibrary {
       if (this.disposed) return null;
       const texture = new pc.Texture(this.app.graphicsDevice, {
         name: `${config.assetId}.building-impostor`,
-        mipmaps: false,
+        mipmaps: true,
         srgb: true,
-        minFilter: pc.FILTER_LINEAR,
+        minFilter: pc.FILTER_LINEAR_MIPMAP_LINEAR,
         magFilter: pc.FILTER_LINEAR,
         addressU: pc.ADDRESS_CLAMP_TO_EDGE,
         addressV: pc.ADDRESS_CLAMP_TO_EDGE,
