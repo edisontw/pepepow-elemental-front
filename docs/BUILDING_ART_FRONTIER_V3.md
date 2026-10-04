@@ -20,11 +20,29 @@ summarizes the production brief, and the Barracks/Workshop prompts are complete.
 ## Integration
 
 Stable manifest IDs are retained. Versioned file paths and the updated asset
-revision select v3 for these three completed player buildings. Foot padding is
+revision select v3 for all seven completed player building types. Foot padding is
 removed from the plane offset so the image baseline sits on the building root.
 Mipmaps reduce distant texture shimmer. Baked identity motifs replace old attached
 primitive ornaments once the new sprite is ready; failure fallback retains them.
-Other building art and faction rendering remain on their existing paths.
+Enemy, construction and destroyed rendering retain their existing fallback paths.
+
+## Completed roster continuation
+
+Arcane Tower uses an ivory/teal tower with a violet focusing crystal. Outpost uses
+a low blockhouse and signal mast. Extractor exposes its drilling machinery and gold
+ore. Mana Well uses an open energy basin with arched conduits. All four were generated
+with built-in ImageGen, using their previous sprite for camera/function and the v3
+Core for materials. The shared production brief requests an isolated elevated
+orthographic three-quarter building, upper-left daylight, broad RTS-readable forms,
+warm ivory stone, walnut timber, gunmetal, restrained brass and muted teal panels;
+true alpha, no scenery, ground island, people, text or logos.
+
+| Building | Runtime file | Visible height / baseline |
+| --- | --- | --- |
+| Arcane Tower | `public/assets/buildings/arcane-tower/building-frontier-v3.webp` | 400 / 492px |
+| Outpost | `public/assets/buildings/outpost/building-frontier-v3.webp` | 350 / 492px |
+| Extractor | `public/assets/buildings/extractor/building-frontier-v3.webp` | 275 / 492px |
+| Mana Well | `public/assets/buildings/mana-well/building-frontier-v3.webp` | 290 / 492px |
 
 ## Prompts
 

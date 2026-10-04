@@ -11,6 +11,14 @@
 
 ---
 
+## Visual continuation — 2026-10-04
+
+- All seven completed player building types now use Frontier v3 sprites; see `BUILDING_ART_FRONTIER_V3.md`.
+- All eleven player unit types retain their accepted eight-direction/five-action assets,
+  with shared midtone/material grading and a feathered contact shadow. No animation,
+  direction, simulation or replay changes. This is renderer polish, not a new unit art pack.
+- Manual WebGL gameplay/FPS acceptance remains pending.
+
 ## 1. Source of truth
 
 GitHub `main` is the only source of truth.

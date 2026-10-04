@@ -15,7 +15,7 @@ export interface BuildingImpostorConfig {
  * Bump whenever approved building WebP binaries change in-place. Public paths
  * stay stable, so the query revision prevents stale browser/CDN art.
  */
-export const BUILDING_IMPOSTOR_ASSET_REVISION = '20261004-building-frontier-v3';
+export const BUILDING_IMPOSTOR_ASSET_REVISION = '20261004-building-frontier-v3-complete';
 
 const CONFIGS = [
   {
@@ -43,6 +43,9 @@ const CONFIGS = [
   {
     assetId: 'building.arcane-tower',
     slug: 'arcane-tower',
+    fileName: 'building-frontier-v3.webp',
+    footBaseline: 492,
+    embedsIdentity: true,
     label: 'Arcane Tower',
     planeSize: 4.9,
     shadowX: 1.9,
@@ -62,6 +65,9 @@ const CONFIGS = [
   {
     assetId: 'building.outpost',
     slug: 'outpost',
+    fileName: 'building-frontier-v3.webp',
+    footBaseline: 492,
+    embedsIdentity: true,
     label: 'Outpost',
     planeSize: 4.25,
     shadowX: 1.9,
@@ -70,6 +76,9 @@ const CONFIGS = [
   {
     assetId: 'building.extractor',
     slug: 'extractor',
+    fileName: 'building-frontier-v3.webp',
+    footBaseline: 492,
+    embedsIdentity: true,
     label: 'Extractor',
     planeSize: 3.65,
     shadowX: 1.85,
@@ -78,6 +87,9 @@ const CONFIGS = [
   {
     assetId: 'building.mana-well',
     slug: 'mana-well',
+    fileName: 'building-frontier-v3.webp',
+    footBaseline: 492,
+    embedsIdentity: true,
     label: 'Mana Well',
     planeSize: 3.8,
     shadowX: 1.8,

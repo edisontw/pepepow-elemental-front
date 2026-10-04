@@ -1,4 +1,5 @@
 import * as pc from 'playcanvas';
+import { applyUnitArtMaterial, createUnitContactShadow } from './unit-impostor-material';
 import { impostorAtlasFile, impostorAtlasRect } from './impostor-atlas';
 import manifest from '../../data/assets/manifest.json';
 import { RTS_CAMERA_YAW_DEGREES, stableImpostorFrameForHeading } from './impostor-frame';
@@ -12,8 +13,7 @@ import {
 } from './impostor-animation';
 
 const UNIT_IMPOSTOR_VISUAL_SCALE = 1.03;
-const UNIT_IMPOSTOR_EMISSIVE_LIFT = 1.19;
-const UNIT_IMPOSTOR_SHADOW_OPACITY = 0.28;
+const UNIT_IMPOSTOR_SHADOW_OPACITY = 0.36;
 
 interface ImpostorConfig {
   id: string;
@@ -178,6 +178,7 @@ export class VisualAssetLibrary {
     for (const update of this.impostorUpdates) update();
   };
   private readonly impostorShadowMaterial: pc.StandardMaterial;
+  private readonly impostorShadowTexture: pc.Texture;
   // Keep the current player-side boundary, but use the same five-action
   // animated WebP runtime for every configured production unit.
   private readonly useAnimatedUnitImpostors = true;
@@ -186,6 +187,9 @@ export class VisualAssetLibrary {
   constructor(private readonly app: pc.Application) {
     this.impostorShadowMaterial = new pc.StandardMaterial();
     this.impostorShadowMaterial.name = 'IMPOSTOR_SHADOW';
+    this.impostorShadowTexture = createUnitContactShadow(this.app.graphicsDevice);
+    this.impostorShadowMaterial.opacityMap = this.impostorShadowTexture;
+    this.impostorShadowMaterial.opacityMapChannel = 'a';
     this.impostorShadowMaterial.useLighting = false;
     this.impostorShadowMaterial.diffuse = new pc.Color(0.02, 0.025, 0.025);
     this.impostorShadowMaterial.opacity = UNIT_IMPOSTOR_SHADOW_OPACITY;
@@ -322,6 +326,7 @@ export class VisualAssetLibrary {
       for (const texture of resources.textures) texture.destroy();
     }
     this.impostorShadowMaterial.destroy();
+    this.impostorShadowTexture.destroy();
     for (const asset of this.registered) {
       asset.unload();
       this.app.assets.remove(asset);
@@ -371,7 +376,7 @@ export class VisualAssetLibrary {
       // visually attached to the terrain rather than floating with the sprite.
       const shadow = new pc.Entity(`${config.label} Impostor Shadow`);
       shadow.addComponent('render', {
-        type: 'cylinder',
+        type: 'plane',
         material: this.impostorShadowMaterial,
         castShadows: false,
         receiveShadows: false,
@@ -507,7 +512,7 @@ export class VisualAssetLibrary {
           material.name = `${config.id}.fallback.idle.${view}`;
           material.useLighting = false;
           material.emissive = new pc.Color(1, 1, 1);
-          material.emissiveIntensity = UNIT_IMPOSTOR_EMISSIVE_LIFT;
+          applyUnitArtMaterial(material);
           material.emissiveMap = texture;
           material.opacityMap = texture;
           material.opacityMapChannel = 'a';
@@ -548,7 +553,7 @@ export class VisualAssetLibrary {
           material.name = `${config.id}.atlas.${action}.${index}`;
           material.useLighting = false;
           material.emissive = new pc.Color(1, 1, 1);
-          material.emissiveIntensity = UNIT_IMPOSTOR_EMISSIVE_LIFT;
+          applyUnitArtMaterial(material);
           material.emissiveMap = texture;
           material.opacityMap = texture;
           material.emissiveMapTiling.set(rect.width, rect.height);

@@ -7,7 +7,10 @@ vi.mock('playcanvas', async (importOriginal) => {
   const actual = await importOriginal<typeof pc>();
   return { ...actual, Texture: class {
     destroy = vi.fn(); setSource = vi.fn();
-    constructor() { textures.push(this); }
+    lock = () => new Uint8Array(64 * 64 * 4); unlock = vi.fn();
+    constructor(_device: unknown, options: { name?: string }) {
+      if (options.name !== 'UNIT_CONTACT_SHADOW') textures.push(this);
+    }
   } };
 });
 class FakeImage {
