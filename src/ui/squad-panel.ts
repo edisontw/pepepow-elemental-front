@@ -85,7 +85,16 @@ export class SquadPanel {
   };
 
   private readonly onBattlefieldPointerDown = (event: PointerEvent): void => {
-    if (this.armedOrder === null || event.button !== 0) return;
+    if (this.armedOrder === null) return;
+    if (event.button === 2) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      this.setArmedOrder(null);
+      this.message = 'Front Order targeting cancelled.';
+      this.render();
+      return;
+    }
+    if (event.button !== 0) return;
     const squad = this.activeSquad();
     if (!squad) return;
     const target = this.screenToSimulationPosition(event.clientX, event.clientY);
