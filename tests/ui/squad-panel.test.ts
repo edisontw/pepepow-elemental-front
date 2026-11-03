@@ -23,12 +23,12 @@ class FakeCanvas extends EventTarget {
   };
 }
 
-function simulationStub(squad: SquadSnapshot): M06Simulation {
+function simulationStub(squad: SquadSnapshot, additionalSquads: SquadSnapshot[] = []): M06Simulation {
   return {
     snapshot: vi.fn(() => ({
       tick: 12,
       squads: {
-        squads: [squad],
+        squads: [squad, ...additionalSquads],
         stateHash: 'squad-test',
       },
     })),
@@ -86,4 +86,36 @@ describe('SquadPanel refresh stability', () => {
     expect(element.writes).toBe(2);
     panel.destroy();
   });
+  it('cancels an armed front order when selecting a different squad', () => {
+    vi.stubGlobal('window', new EventTarget());
+    const squad: SquadSnapshot = {
+      id: 1, playerId: 0, memberEntityIds: [1], rosterLocked: true,
+      currentOrder: null, targetX: null, targetZ: null,
+      regroupDestinationX: null, regroupDestinationZ: null,
+      regroupState: 'NONE', guardTargetEntityId: null,
+    };
+    const second = { ...squad, id: 2, memberEntityIds: [2] };
+    const element = new FakePanelElement();
+    const canvas = new FakeCanvas();
+    const simulation = simulationStub(squad, [second]);
+    const panel = new SquadPanel(
+      element as unknown as HTMLElement, simulation,
+      canvas as unknown as HTMLCanvasElement,
+      () => ({ x: 1000, z: 2000 }), () => true,
+    );
+    const click = (action: string, squadId: string) => {
+      const button = { dataset: { action, squadId } };
+      (panel as unknown as { onClick: (event: unknown) => void }).onClick({
+        target: { closest: () => button },
+      });
+    };
+    click('advance', '1');
+    expect(element.innerHTML).toContain('Advance: click a battlefield destination');
+    click('select-squad', '2');
+    expect(element.innerHTML).toContain('Squad 2 selected.');
+    expect(canvas.classList.toggle).toHaveBeenLastCalledWith('front-order-targeting', false);
+    expect(simulation.enqueueSquadOrder).not.toHaveBeenCalled();
+    panel.destroy();
+  });
+
 });
