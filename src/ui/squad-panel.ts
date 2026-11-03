@@ -55,6 +55,10 @@ export class SquadPanel {
     const action = button.dataset.action;
     const squadId = Number(button.dataset.squadId ?? this.activeSquadId);
     if (!Number.isSafeInteger(squadId) || squadId <= 0) return;
+    if (this.armedOrder !== null && squadId !== this.activeSquadId) {
+      this.setArmedOrder(null);
+      this.message = 'Front Order targeting cancelled: squad changed.';
+    }
     this.activeSquadId = squadId;
     const squad = this.activeSquad();
     if (!squad) return;
