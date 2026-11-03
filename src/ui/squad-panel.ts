@@ -44,6 +44,10 @@ export class SquadPanel {
   private activeSquad(): SquadSnapshot | null {
     const squads = this.playerSquads();
     if (this.activeSquadId === null || !squads.some((squad) => squad.id === this.activeSquadId)) {
+      if (this.armedOrder !== null) {
+        this.setArmedOrder(null);
+        this.message = 'Front Order targeting cancelled: squad unavailable.';
+      }
       this.activeSquadId = squads[0]?.id ?? null;
     }
     return squads.find((squad) => squad.id === this.activeSquadId) ?? null;
