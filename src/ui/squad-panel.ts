@@ -97,7 +97,10 @@ export class SquadPanel {
     if (event.button !== 0) return;
     const squad = this.activeSquad();
     // Resolving a missing squad cancels targeting; never retarget its pending order.
-    if (!squad || this.armedOrder === null) return;
+    if (!squad || this.armedOrder === null) {
+      this.render();
+      return;
+    }
     const target = this.screenToSimulationPosition(event.clientX, event.clientY);
     if (!target || !Number.isFinite(target.x) || !Number.isFinite(target.z)) return;
     event.preventDefault();
