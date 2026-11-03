@@ -89,7 +89,7 @@ export class SquadPanel {
     const squad = this.activeSquad();
     if (!squad) return;
     const target = this.screenToSimulationPosition(event.clientX, event.clientY);
-    if (!target) return;
+    if (!target || !Number.isFinite(target.x) || !Number.isFinite(target.z)) return;
     event.preventDefault();
     event.stopImmediatePropagation();
     const order = this.armedOrder;
