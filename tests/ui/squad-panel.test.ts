@@ -155,6 +155,47 @@ describe('SquadPanel refresh stability', () => {
   });
 
 
+  it('does not redirect a pending battlefield order when its squad disappears before refresh', () => {
+    vi.stubGlobal('window', new EventTarget());
+    const squad: SquadSnapshot = {
+      id: 1, playerId: 0, memberEntityIds: [1], rosterLocked: true,
+      currentOrder: null, targetX: null, targetZ: null,
+      regroupDestinationX: null, regroupDestinationZ: null,
+      regroupState: 'NONE', guardTargetEntityId: null,
+    };
+    const other = { ...squad, id: 2, memberEntityIds: [2] };
+    const squads = [squad, other];
+    const simulation = simulationStub(squad, [other]);
+    vi.mocked(simulation.snapshot).mockImplementation(() => ({
+      tick: 12,
+      squads: { squads, stateHash: 'squad-test' },
+    }) as ReturnType<M06Simulation['snapshot']>);
+    const element = new FakePanelElement();
+    const canvas = new FakeCanvas();
+    const panel = new SquadPanel(
+      element as unknown as HTMLElement, simulation,
+      canvas as unknown as HTMLCanvasElement,
+      () => ({ x: 1000, z: 2000 }), () => true,
+    );
+    (panel as unknown as { onClick: (event: unknown) => void }).onClick({
+      target: { closest: () => ({ dataset: { action: 'advance', squadId: '1' } }) },
+    });
+    squads.shift();
+    const preventDefault = vi.fn();
+    const stopImmediatePropagation = vi.fn();
+    (panel as unknown as {
+      onBattlefieldPointerDown: (event: unknown) => void;
+    }).onBattlefieldPointerDown({
+      button: 0, clientX: 10, clientY: 20, preventDefault, stopImmediatePropagation,
+    });
+    expect(simulation.enqueueSquadOrder).not.toHaveBeenCalled();
+    expect(preventDefault).not.toHaveBeenCalled();
+    expect(stopImmediatePropagation).not.toHaveBeenCalled();
+    expect(element.innerHTML).toContain('Front Order targeting cancelled: squad unavailable.');
+    expect(canvas.classList.toggle).toHaveBeenLastCalledWith('front-order-targeting', false);
+    panel.destroy();
+  });
+
   it('does not enqueue a front order for invalid battlefield coordinates', () => {
     vi.stubGlobal('window', new EventTarget());
     const squad: SquadSnapshot = {
