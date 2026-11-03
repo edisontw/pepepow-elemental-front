@@ -118,4 +118,40 @@ describe('SquadPanel refresh stability', () => {
     panel.destroy();
   });
 
+  it('cancels targeting if the selected squad disappears before battlefield targeting', () => {
+    vi.stubGlobal('window', new EventTarget());
+    const squad: SquadSnapshot = {
+      id: 1, playerId: 0, memberEntityIds: [1], rosterLocked: true,
+      currentOrder: null, targetX: null, targetZ: null,
+      regroupDestinationX: null, regroupDestinationZ: null,
+      regroupState: 'NONE', guardTargetEntityId: null,
+    };
+    const other = { ...squad, id: 2, memberEntityIds: [2] };
+    const squads = [squad, other];
+    const element = new FakePanelElement();
+    const canvas = new FakeCanvas();
+    const simulation = simulationStub(squad, [other]);
+    vi.mocked(simulation.snapshot).mockImplementation(() => ({
+      tick: 12,
+      squads: { squads, stateHash: 'squad-test' },
+    }) as ReturnType<M06Simulation['snapshot']>);
+    const panel = new SquadPanel(
+      element as unknown as HTMLElement, simulation,
+      canvas as unknown as HTMLCanvasElement,
+      () => ({ x: 1000, z: 2000 }), () => true,
+    );
+    (panel as unknown as { onClick: (event: unknown) => void }).onClick({
+      target: { closest: () => ({ dataset: { action: 'advance', squadId: '1' } }) },
+    });
+    expect(element.innerHTML).toContain('Advance: click a battlefield destination');
+
+    squads.shift();
+    panel.update(0.13);
+    expect(element.innerHTML).toContain('Front Order targeting cancelled: squad unavailable.');
+    expect(element.innerHTML).toContain('Squad 2');
+    expect(canvas.classList.toggle).toHaveBeenLastCalledWith('front-order-targeting', false);
+    expect(simulation.enqueueSquadOrder).not.toHaveBeenCalled();
+    panel.destroy();
+  });
+
 });
