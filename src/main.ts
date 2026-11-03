@@ -82,9 +82,10 @@ function requestedPace(): RunPace {
 function requestedReplay(): M06ReplayPacket | null {
   const replayId = new URLSearchParams(window.location.search).get('replay')?.trim().toLowerCase();
   if (replayId !== 'last') return null;
-  const stored = localStorage.getItem(M06_REPLAY_STORAGE_KEY);
-  if (!stored) return null;
   try {
+    // Storage may be unavailable in private or restricted browser contexts.
+    const stored = localStorage.getItem(M06_REPLAY_STORAGE_KEY);
+    if (!stored) return null;
     const parsed: unknown = JSON.parse(stored);
     return isM06ReplayPacket(parsed) ? parsed : null;
   } catch {
