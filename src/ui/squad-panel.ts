@@ -59,6 +59,8 @@ export class SquadPanel {
     const action = button.dataset.action;
     const squadId = Number(button.dataset.squadId ?? this.activeSquadId);
     if (!Number.isSafeInteger(squadId) || squadId <= 0) return;
+    // Ignore stale buttons rather than redirecting their action to the fallback squad.
+    if (!this.playerSquads().some((squad) => squad.id === squadId)) return;
     if (this.armedOrder !== null && squadId !== this.activeSquadId) {
       this.setArmedOrder(null);
       this.message = 'Front Order targeting cancelled: squad changed.';
