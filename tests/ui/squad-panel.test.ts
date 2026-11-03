@@ -154,4 +154,28 @@ describe('SquadPanel refresh stability', () => {
     panel.destroy();
   });
 
+
+  it('ignores stale squad buttons without issuing orders to a fallback squad', () => {
+    vi.stubGlobal('window', new EventTarget());
+    const squad: SquadSnapshot = {
+      id: 2, playerId: 0, memberEntityIds: [2], rosterLocked: true,
+      currentOrder: null, targetX: null, targetZ: null,
+      regroupDestinationX: null, regroupDestinationZ: null,
+      regroupState: 'NONE', guardTargetEntityId: null,
+    };
+    const simulation = simulationStub(squad);
+    const element = new FakePanelElement();
+    const canvas = new FakeCanvas();
+    const panel = new SquadPanel(
+      element as unknown as HTMLElement, simulation,
+      canvas as unknown as HTMLCanvasElement,
+      () => ({ x: 1000, z: 2000 }), () => true,
+    );
+    (panel as unknown as { onClick: (event: unknown) => void }).onClick({
+      target: { closest: () => ({ dataset: { action: 'regroup', squadId: '1' } }) },
+    });
+    expect(simulation.enqueueSquadOrder).not.toHaveBeenCalled();
+    expect(element.innerHTML).not.toContain('Squad 2: Regroup ordered.');
+    panel.destroy();
+  });
 });
