@@ -155,6 +155,52 @@ describe('SquadPanel refresh stability', () => {
   });
 
 
+  it('does not enqueue a front order for invalid battlefield coordinates', () => {
+    vi.stubGlobal('window', new EventTarget());
+    const squad: SquadSnapshot = {
+      id: 1, playerId: 0, memberEntityIds: [1], rosterLocked: true,
+      currentOrder: null, targetX: null, targetZ: null,
+      regroupDestinationX: null, regroupDestinationZ: null,
+      regroupState: 'NONE', guardTargetEntityId: null,
+    };
+    const simulation = simulationStub(squad);
+    const element = new FakePanelElement();
+    const canvas = new FakeCanvas();
+    const screenToPosition = vi.fn(() => ({ x: Number.NaN, z: 2000 }));
+    const panel = new SquadPanel(
+      element as unknown as HTMLElement, simulation,
+      canvas as unknown as HTMLCanvasElement,
+      screenToPosition, () => true,
+    );
+    (panel as unknown as { onClick: (event: unknown) => void }).onClick({
+      target: { closest: () => ({ dataset: { action: 'advance', squadId: '1' } }) },
+    });
+    const preventDefault = vi.fn();
+    const stopImmediatePropagation = vi.fn();
+    const pointerDown = (panel as unknown as {
+      onBattlefieldPointerDown: (event: unknown) => void;
+    }).onBattlefieldPointerDown;
+    pointerDown({ button: 0, clientX: 10, clientY: 20, preventDefault, stopImmediatePropagation });
+    expect(simulation.enqueueSquadOrder).not.toHaveBeenCalled();
+    expect(preventDefault).not.toHaveBeenCalled();
+    expect(stopImmediatePropagation).not.toHaveBeenCalled();
+    expect(element.innerHTML).toContain('Advance: click a battlefield destination');
+
+    screenToPosition.mockReturnValue({ x: 1000, z: Number.POSITIVE_INFINITY });
+    pointerDown({ button: 0, clientX: 10, clientY: 20, preventDefault, stopImmediatePropagation });
+    expect(simulation.enqueueSquadOrder).not.toHaveBeenCalled();
+
+    screenToPosition.mockReturnValue({ x: 1000, z: 2000 });
+    pointerDown({ button: 0, clientX: 10, clientY: 20, preventDefault, stopImmediatePropagation });
+    expect(simulation.enqueueSquadOrder).toHaveBeenCalledTimes(1);
+    expect(simulation.enqueueSquadOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ order: 'ADVANCE', squadId: 1, targetX: 1000, targetZ: 2000 }),
+    );
+    expect(preventDefault).toHaveBeenCalledTimes(1);
+    expect(stopImmediatePropagation).toHaveBeenCalledTimes(1);
+    panel.destroy();
+  });
+
   it('ignores stale squad buttons without issuing orders to a fallback squad', () => {
     vi.stubGlobal('window', new EventTarget());
     const squad: SquadSnapshot = {
