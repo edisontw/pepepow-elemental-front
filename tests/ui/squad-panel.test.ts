@@ -201,6 +201,40 @@ describe('SquadPanel refresh stability', () => {
     panel.destroy();
   });
 
+  it('cancels an armed front order on battlefield right click without issuing a move', () => {
+    vi.stubGlobal('window', new EventTarget());
+    const squad: SquadSnapshot = {
+      id: 1, playerId: 0, memberEntityIds: [1], rosterLocked: true,
+      currentOrder: null, targetX: null, targetZ: null,
+      regroupDestinationX: null, regroupDestinationZ: null,
+      regroupState: 'NONE', guardTargetEntityId: null,
+    };
+    const simulation = simulationStub(squad);
+    const element = new FakePanelElement();
+    const canvas = new FakeCanvas();
+    const panel = new SquadPanel(
+      element as unknown as HTMLElement, simulation,
+      canvas as unknown as HTMLCanvasElement,
+      () => ({ x: 1000, z: 2000 }), () => true,
+    );
+    (panel as unknown as { onClick: (event: unknown) => void }).onClick({
+      target: { closest: () => ({ dataset: { action: 'guard', squadId: '1' } }) },
+    });
+    const preventDefault = vi.fn();
+    const stopImmediatePropagation = vi.fn();
+    (panel as unknown as {
+      onBattlefieldPointerDown: (event: unknown) => void;
+    }).onBattlefieldPointerDown({
+      button: 2, clientX: 10, clientY: 20, preventDefault, stopImmediatePropagation,
+    });
+    expect(preventDefault).toHaveBeenCalledTimes(1);
+    expect(stopImmediatePropagation).toHaveBeenCalledTimes(1);
+    expect(simulation.enqueueSquadOrder).not.toHaveBeenCalled();
+    expect(canvas.classList.toggle).toHaveBeenLastCalledWith('front-order-targeting', false);
+    expect(element.innerHTML).toContain('Front Order targeting cancelled.');
+    panel.destroy();
+  });
+
   it('ignores stale squad buttons without issuing orders to a fallback squad', () => {
     vi.stubGlobal('window', new EventTarget());
     const squad: SquadSnapshot = {
