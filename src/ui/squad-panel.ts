@@ -97,14 +97,14 @@ export class SquadPanel {
     if (event.button !== 0) return;
     const squad = this.activeSquad();
     // Resolving a missing squad cancels targeting; never retarget its pending order.
+    // An armed Front Order owns the click even when its squad disappeared.
+    // Do not leak that click into Classic controls after cancelling targeting.
+    event.preventDefault();
+    event.stopImmediatePropagation();
     if (!squad || this.armedOrder === null) {
       this.render();
       return;
     }
-    // An armed Front Order owns this click even if battlefield picking fails.
-    // Never let an invalid target fall through to Classic unit selection or movement.
-    event.preventDefault();
-    event.stopImmediatePropagation();
     const target = this.screenToSimulationPosition(event.clientX, event.clientY);
     if (!target || !Number.isFinite(target.x) || !Number.isFinite(target.z)) {
       this.message = 'Invalid battlefield destination. Click a valid location or press Esc to cancel.';
