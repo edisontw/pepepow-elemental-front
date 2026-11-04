@@ -189,8 +189,8 @@ describe('SquadPanel refresh stability', () => {
       button: 0, clientX: 10, clientY: 20, preventDefault, stopImmediatePropagation,
     });
     expect(simulation.enqueueSquadOrder).not.toHaveBeenCalled();
-    expect(preventDefault).not.toHaveBeenCalled();
-    expect(stopImmediatePropagation).not.toHaveBeenCalled();
+    expect(preventDefault).toHaveBeenCalledTimes(1);
+    expect(stopImmediatePropagation).toHaveBeenCalledTimes(1);
     expect(element.innerHTML).toContain('Front Order targeting cancelled: squad unavailable.');
     expect(canvas.classList.toggle).toHaveBeenLastCalledWith('front-order-targeting', false);
     panel.destroy();
