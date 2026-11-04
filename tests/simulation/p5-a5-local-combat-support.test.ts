@@ -219,7 +219,12 @@ describe('P5-A5 local combat support refinement', () => {
 
     // The enemy initiates the fight. The victim has no player attack order.
     sim.entities.combat.get(enemy)!.targetEntityId = 1;
+    sim.entities.combat.get(enemy)!.attackDamage = 1;
+    sim.entities.combat.get(enemy)!.attackRange = 1300;
+    // HOLD prevents the victim from initiating a counterattack in this fixture.
+    sim.entities.combat.get(1)!.attackRange = 0;
     sim.entities.combat.get(1)!.targetEntityId = null;
+    const victimHealthBefore = sim.entities.health.get(1)!.current;
     sim.enqueueCommand({ type: 'HOLD', targetTick: 1, playerId: 0, entityIds: [1] });
     sim.enqueueCommand({
       type: 'MOVE',
@@ -231,6 +236,7 @@ describe('P5-A5 local combat support refinement', () => {
     });
 
     automationTick(sim);
+    expect(sim.entities.health.get(1)!.current).toBeLessThan(victimHealthBefore);
     expect(sim.entities.combat.get(1)!.targetEntityId).toBeNull();
     expect(sim.entities.combat.get(2)!.targetEntityId).toBe(enemy);
     expect(sim.entities.movements.get(2)).toMatchObject({
