@@ -220,6 +220,7 @@ describe('P5-A5 local combat support refinement', () => {
     // The enemy initiates the fight. The victim has no player attack order.
     sim.entities.combat.get(enemy)!.targetEntityId = 1;
     sim.entities.combat.get(1)!.targetEntityId = null;
+    sim.enqueueCommand({ type: 'HOLD', targetTick: 1, playerId: 0, entityIds: [1] });
     sim.enqueueCommand({
       type: 'MOVE',
       targetTick: 1,
@@ -240,7 +241,7 @@ describe('P5-A5 local combat support refinement', () => {
 
     // The attacker disappears while help is en route. Its temporary target
     // must be cleared without losing the original transit destination.
-    sim.entities.removeEntity(enemy);
+    sim.entities.health.get(enemy)!.alive = false;
     automationTick(sim);
     expect(sim.entities.combat.get(2)!.targetEntityId).toBeNull();
 
