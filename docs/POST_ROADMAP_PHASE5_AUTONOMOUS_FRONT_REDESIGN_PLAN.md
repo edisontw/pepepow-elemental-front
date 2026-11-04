@@ -1,6 +1,6 @@
 # PEPEPOW Elemental Front — Post-Roadmap Phase 5 Autonomous Front Redesign Plan
 
-**Status:** ACTIVE — P5-A1–P5-A4 IMPLEMENTED; P5-A5 PLAYTEST = REVISE / local-support correction  
+**Status:** ACTIVE — P5-A1–P5-A4 IMPLEMENTED; P5-A5 USER-REPORTED MANUAL SMOKE PASS (2026-11-04, scoped); P5-B NOT YET APPROVED  
 **Date:** 2026-09-26  
 **Baseline gameplay identity:** `ef-standard-v24`  
 **Baseline replay identity:** `ef-replay-v24`  
@@ -589,7 +589,7 @@ Implemented initially under `ef-standard-v25` / `ef-replay-v25`, refined for mul
 - no automatic camera theft;
 - presentation-only: gameplay/replay identity remains v29.
 
-### P5-A5 — Playtest and decision gate — ACTIVE / REVISE
+### P5-A5 — Playtest and decision gate — USER-REPORTED MANUAL SMOKE PASS (2026-11-04)
 
 Do not automatically continue into P5-B.
 
@@ -607,7 +607,18 @@ v30 revision:
 - MOVE issued while already engaged remains forced disengage until arrival;
 - after temporary combat, saved NORMAL MOVE destinations are deterministically replanned and resumed.
 
-Decision remains **REVISE** until renewed playtest confirms the behavior. P5-B stays blocked.
+Historical verdict after the September 2026 playtest: **REVISE** due to insufficient local support. On 2026-11-04, after the v30 correction, the user reported normal behavior in all six requested manual smoke scenarios:
+
+- nearby units actively supporting an attacked friendly;
+- temporary fighting during movement followed by resumption of the original destination;
+- Guard / Regroup / forced disengagement;
+- elemental casting and squad-order interaction;
+- visuals, attack animations, and perceived performance;
+- Tower Defense gameplay.
+
+**Updated evidence-based decision: USER-REPORTED MANUAL SMOKE PASS for those six scenarios.** The P5-A5 local-support recheck is no longer awaiting the same manual confirmation. This is not a claim of instrumented FPS, cross-browser compatibility, long-duration soak, all combat edge cases, replay validation for new test commits, or complete 15–25 minute match/strategy quality. Those remain open as separate quality checks.
+
+**P5-B is deferred, not auto-approved.** Only begin a separately scoped P5-B slice after an explicit product decision; meanwhile continue verified bug fixes, presentation/UX and visual-quality improvements without repeating the completed P5-A5 manual gate.
 
 ---
 
