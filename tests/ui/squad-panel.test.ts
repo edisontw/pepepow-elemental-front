@@ -223,9 +223,10 @@ describe('SquadPanel refresh stability', () => {
     }).onBattlefieldPointerDown;
     pointerDown({ button: 0, clientX: 10, clientY: 20, preventDefault, stopImmediatePropagation });
     expect(simulation.enqueueSquadOrder).not.toHaveBeenCalled();
-    expect(preventDefault).not.toHaveBeenCalled();
-    expect(stopImmediatePropagation).not.toHaveBeenCalled();
-    expect(element.innerHTML).toContain('Advance: click a battlefield destination');
+    expect(preventDefault).toHaveBeenCalledTimes(1);
+    expect(stopImmediatePropagation).toHaveBeenCalledTimes(1);
+    expect(element.innerHTML).toContain('Invalid battlefield destination.');
+    expect(canvas.classList.toggle).toHaveBeenLastCalledWith('front-order-targeting', true);
 
     screenToPosition.mockReturnValue({ x: 1000, z: Number.POSITIVE_INFINITY });
     pointerDown({ button: 0, clientX: 10, clientY: 20, preventDefault, stopImmediatePropagation });
@@ -237,8 +238,8 @@ describe('SquadPanel refresh stability', () => {
     expect(simulation.enqueueSquadOrder).toHaveBeenCalledWith(
       expect.objectContaining({ order: 'ADVANCE', squadId: 1, targetX: 1000, targetZ: 2000 }),
     );
-    expect(preventDefault).toHaveBeenCalledTimes(1);
-    expect(stopImmediatePropagation).toHaveBeenCalledTimes(1);
+    expect(preventDefault).toHaveBeenCalledTimes(3);
+    expect(stopImmediatePropagation).toHaveBeenCalledTimes(3);
     panel.destroy();
   });
 
