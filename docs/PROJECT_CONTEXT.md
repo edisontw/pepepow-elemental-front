@@ -1,6 +1,6 @@
 # PEPEPOW Elemental Front — PROJECT_CONTEXT
 
-**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Phase 4 Hero-Lite Progression CLOSED → **Phase 5 Autonomous Front Redesign ACTIVE — P5-A1–P5-A4 IMPLEMENTED; P5-A5 PLAYTEST = REVISE (local support)**; Visual Production supporting  
+**Project status:** M00–M08 CLOSED → Post-Roadmap Phase 2 CLOSED → Phase 3 Formation Slice CLOSED → Phase 4 Hero-Lite Progression CLOSED → **Phase 5 Autonomous Front Redesign ACTIVE — P5-A1–P5-A4 IMPLEMENTED; P5-A5 USER-REPORTED MANUAL RECHECK = PASS (scoped, 2026-11-04)**; Visual Production supporting  
 **Primary repository:** `edisontw/pepepow-elemental-front`  
 **Playable deployment:** `https://edisontw.github.io/pepepow-elemental-front/`  
 **Original roadmap:** COMPLETE  
@@ -8,6 +8,21 @@
 **Current replay format:** `ef-replay-v30`
 **World-generation ruleset:** `m02-standard-v1`  
 **Latest closure report:** `docs/POST_ROADMAP_PHASE4_CLOSURE_REPORT.md`
+
+---
+
+## P5-A5 manual recheck — 2026-11-04
+
+The user reported **normal behavior in six direct gameplay checks** on the playable site:
+
+1. Nearby friendlies autonomously support a unit under attack.
+2. Units interrupted by combat resume their original movement destination.
+3. Guard, Regroup, and forced direct-control disengagement behave normally.
+4. Global elemental casting and squad/front-order controls behave normally.
+5. Battlefield visuals, animations, and perceived performance appear normal.
+6. Tower Defense enemies and combat behave normally.
+
+**Result: USER-REPORTED MANUAL SMOKE PASS for these six cases.** This supersedes the earlier local-support-specific P5-A5 REVISE gate for the tested scenarios, but does not certify untested edge cases, measured FPS, prolonged stability, cross-browser compatibility, complete match pacing, or deterministic replay/CI of recent changes. Preserve the existing fixed-tick/replay contracts. P5-B is **not automatically authorized**; a separate scoped design decision is required before expanding systems. The next automation passes should move beyond repetitive P5-A5 status checks and choose verified gameplay/UX/art improvements, while prioritizing runnable CI and build evidence.
 
 ---
 
