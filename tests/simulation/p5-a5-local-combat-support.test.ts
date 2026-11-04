@@ -212,4 +212,49 @@ describe('P5-A5 local combat support refinement', () => {
     expect(sim.entities.movements.get(2)!.orderMode).toBe('HOLD');
     expect(sim.entities.combat.get(2)!.targetEntityId).toBeNull();
   });
+  it('answers incoming enemy aggression without requiring the victim to retaliate', () => {
+    const sim = new SupportSimulation('incoming-distress', supportArena());
+    const enemy = hostile(sim, 3500, 2500, 500);
+    const destination = { x: 21_500, z: 2500 };
+
+    // The enemy initiates the fight. The victim has no player attack order.
+    sim.entities.combat.get(enemy)!.targetEntityId = 1;
+    sim.entities.combat.get(1)!.targetEntityId = null;
+    sim.enqueueCommand({
+      type: 'MOVE',
+      targetTick: 1,
+      playerId: 0,
+      entityIds: [2],
+      targetX: destination.x,
+      targetZ: destination.z,
+    });
+
+    automationTick(sim);
+    expect(sim.entities.combat.get(1)!.targetEntityId).toBeNull();
+    expect(sim.entities.combat.get(2)!.targetEntityId).toBe(enemy);
+    expect(sim.entities.movements.get(2)).toMatchObject({
+      localSupportActive: true,
+      resumeMoveX: destination.x,
+      resumeMoveZ: destination.z,
+    });
+
+    // The attacker disappears while help is en route. Its temporary target
+    // must be cleared without losing the original transit destination.
+    sim.entities.removeEntity(enemy);
+    automationTick(sim);
+    expect(sim.entities.combat.get(2)!.targetEntityId).toBeNull();
+
+    for (let index = 0; index < 120; index += 1) {
+      const position = sim.entities.positions.get(2)!;
+      if (position.x === destination.x && position.z === destination.z) break;
+      automationTick(sim);
+    }
+    expect(sim.entities.positions.get(2)).toEqual(destination);
+    expect(sim.entities.movements.get(2)).toMatchObject({
+      localSupportActive: false,
+      resumeMoveX: null,
+      resumeMoveZ: null,
+    });
+  });
+
 });
