@@ -22,5 +22,6 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install Pillow==11.3.0
       - run: npm ci
-      - run: npm run test
+      # Bound Vitest worker concurrency to avoid runner RPC timeouts during the full suite.
+      - run: npm run test -- --maxWorkers=2
       - run: npm run build
