@@ -134,7 +134,7 @@ describe('SquadPanel refresh stability', () => {
     vi.mocked(simulation.snapshot).mockImplementation(() => ({
       tick: 12,
       squads: { squads, stateHash: 'squad-test' },
-    }) as ReturnType<M06Simulation['snapshot']>);
+    }) as unknown as ReturnType<M06Simulation['snapshot']>);
     const panel = new SquadPanel(
       element as unknown as HTMLElement, simulation,
       canvas as unknown as HTMLCanvasElement,
@@ -169,7 +169,7 @@ describe('SquadPanel refresh stability', () => {
     vi.mocked(simulation.snapshot).mockImplementation(() => ({
       tick: 12,
       squads: { squads, stateHash: 'squad-test' },
-    }) as ReturnType<M06Simulation['snapshot']>);
+    }) as unknown as ReturnType<M06Simulation['snapshot']>);
     const element = new FakePanelElement();
     const canvas = new FakeCanvas();
     const panel = new SquadPanel(
