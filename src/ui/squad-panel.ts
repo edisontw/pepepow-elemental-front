@@ -101,10 +101,16 @@ export class SquadPanel {
       this.render();
       return;
     }
-    const target = this.screenToSimulationPosition(event.clientX, event.clientY);
-    if (!target || !Number.isFinite(target.x) || !Number.isFinite(target.z)) return;
+    // An armed Front Order owns this click even if battlefield picking fails.
+    // Never let an invalid target fall through to Classic unit selection or movement.
     event.preventDefault();
     event.stopImmediatePropagation();
+    const target = this.screenToSimulationPosition(event.clientX, event.clientY);
+    if (!target || !Number.isFinite(target.x) || !Number.isFinite(target.z)) {
+      this.message = 'Invalid battlefield destination. Click a valid location or press Esc to cancel.';
+      this.render();
+      return;
+    }
     const order = this.armedOrder;
     this.enqueueOrder({ order, squadId: squad.id, targetX: target.x, targetZ: target.z });
     this.message = `Squad ${squad.id}: ${this.label(order)} objective assigned.`;
